@@ -24,9 +24,9 @@ Modern risk management platform for large financial institutions.
 - [x] Create `kinetix.protobuf.gradle.kts` (proto/gRPC code generation)
 
 ### 0.3 Shared Modules
-- [ ] Create `proto/` module with initial `.proto` files (common types, risk calculation)
-- [ ] Create `common/` module with domain primitives (`Money`, `PortfolioId`, `AssetClass`)
-- [ ] First unit tests in `common/` (TDD: red-green-refactor)
+- [x] Create `proto/` module with initial `.proto` files (common types, risk calculation)
+- [x] Create `common/` module with domain primitives (`Money`, `PortfolioId`, `AssetClass`)
+- [x] First unit tests in `common/` (TDD: red-green-refactor)
 
 ### 0.4 Service Scaffolds (Kotlin)
 - [ ] Scaffold `gateway/` (Ktor Application.kt, /health endpoint, first test)

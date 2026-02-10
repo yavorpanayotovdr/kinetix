@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "google/protobuf/timestamp.proto";
+
+enum RiskCalculationType {
+  RISK_CALCULATION_TYPE_UNSPECIFIED = 0;
+  HISTORICAL = 1;
+  PARAMETRIC = 2;
+  MONTE_CARLO = 3;
+}
+
+enum ConfidenceLevel {
+  CONFIDENCE_LEVEL_UNSPECIFIED = 0;
+  CL_95 = 1;
+  CL_99 = 2;
+}
+
+message VaRRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  int32 time_horizon_days = 4;
+  int32 num_simulations = 5; // For Monte Carlo
+  repeated kinetix.common.Position positions = 6;
+}
+
+message VaRResponse {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  double var_value = 4;
+  double expected_shortfall = 5;
+  repeated VaRComponentBreakdown component_breakdown = 6;
+  google.protobuf.Timestamp calculated_at = 7;
+}
+
+message VaRComponentBreakdown {
+  kinetix.common.AssetClass asset_class = 1;
+  double var_contribution = 2;
+  double percentage_of_total = 3;
+}
+
+service RiskCalculationService {
+  rpc CalculateVaR(VaRRequest) returns (VaRResponse);
+  rpc CalculateVaRStream(stream VaRRequest) returns (stream VaRResponse);
+}

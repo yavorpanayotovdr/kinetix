@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package kinetix.common;
+
+option java_package = "com.kinetix.proto.common";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+message Money {
+  string amount = 1;   // Decimal string to avoid floating-point precision loss
+  string currency = 2; // ISO 4217 currency code (e.g., "USD", "EUR")
+}
+
+message PortfolioId {
+  string value = 1;
+}
+
+message TradeId {
+  string value = 1;
+}
+
+message InstrumentId {
+  string value = 1;
+}
+
+enum AssetClass {
+  ASSET_CLASS_UNSPECIFIED = 0;
+  EQUITY = 1;
+  FIXED_INCOME = 2;
+  FX = 3;
+  COMMODITY = 4;
+  DERIVATIVE = 5;
+}
+
+message Position {
+  PortfolioId portfolio_id = 1;
+  InstrumentId instrument_id = 2;
+  AssetClass asset_class = 3;
+  double quantity = 4;
+  Money market_value = 5;
+  Money unrealized_pnl = 6;
+  google.protobuf.Timestamp as_of = 7;
+}
