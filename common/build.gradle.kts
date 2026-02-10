@@ -1,1 +1,4 @@
-// Placeholder — will be configured with kinetix.kotlin-library convention plugin
+plugins {
+    id("kinetix.kotlin-library")
+    id("kinetix.kotlin-testing")
+}

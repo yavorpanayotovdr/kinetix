@@ -1,1 +1,4 @@
-// Placeholder — will be configured with kinetix.protobuf convention plugin
+plugins {
+    id("kinetix.protobuf")
+    id("kinetix.kotlin-testing")
+}

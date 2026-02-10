@@ -1,1 +1,8 @@
-// Placeholder — will be configured with kinetix.kotlin-service convention plugin
+plugins {
+    id("kinetix.kotlin-service")
+    id("kinetix.kotlin-testing")
+}
+
+application {
+    mainClass.set("com.kinetix.marketdata.ApplicationKt")
+}

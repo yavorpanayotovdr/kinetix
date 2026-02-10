@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.plugins.kotlin.jvm.map { "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version}" })
-    compileOnly(libs.plugins.kotlin.serialization.map { "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version}" })
-    compileOnly(libs.plugins.ktor.map { "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version}" })
-    compileOnly(libs.plugins.protobuf.map { "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version}" })
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.get()}")
+    implementation("org.jetbrains.kotlin:kotlin-serialization:${libs.versions.kotlin.get()}")
+    implementation("io.ktor.plugin:plugin:${libs.versions.ktor.get()}")
+    implementation("com.google.protobuf:protobuf-gradle-plugin:${libs.versions.protobuf.plugin.get()}")
 }

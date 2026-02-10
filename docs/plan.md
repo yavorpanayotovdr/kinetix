@@ -17,11 +17,11 @@ Modern risk management platform for large financial institutions.
 ### 0.2 Build Logic (Convention Plugins)
 - [x] Create `build-logic/settings.gradle.kts`
 - [x] Create `build-logic/convention/build.gradle.kts`
-- [ ] Create `kinetix.kotlin-common.gradle.kts` (compiler opts, JVM target)
-- [ ] Create `kinetix.kotlin-library.gradle.kts` (shared library config)
-- [ ] Create `kinetix.kotlin-service.gradle.kts` (Ktor application config)
-- [ ] Create `kinetix.kotlin-testing.gradle.kts` (test deps, task separation)
-- [ ] Create `kinetix.protobuf.gradle.kts` (proto/gRPC code generation)
+- [x] Create `kinetix.kotlin-common.gradle.kts` (compiler opts, JVM toolchain 21)
+- [x] Create `kinetix.kotlin-library.gradle.kts` (shared library config)
+- [x] Create `kinetix.kotlin-service.gradle.kts` (Ktor application config)
+- [x] Create `kinetix.kotlin-testing.gradle.kts` (test deps, task separation)
+- [x] Create `kinetix.protobuf.gradle.kts` (proto/gRPC code generation)
 
 ### 0.3 Shared Modules
 - [ ] Create `proto/` module with initial `.proto` files (common types, risk calculation)
