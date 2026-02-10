@@ -1,0 +1,283 @@
+# Kinetix — Build Plan
+
+Modern risk management platform for large financial institutions.
+
+---
+
+## Increment 0: Project Skeleton
+
+### 0.1 Gradle Monorepo Bootstrap
+- [x] Initialize git repository
+- [x] Create `gradle/wrapper` (Gradle 9.3.1 — upgraded from 8.12 for Java 25 compatibility)
+- [x] Create `gradle/libs.versions.toml` (centralized version catalog)
+- [x] Create root `settings.gradle.kts` (multi-module includes)
+- [x] Create root `build.gradle.kts`
+- [x] Create `gradle.properties` (JVM args, Kotlin daemon settings)
+
+### 0.2 Build Logic (Convention Plugins)
+- [x] Create `build-logic/settings.gradle.kts`
+- [x] Create `build-logic/convention/build.gradle.kts`
+- [ ] Create `kinetix.kotlin-common.gradle.kts` (compiler opts, JVM target)
+- [ ] Create `kinetix.kotlin-library.gradle.kts` (shared library config)
+- [ ] Create `kinetix.kotlin-service.gradle.kts` (Ktor application config)
+- [ ] Create `kinetix.kotlin-testing.gradle.kts` (test deps, task separation)
+- [ ] Create `kinetix.protobuf.gradle.kts` (proto/gRPC code generation)
+
+### 0.3 Shared Modules
+- [ ] Create `proto/` module with initial `.proto` files (common types, risk calculation)
+- [ ] Create `common/` module with domain primitives (`Money`, `PortfolioId`, `AssetClass`)
+- [ ] First unit tests in `common/` (TDD: red-green-refactor)
+
+### 0.4 Service Scaffolds (Kotlin)
+- [ ] Scaffold `gateway/` (Ktor Application.kt, /health endpoint, first test)
+- [ ] Scaffold `position-service/`
+- [ ] Scaffold `market-data-service/`
+- [ ] Scaffold `risk-orchestrator/`
+- [ ] Scaffold `regulatory-service/`
+- [ ] Scaffold `notification-service/`
+- [ ] Scaffold `audit-service/`
+
+### 0.5 Python Risk Engine Scaffold
+- [ ] Create `risk-engine/pyproject.toml` (uv, PEP 621)
+- [ ] Create `risk-engine/src/kinetix_risk/` package structure
+- [ ] Create `risk-engine/tests/` with a trivial passing test
+- [ ] Verify `uv run pytest` passes
+
+### 0.6 UI Scaffold
+- [ ] Create `ui/` with Vite + React 19 + TypeScript + Tailwind
+- [ ] Add Vitest config with a trivial passing test
+- [ ] Verify `npm run test` and `npm run build` pass
+
+### 0.7 Infrastructure
+- [ ] Create `infra/docker-compose.infra.yml` (PostgreSQL+TimescaleDB, Kafka KRaft, Redis)
+- [ ] Create `infra/db/init/01-create-databases.sql` (per-service databases)
+- [ ] Create `infra/kafka/create-topics.sh`
+- [ ] Verify `docker compose -f infra/docker-compose.infra.yml up` starts clean
+
+### 0.8 Developer Workflow
+- [ ] Create `.githooks/pre-commit` (unit tests + lint)
+- [ ] Create `.gitignore`
+- [ ] Create `.editorconfig`
+- [ ] Configure git to use `.githooks/` directory
+- [ ] Verify `./gradlew build` passes end-to-end
+
+---
+
+## Increment 1: Position Management
+
+### 1.1 Position Domain Model
+- [ ] TDD: Write failing tests for `Trade`, `Position`, `Portfolio` domain objects in `common/`
+- [ ] Implement domain objects to pass tests
+- [ ] TDD: Write failing tests for P&L calculation logic
+- [ ] Implement P&L calculation
+
+### 1.2 Position Service — Persistence
+- [ ] Create Flyway migrations for `trade_events` and `positions` tables
+- [ ] TDD: Write failing integration test (Testcontainers + PostgreSQL) for trade event persistence
+- [ ] Implement `TradeEventRepository` with Exposed
+- [ ] TDD: Write failing integration test for position projection
+- [ ] Implement `PositionRepository`
+
+### 1.3 Position Service — Trade Booking
+- [ ] TDD: Write failing unit tests for `BookTradeCommand` handler
+- [ ] Implement command handler (creates trade event, updates position projection)
+- [ ] TDD: Write failing unit tests for `GetPositionsQuery` handler
+- [ ] Implement query handler
+
+### 1.4 Position Service — Kafka Publishing
+- [ ] TDD: Write failing integration test (Testcontainers + Kafka) for trade event publishing
+- [ ] Implement Kafka producer for `trades.lifecycle` topic
+
+### 1.5 Gateway — Position REST Endpoints
+- [ ] TDD: Write failing route tests for `GET /api/v1/portfolios`
+- [ ] Implement portfolio routes
+- [ ] TDD: Write failing route tests for `POST /api/v1/portfolios/{id}/trades`
+- [ ] Implement trade booking route (calls position-service via gRPC)
+- [ ] TDD: Write failing route tests for `GET /api/v1/portfolios/{id}/positions`
+- [ ] Implement position query route
+
+### 1.6 Audit Service — Trade Audit Trail
+- [ ] TDD: Write failing integration test for Kafka consumer + append-only persistence
+- [ ] Implement audit event consumer and repository
+- [ ] TDD: Write failing route tests for `GET /api/v1/audit/events`
+- [ ] Implement audit query route
+
+### 1.7 Acceptance Test
+- [ ] Write BDD acceptance test (Kotest BehaviorSpec): "Given empty portfolio, When buy trade booked, Then position exists AND audit event recorded"
+
+---
+
+## Increment 2: Market Data Pipeline
+
+### 2.1 Market Data Domain
+- [ ] TDD: Domain objects for `MarketDataPoint`, `YieldCurve`, `VolSurface`
+
+### 2.2 Market Data Service — Ingestion & Storage
+- [ ] Flyway migration for `market_data` TimescaleDB hypertable
+- [ ] TDD: Simulated market data feed generator
+- [ ] TDD: TimescaleDB repository (Testcontainers)
+- [ ] TDD: Redis cache for latest prices
+- [ ] TDD: Kafka publisher for `market.data.prices`
+
+### 2.3 Position Service — P&L Updates
+- [ ] TDD: Kafka consumer for market data, mark-to-market P&L recalculation
+
+### 2.4 Gateway — WebSocket + Market Data REST
+- [ ] TDD: WebSocket handler for real-time price streaming
+- [ ] TDD: REST endpoints for market data queries
+
+### 2.5 UI — Basic Position Grid
+- [ ] Position table component with live P&L updates via WebSocket
+- [ ] Vitest unit tests for components
+
+### 2.6 Acceptance Test
+- [ ] "When price update arrives for AAPL, position P&L recalculated within 2 seconds"
+
+---
+
+## Increment 3: Core Risk Engine
+
+### 3.1 Python Risk Engine — VaR
+- [ ] TDD: Historical VaR calculation (pytest)
+- [ ] TDD: Parametric VaR calculation
+- [ ] TDD: Monte Carlo VaR calculation
+- [ ] TDD: Expected Shortfall
+- [ ] gRPC server implementation
+
+### 3.2 Risk Orchestrator
+- [ ] TDD: VaR workflow (fetches positions, calls risk-engine, publishes results)
+- [ ] TDD: On-demand and scheduled calculation triggers
+- [ ] Kafka consumer for positions + market data
+
+### 3.3 Gateway — Risk REST Endpoints
+- [ ] TDD: `GET/POST /api/v1/risk/var/{portfolioId}`
+
+### 3.4 UI — VaR Dashboard
+- [ ] VaR gauge, time series chart, component breakdown
+- [ ] Vitest tests
+
+### 3.5 Performance Test
+- [ ] Monte Carlo VaR: 10K positions, 10K sims < 60s
+
+### 3.6 Acceptance Test
+- [ ] "When VaR requested for portfolio, receive valid VaR with component breakdown"
+
+---
+
+## Increment 4: Observability
+
+### 4.1 Instrumentation
+- [ ] OpenTelemetry SDK in all Kotlin services (Micrometer + OTLP exporter)
+- [ ] OpenTelemetry SDK in Python risk-engine
+- [ ] Prometheus `/metrics` endpoint on every service
+
+### 4.2 Infrastructure
+- [ ] Add OTel Collector, Prometheus, Grafana, Loki, Tempo to docker-compose
+- [ ] Prometheus scrape configs + alert rules
+- [ ] Grafana datasource provisioning (Prometheus, Loki, Tempo)
+
+### 4.3 Dashboards
+- [ ] Risk Overview dashboard (VaR gauges, P&L, stress test heatmap)
+- [ ] System Health dashboard (RED metrics, Kafka lag, DB pools)
+- [ ] Market Data dashboard (feed latency, staleness, update rate)
+
+### 4.4 Alerting
+- [ ] VaR breach alert rule
+- [ ] Risk calculation slow alert rule
+- [ ] Market data stale alert rule
+- [ ] Kafka consumer lag alert rule
+
+### 4.5 Acceptance Test
+- [ ] "When VaR calculation exceeds 30s, alert fires in Grafana"
+
+---
+
+## Increment 5: ML Models
+
+### 5.1 Volatility Predictor
+- [ ] TDD: LSTM model training pipeline (PyTorch)
+- [ ] TDD: Inference endpoint via gRPC
+- [ ] Model artifact storage + versioning
+
+### 5.2 Credit Default Model
+- [ ] TDD: Gradient Boosted Trees training (scikit-learn)
+- [ ] TDD: gRPC scoring endpoint
+
+### 5.3 Anomaly Detector
+- [ ] TDD: Isolation Forest for risk metric anomalies
+- [ ] Integration with notification-service
+
+### 5.4 Performance Test
+- [ ] Vol prediction for 1000 instruments < 5s
+
+---
+
+## Increment 6: Stress Testing & Greeks
+
+### 6.1 Stress Test Framework
+- [ ] TDD: Historical stress scenarios (2008 crisis, COVID, etc.)
+- [ ] TDD: Hypothetical scenario builder
+- [ ] Risk-engine stress test gRPC endpoint
+
+### 6.2 Greeks Calculation
+- [ ] TDD: QuantLib-based Greeks (Delta, Gamma, Vega, Theta, Rho)
+- [ ] gRPC endpoint for Greeks
+
+### 6.3 UI
+- [ ] Stress test scenario builder and results display
+- [ ] Greeks heatmap, what-if analysis
+
+### 6.4 Acceptance Test
+- [ ] "When 2008 crisis stress test runs, see losses broken down by asset class"
+
+---
+
+## Increment 7: Regulatory Reporting
+
+### 7.1 FRTB Standardized Approach
+- [ ] TDD: Sensitivities-Based Method (SbM)
+- [ ] TDD: Default Risk Charge (DRC)
+- [ ] TDD: Residual Risk Add-On (RRAO)
+
+### 7.2 Report Generation
+- [ ] CSV and XBRL output formats
+- [ ] Report storage and retrieval
+
+### 7.3 UI — Regulatory Dashboard
+- [ ] Capital requirements display, report generation UI
+
+### 7.4 Acceptance Test
+- [ ] "When FRTB report generated, capital requirement calculated across all seven risk classes"
+
+---
+
+## Increment 8: Notifications & Alerting
+
+### 8.1 Notification Service
+- [ ] TDD: Rules engine for VaR breaches, P&L thresholds, KRI
+- [ ] TDD: Delivery channels (in-app WebSocket, email SMTP, webhook)
+- [ ] Kafka consumer for risk results
+
+### 8.2 UI — Alert Configuration
+- [ ] Threshold configuration UI, notification center
+
+### 8.3 Acceptance Test
+- [ ] "When VaR exceeds limit, notification in UI within 10s and email sent"
+
+---
+
+## Increment 9: Production Hardening
+
+### 9.1 Security
+- [ ] JWT authentication with Keycloak (docker-compose)
+- [ ] RBAC roles: ADMIN, TRADER, RISK_MANAGER, COMPLIANCE, VIEWER
+- [ ] TLS for gRPC and HTTP
+
+### 9.2 Resilience
+- [ ] Circuit breakers for inter-service calls
+- [ ] Rate limiting on gateway
+- [ ] Connection pool tuning (HikariCP)
+
+### 9.3 Performance
+- [ ] Gatling load test suite
+- [ ] p95 < 3s for API calls, > 99% success rate under load
