@@ -29,13 +29,13 @@ Modern risk management platform for large financial institutions.
 - [x] First unit tests in `common/` (TDD: red-green-refactor)
 
 ### 0.4 Service Scaffolds (Kotlin)
-- [ ] Scaffold `gateway/` (Ktor Application.kt, /health endpoint, first test)
-- [ ] Scaffold `position-service/`
-- [ ] Scaffold `market-data-service/`
-- [ ] Scaffold `risk-orchestrator/`
-- [ ] Scaffold `regulatory-service/`
-- [ ] Scaffold `notification-service/`
-- [ ] Scaffold `audit-service/`
+- [x] Scaffold `gateway/` (Ktor Application.kt, /health endpoint, first test)
+- [x] Scaffold `position-service/`
+- [x] Scaffold `market-data-service/`
+- [x] Scaffold `risk-orchestrator/`
+- [x] Scaffold `regulatory-service/`
+- [x] Scaffold `notification-service/`
+- [x] Scaffold `audit-service/`
 
 ### 0.5 Python Risk Engine Scaffold
 - [ ] Create `risk-engine/pyproject.toml` (uv, PEP 621)
