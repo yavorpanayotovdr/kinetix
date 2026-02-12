@@ -38,10 +38,10 @@ Modern risk management platform for large financial institutions.
 - [x] Scaffold `audit-service/`
 
 ### 0.5 Python Risk Engine Scaffold
-- [ ] Create `risk-engine/pyproject.toml` (uv, PEP 621)
-- [ ] Create `risk-engine/src/kinetix_risk/` package structure
-- [ ] Create `risk-engine/tests/` with a trivial passing test
-- [ ] Verify `uv run pytest` passes
+- [x] Create `risk-engine/pyproject.toml` (uv, PEP 621)
+- [x] Create `risk-engine/src/kinetix_risk/` package structure
+- [x] Create `risk-engine/tests/` with a trivial passing test
+- [x] Verify `uv run pytest` passes
 
 ### 0.6 UI Scaffold
 - [ ] Create `ui/` with Vite + React 19 + TypeScript + Tailwind

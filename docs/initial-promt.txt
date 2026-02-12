@@ -3,12 +3,13 @@ Kinetix
 
 Modern risk management system for big financial institutions, e.g. big investment banks and hedge funds.
 
-Plan the design of such a system. Take into account following:
+Plan the design of such a system. Take into account the following:
 - Multi-module system with the ability for it to be deployed locally via docker-compose
 - System will leverage AI for risk calculation (preferably through python integration)
 - Most of the backend services will be written in Kotlin 
 - System will benefit from modern UI
 - Observability of key metrics is a core requirement
-- System will be build incrementally with testing in mind. Every change will start with a failing test and all tests will be run before a commit. Testing strategies to be deployed - unit, acceptance, integration, performance 
+- System will be built incrementally with testing in mind. Every change will start with a failing test, and all tests will be run before a commit.
+ - Testing strategies to be deployed - unit, acceptance, integration, performance
 
 Think harder!
