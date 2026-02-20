@@ -110,7 +110,7 @@ Modern risk management platform for large financial institutions.
 ## Increment 2: Market Data Pipeline
 
 ### 2.1 Market Data Domain
-- [ ] TDD: Domain objects for `MarketDataPoint`, `YieldCurve`, `VolSurface`
+- [x] TDD: Domain objects for `MarketDataPoint`, `YieldCurve`, `VolSurface`
 
 ### 2.2 Market Data Service — Ingestion & Storage
 - [ ] Flyway migration for `market_data` TimescaleDB hypertable
