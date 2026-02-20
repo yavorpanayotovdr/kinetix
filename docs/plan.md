@@ -131,7 +131,7 @@ Modern risk management platform for large financial institutions.
 - [x] Vitest unit tests for components (42 tests across 5 files)
 
 ### 2.6 Acceptance Test
-- [ ] "When price update arrives for AAPL, position P&L recalculated within 2 seconds"
+- [x] "When price update arrives for AAPL, position P&L recalculated within 2 seconds"
 
 ---
 
