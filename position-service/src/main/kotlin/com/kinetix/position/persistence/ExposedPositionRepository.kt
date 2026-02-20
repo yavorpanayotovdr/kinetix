@@ -35,6 +35,13 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             .map { it.toPosition() }
     }
 
+    override suspend fun findByInstrumentId(instrumentId: InstrumentId): List<Position> = newSuspendedTransaction(db = db) {
+        PositionsTable
+            .selectAll()
+            .where { PositionsTable.instrumentId eq instrumentId.value }
+            .map { it.toPosition() }
+    }
+
     override suspend fun findByKey(
         portfolioId: PortfolioId,
         instrumentId: InstrumentId,

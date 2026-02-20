@@ -120,7 +120,7 @@ Modern risk management platform for large financial institutions.
 - [x] TDD: Kafka publisher for `market.data.prices`
 
 ### 2.3 Position Service — P&L Updates
-- [ ] TDD: Kafka consumer for market data, mark-to-market P&L recalculation
+- [x] TDD: Kafka consumer for market data, mark-to-market P&L recalculation
 
 ### 2.4 Gateway — WebSocket + Market Data REST
 - [ ] TDD: WebSocket handler for real-time price streaming

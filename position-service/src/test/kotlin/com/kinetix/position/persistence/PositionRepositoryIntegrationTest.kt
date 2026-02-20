@@ -107,6 +107,21 @@ class PositionRepositoryIntegrationTest : FunSpec({
         found.quantity.compareTo(BigDecimal("-50")) shouldBe 0
     }
 
+    test("findByInstrumentId returns all positions across portfolios") {
+        repository.save(position(portfolioId = PortfolioId("port-1"), instrumentId = AAPL))
+        repository.save(position(portfolioId = PortfolioId("port-2"), instrumentId = AAPL))
+        repository.save(position(portfolioId = PortfolioId("port-1"), instrumentId = MSFT))
+
+        val results = repository.findByInstrumentId(AAPL)
+        results shouldHaveSize 2
+        results.map { it.portfolioId }.toSet() shouldBe setOf(PortfolioId("port-1"), PortfolioId("port-2"))
+        results.forEach { it.instrumentId shouldBe AAPL }
+    }
+
+    test("findByInstrumentId returns empty list for unknown instrument") {
+        repository.findByInstrumentId(InstrumentId("UNKNOWN")) shouldHaveSize 0
+    }
+
     test("save position with zero quantity (flat position)") {
         repository.save(position(quantity = "0"))
         val found = repository.findByKey(PORTFOLIO, AAPL)

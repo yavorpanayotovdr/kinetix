@@ -8,5 +8,6 @@ interface PositionRepository {
     suspend fun save(position: Position)
     suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Position>
     suspend fun findByKey(portfolioId: PortfolioId, instrumentId: InstrumentId): Position?
+    suspend fun findByInstrumentId(instrumentId: InstrumentId): List<Position>
     suspend fun delete(portfolioId: PortfolioId, instrumentId: InstrumentId)
 }
