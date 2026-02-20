@@ -9,4 +9,5 @@ application {
 
 dependencies {
     implementation(project(":common"))
+    implementation(libs.ktor.server.websockets)
 }

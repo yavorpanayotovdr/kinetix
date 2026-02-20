@@ -1,8 +1,12 @@
 package com.kinetix.gateway
 
+import com.kinetix.gateway.client.MarketDataServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.dto.ErrorResponse
+import com.kinetix.gateway.routes.marketDataRoutes
 import com.kinetix.gateway.routes.positionRoutes
+import com.kinetix.gateway.websocket.PriceBroadcaster
+import com.kinetix.gateway.websocket.marketDataWebSocket
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -11,6 +15,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -21,6 +26,7 @@ fun Application.module() {
             ignoreUnknownKeys = true
         })
     }
+    install(WebSockets)
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -47,5 +53,32 @@ fun Application.module(positionClient: PositionServiceClient) {
     module()
     routing {
         positionRoutes(positionClient)
+    }
+}
+
+fun Application.module(marketDataClient: MarketDataServiceClient) {
+    module()
+    routing {
+        marketDataRoutes(marketDataClient)
+    }
+}
+
+fun Application.module(broadcaster: PriceBroadcaster) {
+    module()
+    routing {
+        marketDataWebSocket(broadcaster)
+    }
+}
+
+fun Application.module(
+    positionClient: PositionServiceClient,
+    marketDataClient: MarketDataServiceClient,
+    broadcaster: PriceBroadcaster,
+) {
+    module()
+    routing {
+        positionRoutes(positionClient)
+        marketDataRoutes(marketDataClient)
+        marketDataWebSocket(broadcaster)
     }
 }
