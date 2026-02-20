@@ -12,6 +12,7 @@ dependencies {
     "implementation"(libs.findLibrary("grpc-stub").get())
     "implementation"(libs.findLibrary("grpc-kotlin-stub").get())
     "implementation"(libs.findLibrary("protobuf-kotlin").get())
+    "implementation"(libs.findLibrary("kotlinx-coroutines-core").get())
 }
 
 protobuf {
