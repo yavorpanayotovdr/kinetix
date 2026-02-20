@@ -44,9 +44,9 @@ Modern risk management platform for large financial institutions.
 - [x] Verify `uv run pytest` passes
 
 ### 0.6 UI Scaffold
-- [ ] Create `ui/` with Vite + React 19 + TypeScript + Tailwind
-- [ ] Add Vitest config with a trivial passing test
-- [ ] Verify `npm run test` and `npm run build` pass
+- [x] Create `ui/` with Vite + React 19 + TypeScript + Tailwind
+- [x] Add Vitest config with a trivial passing test
+- [x] Verify `npm run test` and `npm run build` pass
 
 ### 0.7 Infrastructure
 - [ ] Create `infra/docker-compose.infra.yml` (PostgreSQL+TimescaleDB, Kafka KRaft, Redis)
@@ -123,12 +123,12 @@ Modern risk management platform for large financial institutions.
 - [x] TDD: Kafka consumer for market data, mark-to-market P&L recalculation
 
 ### 2.4 Gateway — WebSocket + Market Data REST
-- [ ] TDD: WebSocket handler for real-time price streaming
-- [ ] TDD: REST endpoints for market data queries
+- [x] TDD: WebSocket handler for real-time price streaming
+- [x] TDD: REST endpoints for market data queries
 
 ### 2.5 UI — Basic Position Grid
-- [ ] Position table component with live P&L updates via WebSocket
-- [ ] Vitest unit tests for components
+- [x] Position table component with live P&L updates via WebSocket
+- [x] Vitest unit tests for components (42 tests across 5 files)
 
 ### 2.6 Acceptance Test
 - [ ] "When price update arrives for AAPL, position P&L recalculated within 2 seconds"
