@@ -145,9 +145,9 @@ Modern risk management platform for large financial institutions.
 - [x] gRPC server implementation
 
 ### 3.2 Risk Orchestrator
-- [ ] TDD: VaR workflow (fetches positions, calls risk-engine, publishes results)
-- [ ] TDD: On-demand and scheduled calculation triggers
-- [ ] Kafka consumer for positions + market data
+- [x] TDD: VaR workflow (fetches positions, calls risk-engine, publishes results)
+- [x] TDD: On-demand and scheduled calculation triggers
+- [x] Kafka consumer for positions + market data
 
 ### 3.3 Gateway — Risk REST Endpoints
 - [ ] TDD: `GET/POST /api/v1/risk/var/{portfolioId}`
