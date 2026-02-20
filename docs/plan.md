@@ -49,17 +49,17 @@ Modern risk management platform for large financial institutions.
 - [x] Verify `npm run test` and `npm run build` pass
 
 ### 0.7 Infrastructure
-- [ ] Create `infra/docker-compose.infra.yml` (PostgreSQL+TimescaleDB, Kafka KRaft, Redis)
-- [ ] Create `infra/db/init/01-create-databases.sql` (per-service databases)
-- [ ] Create `infra/kafka/create-topics.sh`
-- [ ] Verify `docker compose -f infra/docker-compose.infra.yml up` starts clean
+- [x] Create `infra/docker-compose.infra.yml` (PostgreSQL+TimescaleDB, Kafka KRaft, Redis)
+- [x] Create `infra/db/init/01-create-databases.sql` (per-service databases)
+- [x] Create `infra/kafka/create-topics.sh`
+- [x] Verify `docker compose -f infra/docker-compose.infra.yml up` starts clean
 
 ### 0.8 Developer Workflow
-- [ ] Create `.githooks/pre-commit` (unit tests + lint)
-- [ ] Create `.gitignore`
-- [ ] Create `.editorconfig`
-- [ ] Configure git to use `.githooks/` directory
-- [ ] Verify `./gradlew build` passes end-to-end
+- [x] Create `.githooks/pre-commit` (unit tests + lint)
+- [x] Create `.gitignore`
+- [x] Create `.editorconfig`
+- [x] Configure git to use `.githooks/` directory
+- [x] Verify `./gradlew build` passes end-to-end
 
 ---
 
