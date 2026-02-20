@@ -1,0 +1,128 @@
+import numpy as np
+import pytest
+from scipy.stats import norm
+
+from kinetix_risk.models import AssetClass, AssetClassExposure, ConfidenceLevel
+from kinetix_risk.var_parametric import calculate_parametric_var
+
+
+class TestParametricVaRSingleAsset:
+    """Single asset: VaR = z * sigma_daily * market_value * sqrt(T)
+    where sigma_daily = sigma_annual / sqrt(252)
+    """
+
+    def test_single_equity_95_1day(self):
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        daily_vol = 0.20 / np.sqrt(252)
+        expected_var = norm.ppf(0.95) * daily_vol * 100_000
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
+
+    def test_single_equity_99_1day(self):
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_99, 1, corr)
+
+        daily_vol = 0.20 / np.sqrt(252)
+        expected_var = norm.ppf(0.99) * daily_vol * 100_000
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
+
+    def test_time_horizon_scaling_sqrt_t(self):
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        var_1d = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+        var_10d = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 10, corr)
+
+        assert var_10d.var_value == pytest.approx(
+            var_1d.var_value * np.sqrt(10), rel=1e-6
+        )
+
+
+class TestParametricVaRMultiAsset:
+    def test_two_uncorrelated_assets(self):
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        corr = np.array([[1.0, 0.0], [0.0, 1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        daily_vol_eq = 0.20 / np.sqrt(252)
+        daily_vol_fx = 0.10 / np.sqrt(252)
+        port_std = np.sqrt(
+            (daily_vol_eq * 100_000) ** 2 + (daily_vol_fx * 50_000) ** 2
+        )
+        expected_var = norm.ppf(0.95) * port_std
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
+
+    def test_two_perfectly_correlated_assets(self):
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        corr = np.array([[1.0, 1.0], [1.0, 1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        daily_vol_eq = 0.20 / np.sqrt(252)
+        daily_vol_fx = 0.10 / np.sqrt(252)
+        expected_var = norm.ppf(0.95) * (
+            daily_vol_eq * 100_000 + daily_vol_fx * 50_000
+        )
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
+
+    def test_diversification_benefit(self):
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FIXED_INCOME, 100_000.0, 0.06),
+        ]
+        corr_neg = np.array([[1.0, -0.20], [-0.20, 1.0]])
+        corr_zero = np.array([[1.0, 0.0], [0.0, 1.0]])
+
+        var_neg = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr_neg)
+        var_zero = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr_zero)
+
+        assert var_neg.var_value < var_zero.var_value
+
+
+class TestParametricVaRComponentBreakdown:
+    def test_single_asset_component_is_100_percent(self):
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        assert len(result.component_breakdown) == 1
+        assert result.component_breakdown[0].asset_class == AssetClass.EQUITY
+        assert result.component_breakdown[0].percentage_of_total == pytest.approx(100.0)
+
+    def test_two_asset_components_sum_to_total(self):
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        corr = np.array([[1.0, 0.3], [0.3, 1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        total_contributions = sum(c.var_contribution for c in result.component_breakdown)
+        assert total_contributions == pytest.approx(result.var_value, rel=1e-4)
+
+
+class TestParametricVaRExpectedShortfall:
+    def test_es_greater_than_var(self):
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        assert result.expected_shortfall > result.var_value
+
+    def test_es_analytically_correct_for_normal(self):
+        # For normal distribution: ES = sigma * phi(z_alpha) / (1 - alpha)
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+
+        daily_vol = 0.20 / np.sqrt(252)
+        z = norm.ppf(0.95)
+        expected_es = daily_vol * 100_000 * norm.pdf(z) / (1 - 0.95)
+        assert result.expected_shortfall == pytest.approx(expected_es, rel=1e-6)

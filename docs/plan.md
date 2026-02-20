@@ -138,11 +138,11 @@ Modern risk management platform for large financial institutions.
 ## Increment 3: Core Risk Engine
 
 ### 3.1 Python Risk Engine — VaR
-- [ ] TDD: Historical VaR calculation (pytest)
-- [ ] TDD: Parametric VaR calculation
-- [ ] TDD: Monte Carlo VaR calculation
-- [ ] TDD: Expected Shortfall
-- [ ] gRPC server implementation
+- [x] TDD: Historical VaR calculation (pytest)
+- [x] TDD: Parametric VaR calculation
+- [x] TDD: Monte Carlo VaR calculation
+- [x] TDD: Expected Shortfall
+- [x] gRPC server implementation
 
 ### 3.2 Risk Orchestrator
 - [ ] TDD: VaR workflow (fetches positions, calls risk-engine, publishes results)
