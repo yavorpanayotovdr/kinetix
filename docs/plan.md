@@ -113,11 +113,11 @@ Modern risk management platform for large financial institutions.
 - [x] TDD: Domain objects for `MarketDataPoint`, `YieldCurve`, `VolSurface`
 
 ### 2.2 Market Data Service — Ingestion & Storage
-- [ ] Flyway migration for `market_data` TimescaleDB hypertable
-- [ ] TDD: Simulated market data feed generator
-- [ ] TDD: TimescaleDB repository (Testcontainers)
-- [ ] TDD: Redis cache for latest prices
-- [ ] TDD: Kafka publisher for `market.data.prices`
+- [x] Flyway migration for `market_data` TimescaleDB hypertable
+- [x] TDD: Simulated market data feed generator
+- [x] TDD: TimescaleDB repository (Testcontainers)
+- [x] TDD: Redis cache for latest prices
+- [x] TDD: Kafka publisher for `market.data.prices`
 
 ### 2.3 Position Service — P&L Updates
 - [ ] TDD: Kafka consumer for market data, mark-to-market P&L recalculation
