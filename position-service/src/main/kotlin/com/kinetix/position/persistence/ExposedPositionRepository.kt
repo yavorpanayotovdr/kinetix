@@ -1,0 +1,75 @@
+package com.kinetix.position.persistence
+
+import com.kinetix.common.model.*
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.upsert
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.Currency
+
+class ExposedPositionRepository : PositionRepository {
+
+    override suspend fun save(position: Position): Unit = newSuspendedTransaction {
+        PositionsTable.upsert(PositionsTable.portfolioId, PositionsTable.instrumentId) {
+            it[portfolioId] = position.portfolioId.value
+            it[instrumentId] = position.instrumentId.value
+            it[assetClass] = position.assetClass.name
+            it[quantity] = position.quantity
+            it[avgCostAmount] = position.averageCost.amount
+            it[marketPriceAmount] = position.marketPrice.amount
+            it[currency] = position.currency.currencyCode
+            it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+        }
+    }
+
+    override suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Position> = newSuspendedTransaction {
+        PositionsTable
+            .selectAll()
+            .where { PositionsTable.portfolioId eq portfolioId.value }
+            .map { it.toPosition() }
+    }
+
+    override suspend fun findByKey(
+        portfolioId: PortfolioId,
+        instrumentId: InstrumentId,
+    ): Position? = newSuspendedTransaction {
+        PositionsTable
+            .selectAll()
+            .where {
+                (PositionsTable.portfolioId eq portfolioId.value) and
+                    (PositionsTable.instrumentId eq instrumentId.value)
+            }
+            .singleOrNull()
+            ?.toPosition()
+    }
+
+    override suspend fun delete(
+        portfolioId: PortfolioId,
+        instrumentId: InstrumentId,
+    ): Unit = newSuspendedTransaction {
+        PositionsTable.deleteWhere {
+            (PositionsTable.portfolioId eq portfolioId.value) and
+                (PositionsTable.instrumentId eq instrumentId.value)
+        }
+    }
+
+    private fun ResultRow.toPosition(): Position = Position(
+        portfolioId = PortfolioId(this[PositionsTable.portfolioId]),
+        instrumentId = InstrumentId(this[PositionsTable.instrumentId]),
+        assetClass = AssetClass.valueOf(this[PositionsTable.assetClass]),
+        quantity = this[PositionsTable.quantity],
+        averageCost = Money(
+            this[PositionsTable.avgCostAmount],
+            Currency.getInstance(this[PositionsTable.currency]),
+        ),
+        marketPrice = Money(
+            this[PositionsTable.marketPriceAmount],
+            Currency.getInstance(this[PositionsTable.currency]),
+        ),
+    )
+}
