@@ -150,7 +150,7 @@ Modern risk management platform for large financial institutions.
 - [x] Kafka consumer for positions + market data
 
 ### 3.3 Gateway — Risk REST Endpoints
-- [ ] TDD: `GET/POST /api/v1/risk/var/{portfolioId}`
+- [x] TDD: `GET/POST /api/v1/risk/var/{portfolioId}`
 
 ### 3.4 UI — VaR Dashboard
 - [ ] VaR gauge, time series chart, component breakdown

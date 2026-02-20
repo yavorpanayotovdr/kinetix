@@ -3,7 +3,10 @@ package com.kinetix.gateway.dto
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
+import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.PortfolioSummary
+import com.kinetix.gateway.client.VaRCalculationParams
+import com.kinetix.gateway.client.VaRResultSummary
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.Instant
@@ -128,3 +131,70 @@ fun BookTradeRequest.toCommand(portfolioId: PortfolioId): BookTradeCommand {
         tradedAt = Instant.parse(tradedAt),
     )
 }
+
+// --- VaR DTOs ---
+
+@Serializable
+data class VaRCalculationRequest(
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
+    val numSimulations: String? = null,
+)
+
+@Serializable
+data class ComponentBreakdownDto(
+    val assetClass: String,
+    val varContribution: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
+data class VaRResultResponse(
+    val portfolioId: String,
+    val calculationType: String,
+    val confidenceLevel: String,
+    val varValue: String,
+    val expectedShortfall: String,
+    val componentBreakdown: List<ComponentBreakdownDto>,
+    val calculatedAt: String,
+)
+
+// --- VaR mappers ---
+
+private val validCalculationTypes = setOf("HISTORICAL", "PARAMETRIC", "MONTE_CARLO")
+private val validConfidenceLevels = setOf("CL_95", "CL_99")
+
+fun VaRCalculationRequest.toParams(portfolioId: String): VaRCalculationParams {
+    val calcType = calculationType ?: "PARAMETRIC"
+    require(calcType in validCalculationTypes) {
+        "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
+    }
+    val confLevel = confidenceLevel ?: "CL_95"
+    require(confLevel in validConfidenceLevels) {
+        "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
+    }
+    return VaRCalculationParams(
+        portfolioId = portfolioId,
+        calculationType = calcType,
+        confidenceLevel = confLevel,
+        timeHorizonDays = timeHorizonDays?.toInt() ?: 1,
+        numSimulations = numSimulations?.toInt() ?: 10_000,
+    )
+}
+
+fun ComponentBreakdownItem.toDto(): ComponentBreakdownDto = ComponentBreakdownDto(
+    assetClass = assetClass,
+    varContribution = "%.2f".format(varContribution),
+    percentageOfTotal = "%.2f".format(percentageOfTotal),
+)
+
+fun VaRResultSummary.toResponse(): VaRResultResponse = VaRResultResponse(
+    portfolioId = portfolioId,
+    calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
+    varValue = "%.2f".format(varValue),
+    expectedShortfall = "%.2f".format(expectedShortfall),
+    componentBreakdown = componentBreakdown.map { it.toDto() },
+    calculatedAt = calculatedAt.toString(),
+)

@@ -2,9 +2,11 @@ package com.kinetix.gateway
 
 import com.kinetix.gateway.client.MarketDataServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
+import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.ErrorResponse
 import com.kinetix.gateway.routes.marketDataRoutes
 import com.kinetix.gateway.routes.positionRoutes
+import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
 import com.kinetix.gateway.websocket.marketDataWebSocket
 import io.ktor.http.*
@@ -70,6 +72,13 @@ fun Application.module(broadcaster: PriceBroadcaster) {
     }
 }
 
+fun Application.module(riskClient: RiskServiceClient) {
+    module()
+    routing {
+        varRoutes(riskClient)
+    }
+}
+
 fun Application.module(
     positionClient: PositionServiceClient,
     marketDataClient: MarketDataServiceClient,
@@ -80,5 +89,20 @@ fun Application.module(
         positionRoutes(positionClient)
         marketDataRoutes(marketDataClient)
         marketDataWebSocket(broadcaster)
+    }
+}
+
+fun Application.module(
+    positionClient: PositionServiceClient,
+    marketDataClient: MarketDataServiceClient,
+    broadcaster: PriceBroadcaster,
+    riskClient: RiskServiceClient,
+) {
+    module()
+    routing {
+        positionRoutes(positionClient)
+        marketDataRoutes(marketDataClient)
+        marketDataWebSocket(broadcaster)
+        varRoutes(riskClient)
     }
 }
