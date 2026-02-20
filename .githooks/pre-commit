@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Running Gradle tests..."
+./gradlew test --quiet
+
+echo "==> Running UI tests..."
+(cd ui && npm run test)
+
+echo "==> Running risk-engine tests..."
+(cd risk-engine && uv run pytest -q)
+
+echo "==> All checks passed."

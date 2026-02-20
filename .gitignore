@@ -12,6 +12,7 @@ out/
 
 # Kotlin
 *.class
+.kotlin/
 
 # Python
 __pycache__/
