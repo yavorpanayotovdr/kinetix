@@ -24,4 +24,5 @@ include(
     "regulatory-service",
     "notification-service",
     "audit-service",
+    "acceptance-tests",
 )

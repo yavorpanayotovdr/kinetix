@@ -4,14 +4,15 @@ import com.kinetix.common.model.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Currency
 
-class ExposedTradeEventRepository : TradeEventRepository {
+class ExposedTradeEventRepository(private val db: Database? = null) : TradeEventRepository {
 
-    override suspend fun save(trade: Trade): Unit = newSuspendedTransaction {
+    override suspend fun save(trade: Trade): Unit = newSuspendedTransaction(db = db) {
         TradeEventsTable.insert {
             it[tradeId] = trade.tradeId.value
             it[portfolioId] = trade.portfolioId.value
@@ -26,7 +27,7 @@ class ExposedTradeEventRepository : TradeEventRepository {
         }
     }
 
-    override suspend fun findByTradeId(tradeId: TradeId): Trade? = newSuspendedTransaction {
+    override suspend fun findByTradeId(tradeId: TradeId): Trade? = newSuspendedTransaction(db = db) {
         TradeEventsTable
             .selectAll()
             .where { TradeEventsTable.tradeId eq tradeId.value }
@@ -34,7 +35,7 @@ class ExposedTradeEventRepository : TradeEventRepository {
             ?.toTrade()
     }
 
-    override suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Trade> = newSuspendedTransaction {
+    override suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Trade> = newSuspendedTransaction(db = db) {
         TradeEventsTable
             .selectAll()
             .where { TradeEventsTable.portfolioId eq portfolioId.value }

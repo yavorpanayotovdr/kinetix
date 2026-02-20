@@ -4,13 +4,14 @@ import com.kinetix.audit.model.AuditEvent
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-class ExposedAuditEventRepository : AuditEventRepository {
+class ExposedAuditEventRepository(private val db: Database? = null) : AuditEventRepository {
 
-    override suspend fun save(event: AuditEvent): Unit = newSuspendedTransaction {
+    override suspend fun save(event: AuditEvent): Unit = newSuspendedTransaction(db = db) {
         AuditEventsTable.insert {
             it[tradeId] = event.tradeId
             it[portfolioId] = event.portfolioId
@@ -25,14 +26,14 @@ class ExposedAuditEventRepository : AuditEventRepository {
         }
     }
 
-    override suspend fun findAll(): List<AuditEvent> = newSuspendedTransaction {
+    override suspend fun findAll(): List<AuditEvent> = newSuspendedTransaction(db = db) {
         AuditEventsTable
             .selectAll()
             .orderBy(AuditEventsTable.id)
             .map { it.toAuditEvent() }
     }
 
-    override suspend fun findByPortfolioId(portfolioId: String): List<AuditEvent> = newSuspendedTransaction {
+    override suspend fun findByPortfolioId(portfolioId: String): List<AuditEvent> = newSuspendedTransaction(db = db) {
         AuditEventsTable
             .selectAll()
             .where { AuditEventsTable.portfolioId eq portfolioId }

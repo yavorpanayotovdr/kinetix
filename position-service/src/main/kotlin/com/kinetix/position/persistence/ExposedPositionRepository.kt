@@ -6,15 +6,16 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Currency
 
-class ExposedPositionRepository : PositionRepository {
+class ExposedPositionRepository(private val db: Database? = null) : PositionRepository {
 
-    override suspend fun save(position: Position): Unit = newSuspendedTransaction {
+    override suspend fun save(position: Position): Unit = newSuspendedTransaction(db = db) {
         PositionsTable.upsert(PositionsTable.portfolioId, PositionsTable.instrumentId) {
             it[portfolioId] = position.portfolioId.value
             it[instrumentId] = position.instrumentId.value
@@ -27,7 +28,7 @@ class ExposedPositionRepository : PositionRepository {
         }
     }
 
-    override suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Position> = newSuspendedTransaction {
+    override suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Position> = newSuspendedTransaction(db = db) {
         PositionsTable
             .selectAll()
             .where { PositionsTable.portfolioId eq portfolioId.value }
@@ -37,7 +38,7 @@ class ExposedPositionRepository : PositionRepository {
     override suspend fun findByKey(
         portfolioId: PortfolioId,
         instrumentId: InstrumentId,
-    ): Position? = newSuspendedTransaction {
+    ): Position? = newSuspendedTransaction(db = db) {
         PositionsTable
             .selectAll()
             .where {
@@ -51,7 +52,7 @@ class ExposedPositionRepository : PositionRepository {
     override suspend fun delete(
         portfolioId: PortfolioId,
         instrumentId: InstrumentId,
-    ): Unit = newSuspendedTransaction {
+    ): Unit = newSuspendedTransaction(db = db) {
         PositionsTable.deleteWhere {
             (PositionsTable.portfolioId eq portfolioId.value) and
                 (PositionsTable.instrumentId eq instrumentId.value)

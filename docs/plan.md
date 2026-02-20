@@ -66,44 +66,44 @@ Modern risk management platform for large financial institutions.
 ## Increment 1: Position Management
 
 ### 1.1 Position Domain Model
-- [ ] TDD: Write failing tests for `Trade`, `Position`, `Portfolio` domain objects in `common/`
-- [ ] Implement domain objects to pass tests
-- [ ] TDD: Write failing tests for P&L calculation logic
-- [ ] Implement P&L calculation
+- [x] TDD: Write failing tests for `Trade`, `Position`, `Portfolio` domain objects in `common/`
+- [x] Implement domain objects to pass tests
+- [x] TDD: Write failing tests for P&L calculation logic
+- [x] Implement P&L calculation
 
 ### 1.2 Position Service — Persistence
-- [ ] Create Flyway migrations for `trade_events` and `positions` tables
-- [ ] TDD: Write failing integration test (Testcontainers + PostgreSQL) for trade event persistence
-- [ ] Implement `TradeEventRepository` with Exposed
-- [ ] TDD: Write failing integration test for position projection
-- [ ] Implement `PositionRepository`
+- [x] Create Flyway migrations for `trade_events` and `positions` tables
+- [x] TDD: Write failing integration test (Testcontainers + PostgreSQL) for trade event persistence
+- [x] Implement `TradeEventRepository` with Exposed
+- [x] TDD: Write failing integration test for position projection
+- [x] Implement `PositionRepository`
 
 ### 1.3 Position Service — Trade Booking
-- [ ] TDD: Write failing unit tests for `BookTradeCommand` handler
-- [ ] Implement command handler (creates trade event, updates position projection)
-- [ ] TDD: Write failing unit tests for `GetPositionsQuery` handler
-- [ ] Implement query handler
+- [x] TDD: Write failing unit tests for `BookTradeCommand` handler
+- [x] Implement command handler (creates trade event, updates position projection)
+- [x] TDD: Write failing unit tests for `GetPositionsQuery` handler
+- [x] Implement query handler
 
 ### 1.4 Position Service — Kafka Publishing
-- [ ] TDD: Write failing integration test (Testcontainers + Kafka) for trade event publishing
-- [ ] Implement Kafka producer for `trades.lifecycle` topic
+- [x] TDD: Write failing integration test (Testcontainers + Kafka) for trade event publishing
+- [x] Implement Kafka producer for `trades.lifecycle` topic
 
 ### 1.5 Gateway — Position REST Endpoints
-- [ ] TDD: Write failing route tests for `GET /api/v1/portfolios`
-- [ ] Implement portfolio routes
-- [ ] TDD: Write failing route tests for `POST /api/v1/portfolios/{id}/trades`
-- [ ] Implement trade booking route (calls position-service via gRPC)
-- [ ] TDD: Write failing route tests for `GET /api/v1/portfolios/{id}/positions`
-- [ ] Implement position query route
+- [x] TDD: Write failing route tests for `GET /api/v1/portfolios`
+- [x] Implement portfolio routes
+- [x] TDD: Write failing route tests for `POST /api/v1/portfolios/{id}/trades`
+- [x] Implement trade booking route (calls position-service via in-process client interface)
+- [x] TDD: Write failing route tests for `GET /api/v1/portfolios/{id}/positions`
+- [x] Implement position query route
 
 ### 1.6 Audit Service — Trade Audit Trail
-- [ ] TDD: Write failing integration test for Kafka consumer + append-only persistence
-- [ ] Implement audit event consumer and repository
-- [ ] TDD: Write failing route tests for `GET /api/v1/audit/events`
-- [ ] Implement audit query route
+- [x] TDD: Write failing integration test for Kafka consumer + append-only persistence
+- [x] Implement audit event consumer and repository
+- [x] TDD: Write failing route tests for `GET /api/v1/audit/events`
+- [x] Implement audit query route
 
 ### 1.7 Acceptance Test
-- [ ] Write BDD acceptance test (Kotest BehaviorSpec): "Given empty portfolio, When buy trade booked, Then position exists AND audit event recorded"
+- [x] Write BDD acceptance test (Kotest BehaviorSpec): "Given empty portfolio, When buy trade booked, Then position exists AND audit event recorded"
 
 ---
 

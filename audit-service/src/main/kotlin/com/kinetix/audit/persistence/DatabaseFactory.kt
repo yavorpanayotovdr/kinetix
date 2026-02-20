@@ -36,7 +36,7 @@ object DatabaseFactory {
     private fun runMigrations(dataSource: HikariDataSource) {
         Flyway.configure()
             .dataSource(dataSource)
-            .locations("classpath:db/migration")
+            .locations("classpath:db/audit")
             .load()
             .migrate()
     }
