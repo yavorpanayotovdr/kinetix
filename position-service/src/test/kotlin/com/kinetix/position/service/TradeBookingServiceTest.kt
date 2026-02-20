@@ -1,6 +1,7 @@
 package com.kinetix.position.service
 
 import com.kinetix.common.model.*
+import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
 import io.kotest.core.spec.style.FunSpec
@@ -60,10 +61,12 @@ class TradeBookingServiceTest : FunSpec({
 
     val tradeRepo = mockk<TradeEventRepository>()
     val positionRepo = mockk<PositionRepository>()
-    val service = TradeBookingService(tradeRepo, positionRepo, noOpTransaction)
+    val publisher = mockk<TradeEventPublisher>()
+    val service = TradeBookingService(tradeRepo, positionRepo, noOpTransaction, publisher)
 
     beforeEach {
-        clearMocks(tradeRepo, positionRepo)
+        clearMocks(tradeRepo, positionRepo, publisher)
+        coEvery { publisher.publish(any()) } just runs
     }
 
     test("books a new trade and creates position from empty") {
@@ -148,5 +151,36 @@ class TradeBookingServiceTest : FunSpec({
 
         savedPosition.captured.quantity.compareTo(BigDecimal("50")) shouldBe 0
         savedPosition.captured.averageCost shouldBe usd("200.00")
+    }
+
+    test("publishes trade event for new trade") {
+        coEvery { tradeRepo.findByTradeId(any()) } returns null
+        coEvery { tradeRepo.save(any()) } just runs
+        coEvery { positionRepo.findByKey(any(), any()) } returns null
+        coEvery { positionRepo.save(any()) } just runs
+
+        service.handle(command())
+
+        coVerify(exactly = 1) { publisher.publish(match { it.tradeId == TradeId("t-1") }) }
+    }
+
+    test("does NOT publish trade event for duplicate trade") {
+        val existingTrade = Trade(
+            tradeId = TradeId("t-1"),
+            portfolioId = PORTFOLIO,
+            instrumentId = AAPL,
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            price = usd("150.00"),
+            tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+        )
+
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns existingTrade
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position()
+
+        service.handle(command())
+
+        coVerify(exactly = 0) { publisher.publish(any()) }
     }
 })
