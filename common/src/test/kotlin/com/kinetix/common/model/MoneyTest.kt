@@ -36,6 +36,13 @@ class MoneyTest : FunSpec({
         shouldThrow<IllegalArgumentException> { usd + eur }
     }
 
+    test("multiply Money by scalar") {
+        val money = Money(BigDecimal("100.00"), Currency.getInstance("USD"))
+        val result = money * BigDecimal("3")
+        result.amount shouldBe BigDecimal("300.00")
+        result.currency shouldBe Currency.getInstance("USD")
+    }
+
     test("negate Money") {
         val money = Money(BigDecimal("100.00"), Currency.getInstance("USD"))
         val negated = -money

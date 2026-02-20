@@ -15,6 +15,8 @@ data class Money(val amount: BigDecimal, val currency: Currency) {
         return Money(amount - other.amount, currency)
     }
 
+    operator fun times(scalar: BigDecimal): Money = Money(amount * scalar, currency)
+
     operator fun unaryMinus(): Money = Money(-amount, currency)
 
     companion object {
