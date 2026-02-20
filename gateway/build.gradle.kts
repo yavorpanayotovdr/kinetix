@@ -6,3 +6,7 @@ plugins {
 application {
     mainClass.set("com.kinetix.gateway.ApplicationKt")
 }
+
+dependencies {
+    implementation(project(":common"))
+}
