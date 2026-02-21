@@ -222,20 +222,24 @@ Modern risk management platform for large financial institutions.
 ## Increment 6: Stress Testing & Greeks
 
 ### 6.1 Stress Test Framework
-- [ ] TDD: Historical stress scenarios (2008 crisis, COVID, etc.)
-- [ ] TDD: Hypothetical scenario builder
-- [ ] Risk-engine stress test gRPC endpoint
+- [x] TDD: Historical stress scenarios (GFC 2008, COVID 2020, Taper Tantrum 2013, Euro Crisis 2011)
+- [x] TDD: Hypothetical scenario builder
+- [x] Stress test engine with correlation matrix override
+- [x] Risk-engine stress test gRPC endpoint
 
 ### 6.2 Greeks Calculation
-- [ ] TDD: QuantLib-based Greeks (Delta, Gamma, Vega, Theta, Rho)
-- [ ] gRPC endpoint for Greeks
+- [x] TDD: Shock-and-revalue Greeks (Delta, Gamma, Vega, Theta, Rho)
+- [x] gRPC endpoint for Greeks
+- [x] Prometheus metrics (stress_test_duration, greeks_calculation_duration)
 
-### 6.3 UI
-- [ ] Stress test scenario builder and results display
-- [ ] Greeks heatmap, what-if analysis
+### 6.3 Gateway & UI
+- [x] REST routes: POST /stress/{portfolioId}, GET /stress/scenarios, POST /greeks/{portfolioId}
+- [x] Stress test panel: scenario selector, results table, asset class impact chart
+- [x] Greeks heatmap, theta/rho summary, what-if vol bump slider
 
 ### 6.4 Acceptance Test
-- [ ] "When 2008 crisis stress test runs, see losses broken down by asset class"
+- [x] "When 2008 crisis stress test runs, see losses broken down by asset class"
+- [x] "When Greeks calculated, Delta/Gamma/Vega/Theta/Rho computed per asset class"
 
 ---
 
