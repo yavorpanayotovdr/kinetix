@@ -1,0 +1,15 @@
+package com.kinetix.risk.client
+
+import com.kinetix.common.model.Position
+import com.kinetix.common.resilience.CircuitBreaker
+import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.model.VaRResult
+
+class ResilientRiskEngineClient(
+    private val delegate: RiskEngineClient,
+    private val circuitBreaker: CircuitBreaker,
+) : RiskEngineClient {
+
+    override suspend fun calculateVaR(request: VaRCalculationRequest, positions: List<Position>): VaRResult =
+        circuitBreaker.execute { delegate.calculateVaR(request, positions) }
+}
