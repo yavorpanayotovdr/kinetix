@@ -92,3 +92,32 @@ export interface GreeksResultDto {
   rho: string
   calculatedAt: string
 }
+
+export interface RiskClassChargeDto {
+  riskClass: string
+  deltaCharge: string
+  vegaCharge: string
+  curvatureCharge: string
+  totalCharge: string
+}
+
+export interface FrtbResultDto {
+  portfolioId: string
+  sbmCharges: RiskClassChargeDto[]
+  totalSbmCharge: string
+  grossJtd: string
+  hedgeBenefit: string
+  netDrc: string
+  exoticNotional: string
+  otherNotional: string
+  totalRrao: string
+  totalCapitalCharge: string
+  calculatedAt: string
+}
+
+export interface ReportResultDto {
+  portfolioId: string
+  format: string
+  content: string
+  generatedAt: string
+}
