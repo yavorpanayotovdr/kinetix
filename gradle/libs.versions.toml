@@ -115,6 +115,8 @@ ktor-server = [
     "ktor-server-status-pages",
     "ktor-server-call-logging",
     "ktor-serialization-kotlinx-json",
+    "ktor-server-metrics-micrometer",
+    "micrometer-prometheus",
 ]
 exposed = [
     "exposed-core",
