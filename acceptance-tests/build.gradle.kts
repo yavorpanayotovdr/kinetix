@@ -21,4 +21,6 @@ dependencies {
     testImplementation(libs.testcontainers.kafka)
     testImplementation(libs.kafka.clients)
     testImplementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.micrometer.prometheus)
+    testImplementation(libs.ktor.server.metrics.micrometer)
 }

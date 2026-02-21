@@ -1,0 +1,74 @@
+rule_files:
+  - alert-rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'risk_var_value{portfolio_id="port-1"}'
+        values: "500000 500000 500000 1500000 1500000 1500000 1500000 1500000"
+
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: VaRBreached
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              portfolio_id: port-1
+            exp_annotations:
+              summary: "VaR breached threshold for portfolio port-1"
+              description: "VaR value 1.5e+06 exceeds 1,000,000 for portfolio port-1"
+
+  - interval: 1m
+    input_series:
+      - series: 'var_calculation_duration_seconds_bucket{le="30"}'
+        values: "0 0 0 0 0"
+      - series: 'var_calculation_duration_seconds_bucket{le="60"}'
+        values: "0 1 2 3 4"
+      - series: 'var_calculation_duration_seconds_bucket{le="+Inf"}'
+        values: "0 1 2 3 4"
+
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: RiskCalculationSlow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Risk calculation p95 latency exceeds 30s"
+              description: "P95 VaR calculation duration is 60s"
+
+  - interval: 1m
+    input_series:
+      - series: 'marketdata_staleness_seconds{instrument_id="AAPL"}'
+        values: "10 20 30 61 62 63 64 65 66 67 68"
+
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: MarketDataStale
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instrument_id: AAPL
+            exp_annotations:
+              summary: "Market data is stale for AAPL"
+              description: "Market data staleness is 68s for AAPL"
+
+  - interval: 1m
+    input_series:
+      - series: 'kafka_consumer_group_lag{group="risk-consumer", topic="risk.requests", partition="0"}'
+        values: "5000 5000 5000 15000 15000 15000 15000 15000 15000 15000 15000 15000 15000"
+
+    alert_rule_test:
+      - eval_time: 13m
+        alertname: KafkaConsumerLag
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              group: risk-consumer
+              topic: risk.requests
+              partition: "0"
+            exp_annotations:
+              summary: "Kafka consumer lag is high for risk-consumer"
+              description: "Consumer group risk-consumer has lag of 15000 on topic risk.requests"
