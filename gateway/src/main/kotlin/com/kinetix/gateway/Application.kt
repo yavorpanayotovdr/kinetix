@@ -1,10 +1,15 @@
 package com.kinetix.gateway
 
+import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.security.Permission
+import com.kinetix.gateway.auth.JwtConfig
+import com.kinetix.gateway.auth.configureJwtAuth
+import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.MarketDataServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.dto.ErrorResponse
+import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.marketDataRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
@@ -16,9 +21,11 @@ import com.kinetix.gateway.websocket.marketDataWebSocket
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.request.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -127,5 +134,61 @@ fun Application.module(notificationClient: NotificationServiceClient) {
     module()
     routing {
         notificationRoutes(notificationClient)
+    }
+}
+
+fun Application.module(
+    jwtConfig: JwtConfig,
+    positionClient: PositionServiceClient? = null,
+    riskClient: RiskServiceClient? = null,
+    notificationClient: NotificationServiceClient? = null,
+) {
+    module()
+    configureJwtAuth(jwtConfig)
+    routing {
+        authenticate("auth-jwt") {
+            if (positionClient != null) {
+                requirePermission(Permission.READ_PORTFOLIOS) {
+                    get("/api/v1/portfolios") {
+                        val portfolios = positionClient.listPortfolios()
+                        call.respond(portfolios.map { it.toResponse() })
+                    }
+                }
+                route("/api/v1/portfolios/{portfolioId}") {
+                    requirePermission(Permission.WRITE_TRADES) {
+                        post("/trades") {
+                            val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                            val request = call.receive<BookTradeRequest>()
+                            val command = request.toCommand(portfolioId)
+                            val result = positionClient.bookTrade(command)
+                            call.respond(HttpStatusCode.Created, result.toResponse())
+                        }
+                    }
+                    requirePermission(Permission.READ_POSITIONS) {
+                        get("/positions") {
+                            val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                            val positions = positionClient.getPositions(portfolioId)
+                            call.respond(positions.map { it.toResponse() })
+                        }
+                    }
+                }
+            }
+            if (riskClient != null) {
+                requirePermission(Permission.CALCULATE_RISK) {
+                    varRoutes(riskClient)
+                }
+                requirePermission(Permission.READ_RISK) {
+                    stressTestRoutes(riskClient)
+                }
+                requirePermission(Permission.READ_REGULATORY) {
+                    regulatoryRoutes(riskClient)
+                }
+            }
+            if (notificationClient != null) {
+                requirePermission(Permission.READ_ALERTS) {
+                    notificationRoutes(notificationClient)
+                }
+            }
+        }
     }
 }

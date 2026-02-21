@@ -10,4 +10,6 @@ application {
 dependencies {
     implementation(project(":common"))
     implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
 }
