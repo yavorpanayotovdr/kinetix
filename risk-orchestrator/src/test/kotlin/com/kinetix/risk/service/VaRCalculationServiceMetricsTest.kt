@@ -1,0 +1,104 @@
+package com.kinetix.risk.service
+
+import com.kinetix.common.model.*
+import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.kafka.RiskResultPublisher
+import com.kinetix.risk.model.*
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.shouldBe
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.mockk.*
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.Currency
+
+class VaRCalculationServiceMetricsTest : FunSpec({
+
+    val registry = SimpleMeterRegistry()
+    val positionProvider = mockk<PositionProvider>()
+    val riskEngineClient = mockk<RiskEngineClient>()
+    val resultPublisher = mockk<RiskResultPublisher>()
+    val service = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, registry)
+
+    beforeEach {
+        clearMocks(positionProvider, riskEngineClient, resultPublisher)
+    }
+
+    test("timer var.calculation.duration records after calculateVaR") {
+        val positions = listOf(
+            Position(
+                portfolioId = PortfolioId("port-1"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                quantity = BigDecimal("100"),
+                averageCost = Money(BigDecimal("150.00"), Currency.getInstance("USD")),
+                marketPrice = Money(BigDecimal("170.00"), Currency.getInstance("USD")),
+            )
+        )
+        val result = VaRResult(
+            portfolioId = PortfolioId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
+            calculatedAt = Instant.now(),
+        )
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns result
+        coEvery { resultPublisher.publish(result) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val timer = registry.find("var.calculation.duration").timer()
+        timer!!.count() shouldBe 1
+    }
+
+    test("counter var.calculation.count increments tagged by calculationType") {
+        val positions = listOf(
+            Position(
+                portfolioId = PortfolioId("port-1"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                quantity = BigDecimal("100"),
+                averageCost = Money(BigDecimal("150.00"), Currency.getInstance("USD")),
+                marketPrice = Money(BigDecimal("170.00"), Currency.getInstance("USD")),
+            )
+        )
+        val result = VaRResult(
+            portfolioId = PortfolioId("port-1"),
+            calculationType = CalculationType.HISTORICAL,
+            confidenceLevel = ConfidenceLevel.CL_95,
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
+            calculatedAt = Instant.now(),
+        )
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns result
+        coEvery { resultPublisher.publish(result) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.HISTORICAL,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val counter = registry.find("var.calculation.count")
+            .tag("calculationType", "HISTORICAL")
+            .counter()
+        counter!!.count() shouldBe 1.0
+    }
+})

@@ -8,6 +8,7 @@ import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.*
 import java.math.BigDecimal
 import java.time.Instant
@@ -52,7 +53,7 @@ class VaRCalculationServiceTest : FunSpec({
     val positionProvider = mockk<PositionProvider>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val resultPublisher = mockk<RiskResultPublisher>()
-    val service = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher)
+    val service = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry())
 
     beforeEach {
         clearMocks(positionProvider, riskEngineClient, resultPublisher)
