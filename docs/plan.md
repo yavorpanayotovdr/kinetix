@@ -157,10 +157,10 @@ Modern risk management platform for large financial institutions.
 - [x] Vitest tests
 
 ### 3.5 Performance Test
-- [ ] Monte Carlo VaR: 10K positions, 10K sims < 60s
+- [x] Monte Carlo VaR: 10K positions, 10K sims < 60s
 
 ### 3.6 Acceptance Test
-- [ ] "When VaR requested for portfolio, receive valid VaR with component breakdown"
+- [x] "When VaR requested for portfolio, receive valid VaR with component breakdown"
 
 ---
 
