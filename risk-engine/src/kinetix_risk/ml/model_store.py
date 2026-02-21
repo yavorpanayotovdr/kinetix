@@ -21,11 +21,13 @@ class ModelStore:
     def _save_manifest(self, manifest: dict) -> None:
         self.manifest_path.write_text(json.dumps(manifest, indent=2))
 
-    def _update_manifest(self, key: str, version: str, filename: str) -> None:
+    def _update_manifest(self, key: str, version: str, filename: str, **extra: object) -> None:
         manifest = self._load_manifest()
         if key not in manifest:
             manifest[key] = {"versions": {}, "latest": None}
-        manifest[key]["versions"][version] = filename
+        entry: dict = {"filename": filename}
+        entry.update(extra)
+        manifest[key]["versions"][version] = entry
         manifest[key]["latest"] = version
         self._save_manifest(manifest)
 
@@ -33,7 +35,12 @@ class ModelStore:
         filename = f"vol_{asset_class}_{version}.pt"
         path = self.base_dir / filename
         torch.save(model.state_dict(), path)
-        self._update_manifest(f"vol_{asset_class}", version, filename)
+        hidden_size = model.lstm.hidden_size
+        num_layers = model.lstm.num_layers
+        self._update_manifest(
+            f"vol_{asset_class}", version, filename,
+            hidden_size=hidden_size, num_layers=num_layers,
+        )
         return path
 
     def load_vol_model(
@@ -51,7 +58,14 @@ class ModelStore:
             version = manifest[key]["latest"]
         if version not in manifest[key]["versions"]:
             raise FileNotFoundError(f"Version {version} not found for {asset_class}")
-        filename = manifest[key]["versions"][version]
+        entry = manifest[key]["versions"][version]
+        # Support both old (string) and new (dict) manifest formats
+        if isinstance(entry, dict):
+            filename = entry["filename"]
+            hidden_size = entry.get("hidden_size", hidden_size)
+            num_layers = entry.get("num_layers", num_layers)
+        else:
+            filename = entry
         path = self.base_dir / filename
         model = VolatilityLSTM(input_size=1, hidden_size=hidden_size, num_layers=num_layers)
         model.load_state_dict(torch.load(path, weights_only=True))
@@ -73,7 +87,8 @@ class ModelStore:
             version = manifest["credit"]["latest"]
         if version not in manifest["credit"]["versions"]:
             raise FileNotFoundError(f"Credit model version {version} not found")
-        filename = manifest["credit"]["versions"][version]
+        entry = manifest["credit"]["versions"][version]
+        filename = entry["filename"] if isinstance(entry, dict) else entry
         return joblib.load(self.base_dir / filename)
 
     def save_anomaly_detector(self, detector: object, version: str) -> Path:
@@ -91,5 +106,6 @@ class ModelStore:
             version = manifest["anomaly"]["latest"]
         if version not in manifest["anomaly"]["versions"]:
             raise FileNotFoundError(f"Anomaly detector version {version} not found")
-        filename = manifest["anomaly"]["versions"][version]
+        entry = manifest["anomaly"]["versions"][version]
+        filename = entry["filename"] if isinstance(entry, dict) else entry
         return joblib.load(self.base_dir / filename)

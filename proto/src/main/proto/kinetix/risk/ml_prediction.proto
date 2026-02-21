@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// --- Volatility Prediction ---
+
+message VolatilityPredictionRequest {
+  string instrument_id = 1;
+  kinetix.common.AssetClass asset_class = 2;
+  repeated double returns_window = 3;
+  string model_version = 4;
+}
+
+message VolatilityPredictionResponse {
+  string instrument_id = 1;
+  kinetix.common.AssetClass asset_class = 2;
+  double predicted_volatility = 3;
+  string model_version = 4;
+  google.protobuf.Timestamp predicted_at = 5;
+}
+
+message BatchVolatilityRequest {
+  repeated VolatilityPredictionRequest requests = 1;
+}
+
+message BatchVolatilityResponse {
+  repeated VolatilityPredictionResponse predictions = 1;
+}
+
+// --- Credit Scoring ---
+
+message CreditScoreRequest {
+  string issuer_id = 1;
+  double leverage_ratio = 2;
+  double interest_coverage = 3;
+  double debt_to_equity = 4;
+  double current_ratio = 5;
+  double revenue_growth = 6;
+  double volatility_90d = 7;
+  double market_value_log = 8;
+}
+
+message CreditScoreResponse {
+  string issuer_id = 1;
+  double default_probability = 2;
+  string rating = 3;
+  string model_version = 4;
+  google.protobuf.Timestamp scored_at = 5;
+}
+
+// --- Anomaly Detection ---
+
+message AnomalyDetectionRequest {
+  string metric_name = 1;
+  repeated double metric_values = 2;
+}
+
+message AnomalyDetectionResponse {
+  string metric_name = 1;
+  repeated AnomalyResult results = 2;
+}
+
+message AnomalyResult {
+  bool is_anomaly = 1;
+  double anomaly_score = 2;
+  double metric_value = 3;
+}
+
+// --- Service ---
+
+service MLPredictionService {
+  rpc PredictVolatility(VolatilityPredictionRequest) returns (VolatilityPredictionResponse);
+  rpc PredictVolatilityBatch(BatchVolatilityRequest) returns (BatchVolatilityResponse);
+  rpc ScoreCredit(CreditScoreRequest) returns (CreditScoreResponse);
+  rpc DetectAnomaly(AnomalyDetectionRequest) returns (AnomalyDetectionResponse);
+}

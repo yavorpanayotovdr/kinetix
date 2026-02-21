@@ -1,9 +1,10 @@
 from concurrent import futures
+from pathlib import Path
 
 import grpc
 import prometheus_client
 
-from kinetix.risk import risk_calculation_pb2_grpc
+from kinetix.risk import ml_prediction_pb2_grpc, risk_calculation_pb2_grpc
 from kinetix_risk.converters import (
     proto_calculation_type_to_domain,
     proto_confidence_to_domain,
@@ -11,6 +12,8 @@ from kinetix_risk.converters import (
     var_result_to_proto_response,
 )
 from kinetix_risk.metrics import risk_var_value
+from kinetix_risk.ml.model_store import ModelStore
+from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
 
 
@@ -43,13 +46,17 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             yield self.CalculateVaR(request, context)
 
 
-def serve(port: int = 50051, metrics_port: int = 9091):
+def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models"):
     prometheus_client.start_http_server(metrics_port)
     print(f"Prometheus metrics server started on port {metrics_port}")
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     risk_calculation_pb2_grpc.add_RiskCalculationServiceServicer_to_server(
         RiskCalculationServicer(), server
+    )
+    model_store = ModelStore(Path(models_dir))
+    ml_prediction_pb2_grpc.add_MLPredictionServiceServicer_to_server(
+        MLPredictionServicer(model_store), server
     )
     server.add_insecure_port(f"[::]:{port}")
     server.start()

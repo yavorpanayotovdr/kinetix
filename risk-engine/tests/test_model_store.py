@@ -32,6 +32,8 @@ class TestModelStore:
         manifest = json.loads(manifest_path.read_text())
         assert "vol_EQUITY" in manifest
         assert manifest["vol_EQUITY"]["latest"] == "v1"
+        assert manifest["vol_EQUITY"]["versions"]["v1"]["hidden_size"] == 32
+        assert manifest["vol_EQUITY"]["versions"]["v1"]["num_layers"] == 1
 
     def test_load_latest_version(self, tmp_path):
         store = ModelStore(tmp_path / "models")
