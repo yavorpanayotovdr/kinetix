@@ -197,20 +197,25 @@ Modern risk management platform for large financial institutions.
 ## Increment 5: ML Models
 
 ### 5.1 Volatility Predictor
-- [ ] TDD: LSTM model training pipeline (PyTorch)
-- [ ] TDD: Inference endpoint via gRPC
-- [ ] Model artifact storage + versioning
+- [x] TDD: LSTM model training pipeline (PyTorch)
+- [x] TDD: Inference endpoint via gRPC
+- [x] Model artifact storage + versioning
+- [x] VolatilityProvider abstraction to decouple VaR from static volatility
 
 ### 5.2 Credit Default Model
-- [ ] TDD: Gradient Boosted Trees training (scikit-learn)
-- [ ] TDD: gRPC scoring endpoint
+- [x] TDD: Gradient Boosted Trees training (scikit-learn)
+- [x] TDD: gRPC scoring endpoint
 
 ### 5.3 Anomaly Detector
-- [ ] TDD: Isolation Forest for risk metric anomalies
-- [ ] Integration with notification-service
+- [x] TDD: Isolation Forest for risk metric anomalies
+- [x] Integration with notification-service (Kafka consumer stub)
+- [x] ML prediction metrics (Prometheus histogram, counter)
 
 ### 5.4 Performance Test
-- [ ] Vol prediction for 1000 instruments < 5s
+- [x] Vol prediction for 1000 instruments < 5s (direct tensor + gRPC batch)
+
+### 5.5 Acceptance Test
+- [x] BDD acceptance test: vol prediction, credit scoring, anomaly detection
 
 ---
 
