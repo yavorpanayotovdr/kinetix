@@ -121,3 +121,36 @@ export interface ReportResultDto {
   content: string
   generatedAt: string
 }
+
+export interface AlertRuleDto {
+  id: string
+  name: string
+  type: string
+  threshold: number
+  operator: string
+  severity: string
+  channels: string[]
+  enabled: boolean
+}
+
+export interface AlertEventDto {
+  id: string
+  ruleId: string
+  ruleName: string
+  type: string
+  severity: string
+  message: string
+  currentValue: number
+  threshold: number
+  portfolioId: string
+  triggeredAt: string
+}
+
+export interface CreateAlertRuleRequestDto {
+  name: string
+  type: string
+  threshold: number
+  operator: string
+  severity: string
+  channels: string[]
+}
