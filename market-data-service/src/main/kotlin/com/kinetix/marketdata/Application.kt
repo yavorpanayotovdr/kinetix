@@ -5,6 +5,7 @@ import com.kinetix.marketdata.persistence.DatabaseFactory
 import com.kinetix.marketdata.persistence.ExposedMarketDataRepository
 import com.kinetix.marketdata.persistence.MarketDataRepository
 import com.kinetix.marketdata.routes.marketDataRoutes
+import com.kinetix.marketdata.seed.DevDataSeeder
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -16,6 +17,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -70,4 +72,11 @@ fun Application.moduleWithRoutes() {
     )
     val repository = ExposedMarketDataRepository(db)
     module(repository)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(repository).seed()
+        }
+    }
 }

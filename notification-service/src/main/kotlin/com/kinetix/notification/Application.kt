@@ -7,6 +7,7 @@ import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.ComparisonOperator
 import com.kinetix.notification.model.DeliveryChannel
 import com.kinetix.notification.model.Severity
+import com.kinetix.notification.seed.DevDataSeeder
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -48,6 +49,11 @@ fun Application.moduleWithRoutes() {
     val rulesEngine = RulesEngine()
     val inAppDelivery = InAppDeliveryService()
     module(rulesEngine, inAppDelivery)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        DevDataSeeder(rulesEngine).seed()
+    }
 }
 
 @Serializable

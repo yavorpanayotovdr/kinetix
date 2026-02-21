@@ -6,6 +6,7 @@ import com.kinetix.audit.persistence.DatabaseConfig
 import com.kinetix.audit.persistence.DatabaseFactory
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.audit.routes.auditRoutes
+import com.kinetix.audit.seed.DevDataSeeder
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -17,6 +18,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -72,4 +74,11 @@ fun Application.moduleWithRoutes() {
     )
     val repository = ExposedAuditEventRepository(db)
     module(repository)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(repository).seed()
+        }
+    }
 }
