@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      kotlin: ${{ steps.filter.outputs.kotlin }}
+      python: ${{ steps.filter.outputs.python }}
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            kotlin:
+              - '*.gradle.kts'
+              - 'gradle/**'
+              - 'build-logic/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'gateway/**'
+              - 'position-service/**'
+              - 'market-data-service/**'
+              - 'risk-orchestrator/**'
+              - 'regulatory-service/**'
+              - 'notification-service/**'
+              - 'audit-service/**'
+              - 'acceptance-tests/**'
+            python:
+              - 'risk-engine/**'
+            ui:
+              - 'ui/**'
+
+  kotlin-build:
+    needs: changes
+    if: needs.changes.outputs.kotlin == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile and unit test
+        run: ./gradlew build -x integrationTest -x acceptanceTest
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-unit-test-reports
+          path: '**/build/reports/tests/test/'
+          retention-days: 14
+
+  kotlin-integration:
+    needs: kotlin-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Integration tests (Testcontainers)
+        run: ./gradlew integrationTest
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-integration-test-reports
+          path: '**/build/reports/tests/integrationTest/'
+          retention-days: 14
+
+  acceptance:
+    needs: kotlin-integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Acceptance tests
+        run: ./gradlew acceptanceTest
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-reports
+          path: '**/build/reports/tests/acceptanceTest/'
+          retention-days: 14
+
+  python-build:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: risk-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: uv sync
+      - name: Run tests
+        run: uv run pytest --tb=short --junitxml=reports/pytest.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-reports
+          path: risk-engine/reports/
+          retention-days: 14
+
+  ui-build:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test
+      - name: Build
+        run: npm run build
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports
+          path: ui/coverage/
+          retention-days: 14
