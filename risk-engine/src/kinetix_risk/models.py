@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+import numpy as np
+
 
 class AssetClass(Enum):
     EQUITY = "EQUITY"
@@ -48,3 +50,39 @@ class VaRResult:
     var_value: float
     expected_shortfall: float
     component_breakdown: list[ComponentBreakdown]
+
+
+@dataclass(frozen=True)
+class AssetClassImpact:
+    asset_class: AssetClass
+    base_exposure: float
+    stressed_exposure: float
+    pnl_impact: float
+
+
+@dataclass(frozen=True)
+class StressScenario:
+    name: str
+    description: str
+    vol_shocks: dict[AssetClass, float]
+    correlation_override: np.ndarray | None
+    price_shocks: dict[AssetClass, float]
+
+
+@dataclass(frozen=True)
+class StressTestResult:
+    scenario_name: str
+    base_var: float
+    stressed_var: float
+    pnl_impact: float
+    asset_class_impacts: list[AssetClassImpact]
+
+
+@dataclass(frozen=True)
+class GreeksResult:
+    portfolio_id: str
+    delta: dict[AssetClass, float]
+    gamma: dict[AssetClass, float]
+    vega: dict[AssetClass, float]
+    theta: float
+    rho: float
