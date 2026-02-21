@@ -14,6 +14,7 @@ dependencies {
     testImplementation(project(":position-service"))
     testImplementation(project(":audit-service"))
     testImplementation(project(":risk-orchestrator"))
+    testImplementation(project(":notification-service"))
     testImplementation(libs.bundles.exposed)
     testImplementation(libs.bundles.database)
     testImplementation(libs.testcontainers.core)
