@@ -16,3 +16,21 @@ risk_var_value = Gauge(
     "Current VaR value for a portfolio",
     ["portfolio_id"],
 )
+
+ml_prediction_duration_seconds = Histogram(
+    "ml_prediction_duration_seconds",
+    "Duration of ML model prediction in seconds",
+    ["model_type"],
+)
+
+ml_prediction_total = Counter(
+    "ml_prediction_total",
+    "Total number of ML model predictions",
+    ["model_type"],
+)
+
+ml_anomaly_detected_total = Counter(
+    "ml_anomaly_detected_total",
+    "Total number of anomalies detected",
+    ["metric_name"],
+)

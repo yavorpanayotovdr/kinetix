@@ -114,7 +114,17 @@ class MLPredictionServicer(ml_prediction_pb2_grpc.MLPredictionServiceServicer):
         )
 
     def DetectAnomaly(self, request, context):
-        import grpc as _grpc
-        context.set_code(_grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Anomaly detection not yet implemented")
-        return ml_prediction_pb2.AnomalyDetectionResponse()
+        detector = self.model_store.load_anomaly_detector()
+        results = detector.detect(list(request.metric_values))
+        proto_results = [
+            ml_prediction_pb2.AnomalyResult(
+                is_anomaly=r.is_anomaly,
+                anomaly_score=r.anomaly_score,
+                metric_value=r.metric_value,
+            )
+            for r in results
+        ]
+        return ml_prediction_pb2.AnomalyDetectionResponse(
+            metric_name=request.metric_name,
+            results=proto_results,
+        )
