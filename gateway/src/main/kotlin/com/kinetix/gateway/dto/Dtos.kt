@@ -1,10 +1,13 @@
 package com.kinetix.gateway.dto
 
 import com.kinetix.common.model.*
+import com.kinetix.gateway.client.AlertEventItem
+import com.kinetix.gateway.client.AlertRuleItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
+import com.kinetix.gateway.client.CreateAlertRuleParams
 import com.kinetix.gateway.client.FrtbResultSummary
 import com.kinetix.gateway.client.GreekValuesItem
 import com.kinetix.gateway.client.GreeksResultSummary
@@ -377,4 +380,77 @@ fun ReportResult.toResponse(): ReportResponse = ReportResponse(
     format = format,
     content = content,
     generatedAt = generatedAt.toString(),
+)
+
+// --- Alert / Notification DTOs ---
+
+@Serializable
+data class AlertRuleDto(
+    val id: String,
+    val name: String,
+    val type: String,
+    val threshold: Double,
+    val operator: String,
+    val severity: String,
+    val channels: List<String>,
+    val enabled: Boolean,
+)
+
+@Serializable
+data class AlertEventDto(
+    val id: String,
+    val ruleId: String,
+    val ruleName: String,
+    val type: String,
+    val severity: String,
+    val message: String,
+    val currentValue: Double,
+    val threshold: Double,
+    val portfolioId: String,
+    val triggeredAt: String,
+)
+
+@Serializable
+data class CreateAlertRuleRequest(
+    val name: String,
+    val type: String,
+    val threshold: Double,
+    val operator: String,
+    val severity: String,
+    val channels: List<String>,
+)
+
+// --- Alert mappers ---
+
+fun AlertRuleItem.toDto(): AlertRuleDto = AlertRuleDto(
+    id = id,
+    name = name,
+    type = type,
+    threshold = threshold,
+    operator = operator,
+    severity = severity,
+    channels = channels,
+    enabled = enabled,
+)
+
+fun AlertEventItem.toDto(): AlertEventDto = AlertEventDto(
+    id = id,
+    ruleId = ruleId,
+    ruleName = ruleName,
+    type = type,
+    severity = severity,
+    message = message,
+    currentValue = currentValue,
+    threshold = threshold,
+    portfolioId = portfolioId,
+    triggeredAt = triggeredAt.toString(),
+)
+
+fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRuleParams(
+    name = name,
+    type = type,
+    threshold = threshold,
+    operator = operator,
+    severity = severity,
+    channels = channels,
 )

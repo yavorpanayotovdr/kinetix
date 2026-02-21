@@ -1,10 +1,12 @@
 package com.kinetix.gateway
 
 import com.kinetix.gateway.client.MarketDataServiceClient
+import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.ErrorResponse
 import com.kinetix.gateway.routes.marketDataRoutes
+import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
@@ -118,5 +120,12 @@ fun Application.module(
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
+    }
+}
+
+fun Application.module(notificationClient: NotificationServiceClient) {
+    module()
+    routing {
+        notificationRoutes(notificationClient)
     }
 }
