@@ -12,17 +12,22 @@ import com.kinetix.gateway.websocket.marketDataWebSocket
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) {
         json(Json {
             ignoreUnknownKeys = true
@@ -47,6 +52,9 @@ fun Application.module() {
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
+        }
+        get("/metrics") {
+            call.respondText(appMicrometerRegistry.scrape())
         }
     }
 }
