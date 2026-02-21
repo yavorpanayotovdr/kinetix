@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import numpy as np
 
 from kinetix_risk.models import AssetClass
@@ -41,3 +43,21 @@ def get_correlation_matrix() -> np.ndarray:
 def get_sub_correlation_matrix(asset_classes: list[AssetClass]) -> np.ndarray:
     indices = [_ASSET_CLASS_INDEX[ac] for ac in asset_classes]
     return CORRELATION_MATRIX[np.ix_(indices, indices)].copy()
+
+
+class VolatilityProvider:
+    def __init__(self, lookup_fn: Callable[[AssetClass], float]):
+        self._lookup_fn = lookup_fn
+
+    def __call__(self, asset_class: AssetClass) -> float:
+        return self._lookup_fn(asset_class)
+
+    @classmethod
+    def static(cls) -> "VolatilityProvider":
+        return cls(get_volatility)
+
+    @classmethod
+    def from_dict(cls, vols: dict[AssetClass, float]) -> "VolatilityProvider":
+        def lookup(ac: AssetClass) -> float:
+            return vols.get(ac, DEFAULT_VOLATILITIES[ac])
+        return cls(lookup)

@@ -11,7 +11,7 @@ from kinetix_risk.models import (
 from kinetix_risk.var_historical import calculate_historical_var
 from kinetix_risk.var_monte_carlo import calculate_monte_carlo_var
 from kinetix_risk.var_parametric import calculate_parametric_var
-from kinetix_risk.volatility import get_sub_correlation_matrix, get_volatility
+from kinetix_risk.volatility import VolatilityProvider, get_sub_correlation_matrix
 
 
 @risk_var_calculation_duration_seconds.time()
@@ -21,6 +21,7 @@ def calculate_portfolio_var(
     confidence_level: ConfidenceLevel,
     time_horizon_days: int,
     num_simulations: int = 10_000,
+    volatility_provider: VolatilityProvider | None = None,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -36,9 +37,10 @@ def calculate_portfolio_var(
         grouped[pos.asset_class] += pos.market_value
 
     # Build exposures with volatility assumptions
+    vol_fn = volatility_provider or VolatilityProvider.static()
     asset_classes = sorted(grouped.keys(), key=lambda ac: ac.value)
     exposures = [
-        AssetClassExposure(ac, grouped[ac], get_volatility(ac))
+        AssetClassExposure(ac, grouped[ac], vol_fn(ac))
         for ac in asset_classes
     ]
 
