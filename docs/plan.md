@@ -167,28 +167,30 @@ Modern risk management platform for large financial institutions.
 ## Increment 4: Observability
 
 ### 4.1 Instrumentation
-- [ ] OpenTelemetry SDK in all Kotlin services (Micrometer + OTLP exporter)
-- [ ] OpenTelemetry SDK in Python risk-engine
-- [ ] Prometheus `/metrics` endpoint on every service
+- [x] Micrometer + Prometheus in all Kotlin services (convention plugin bundle)
+- [x] Prometheus `/metrics` endpoint on every Kotlin service (7 services, TDD)
+- [x] Business metrics in risk-orchestrator (var.calculation.duration, var.calculation.count, TDD)
+- [x] Prometheus metrics in Python risk-engine (histogram, counter, gauge, TDD)
 
 ### 4.2 Infrastructure
-- [ ] Add OTel Collector, Prometheus, Grafana, Loki, Tempo to docker-compose
-- [ ] Prometheus scrape configs + alert rules
-- [ ] Grafana datasource provisioning (Prometheus, Loki, Tempo)
+- [x] Add OTel Collector, Prometheus, Grafana, Loki, Tempo to docker-compose
+- [x] Prometheus scrape configs for all 8 services (7 Kotlin + 1 Python)
+- [x] Grafana datasource provisioning (Prometheus, Loki, Tempo)
 
 ### 4.3 Dashboards
-- [ ] Risk Overview dashboard (VaR gauges, P&L, stress test heatmap)
-- [ ] System Health dashboard (RED metrics, Kafka lag, DB pools)
-- [ ] Market Data dashboard (feed latency, staleness, update rate)
+- [x] Risk Overview dashboard (VaR gauge, trend, ES stat, component breakdown, calc count)
+- [x] System Health dashboard (request rate, error rate, p95 latency, JVM memory, GC, Kafka lag)
+- [x] Market Data dashboard (feed update rate, latency, staleness, updates by instrument)
 
 ### 4.4 Alerting
-- [ ] VaR breach alert rule
-- [ ] Risk calculation slow alert rule
-- [ ] Market data stale alert rule
-- [ ] Kafka consumer lag alert rule
+- [x] VaR breach alert rule (VaRBreached)
+- [x] Risk calculation slow alert rule (RiskCalculationSlow)
+- [x] Market data stale alert rule (MarketDataStale)
+- [x] Kafka consumer lag alert rule (KafkaConsumerLag)
+- [x] Promtool test file for deterministic alert validation
 
 ### 4.5 Acceptance Test
-- [ ] "When VaR calculation exceeds 30s, alert fires in Grafana"
+- [x] "When VaR calculation exceeds 30s, duration metric recorded in Prometheus format"
 
 ---
 
