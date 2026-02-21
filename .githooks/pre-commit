@@ -4,8 +4,8 @@ set -euo pipefail
 echo "==> Running UI lint..."
 (cd ui && npm run lint)
 
-echo "==> Running Gradle tests..."
-./gradlew test --quiet
+echo "==> Running Gradle unit, integration, and acceptance tests..."
+./gradlew test integrationTest acceptanceTest --quiet
 
 echo "==> Running UI tests..."
 (cd ui && npm run test)
