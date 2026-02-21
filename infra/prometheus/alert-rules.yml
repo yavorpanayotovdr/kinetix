@@ -1,0 +1,42 @@
+groups:
+  - name: kinetix-risk
+    rules:
+      - alert: VaRBreached
+        expr: risk_var_value > 1000000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VaR breached threshold for portfolio {{ $labels.portfolio_id }}"
+          description: "VaR value {{ $value }} exceeds 1,000,000 for portfolio {{ $labels.portfolio_id }}"
+
+      - alert: RiskCalculationSlow
+        expr: histogram_quantile(0.95, rate(var_calculation_duration_seconds_bucket[5m])) > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Risk calculation p95 latency exceeds 30s"
+          description: "P95 VaR calculation duration is {{ $value }}s"
+
+  - name: kinetix-market-data
+    rules:
+      - alert: MarketDataStale
+        expr: marketdata_staleness_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Market data is stale for {{ $labels.instrument_id }}"
+          description: "Market data staleness is {{ $value }}s for {{ $labels.instrument_id }}"
+
+  - name: kinetix-kafka
+    rules:
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_group_lag > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high for {{ $labels.group }}"
+          description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
