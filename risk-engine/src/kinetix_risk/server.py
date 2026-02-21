@@ -1,6 +1,7 @@
 from concurrent import futures
 
 import grpc
+import prometheus_client
 
 from kinetix.risk import risk_calculation_pb2_grpc
 from kinetix_risk.converters import (
@@ -9,6 +10,7 @@ from kinetix_risk.converters import (
     proto_positions_to_domain,
     var_result_to_proto_response,
 )
+from kinetix_risk.metrics import risk_var_value
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
 
 
@@ -27,6 +29,8 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             num_simulations=request.num_simulations or 10_000,
         )
 
+        risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_value)
+
         return var_result_to_proto_response(
             result,
             portfolio_id=request.portfolio_id.value,
@@ -39,7 +43,10 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             yield self.CalculateVaR(request, context)
 
 
-def serve(port: int = 50051):
+def serve(port: int = 50051, metrics_port: int = 9091):
+    prometheus_client.start_http_server(metrics_port)
+    print(f"Prometheus metrics server started on port {metrics_port}")
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     risk_calculation_pb2_grpc.add_RiskCalculationServiceServicer_to_server(
         RiskCalculationServicer(), server

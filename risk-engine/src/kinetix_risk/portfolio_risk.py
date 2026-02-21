@@ -1,5 +1,9 @@
 from collections import defaultdict
 
+from kinetix_risk.metrics import (
+    risk_var_calculation_duration_seconds,
+    risk_var_calculation_total,
+)
 from kinetix_risk.models import (
     AssetClass, AssetClassExposure, CalculationType, ConfidenceLevel,
     PositionRisk, VaRResult,
@@ -10,6 +14,7 @@ from kinetix_risk.var_parametric import calculate_parametric_var
 from kinetix_risk.volatility import get_sub_correlation_matrix, get_volatility
 
 
+@risk_var_calculation_duration_seconds.time()
 def calculate_portfolio_var(
     positions: list[PositionRisk],
     calculation_type: CalculationType,
@@ -19,6 +24,11 @@ def calculate_portfolio_var(
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
+
+    risk_var_calculation_total.labels(
+        calculation_type=calculation_type.value,
+        confidence_level=str(confidence_level.value),
+    ).inc()
 
     # Group positions by asset class and sum market values
     grouped: dict[AssetClass, float] = defaultdict(float)
