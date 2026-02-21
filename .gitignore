@@ -34,6 +34,10 @@ risk-engine/models/*.pt
 risk-engine/models/*.joblib
 risk-engine/models/manifest.json
 
+# Dev scripts
+.dev-pids
+.dev-logs/
+
 # Environment
 .env
 .env.local
