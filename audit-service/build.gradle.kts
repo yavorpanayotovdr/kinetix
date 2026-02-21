@@ -8,6 +8,7 @@ application {
 }
 
 dependencies {
+    implementation(project(":common"))
     implementation(libs.bundles.exposed)
     implementation(libs.bundles.database)
     implementation(libs.kafka.clients)

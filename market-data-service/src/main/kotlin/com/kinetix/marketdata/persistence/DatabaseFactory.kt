@@ -1,5 +1,6 @@
 package com.kinetix.marketdata.persistence
 
+import com.kinetix.common.persistence.ConnectionPoolConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
@@ -10,6 +11,7 @@ data class DatabaseConfig(
     val username: String,
     val password: String,
     val maxPoolSize: Int = 10,
+    val poolConfig: ConnectionPoolConfig = ConnectionPoolConfig.forService("market-data-service"),
 )
 
 object DatabaseFactory {
@@ -21,13 +23,19 @@ object DatabaseFactory {
     }
 
     private fun createDataSource(config: DatabaseConfig): HikariDataSource {
+        val pool = config.poolConfig
         val hikariConfig = HikariConfig().apply {
             jdbcUrl = config.jdbcUrl
             username = config.username
             password = config.password
-            maximumPoolSize = config.maxPoolSize
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            maximumPoolSize = pool.maxPoolSize
+            minimumIdle = pool.minIdle
+            connectionTimeout = pool.connectionTimeoutMs
+            idleTimeout = pool.idleTimeoutMs
+            maxLifetime = pool.maxLifetimeMs
+            leakDetectionThreshold = pool.leakDetectionThresholdMs
+            isAutoCommit = pool.autoCommit
+            transactionIsolation = pool.transactionIsolation
             validate()
         }
         return HikariDataSource(hikariConfig)
