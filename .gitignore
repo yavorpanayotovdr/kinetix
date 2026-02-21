@@ -29,6 +29,11 @@ ui/dist/
 .DS_Store
 Thumbs.db
 
+# ML model artifacts
+risk-engine/models/*.pt
+risk-engine/models/*.joblib
+risk-engine/models/manifest.json
+
 # Environment
 .env
 .env.local
