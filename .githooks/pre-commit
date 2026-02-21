@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "==> Running UI lint..."
+(cd ui && npm run lint)
+
 echo "==> Running Gradle tests..."
 ./gradlew test --quiet
 
