@@ -34,3 +34,25 @@ ml_anomaly_detected_total = Counter(
     "Total number of anomalies detected",
     ["metric_name"],
 )
+
+stress_test_duration_seconds = Histogram(
+    "stress_test_duration_seconds",
+    "Duration of stress test calculation in seconds",
+    ["scenario_name"],
+)
+
+stress_test_total = Counter(
+    "stress_test_total",
+    "Total number of stress tests run",
+    ["scenario_name"],
+)
+
+greeks_calculation_duration_seconds = Histogram(
+    "greeks_calculation_duration_seconds",
+    "Duration of Greeks calculation in seconds",
+)
+
+greeks_calculation_total = Counter(
+    "greeks_calculation_total",
+    "Total number of Greeks calculations",
+)

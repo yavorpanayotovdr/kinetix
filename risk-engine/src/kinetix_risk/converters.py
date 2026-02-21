@@ -3,10 +3,10 @@ import time
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from kinetix.common import types_pb2
-from kinetix.risk import risk_calculation_pb2
+from kinetix.risk import risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
-    AssetClass, CalculationType, ConfidenceLevel, PositionRisk,
-    VaRResult,
+    AssetClass, CalculationType, ConfidenceLevel, GreeksResult,
+    PositionRisk, StressScenario, StressTestResult, VaRResult,
 )
 
 _PROTO_ASSET_CLASS_TO_DOMAIN = {
@@ -87,5 +87,77 @@ def var_result_to_proto_response(
         var_value=result.var_value,
         expected_shortfall=result.expected_shortfall,
         component_breakdown=breakdown,
+        calculated_at=now,
+    )
+
+
+_ASSET_CLASS_NAME_TO_DOMAIN = {ac.value: ac for ac in AssetClass}
+
+
+def proto_stress_request_to_scenario(request) -> StressScenario:
+    vol_shocks = {}
+    for ac_name, shock in request.vol_shocks.items():
+        ac = _ASSET_CLASS_NAME_TO_DOMAIN.get(ac_name)
+        if ac:
+            vol_shocks[ac] = shock
+
+    price_shocks = {}
+    for ac_name, shock in request.price_shocks.items():
+        ac = _ASSET_CLASS_NAME_TO_DOMAIN.get(ac_name)
+        if ac:
+            price_shocks[ac] = shock
+
+    return StressScenario(
+        name=request.scenario_name or "hypothetical",
+        description=request.description or "",
+        vol_shocks=vol_shocks,
+        correlation_override=None,
+        price_shocks=price_shocks,
+    )
+
+
+def stress_result_to_proto(result: StressTestResult) -> stress_testing_pb2.StressTestResponse:
+    impacts = []
+    for impact in result.asset_class_impacts:
+        proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[impact.asset_class]
+        impacts.append(stress_testing_pb2.AssetClassImpact(
+            asset_class=proto_ac,
+            base_exposure=impact.base_exposure,
+            stressed_exposure=impact.stressed_exposure,
+            pnl_impact=impact.pnl_impact,
+        ))
+
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    return stress_testing_pb2.StressTestResponse(
+        scenario_name=result.scenario_name,
+        base_var=result.base_var,
+        stressed_var=result.stressed_var,
+        pnl_impact=result.pnl_impact,
+        asset_class_impacts=impacts,
+        calculated_at=now,
+    )
+
+
+def greeks_result_to_proto(result: GreeksResult) -> stress_testing_pb2.GreeksResponse:
+    asset_class_greeks = []
+    for ac in sorted(result.delta.keys(), key=lambda a: a.value):
+        proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[ac]
+        asset_class_greeks.append(stress_testing_pb2.GreekValues(
+            asset_class=proto_ac,
+            delta=result.delta[ac],
+            gamma=result.gamma[ac],
+            vega=result.vega[ac],
+        ))
+
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    return stress_testing_pb2.GreeksResponse(
+        portfolio_id=result.portfolio_id,
+        asset_class_greeks=asset_class_greeks,
+        theta=result.theta,
+        rho=result.rho,
         calculated_at=now,
     )

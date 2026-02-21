@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "kinetix/risk/risk_calculation.proto";
+import "google/protobuf/timestamp.proto";
+
+message StressTestRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  string scenario_name = 2;
+  RiskCalculationType calculation_type = 3;
+  ConfidenceLevel confidence_level = 4;
+  int32 time_horizon_days = 5;
+  repeated kinetix.common.Position positions = 6;
+  map<string, double> vol_shocks = 7;
+  map<string, double> price_shocks = 8;
+  string description = 9;
+}
+
+message AssetClassImpact {
+  kinetix.common.AssetClass asset_class = 1;
+  double base_exposure = 2;
+  double stressed_exposure = 3;
+  double pnl_impact = 4;
+}
+
+message StressTestResponse {
+  string scenario_name = 1;
+  double base_var = 2;
+  double stressed_var = 3;
+  double pnl_impact = 4;
+  repeated AssetClassImpact asset_class_impacts = 5;
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+message ListScenariosRequest {}
+
+message ListScenariosResponse {
+  repeated string scenario_names = 1;
+}
+
+message GreeksRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  int32 time_horizon_days = 4;
+  repeated kinetix.common.Position positions = 5;
+}
+
+message GreekValues {
+  kinetix.common.AssetClass asset_class = 1;
+  double delta = 2;
+  double gamma = 3;
+  double vega = 4;
+}
+
+message GreeksResponse {
+  string portfolio_id = 1;
+  repeated GreekValues asset_class_greeks = 2;
+  double theta = 3;
+  double rho = 4;
+  google.protobuf.Timestamp calculated_at = 5;
+}
+
+service StressTestService {
+  rpc RunStressTest(StressTestRequest) returns (StressTestResponse);
+  rpc ListScenarios(ListScenariosRequest) returns (ListScenariosResponse);
+  rpc CalculateGreeks(GreeksRequest) returns (GreeksResponse);
+}

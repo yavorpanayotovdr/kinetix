@@ -4,7 +4,7 @@ from pathlib import Path
 import grpc
 import prometheus_client
 
-from kinetix.risk import ml_prediction_pb2_grpc, risk_calculation_pb2_grpc
+from kinetix.risk import ml_prediction_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
 from kinetix_risk.converters import (
     proto_calculation_type_to_domain,
     proto_confidence_to_domain,
@@ -15,6 +15,7 @@ from kinetix_risk.metrics import risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.stress_server import StressTestServicer
 
 
 class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceServicer):
@@ -57,6 +58,9 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
     model_store = ModelStore(Path(models_dir))
     ml_prediction_pb2_grpc.add_MLPredictionServiceServicer_to_server(
         MLPredictionServicer(model_store), server
+    )
+    stress_testing_pb2_grpc.add_StressTestServiceServicer_to_server(
+        StressTestServicer(), server
     )
     server.add_insecure_port(f"[::]:{port}")
     server.start()
