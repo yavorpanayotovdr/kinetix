@@ -86,3 +86,59 @@ class GreeksResult:
     vega: dict[AssetClass, float]
     theta: float
     rho: float
+
+
+class FrtbRiskClass(Enum):
+    GIRR = "GIRR"
+    CSR_NON_SEC = "CSR_NON_SEC"
+    CSR_SEC_CTP = "CSR_SEC_CTP"
+    CSR_SEC_NON_CTP = "CSR_SEC_NON_CTP"
+    EQUITY = "EQUITY"
+    COMMODITY = "COMMODITY"
+    FX = "FX"
+
+
+@dataclass(frozen=True)
+class SensitivityInput:
+    risk_class: FrtbRiskClass
+    delta: float
+    vega: float
+    curvature: float
+
+
+@dataclass(frozen=True)
+class RiskClassCharge:
+    risk_class: FrtbRiskClass
+    delta_charge: float
+    vega_charge: float
+    curvature_charge: float
+    total_charge: float
+
+
+@dataclass(frozen=True)
+class SbmResult:
+    risk_class_charges: list[RiskClassCharge]
+    total_sbm_charge: float
+
+
+@dataclass(frozen=True)
+class DrcResult:
+    gross_jtd: float
+    hedge_benefit: float
+    net_drc: float
+
+
+@dataclass(frozen=True)
+class RraoResult:
+    exotic_notional: float
+    other_notional: float
+    total_rrao: float
+
+
+@dataclass(frozen=True)
+class FrtbResult:
+    portfolio_id: str
+    sbm: SbmResult
+    drc: DrcResult
+    rrao: RraoResult
+    total_capital_charge: float
