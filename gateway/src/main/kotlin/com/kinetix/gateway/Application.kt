@@ -6,6 +6,7 @@ import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.ErrorResponse
 import com.kinetix.gateway.routes.marketDataRoutes
 import com.kinetix.gateway.routes.positionRoutes
+import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
@@ -86,6 +87,7 @@ fun Application.module(riskClient: RiskServiceClient) {
     routing {
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
+        regulatoryRoutes(riskClient)
     }
 }
 
@@ -115,5 +117,6 @@ fun Application.module(
         marketDataWebSocket(broadcaster)
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
+        regulatoryRoutes(riskClient)
     }
 }

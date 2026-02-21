@@ -5,9 +5,12 @@ import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
+import com.kinetix.gateway.client.FrtbResultSummary
 import com.kinetix.gateway.client.GreekValuesItem
 import com.kinetix.gateway.client.GreeksResultSummary
 import com.kinetix.gateway.client.PortfolioSummary
+import com.kinetix.gateway.client.ReportResult
+import com.kinetix.gateway.client.RiskClassChargeItem
 import com.kinetix.gateway.client.StressTestParams
 import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
@@ -304,4 +307,74 @@ fun GreeksResultSummary.toResponse(): GreeksResponse = GreeksResponse(
     theta = "%.6f".format(theta),
     rho = "%.6f".format(rho),
     calculatedAt = calculatedAt.toString(),
+)
+
+// --- Regulatory / FRTB DTOs ---
+
+@Serializable
+data class RiskClassChargeDto(
+    val riskClass: String,
+    val deltaCharge: String,
+    val vegaCharge: String,
+    val curvatureCharge: String,
+    val totalCharge: String,
+)
+
+@Serializable
+data class FrtbResultResponse(
+    val portfolioId: String,
+    val sbmCharges: List<RiskClassChargeDto>,
+    val totalSbmCharge: String,
+    val grossJtd: String,
+    val hedgeBenefit: String,
+    val netDrc: String,
+    val exoticNotional: String,
+    val otherNotional: String,
+    val totalRrao: String,
+    val totalCapitalCharge: String,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class GenerateReportRequest(
+    val format: String? = null,
+)
+
+@Serializable
+data class ReportResponse(
+    val portfolioId: String,
+    val format: String,
+    val content: String,
+    val generatedAt: String,
+)
+
+// --- Regulatory mappers ---
+
+fun RiskClassChargeItem.toDto(): RiskClassChargeDto = RiskClassChargeDto(
+    riskClass = riskClass,
+    deltaCharge = "%.2f".format(deltaCharge),
+    vegaCharge = "%.2f".format(vegaCharge),
+    curvatureCharge = "%.2f".format(curvatureCharge),
+    totalCharge = "%.2f".format(totalCharge),
+)
+
+fun FrtbResultSummary.toResponse(): FrtbResultResponse = FrtbResultResponse(
+    portfolioId = portfolioId,
+    sbmCharges = sbmCharges.map { it.toDto() },
+    totalSbmCharge = "%.2f".format(totalSbmCharge),
+    grossJtd = "%.2f".format(grossJtd),
+    hedgeBenefit = "%.2f".format(hedgeBenefit),
+    netDrc = "%.2f".format(netDrc),
+    exoticNotional = "%.2f".format(exoticNotional),
+    otherNotional = "%.2f".format(otherNotional),
+    totalRrao = "%.2f".format(totalRrao),
+    totalCapitalCharge = "%.2f".format(totalCapitalCharge),
+    calculatedAt = calculatedAt.toString(),
+)
+
+fun ReportResult.toResponse(): ReportResponse = ReportResponse(
+    portfolioId = portfolioId,
+    format = format,
+    content = content,
+    generatedAt = generatedAt.toString(),
 )

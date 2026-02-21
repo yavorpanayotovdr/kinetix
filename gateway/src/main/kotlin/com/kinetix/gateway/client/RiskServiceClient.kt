@@ -68,10 +68,41 @@ data class GreeksResultSummary(
     val calculatedAt: Instant,
 )
 
+data class RiskClassChargeItem(
+    val riskClass: String,
+    val deltaCharge: Double,
+    val vegaCharge: Double,
+    val curvatureCharge: Double,
+    val totalCharge: Double,
+)
+
+data class FrtbResultSummary(
+    val portfolioId: String,
+    val sbmCharges: List<RiskClassChargeItem>,
+    val totalSbmCharge: Double,
+    val grossJtd: Double,
+    val hedgeBenefit: Double,
+    val netDrc: Double,
+    val exoticNotional: Double,
+    val otherNotional: Double,
+    val totalRrao: Double,
+    val totalCapitalCharge: Double,
+    val calculatedAt: Instant,
+)
+
+data class ReportResult(
+    val portfolioId: String,
+    val format: String,
+    val content: String,
+    val generatedAt: Instant,
+)
+
 interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): VaRResultSummary?
     suspend fun getLatestVaR(portfolioId: String): VaRResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
     suspend fun listScenarios(): List<String>
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?
+    suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
+    suspend fun generateReport(portfolioId: String, format: String): ReportResult?
 }
