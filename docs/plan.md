@@ -246,19 +246,29 @@ Modern risk management platform for large financial institutions.
 ## Increment 7: Regulatory Reporting
 
 ### 7.1 FRTB Standardized Approach
-- [ ] TDD: Sensitivities-Based Method (SbM)
-- [ ] TDD: Default Risk Charge (DRC)
-- [ ] TDD: Residual Risk Add-On (RRAO)
+- [x] TDD: Sensitivities-Based Method (SbM) — risk weights, delta/vega/curvature charges, correlation scenarios
+- [x] TDD: Default Risk Charge (DRC) — credit-sensitive positions, LGD, hedge benefit
+- [x] TDD: Residual Risk Add-On (RRAO) — exotic (1%) and other (0.1%) notional charges
 
 ### 7.2 Report Generation
-- [ ] CSV and XBRL output formats
-- [ ] Report storage and retrieval
+- [x] CSV output format (header, 7 risk class rows, DRC, RRAO, total)
+- [x] XBRL (simplified XML) output format (FRTBReport root, SbM/DRC/RRAO sections)
 
-### 7.3 UI — Regulatory Dashboard
-- [ ] Capital requirements display, report generation UI
+### 7.3 gRPC + Gateway
+- [x] Proto definition: FrtbRequest/Response, GenerateReportRequest/Response, RegulatoryReportingService
+- [x] Python gRPC servicer with Prometheus metrics (frtb_calculation_duration, regulatory_report_total)
+- [x] Gateway REST routes: POST /regulatory/frtb/{portfolioId}, POST /regulatory/report/{portfolioId}
 
-### 7.4 Acceptance Test
-- [ ] "When FRTB report generated, capital requirement calculated across all seven risk classes"
+### 7.4 UI — Regulatory Dashboard
+- [x] Capital requirements display (stat cards: Total, SbM, DRC, RRAO)
+- [x] SbM breakdown table (7 risk classes × Delta/Vega/Curvature/Total)
+- [x] Report download buttons (CSV, XBRL)
+
+### 7.5 Acceptance Test
+- [x] "When FRTB report generated, capital requirement calculated across all seven risk classes"
+- [x] "SbM charge positive for equity and commodity risk classes"
+- [x] "DRC charge applies to fixed income, RRAO to derivatives"
+- [x] "CSV and XBRL reports contain expected structure"
 
 ---
 
