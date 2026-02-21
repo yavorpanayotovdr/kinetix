@@ -38,3 +38,26 @@ export interface UnsubscribeMessage {
 }
 
 export type ClientMessage = SubscribeMessage | UnsubscribeMessage
+
+export interface ComponentBreakdownDto {
+  assetClass: string
+  varContribution: string
+  percentageOfTotal: string
+}
+
+export interface VaRResultDto {
+  portfolioId: string
+  calculationType: string
+  confidenceLevel: string
+  varValue: string
+  expectedShortfall: string
+  componentBreakdown: ComponentBreakdownDto[]
+  calculatedAt: string
+}
+
+export interface VaRCalculationRequestDto {
+  calculationType?: string
+  confidenceLevel?: string
+  timeHorizonDays?: string
+  numSimulations?: string
+}

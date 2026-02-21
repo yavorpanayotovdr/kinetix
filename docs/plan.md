@@ -153,8 +153,8 @@ Modern risk management platform for large financial institutions.
 - [x] TDD: `GET/POST /api/v1/risk/var/{portfolioId}`
 
 ### 3.4 UI — VaR Dashboard
-- [ ] VaR gauge, time series chart, component breakdown
-- [ ] Vitest tests
+- [x] VaR gauge, time series chart, component breakdown
+- [x] Vitest tests
 
 ### 3.5 Performance Test
 - [ ] Monte Carlo VaR: 10K positions, 10K sims < 60s
