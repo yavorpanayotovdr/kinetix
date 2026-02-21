@@ -56,3 +56,19 @@ greeks_calculation_total = Counter(
     "greeks_calculation_total",
     "Total number of Greeks calculations",
 )
+
+frtb_calculation_duration_seconds = Histogram(
+    "frtb_calculation_duration_seconds",
+    "Duration of FRTB calculation in seconds",
+)
+
+frtb_calculation_total = Counter(
+    "frtb_calculation_total",
+    "Total number of FRTB calculations",
+)
+
+regulatory_report_total = Counter(
+    "regulatory_report_total",
+    "Total number of regulatory reports generated",
+    ["format"],
+)

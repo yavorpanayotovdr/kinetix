@@ -3,10 +3,10 @@ import time
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from kinetix.common import types_pb2
-from kinetix.risk import risk_calculation_pb2, stress_testing_pb2
+from kinetix.risk import regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
-    AssetClass, CalculationType, ConfidenceLevel, GreeksResult,
-    PositionRisk, StressScenario, StressTestResult, VaRResult,
+    AssetClass, CalculationType, ConfidenceLevel, FrtbResult, FrtbRiskClass,
+    GreeksResult, PositionRisk, StressScenario, StressTestResult, VaRResult,
 )
 
 _PROTO_ASSET_CLASS_TO_DOMAIN = {
@@ -160,4 +160,66 @@ def greeks_result_to_proto(result: GreeksResult) -> stress_testing_pb2.GreeksRes
         theta=result.theta,
         rho=result.rho,
         calculated_at=now,
+    )
+
+
+_DOMAIN_FRTB_RC_TO_PROTO = {
+    FrtbRiskClass.GIRR: regulatory_reporting_pb2.GIRR,
+    FrtbRiskClass.CSR_NON_SEC: regulatory_reporting_pb2.CSR_NON_SEC,
+    FrtbRiskClass.CSR_SEC_CTP: regulatory_reporting_pb2.CSR_SEC_CTP,
+    FrtbRiskClass.CSR_SEC_NON_CTP: regulatory_reporting_pb2.CSR_SEC_NON_CTP,
+    FrtbRiskClass.EQUITY: regulatory_reporting_pb2.FRTB_EQUITY,
+    FrtbRiskClass.COMMODITY: regulatory_reporting_pb2.FRTB_COMMODITY,
+    FrtbRiskClass.FX: regulatory_reporting_pb2.FRTB_FX,
+}
+
+
+def frtb_result_to_proto(result: FrtbResult) -> regulatory_reporting_pb2.FrtbResponse:
+    rc_charges = []
+    for rcc in result.sbm.risk_class_charges:
+        rc_charges.append(regulatory_reporting_pb2.RiskClassCharge(
+            risk_class=_DOMAIN_FRTB_RC_TO_PROTO[rcc.risk_class],
+            delta_charge=rcc.delta_charge,
+            vega_charge=rcc.vega_charge,
+            curvature_charge=rcc.curvature_charge,
+            total_charge=rcc.total_charge,
+        ))
+
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    return regulatory_reporting_pb2.FrtbResponse(
+        portfolio_id=result.portfolio_id,
+        sbm=regulatory_reporting_pb2.SbmResult(
+            risk_class_charges=rc_charges,
+            total_sbm_charge=result.sbm.total_sbm_charge,
+        ),
+        drc=regulatory_reporting_pb2.DrcResult(
+            gross_jtd=result.drc.gross_jtd,
+            hedge_benefit=result.drc.hedge_benefit,
+            net_drc=result.drc.net_drc,
+        ),
+        rrao=regulatory_reporting_pb2.RraoResult(
+            exotic_notional=result.rrao.exotic_notional,
+            other_notional=result.rrao.other_notional,
+            total_rrao=result.rrao.total_rrao,
+        ),
+        total_capital_charge=result.total_capital_charge,
+        calculated_at=now,
+    )
+
+
+def report_to_proto(
+    portfolio_id: str,
+    fmt: int,
+    content: str,
+) -> regulatory_reporting_pb2.GenerateReportResponse:
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    return regulatory_reporting_pb2.GenerateReportResponse(
+        portfolio_id=portfolio_id,
+        format=fmt,
+        content=content,
+        generated_at=now,
     )

@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "google/protobuf/timestamp.proto";
+
+enum FrtbRiskClass {
+  FRTB_RISK_CLASS_UNSPECIFIED = 0;
+  GIRR = 1;
+  CSR_NON_SEC = 2;
+  CSR_SEC_CTP = 3;
+  CSR_SEC_NON_CTP = 4;
+  FRTB_EQUITY = 5;
+  FRTB_COMMODITY = 6;
+  FRTB_FX = 7;
+}
+
+message FrtbRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  repeated kinetix.common.Position positions = 2;
+}
+
+message RiskClassCharge {
+  FrtbRiskClass risk_class = 1;
+  double delta_charge = 2;
+  double vega_charge = 3;
+  double curvature_charge = 4;
+  double total_charge = 5;
+}
+
+message SbmResult {
+  repeated RiskClassCharge risk_class_charges = 1;
+  double total_sbm_charge = 2;
+}
+
+message DrcResult {
+  double gross_jtd = 1;
+  double hedge_benefit = 2;
+  double net_drc = 3;
+}
+
+message RraoResult {
+  double exotic_notional = 1;
+  double other_notional = 2;
+  double total_rrao = 3;
+}
+
+message FrtbResponse {
+  string portfolio_id = 1;
+  SbmResult sbm = 2;
+  DrcResult drc = 3;
+  RraoResult rrao = 4;
+  double total_capital_charge = 5;
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+enum ReportFormat {
+  REPORT_FORMAT_UNSPECIFIED = 0;
+  CSV = 1;
+  XBRL = 2;
+}
+
+message GenerateReportRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  repeated kinetix.common.Position positions = 2;
+  ReportFormat format = 3;
+}
+
+message GenerateReportResponse {
+  string portfolio_id = 1;
+  ReportFormat format = 2;
+  string content = 3;
+  google.protobuf.Timestamp generated_at = 4;
+}
+
+service RegulatoryReportingService {
+  rpc CalculateFrtb(FrtbRequest) returns (FrtbResponse);
+  rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+}
