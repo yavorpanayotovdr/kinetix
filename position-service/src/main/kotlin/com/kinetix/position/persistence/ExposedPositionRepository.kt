@@ -66,6 +66,13 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
         }
     }
 
+    override suspend fun findDistinctPortfolioIds(): List<PortfolioId> = newSuspendedTransaction(db = db) {
+        PositionsTable
+            .select(PositionsTable.portfolioId)
+            .withDistinct()
+            .map { PortfolioId(it[PositionsTable.portfolioId]) }
+    }
+
     private fun ResultRow.toPosition(): Position = Position(
         portfolioId = PortfolioId(this[PositionsTable.portfolioId]),
         instrumentId = InstrumentId(this[PositionsTable.instrumentId]),

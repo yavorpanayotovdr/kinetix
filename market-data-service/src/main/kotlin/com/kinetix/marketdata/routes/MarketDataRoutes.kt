@@ -1,0 +1,63 @@
+package com.kinetix.marketdata.routes
+
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.MarketDataPoint
+import com.kinetix.common.model.Money
+import com.kinetix.marketdata.persistence.MarketDataRepository
+import io.ktor.http.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
+import java.time.Instant
+
+// --- Response DTOs matching gateway's expected shapes ---
+
+@Serializable
+data class MoneyDto(val amount: String, val currency: String)
+
+@Serializable
+data class MarketDataPointResponse(
+    val instrumentId: String,
+    val price: MoneyDto,
+    val timestamp: String,
+    val source: String,
+)
+
+@Serializable
+data class ErrorResponse(val error: String, val message: String)
+
+private fun Money.toDto() = MoneyDto(amount.toPlainString(), currency.currencyCode)
+
+private fun MarketDataPoint.toResponse() = MarketDataPointResponse(
+    instrumentId = instrumentId.value,
+    price = price.toDto(),
+    timestamp = timestamp.toString(),
+    source = source.name,
+)
+
+// --- Routes ---
+
+fun Route.marketDataRoutes(repository: MarketDataRepository) {
+    route("/api/v1/market-data/{instrumentId}") {
+
+        get("/latest") {
+            val instrumentId = InstrumentId(call.parameters["instrumentId"]!!)
+            val point = repository.findLatest(instrumentId)
+            if (point != null) {
+                call.respond(point.toResponse())
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        get("/history") {
+            val instrumentId = InstrumentId(call.parameters["instrumentId"]!!)
+            val from = call.queryParameters["from"]
+                ?: throw IllegalArgumentException("Missing required query parameter: from")
+            val to = call.queryParameters["to"]
+                ?: throw IllegalArgumentException("Missing required query parameter: to")
+            val points = repository.findByInstrumentId(instrumentId, Instant.parse(from), Instant.parse(to))
+            call.respond(points.map { it.toResponse() })
+        }
+    }
+}

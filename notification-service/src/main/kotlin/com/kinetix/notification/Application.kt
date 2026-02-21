@@ -44,6 +44,12 @@ fun Application.module(rulesEngine: RulesEngine, inAppDelivery: InAppDeliverySer
     }
 }
 
+fun Application.moduleWithRoutes() {
+    val rulesEngine = RulesEngine()
+    val inAppDelivery = InAppDeliveryService()
+    module(rulesEngine, inAppDelivery)
+}
+
 @Serializable
 data class CreateAlertRuleRequest(
     val name: String,

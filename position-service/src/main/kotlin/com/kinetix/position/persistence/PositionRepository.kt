@@ -10,4 +10,5 @@ interface PositionRepository {
     suspend fun findByKey(portfolioId: PortfolioId, instrumentId: InstrumentId): Position?
     suspend fun findByInstrumentId(instrumentId: InstrumentId): List<Position>
     suspend fun delete(portfolioId: PortfolioId, instrumentId: InstrumentId)
+    suspend fun findDistinctPortfolioIds(): List<PortfolioId>
 }

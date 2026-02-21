@@ -2,6 +2,9 @@ package com.kinetix.audit
 
 import com.kinetix.audit.dto.ErrorResponse
 import com.kinetix.audit.persistence.AuditEventRepository
+import com.kinetix.audit.persistence.DatabaseConfig
+import com.kinetix.audit.persistence.DatabaseFactory
+import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.audit.routes.auditRoutes
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -56,4 +59,17 @@ fun Application.module(repository: AuditEventRepository) {
     routing {
         auditRoutes(repository)
     }
+}
+
+fun Application.moduleWithRoutes() {
+    val dbConfig = environment.config.config("database")
+    val db = DatabaseFactory.init(
+        DatabaseConfig(
+            jdbcUrl = dbConfig.property("jdbcUrl").getString(),
+            username = dbConfig.property("username").getString(),
+            password = dbConfig.property("password").getString(),
+        )
+    )
+    val repository = ExposedAuditEventRepository(db)
+    module(repository)
 }

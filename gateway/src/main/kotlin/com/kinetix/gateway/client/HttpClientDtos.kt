@@ -1,0 +1,352 @@
+package com.kinetix.gateway.client
+
+import com.kinetix.common.model.*
+import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.Currency
+
+// --- Position Service DTOs ---
+
+@Serializable
+data class PortfolioSummaryDto(val portfolioId: String)
+
+@Serializable
+data class MoneyDto(val amount: String, val currency: String)
+
+@Serializable
+data class PositionDto(
+    val portfolioId: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val quantity: String,
+    val averageCost: MoneyDto,
+    val marketPrice: MoneyDto,
+    val marketValue: MoneyDto,
+    val unrealizedPnl: MoneyDto,
+)
+
+@Serializable
+data class TradeDto(
+    val tradeId: String,
+    val portfolioId: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val price: MoneyDto,
+    val tradedAt: String,
+)
+
+@Serializable
+data class BookTradeResponseDto(
+    val trade: TradeDto,
+    val position: PositionDto,
+)
+
+@Serializable
+data class BookTradeRequestDto(
+    val tradeId: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+    val tradedAt: String,
+)
+
+// --- Market Data Service DTOs ---
+
+@Serializable
+data class MarketDataPointDto(
+    val instrumentId: String,
+    val price: MoneyDto,
+    val timestamp: String,
+    val source: String,
+)
+
+// --- Risk Service DTOs ---
+
+@Serializable
+data class VaRCalculationRequestDto(
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
+    val numSimulations: String? = null,
+)
+
+@Serializable
+data class ComponentBreakdownDto(
+    val assetClass: String,
+    val varContribution: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
+data class VaRResultDto(
+    val portfolioId: String,
+    val calculationType: String,
+    val confidenceLevel: String,
+    val varValue: String,
+    val expectedShortfall: String,
+    val componentBreakdown: List<ComponentBreakdownDto>,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class StressTestRequestDto(
+    val scenarioName: String,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
+    val volShocks: Map<String, Double>? = null,
+    val priceShocks: Map<String, Double>? = null,
+    val description: String? = null,
+)
+
+@Serializable
+data class AssetClassImpactDto(
+    val assetClass: String,
+    val baseExposure: String,
+    val stressedExposure: String,
+    val pnlImpact: String,
+)
+
+@Serializable
+data class StressTestResultDto(
+    val scenarioName: String,
+    val baseVar: String,
+    val stressedVar: String,
+    val pnlImpact: String,
+    val assetClassImpacts: List<AssetClassImpactDto>,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class GreekValuesDto(
+    val assetClass: String,
+    val delta: String,
+    val gamma: String,
+    val vega: String,
+)
+
+@Serializable
+data class GreeksResultDto(
+    val portfolioId: String,
+    val assetClassGreeks: List<GreekValuesDto>,
+    val theta: String,
+    val rho: String,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class RiskClassChargeDto(
+    val riskClass: String,
+    val deltaCharge: String,
+    val vegaCharge: String,
+    val curvatureCharge: String,
+    val totalCharge: String,
+)
+
+@Serializable
+data class FrtbResultDto(
+    val portfolioId: String,
+    val sbmCharges: List<RiskClassChargeDto>,
+    val totalSbmCharge: String,
+    val grossJtd: String,
+    val hedgeBenefit: String,
+    val netDrc: String,
+    val exoticNotional: String,
+    val otherNotional: String,
+    val totalRrao: String,
+    val totalCapitalCharge: String,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class GenerateReportRequestDto(val format: String? = null)
+
+@Serializable
+data class ReportResultDto(
+    val portfolioId: String,
+    val format: String,
+    val content: String,
+    val generatedAt: String,
+)
+
+// --- Notification DTOs ---
+
+@Serializable
+data class AlertRuleDto(
+    val id: String,
+    val name: String,
+    val type: String,
+    val threshold: Double,
+    val operator: String,
+    val severity: String,
+    val channels: List<String>,
+    val enabled: Boolean,
+)
+
+@Serializable
+data class AlertEventDto(
+    val id: String,
+    val ruleId: String,
+    val ruleName: String,
+    val type: String,
+    val severity: String,
+    val message: String,
+    val currentValue: Double,
+    val threshold: Double,
+    val portfolioId: String,
+    val triggeredAt: String,
+)
+
+@Serializable
+data class CreateAlertRuleRequestDto(
+    val name: String,
+    val type: String,
+    val threshold: Double,
+    val operator: String,
+    val severity: String,
+    val channels: List<String>,
+)
+
+// --- Domain mappers ---
+
+fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
+
+fun MoneyDto.toDomainMoney() = Money(BigDecimal(amount), Currency.getInstance(currency))
+
+fun PositionDto.toDomain() = Position(
+    portfolioId = PortfolioId(portfolioId),
+    instrumentId = InstrumentId(instrumentId),
+    assetClass = AssetClass.valueOf(assetClass),
+    quantity = BigDecimal(quantity),
+    averageCost = averageCost.toDomainMoney(),
+    marketPrice = marketPrice.toDomainMoney(),
+)
+
+fun TradeDto.toDomain() = Trade(
+    tradeId = TradeId(tradeId),
+    portfolioId = PortfolioId(portfolioId),
+    instrumentId = InstrumentId(instrumentId),
+    assetClass = AssetClass.valueOf(assetClass),
+    side = Side.valueOf(side),
+    quantity = BigDecimal(quantity),
+    price = price.toDomainMoney(),
+    tradedAt = Instant.parse(tradedAt),
+)
+
+fun BookTradeResponseDto.toDomain() = BookTradeResult(
+    trade = trade.toDomain(),
+    position = position.toDomain(),
+)
+
+fun MarketDataPointDto.toDomain() = MarketDataPoint(
+    instrumentId = InstrumentId(instrumentId),
+    price = price.toDomainMoney(),
+    timestamp = Instant.parse(timestamp),
+    source = MarketDataSource.valueOf(source),
+)
+
+fun VaRResultDto.toDomain() = VaRResultSummary(
+    portfolioId = portfolioId,
+    calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
+    varValue = varValue.toDouble(),
+    expectedShortfall = expectedShortfall.toDouble(),
+    componentBreakdown = componentBreakdown.map {
+        ComponentBreakdownItem(
+            assetClass = it.assetClass,
+            varContribution = it.varContribution.toDouble(),
+            percentageOfTotal = it.percentageOfTotal.toDouble(),
+        )
+    },
+    calculatedAt = Instant.parse(calculatedAt),
+)
+
+fun StressTestResultDto.toDomain() = StressTestResultSummary(
+    scenarioName = scenarioName,
+    baseVar = baseVar.toDouble(),
+    stressedVar = stressedVar.toDouble(),
+    pnlImpact = pnlImpact.toDouble(),
+    assetClassImpacts = assetClassImpacts.map {
+        AssetClassImpactItem(
+            assetClass = it.assetClass,
+            baseExposure = it.baseExposure.toDouble(),
+            stressedExposure = it.stressedExposure.toDouble(),
+            pnlImpact = it.pnlImpact.toDouble(),
+        )
+    },
+    calculatedAt = Instant.parse(calculatedAt),
+)
+
+fun GreeksResultDto.toDomain() = GreeksResultSummary(
+    portfolioId = portfolioId,
+    assetClassGreeks = assetClassGreeks.map {
+        GreekValuesItem(
+            assetClass = it.assetClass,
+            delta = it.delta.toDouble(),
+            gamma = it.gamma.toDouble(),
+            vega = it.vega.toDouble(),
+        )
+    },
+    theta = theta.toDouble(),
+    rho = rho.toDouble(),
+    calculatedAt = Instant.parse(calculatedAt),
+)
+
+fun FrtbResultDto.toDomain() = FrtbResultSummary(
+    portfolioId = portfolioId,
+    sbmCharges = sbmCharges.map {
+        RiskClassChargeItem(
+            riskClass = it.riskClass,
+            deltaCharge = it.deltaCharge.toDouble(),
+            vegaCharge = it.vegaCharge.toDouble(),
+            curvatureCharge = it.curvatureCharge.toDouble(),
+            totalCharge = it.totalCharge.toDouble(),
+        )
+    },
+    totalSbmCharge = totalSbmCharge.toDouble(),
+    grossJtd = grossJtd.toDouble(),
+    hedgeBenefit = hedgeBenefit.toDouble(),
+    netDrc = netDrc.toDouble(),
+    exoticNotional = exoticNotional.toDouble(),
+    otherNotional = otherNotional.toDouble(),
+    totalRrao = totalRrao.toDouble(),
+    totalCapitalCharge = totalCapitalCharge.toDouble(),
+    calculatedAt = Instant.parse(calculatedAt),
+)
+
+fun ReportResultDto.toDomain() = ReportResult(
+    portfolioId = portfolioId,
+    format = format,
+    content = content,
+    generatedAt = Instant.parse(generatedAt),
+)
+
+fun AlertRuleDto.toDomain() = AlertRuleItem(
+    id = id,
+    name = name,
+    type = type,
+    threshold = threshold,
+    operator = operator,
+    severity = severity,
+    channels = channels,
+    enabled = enabled,
+)
+
+fun AlertEventDto.toDomain() = AlertEventItem(
+    id = id,
+    ruleId = ruleId,
+    ruleName = ruleName,
+    type = type,
+    severity = severity,
+    message = message,
+    currentValue = currentValue,
+    threshold = threshold,
+    portfolioId = portfolioId,
+    triggeredAt = Instant.parse(triggeredAt),
+)

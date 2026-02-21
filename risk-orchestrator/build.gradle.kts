@@ -13,6 +13,8 @@ dependencies {
     implementation(project(":position-service"))
     implementation(libs.bundles.grpc)
     implementation(libs.grpc.netty)
+    implementation(libs.bundles.exposed)
+    implementation(libs.bundles.database)
     implementation(libs.kafka.clients)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)

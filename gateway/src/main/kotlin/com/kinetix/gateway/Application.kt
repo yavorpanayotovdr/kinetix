@@ -5,6 +5,10 @@ import com.kinetix.common.security.Permission
 import com.kinetix.gateway.auth.JwtConfig
 import com.kinetix.gateway.auth.configureJwtAuth
 import com.kinetix.gateway.auth.requirePermission
+import com.kinetix.gateway.client.HttpMarketDataServiceClient
+import com.kinetix.gateway.client.HttpNotificationServiceClient
+import com.kinetix.gateway.client.HttpPositionServiceClient
+import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.client.MarketDataServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
@@ -18,6 +22,9 @@ import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
 import com.kinetix.gateway.websocket.marketDataWebSocket
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -132,6 +139,32 @@ fun Application.module(
 
 fun Application.module(notificationClient: NotificationServiceClient) {
     module()
+    routing {
+        notificationRoutes(notificationClient)
+    }
+}
+
+fun Application.devModule() {
+    val servicesConfig = environment.config.config("services")
+    val positionUrl = servicesConfig.property("position.url").getString()
+    val marketDataUrl = servicesConfig.property("marketData.url").getString()
+    val riskUrl = servicesConfig.property("risk.url").getString()
+    val notificationUrl = servicesConfig.property("notification.url").getString()
+
+    val jsonConfig = Json { ignoreUnknownKeys = true }
+    val httpClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) {
+            json(jsonConfig)
+        }
+    }
+
+    val positionClient = HttpPositionServiceClient(httpClient, positionUrl)
+    val marketDataClient = HttpMarketDataServiceClient(httpClient, marketDataUrl)
+    val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
+    val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
+    val broadcaster = PriceBroadcaster()
+
+    module(positionClient, marketDataClient, broadcaster, riskClient)
     routing {
         notificationRoutes(notificationClient)
     }
