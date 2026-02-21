@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { PositionDto } from '../types'
-import { formatMoney, pnlColorClass, PositionGrid } from './PositionGrid'
+import { formatMoney, pnlColorClass } from '../utils/format'
+import { PositionGrid } from './PositionGrid'
 
 describe('formatMoney', () => {
   it('formats USD with dollar sign and commas', () => {

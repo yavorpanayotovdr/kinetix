@@ -1,4 +1,4 @@
-import { formatMoney } from './PositionGrid'
+import { formatMoney } from '../utils/format'
 
 interface VaRGaugeProps {
   varValue: number

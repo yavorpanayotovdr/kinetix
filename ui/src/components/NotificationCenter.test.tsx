@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { AlertRuleDto, AlertEventDto } from '../types'
 import { NotificationCenter } from './NotificationCenter'
 
