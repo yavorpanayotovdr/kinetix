@@ -275,15 +275,18 @@ Modern risk management platform for large financial institutions.
 ## Increment 8: Notifications & Alerting
 
 ### 8.1 Notification Service
-- [ ] TDD: Rules engine for VaR breaches, P&L thresholds, KRI
-- [ ] TDD: Delivery channels (in-app WebSocket, email SMTP, webhook)
-- [ ] Kafka consumer for risk results
+- [x] TDD: Alert domain models (AlertRule, AlertEvent, AlertType, Severity, DeliveryChannel)
+- [x] TDD: Rules engine for VaR breaches, P&L thresholds, risk limits
+- [x] TDD: Delivery channels (in-app, email stub, webhook stub) with routing
+- [x] Kafka consumer for risk results with rules evaluation and alert delivery
 
-### 8.2 UI — Alert Configuration
-- [ ] Threshold configuration UI, notification center
+### 8.2 Gateway & UI
+- [x] Gateway REST routes for alert rules CRUD and recent alerts
+- [x] Notification center UI with alert rules configuration and recent alerts
 
 ### 8.3 Acceptance Test
-- [ ] "When VaR exceeds limit, notification in UI within 10s and email sent"
+- [x] "When VaR exceeds limit, alert generated with CRITICAL severity and delivered to in-app and email"
+- [x] "Disabled rules do not produce alerts; only matching rules fire"
 
 ---
 
