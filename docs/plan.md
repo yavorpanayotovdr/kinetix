@@ -293,15 +293,15 @@ Modern risk management platform for large financial institutions.
 ## Increment 9: Production Hardening
 
 ### 9.1 Security
-- [ ] JWT authentication with Keycloak (docker-compose)
-- [ ] RBAC roles: ADMIN, TRADER, RISK_MANAGER, COMPLIANCE, VIEWER
-- [ ] TLS for gRPC and HTTP
+- [x] JWT authentication with Keycloak (docker-compose)
+- [x] RBAC roles: ADMIN, TRADER, RISK_MANAGER, COMPLIANCE, VIEWER
+- [x] TLS for gRPC and HTTP
 
 ### 9.2 Resilience
-- [ ] Circuit breakers for inter-service calls
-- [ ] Rate limiting on gateway
-- [ ] Connection pool tuning (HikariCP)
+- [x] Circuit breakers for inter-service calls
+- [x] Rate limiting on gateway
+- [x] Connection pool tuning (HikariCP)
 
 ### 9.3 Performance
-- [ ] Gatling load test suite
-- [ ] p95 < 3s for API calls, > 99% success rate under load
+- [x] Gatling load test suite
+- [x] p95 < 3s for API calls, > 99% success rate under load
