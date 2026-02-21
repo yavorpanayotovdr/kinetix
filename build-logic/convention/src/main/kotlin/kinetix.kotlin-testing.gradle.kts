@@ -28,6 +28,7 @@ val integrationTest by tasks.registering(Test::class) {
     classpath = testSourceSets["test"].runtimeClasspath
     filter {
         includeTestsMatching("*IntegrationTest")
+        isFailOnNoMatchingTests = false
     }
 }
 
@@ -38,5 +39,6 @@ val acceptanceTest by tasks.registering(Test::class) {
     classpath = testSourceSets["test"].runtimeClasspath
     filter {
         includeTestsMatching("*AcceptanceTest")
+        isFailOnNoMatchingTests = false
     }
 }
