@@ -1,0 +1,77 @@
+{
+  "realm": "kinetix",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "Full system access" },
+      { "name": "TRADER", "description": "Trade execution and portfolio viewing" },
+      { "name": "RISK_MANAGER", "description": "Risk calculation and alert management" },
+      { "name": "COMPLIANCE", "description": "Regulatory reporting and audit access" },
+      { "name": "VIEWER", "description": "Read-only access" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "kinetix-api",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@kinetix.local",
+      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "trader1",
+      "enabled": true,
+      "email": "trader1@kinetix.local",
+      "credentials": [{ "type": "password", "value": "trader1", "temporary": false }],
+      "realmRoles": ["TRADER"]
+    },
+    {
+      "username": "risk_mgr",
+      "enabled": true,
+      "email": "risk_mgr@kinetix.local",
+      "credentials": [{ "type": "password", "value": "risk_mgr", "temporary": false }],
+      "realmRoles": ["RISK_MANAGER"]
+    },
+    {
+      "username": "compliance1",
+      "enabled": true,
+      "email": "compliance1@kinetix.local",
+      "credentials": [{ "type": "password", "value": "compliance1", "temporary": false }],
+      "realmRoles": ["COMPLIANCE"]
+    },
+    {
+      "username": "viewer1",
+      "enabled": true,
+      "email": "viewer1@kinetix.local",
+      "credentials": [{ "type": "password", "value": "viewer1", "temporary": false }],
+      "realmRoles": ["VIEWER"]
+    }
+  ]
+}
