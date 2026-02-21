@@ -45,24 +45,25 @@ done
 
 start_gradle_service() {
   local module="$1"
-  echo "==> Starting $module..."
-  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${module}:run" \
+  local port="$2"
+  echo "==> Starting $module on port $port..."
+  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${module}:run" --args="-port=$port" \
     > "$LOG_DIR/${module}.log" 2>&1 &
   echo "$! $module" >> "$PID_FILE"
 }
 
 # Kotlin services (dependency order)
-start_gradle_service gateway
-start_gradle_service position-service
-start_gradle_service market-data-service
-start_gradle_service risk-orchestrator
-start_gradle_service audit-service
-start_gradle_service regulatory-service
-start_gradle_service notification-service
+start_gradle_service gateway              8080
+start_gradle_service position-service     8081
+start_gradle_service market-data-service  8082
+start_gradle_service risk-orchestrator    8083
+start_gradle_service audit-service        8084
+start_gradle_service regulatory-service   8085
+start_gradle_service notification-service 8086
 
 # Python risk engine
 echo "==> Starting risk-engine..."
-(cd "$ROOT_DIR/risk-engine" && uv run python -m kinetix_risk.server) \
+(cd "$ROOT_DIR/risk-engine" && PYTHONPATH="$ROOT_DIR/risk-engine/src/kinetix_risk/proto:${PYTHONPATH:-}" uv run python -m kinetix_risk.server) \
   > "$LOG_DIR/risk-engine.log" 2>&1 &
 echo "$! risk-engine" >> "$PID_FILE"
 

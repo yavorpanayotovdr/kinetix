@@ -22,3 +22,6 @@ services:
     extends:
       file: docker-compose.infra.yml
       service: postgres
+
+volumes:
+  pgdata:
