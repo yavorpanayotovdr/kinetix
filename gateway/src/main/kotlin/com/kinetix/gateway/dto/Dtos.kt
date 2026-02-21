@@ -3,8 +3,13 @@ package com.kinetix.gateway.dto
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
+import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
+import com.kinetix.gateway.client.GreekValuesItem
+import com.kinetix.gateway.client.GreeksResultSummary
 import com.kinetix.gateway.client.PortfolioSummary
+import com.kinetix.gateway.client.StressTestParams
+import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
 import com.kinetix.gateway.client.VaRResultSummary
 import kotlinx.serialization.Serializable
@@ -196,5 +201,107 @@ fun VaRResultSummary.toResponse(): VaRResultResponse = VaRResultResponse(
     varValue = "%.2f".format(varValue),
     expectedShortfall = "%.2f".format(expectedShortfall),
     componentBreakdown = componentBreakdown.map { it.toDto() },
+    calculatedAt = calculatedAt.toString(),
+)
+
+// --- Stress Test DTOs ---
+
+@Serializable
+data class StressTestRequest(
+    val scenarioName: String,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
+    val volShocks: Map<String, Double>? = null,
+    val priceShocks: Map<String, Double>? = null,
+    val description: String? = null,
+)
+
+@Serializable
+data class AssetClassImpactDto(
+    val assetClass: String,
+    val baseExposure: String,
+    val stressedExposure: String,
+    val pnlImpact: String,
+)
+
+@Serializable
+data class StressTestResponse(
+    val scenarioName: String,
+    val baseVar: String,
+    val stressedVar: String,
+    val pnlImpact: String,
+    val assetClassImpacts: List<AssetClassImpactDto>,
+    val calculatedAt: String,
+)
+
+@Serializable
+data class GreekValuesDto(
+    val assetClass: String,
+    val delta: String,
+    val gamma: String,
+    val vega: String,
+)
+
+@Serializable
+data class GreeksResponse(
+    val portfolioId: String,
+    val assetClassGreeks: List<GreekValuesDto>,
+    val theta: String,
+    val rho: String,
+    val calculatedAt: String,
+)
+
+// --- Stress Test mappers ---
+
+fun StressTestRequest.toParams(portfolioId: String): StressTestParams {
+    val calcType = calculationType ?: "PARAMETRIC"
+    require(calcType in validCalculationTypes) {
+        "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
+    }
+    val confLevel = confidenceLevel ?: "CL_95"
+    require(confLevel in validConfidenceLevels) {
+        "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
+    }
+    return StressTestParams(
+        portfolioId = portfolioId,
+        scenarioName = scenarioName,
+        calculationType = calcType,
+        confidenceLevel = confLevel,
+        timeHorizonDays = timeHorizonDays?.toInt() ?: 1,
+        volShocks = volShocks,
+        priceShocks = priceShocks,
+        description = description,
+    )
+}
+
+fun AssetClassImpactItem.toDto(): AssetClassImpactDto = AssetClassImpactDto(
+    assetClass = assetClass,
+    baseExposure = "%.2f".format(baseExposure),
+    stressedExposure = "%.2f".format(stressedExposure),
+    pnlImpact = "%.2f".format(pnlImpact),
+)
+
+fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestResponse(
+    scenarioName = scenarioName,
+    baseVar = "%.2f".format(baseVar),
+    stressedVar = "%.2f".format(stressedVar),
+    pnlImpact = "%.2f".format(pnlImpact),
+    assetClassImpacts = assetClassImpacts.map { it.toDto() },
+    calculatedAt = calculatedAt.toString(),
+)
+
+fun GreekValuesItem.toDto(): GreekValuesDto = GreekValuesDto(
+    assetClass = assetClass,
+    delta = "%.6f".format(delta),
+    gamma = "%.6f".format(gamma),
+    vega = "%.6f".format(vega),
+)
+
+fun GreeksResultSummary.toResponse(): GreeksResponse = GreeksResponse(
+    portfolioId = portfolioId,
+    assetClassGreeks = assetClassGreeks.map { it.toDto() },
+    theta = "%.6f".format(theta),
+    rho = "%.6f".format(rho),
     calculatedAt = calculatedAt.toString(),
 )
