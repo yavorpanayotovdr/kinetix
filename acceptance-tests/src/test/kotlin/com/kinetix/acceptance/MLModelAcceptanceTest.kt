@@ -56,9 +56,9 @@ private class StubCreditScorer {
         marketValueLog: Double,
     ): CreditScore {
         // Simple heuristic scoring based on key financial metrics
-        val riskScore = (leverageRatio * 0.3 - interestCoverage * 0.1 +
+        val riskScore = (leverageRatio * 0.3 - interestCoverage * 0.25 +
                 debtToEquity * 0.2 - currentRatio * 0.1 -
-                revenueGrowth * 0.1 + volatility90d * 0.3 - marketValueLog * 0.05)
+                revenueGrowth * 0.1 + volatility90d * 0.3 - marketValueLog * 0.1)
         val prob = 1.0 / (1.0 + kotlin.math.exp(-riskScore))
         val rating = when {
             prob <= 0.002 -> "AAA"

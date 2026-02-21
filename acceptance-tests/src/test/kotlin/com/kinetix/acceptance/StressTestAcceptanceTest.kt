@@ -109,12 +109,12 @@ private class StubGreeksCalculator {
         val sqrtT = sqrt(1.0 / 252.0)
 
         fun portfolioVar(exp: Map<AssetClass, Double>, vols: Map<AssetClass, Double> = defaultVols): Double {
-            var total = 0.0
+            var sumSq = 0.0
             for ((ac, e) in exp) {
-                val vol = vols[ac] ?: 0.15
-                total += e * vol * confidenceZ * sqrtT
+                val component = e * (vols[ac] ?: 0.15) * confidenceZ * sqrtT
+                sumSq += component * component
             }
-            return total
+            return sqrt(sumSq)
         }
 
         val baseVar = portfolioVar(exposures)
