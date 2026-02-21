@@ -85,10 +85,33 @@ class MLPredictionServicer(ml_prediction_pb2_grpc.MLPredictionServiceServicer):
         return ml_prediction_pb2.BatchVolatilityResponse(predictions=results)
 
     def ScoreCredit(self, request, context):
-        import grpc as _grpc
-        context.set_code(_grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Credit scoring not yet implemented")
-        return ml_prediction_pb2.CreditScoreResponse()
+        import numpy as np
+        from kinetix_risk.ml.credit_model import probability_to_rating
+
+        credit_model = self.model_store.load_credit_model()
+        features = np.array([[
+            request.leverage_ratio,
+            request.interest_coverage,
+            request.debt_to_equity,
+            request.current_ratio,
+            request.revenue_growth,
+            request.volatility_90d,
+            request.market_value_log,
+        ]])
+        prob = credit_model.predict_probability(features)[0]
+        rating = probability_to_rating(prob)
+
+        manifest = self.model_store._load_manifest()
+        used_version = manifest.get("credit", {}).get("latest", "unknown")
+        now = Timestamp()
+        now.GetCurrentTime()
+        return ml_prediction_pb2.CreditScoreResponse(
+            issuer_id=request.issuer_id,
+            default_probability=prob,
+            rating=rating,
+            model_version=used_version,
+            scored_at=now,
+        )
 
     def DetectAnomaly(self, request, context):
         import grpc as _grpc
