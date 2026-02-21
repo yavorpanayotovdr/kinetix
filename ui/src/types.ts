@@ -61,3 +61,34 @@ export interface VaRCalculationRequestDto {
   timeHorizonDays?: string
   numSimulations?: string
 }
+
+export interface AssetClassImpactDto {
+  assetClass: string
+  baseExposure: string
+  stressedExposure: string
+  pnlImpact: string
+}
+
+export interface StressTestResultDto {
+  scenarioName: string
+  baseVar: string
+  stressedVar: string
+  pnlImpact: string
+  assetClassImpacts: AssetClassImpactDto[]
+  calculatedAt: string
+}
+
+export interface GreekValuesDto {
+  assetClass: string
+  delta: string
+  gamma: string
+  vega: string
+}
+
+export interface GreeksResultDto {
+  portfolioId: string
+  assetClassGreeks: GreekValuesDto[]
+  theta: string
+  rho: string
+  calculatedAt: string
+}

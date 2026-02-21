@@ -1,0 +1,149 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fetchScenarios, runStressTest, fetchGreeks } from './stress'
+
+describe('stress API', () => {
+  const mockFetch = vi.fn()
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const stressResult = {
+    scenarioName: 'GFC_2008',
+    baseVar: '100000.00',
+    stressedVar: '300000.00',
+    pnlImpact: '-550000.00',
+    assetClassImpacts: [
+      { assetClass: 'EQUITY', baseExposure: '1000000.00', stressedExposure: '600000.00', pnlImpact: '-400000.00' },
+    ],
+    calculatedAt: '2025-01-15T10:00:00Z',
+  }
+
+  const greeksResult = {
+    portfolioId: 'port-1',
+    assetClassGreeks: [
+      { assetClass: 'EQUITY', delta: '1234.560000', gamma: '78.900000', vega: '5678.120000' },
+    ],
+    theta: '-123.450000',
+    rho: '456.780000',
+    calculatedAt: '2025-01-15T10:00:00Z',
+  }
+
+  describe('fetchScenarios', () => {
+    it('returns array of scenario names', async () => {
+      const scenarios = ['GFC_2008', 'COVID_2020', 'TAPER_TANTRUM_2013', 'EURO_CRISIS_2011']
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(scenarios),
+      })
+
+      const result = await fetchScenarios()
+
+      expect(result).toEqual(scenarios)
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/stress/scenarios')
+    })
+
+    it('throws on 500', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      await expect(fetchScenarios()).rejects.toThrow(
+        'Failed to fetch scenarios: 500 Internal Server Error',
+      )
+    })
+  })
+
+  describe('runStressTest', () => {
+    it('sends POST and returns result', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(stressResult),
+      })
+
+      const result = await runStressTest('port-1', 'GFC_2008')
+
+      expect(result).toEqual(stressResult)
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/stress/port-1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenarioName: 'GFC_2008' }),
+      })
+    })
+
+    it('returns null on 404', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const result = await runStressTest('port-1', 'NONEXISTENT')
+
+      expect(result).toBeNull()
+    })
+
+    it('throws on 500', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      await expect(runStressTest('port-1', 'GFC_2008')).rejects.toThrow(
+        'Failed to run stress test: 500 Internal Server Error',
+      )
+    })
+  })
+
+  describe('fetchGreeks', () => {
+    it('sends POST and returns result', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(greeksResult),
+      })
+
+      const result = await fetchGreeks('port-1')
+
+      expect(result).toEqual(greeksResult)
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/greeks/port-1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+    })
+
+    it('returns null on 404', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const result = await fetchGreeks('port-1')
+
+      expect(result).toBeNull()
+    })
+
+    it('throws on 500', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      await expect(fetchGreeks('port-1')).rejects.toThrow(
+        'Failed to fetch Greeks: 500 Internal Server Error',
+      )
+    })
+  })
+})
