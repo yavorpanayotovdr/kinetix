@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import numpy as np
+
 from kinetix_risk.metrics import (
     risk_var_calculation_duration_seconds,
     risk_var_calculation_total,
@@ -22,6 +24,7 @@ def calculate_portfolio_var(
     time_horizon_days: int,
     num_simulations: int = 10_000,
     volatility_provider: VolatilityProvider | None = None,
+    correlation_matrix: "np.ndarray | None" = None,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -45,7 +48,7 @@ def calculate_portfolio_var(
     ]
 
     # Get correlation sub-matrix for the asset classes present
-    corr = get_sub_correlation_matrix(asset_classes)
+    corr = correlation_matrix if correlation_matrix is not None else get_sub_correlation_matrix(asset_classes)
 
     # Dispatch to the appropriate VaR engine
     if calculation_type == CalculationType.PARAMETRIC:
