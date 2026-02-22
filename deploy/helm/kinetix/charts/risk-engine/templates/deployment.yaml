@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "risk-engine.fullname" . }}
+  labels:
+    {{- include "risk-engine.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "risk-engine.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "risk-engine.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.image.repository }}:{{ .Values.global.imageTag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.grpcPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          livenessProbe:
+            grpc:
+              port: {{ .Values.service.grpcPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: {{ .Values.service.grpcPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          startupProbe:
+            tcpSocket:
+              port: grpc
+            failureThreshold: 30
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

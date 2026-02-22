@@ -1,0 +1,112 @@
+# Prod environment overrides
+# Multiple replicas, HPA enabled, seed data disabled, passwords injected via --set
+
+postgresql:
+  primary:
+    persistence:
+      size: 50Gi
+
+kafka:
+  controller:
+    replicaCount: 3
+  broker:
+    replicaCount: 3
+  persistence:
+    size: 50Gi
+
+redis:
+  master:
+    persistence:
+      size: 10Gi
+
+gateway:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+position-service:
+  replicaCount: 3
+  env:
+    PORT: "8081"
+    SEED_DATA: "false"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_position"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+market-data-service:
+  replicaCount: 3
+  env:
+    PORT: "8082"
+    SEED_DATA: "false"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_market_data"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+risk-orchestrator:
+  replicaCount: 3
+  env:
+    PORT: "8083"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_risk"
+    RISK_ENGINE_HOST: "kinetix-risk-engine"
+    RISK_ENGINE_PORT: "50051"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+audit-service:
+  replicaCount: 3
+  env:
+    PORT: "8084"
+    SEED_DATA: "false"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_audit"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+regulatory-service:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+notification-service:
+  replicaCount: 3
+  env:
+    PORT: "8086"
+    SEED_DATA: "false"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+risk-engine:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+ui:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70

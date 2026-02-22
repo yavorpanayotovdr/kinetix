@@ -1,0 +1,72 @@
+# Dev environment overrides
+# Single replicas, seed data enabled, hardcoded passwords
+
+secrets:
+  dbUsername: kinetix
+  dbPassword: kinetix
+  keycloakAdminPassword: admin
+
+postgresql:
+  primary:
+    persistence:
+      size: 5Gi
+
+kafka:
+  controller:
+    replicaCount: 1
+  broker:
+    replicaCount: 1
+  persistence:
+    size: 5Gi
+
+redis:
+  master:
+    persistence:
+      size: 1Gi
+
+gateway:
+  replicaCount: 1
+
+position-service:
+  replicaCount: 1
+  env:
+    PORT: "8081"
+    SEED_DATA: "true"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_position"
+
+market-data-service:
+  replicaCount: 1
+  env:
+    PORT: "8082"
+    SEED_DATA: "true"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_market_data"
+
+risk-orchestrator:
+  replicaCount: 1
+  env:
+    PORT: "8083"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_risk"
+    RISK_ENGINE_HOST: "kinetix-risk-engine"
+    RISK_ENGINE_PORT: "50051"
+
+audit-service:
+  replicaCount: 1
+  env:
+    PORT: "8084"
+    SEED_DATA: "true"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_audit"
+
+regulatory-service:
+  replicaCount: 1
+
+notification-service:
+  replicaCount: 1
+  env:
+    PORT: "8086"
+    SEED_DATA: "true"
+
+risk-engine:
+  replicaCount: 1
+
+ui:
+  replicaCount: 1

@@ -1,0 +1,48 @@
+# Multi-stage Dockerfile for all Kotlin/Ktor services
+# Build arg SERVICE_NAME selects which service to build
+ARG SERVICE_NAME
+
+# --- Builder stage ---
+FROM eclipse-temurin:21-jdk AS builder
+
+ARG SERVICE_NAME
+
+WORKDIR /app
+
+# Copy Gradle wrapper and build config first for better layer caching
+COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY gradle/ gradle/
+COPY build-logic/ build-logic/
+
+# Copy shared modules
+COPY proto/ proto/
+COPY common/ common/
+
+# Copy all service directories (cross-project dependencies)
+COPY gateway/ gateway/
+COPY position-service/ position-service/
+COPY market-data-service/ market-data-service/
+COPY risk-orchestrator/ risk-orchestrator/
+COPY audit-service/ audit-service/
+COPY regulatory-service/ regulatory-service/
+COPY notification-service/ notification-service/
+
+RUN chmod +x gradlew && \
+    ./gradlew :${SERVICE_NAME}:installDist --no-daemon -x test -x integrationTest -x acceptanceTest
+
+# --- Runtime stage ---
+FROM eclipse-temurin:21-jre-alpine
+
+ARG SERVICE_NAME
+
+RUN addgroup -S kinetix && adduser -S kinetix -G kinetix
+
+WORKDIR /app
+
+COPY --from=builder /app/${SERVICE_NAME}/build/install/${SERVICE_NAME}/ ./
+
+RUN chown -R kinetix:kinetix /app
+
+USER kinetix
+
+ENTRYPOINT ["sh", "-c", "./bin/${SERVICE_NAME}"]

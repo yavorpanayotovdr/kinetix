@@ -1,0 +1,182 @@
+global:
+  imageRegistry: ""
+  imageTag: "latest"
+  imagePullSecrets: []
+
+namespace: kinetix
+
+secrets:
+  dbUsername: kinetix
+  dbPassword: kinetix
+  keycloakAdminPassword: admin
+
+# --- PostgreSQL (Bitnami) ---
+postgresql:
+  image:
+    registry: docker.io
+    repository: timescale/timescaledb
+    tag: latest-pg17
+  auth:
+    username: kinetix
+    password: kinetix
+    postgresPassword: postgres
+  primary:
+    initdb:
+      scriptsConfigMap: '{{ include "kinetix.fullname" . }}-db-init'
+    persistence:
+      size: 10Gi
+
+# --- Kafka (Bitnami, KRaft mode) ---
+kafka:
+  kraft:
+    enabled: true
+  controller:
+    replicaCount: 1
+  broker:
+    replicaCount: 1
+  provisioning:
+    enabled: true
+    topics:
+      - name: trades.lifecycle
+        partitions: 3
+        replicationFactor: 1
+      - name: market.data.prices
+        partitions: 3
+        replicationFactor: 1
+      - name: risk.results
+        partitions: 3
+        replicationFactor: 1
+  persistence:
+    size: 10Gi
+
+# --- Redis (Bitnami) ---
+redis:
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 2Gi
+
+# --- Keycloak (Bitnami) ---
+keycloak:
+  auth:
+    adminUser: admin
+    adminPassword: admin
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: '{{ include "kinetix.databaseHost" . }}'
+    port: 5432
+    database: keycloak
+    user: kinetix
+    password: kinetix
+  extraVolumeMounts:
+    - name: realm-config
+      mountPath: /opt/bitnami/keycloak/data/import
+      readOnly: true
+  extraVolumes:
+    - name: realm-config
+      configMap:
+        name: '{{ include "kinetix.fullname" . }}-keycloak-realm'
+  extraArgs:
+    - "--import-realm"
+
+# --- Service defaults ---
+gateway:
+  replicaCount: 1
+  image:
+    repository: kinetix/gateway
+  service:
+    port: 8080
+  env:
+    PORT: "8080"
+
+position-service:
+  replicaCount: 1
+  image:
+    repository: kinetix/position-service
+  service:
+    port: 8081
+  env:
+    PORT: "8081"
+    SEED_DATA: "true"
+
+market-data-service:
+  replicaCount: 1
+  image:
+    repository: kinetix/market-data-service
+  service:
+    port: 8082
+  env:
+    PORT: "8082"
+    SEED_DATA: "true"
+
+risk-orchestrator:
+  replicaCount: 1
+  image:
+    repository: kinetix/risk-orchestrator
+  service:
+    port: 8083
+  env:
+    PORT: "8083"
+
+audit-service:
+  replicaCount: 1
+  image:
+    repository: kinetix/audit-service
+  service:
+    port: 8084
+  env:
+    PORT: "8084"
+    SEED_DATA: "true"
+
+regulatory-service:
+  replicaCount: 1
+  image:
+    repository: kinetix/regulatory-service
+  service:
+    port: 8085
+  env:
+    PORT: "8085"
+
+notification-service:
+  replicaCount: 1
+  image:
+    repository: kinetix/notification-service
+  service:
+    port: 8086
+  env:
+    PORT: "8086"
+    SEED_DATA: "true"
+
+risk-engine:
+  replicaCount: 1
+  image:
+    repository: kinetix/risk-engine
+  service:
+    grpcPort: 50051
+    metricsPort: 9091
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+ui:
+  replicaCount: 1
+  image:
+    repository: kinetix/ui
+  service:
+    port: 80
+  ingress:
+    enabled: true
+    className: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+
+observability:
+  enabled: true

@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  repository: kinetix/risk-orchestrator
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8083
+
+env:
+  PORT: "8083"
+  DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_risk"
+  RISK_ENGINE_HOST: "kinetix-risk-engine"
+  RISK_ENGINE_PORT: "50051"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+probes:
+  path: /health

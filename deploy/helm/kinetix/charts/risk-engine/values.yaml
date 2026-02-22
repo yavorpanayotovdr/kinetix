@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: kinetix/risk-engine
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  grpcPort: 50051
+  metricsPort: 9091
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70

@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: kinetix/notification-service
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8086
+
+env:
+  PORT: "8086"
+  SEED_DATA: "false"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+probes:
+  path: /health

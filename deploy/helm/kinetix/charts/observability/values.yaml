@@ -1,0 +1,139 @@
+kube-prometheus-stack:
+  enabled: true
+  prometheus:
+    prometheusSpec:
+      additionalScrapeConfigs:
+        - job_name: "gateway"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-gateway:8080"]
+        - job_name: "position-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-position-service:8081"]
+        - job_name: "market-data-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-market-data-service:8082"]
+        - job_name: "risk-orchestrator"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-risk-orchestrator:8083"]
+        - job_name: "audit-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-audit-service:8084"]
+        - job_name: "regulatory-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-regulatory-service:8085"]
+        - job_name: "notification-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-notification-service:8086"]
+        - job_name: "risk-engine"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-risk-engine:9091"]
+      additionalPrometheusRulesMap:
+        kinetix-rules:
+          groups:
+            - name: kinetix-risk
+              rules:
+                - alert: VaRBreached
+                  expr: risk_var_value > 1000000
+                  for: 5m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "VaR breached threshold for portfolio {{ $labels.portfolio_id }}"
+                    description: "VaR value {{ $value }} exceeds 1,000,000 for portfolio {{ $labels.portfolio_id }}"
+                - alert: RiskCalculationSlow
+                  expr: histogram_quantile(0.95, rate(var_calculation_duration_seconds_bucket[5m])) > 30
+                  for: 2m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Risk calculation p95 latency exceeds 30s"
+                    description: "P95 VaR calculation duration is {{ $value }}s"
+            - name: kinetix-market-data
+              rules:
+                - alert: MarketDataStale
+                  expr: marketdata_staleness_seconds > 60
+                  for: 5m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Market data is stale for {{ $labels.instrument_id }}"
+                    description: "Market data staleness is {{ $value }}s for {{ $labels.instrument_id }}"
+            - name: kinetix-kafka
+              rules:
+                - alert: KafkaConsumerLag
+                  expr: kafka_consumer_group_lag > 10000
+                  for: 10m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "Kafka consumer lag is high for {{ $labels.group }}"
+                    description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
+  grafana:
+    additionalDataSources:
+      - name: Loki
+        type: loki
+        url: http://kinetix-loki:3100
+        access: proxy
+      - name: Tempo
+        type: tempo
+        url: http://kinetix-tempo:3100
+        access: proxy
+
+loki:
+  enabled: true
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+  singleBinary:
+    replicas: 1
+
+tempo:
+  enabled: true
+  tempo:
+    storage:
+      trace:
+        backend: local
+
+opentelemetry-collector:
+  enabled: true
+  mode: deployment
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    exporters:
+      otlphttp/loki:
+        endpoint: http://kinetix-loki:3100/otlp
+      otlp/tempo:
+        endpoint: http://kinetix-tempo:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [otlp/tempo]
+        logs:
+          receivers: [otlp]
+          exporters: [otlphttp/loki]
+        metrics:
+          receivers: [otlp]
+          exporters: [prometheus]

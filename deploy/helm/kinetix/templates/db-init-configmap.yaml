@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kinetix.fullname" . }}-db-init
+  labels:
+    {{- include "kinetix.labels" . | nindent 4 }}
+data:
+  01-create-databases.sql: |
+    -- Per-service databases for Kinetix
+    CREATE DATABASE kinetix_gateway;
+    CREATE DATABASE kinetix_position;
+    CREATE DATABASE kinetix_market_data;
+    CREATE DATABASE kinetix_risk;
+    CREATE DATABASE kinetix_audit;
+    CREATE DATABASE kinetix_notification;
+    CREATE DATABASE kinetix_regulatory;
+
+    -- Enable TimescaleDB on market-data database (time-series hypertables)
+    \c kinetix_market_data
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+  02-create-keycloak-db.sql: |
+    CREATE DATABASE keycloak;

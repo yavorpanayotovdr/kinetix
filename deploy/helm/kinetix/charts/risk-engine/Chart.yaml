@@ -1,0 +1,6 @@
+apiVersion: v2
+name: risk-engine
+description: Kinetix Risk Engine (Python gRPC)
+version: 0.1.0
+appVersion: "1.0.0"
+type: application

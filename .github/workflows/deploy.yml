@@ -1,0 +1,231 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER: kinetix
+
+jobs:
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.filter.outputs.gateway }}
+      position-service: ${{ steps.filter.outputs.position-service }}
+      market-data-service: ${{ steps.filter.outputs.market-data-service }}
+      risk-orchestrator: ${{ steps.filter.outputs.risk-orchestrator }}
+      audit-service: ${{ steps.filter.outputs.audit-service }}
+      regulatory-service: ${{ steps.filter.outputs.regulatory-service }}
+      notification-service: ${{ steps.filter.outputs.notification-service }}
+      risk-engine: ${{ steps.filter.outputs.risk-engine }}
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            gateway:
+              - 'gateway/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            position-service:
+              - 'position-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            market-data-service:
+              - 'market-data-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            risk-orchestrator:
+              - 'risk-orchestrator/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            audit-service:
+              - 'audit-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            regulatory-service:
+              - 'regulatory-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            notification-service:
+              - 'notification-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            risk-engine:
+              - 'risk-engine/**'
+            ui:
+              - 'ui/**'
+
+  build-kotlin-services:
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - position-service
+          - market-data-service
+          - risk-orchestrator
+          - audit-service
+          - regulatory-service
+          - notification-service
+        exclude:
+          - service: ${{ needs.changes.outputs.gateway != 'true' && 'gateway' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['position-service'] != 'true' && 'position-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['market-data-service'] != 'true' && 'market-data-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['risk-orchestrator'] != 'true' && 'risk-orchestrator' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['audit-service'] != 'true' && 'audit-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['regulatory-service'] != 'true' && 'regulatory-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['notification-service'] != 'true' && 'notification-service' || 'NONE' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.kotlin
+          build-args: SERVICE_NAME=${{ matrix.service }}
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/kinetix/${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  build-risk-engine:
+    needs: changes
+    if: needs.changes.outputs.risk-engine == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push risk-engine
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.risk-engine
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/kinetix/risk-engine:${{ github.sha }}
+          cache-from: type=gha,scope=risk-engine
+          cache-to: type=gha,mode=max,scope=risk-engine
+
+  build-ui:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push UI
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.ui
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/kinetix/ui:${{ github.sha }}
+          cache-from: type=gha,scope=ui
+          cache-to: type=gha,mode=max,scope=ui
+
+  deploy:
+    needs: [build-kotlin-services, build-risk-engine, build-ui]
+    if: always() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }} --region ${{ env.AWS_REGION }}
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm dependency build
+        run: helm dependency build deploy/helm/kinetix
+
+      - name: Deploy with Helm
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+          IMAGE_REGISTRY: "${{ steps.ecr.outputs.registry }}/"
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          helm upgrade --install kinetix deploy/helm/kinetix \
+            --namespace kinetix --create-namespace \
+            -f deploy/helm/kinetix/values-${ENVIRONMENT}.yaml \
+            --set global.imageRegistry=${IMAGE_REGISTRY} \
+            --set global.imageTag=${IMAGE_TAG} \
+            --wait --timeout 10m

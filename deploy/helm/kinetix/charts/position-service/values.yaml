@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: kinetix/position-service
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8081
+
+env:
+  PORT: "8081"
+  DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_position"
+  SEED_DATA: "false"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+probes:
+  path: /health

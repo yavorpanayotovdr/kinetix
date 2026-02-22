@@ -1,0 +1,11 @@
+aws_region         = "us-east-1"
+environment        = "dev"
+cluster_name       = "kinetix"
+cluster_version    = "1.31"
+node_instance_type = "m6i.xlarge"
+node_min_size      = 2
+node_max_size      = 6
+node_desired_size  = 2
+node_capacity_type = "SPOT"
+github_org         = "your-org"
+github_repo        = "kinetix"
