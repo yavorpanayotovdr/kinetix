@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PortfolioDto, PositionDto } from '../types'
 
@@ -34,11 +34,15 @@ describe('usePositions', () => {
     expect(result.current.loading).toBe(true)
     expect(result.current.positions).toEqual([])
     expect(result.current.portfolioId).toBeNull()
+    expect(result.current.portfolios).toEqual([])
     expect(result.current.error).toBeNull()
   })
 
-  it('loads positions from first portfolio', async () => {
-    const portfolios: PortfolioDto[] = [{ portfolioId: 'port-1' }]
+  it('loads positions from first portfolio and exposes portfolio list', async () => {
+    const portfolios: PortfolioDto[] = [
+      { portfolioId: 'port-1' },
+      { portfolioId: 'port-2' },
+    ]
     mockFetchPortfolios.mockResolvedValue(portfolios)
     mockFetchPositions.mockResolvedValue([position])
 
@@ -50,6 +54,7 @@ describe('usePositions', () => {
 
     expect(result.current.positions).toEqual([position])
     expect(result.current.portfolioId).toBe('port-1')
+    expect(result.current.portfolios).toEqual(['port-1', 'port-2'])
     expect(result.current.error).toBeNull()
     expect(mockFetchPositions).toHaveBeenCalledWith('port-1')
   })
@@ -65,6 +70,7 @@ describe('usePositions', () => {
 
     expect(result.current.positions).toEqual([])
     expect(result.current.portfolioId).toBeNull()
+    expect(result.current.portfolios).toEqual([])
     expect(mockFetchPositions).not.toHaveBeenCalled()
   })
 
@@ -81,7 +87,7 @@ describe('usePositions', () => {
     expect(result.current.positions).toEqual([])
   })
 
-  it('selects the first portfolio when multiple exist', async () => {
+  it('selectPortfolio switches portfolio and reloads positions', async () => {
     const portfolios: PortfolioDto[] = [
       { portfolioId: 'port-1' },
       { portfolioId: 'port-2' },
@@ -95,7 +101,19 @@ describe('usePositions', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.portfolioId).toBe('port-1')
-    expect(mockFetchPositions).toHaveBeenCalledWith('port-1')
+    const position2: PositionDto = { ...position, portfolioId: 'port-2', instrumentId: 'MSFT' }
+    mockFetchPositions.mockResolvedValue([position2])
+
+    await act(async () => {
+      result.current.selectPortfolio('port-2')
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.portfolioId).toBe('port-2')
+    expect(result.current.positions).toEqual([position2])
+    expect(mockFetchPositions).toHaveBeenCalledWith('port-2')
   })
 })

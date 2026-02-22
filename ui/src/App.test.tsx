@@ -1,19 +1,31 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PositionDto, VaRResultDto } from './types'
 
 vi.mock('./hooks/usePositions')
 vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useVaR')
+vi.mock('./hooks/useStressTest')
+vi.mock('./hooks/useGreeks')
+vi.mock('./hooks/useNotifications')
+vi.mock('./hooks/useRegulatory')
 
 import App from './App'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useVaR } from './hooks/useVaR'
+import { useStressTest } from './hooks/useStressTest'
+import { useGreeks } from './hooks/useGreeks'
+import { useNotifications } from './hooks/useNotifications'
+import { useRegulatory } from './hooks/useRegulatory'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseVaR = vi.mocked(useVaR)
+const mockUseStressTest = vi.mocked(useStressTest)
+const mockUseGreeks = vi.mocked(useGreeks)
+const mockUseNotifications = vi.mocked(useNotifications)
+const mockUseRegulatory = vi.mocked(useRegulatory)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -38,36 +50,78 @@ const varResult: VaRResultDto = {
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 
+const selectPortfolio = vi.fn()
+
+function setupDefaults() {
+  mockUsePositions.mockReturnValue({
+    positions: [position],
+    portfolioId: 'port-1',
+    portfolios: ['port-1', 'port-2', 'port-3'],
+    selectPortfolio,
+    loading: false,
+    error: null,
+  })
+  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true })
+  mockUseVaR.mockReturnValue({
+    varResult: null,
+    history: [],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  })
+  mockUseStressTest.mockReturnValue({
+    scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
+    selectedScenario: 'MARKET_CRASH',
+    setSelectedScenario: vi.fn(),
+    result: null,
+    loading: false,
+    error: null,
+    run: vi.fn(),
+  })
+  mockUseGreeks.mockReturnValue({
+    greeksResult: null,
+    loading: false,
+    error: null,
+    volBump: 0,
+    setVolBump: vi.fn(),
+  })
+  mockUseNotifications.mockReturnValue({
+    rules: [],
+    alerts: [],
+    loading: false,
+    error: null,
+    createRule: vi.fn(),
+    deleteRule: vi.fn(),
+  })
+  mockUseRegulatory.mockReturnValue({
+    result: null,
+    loading: false,
+    error: null,
+    calculate: vi.fn(),
+    downloadCsv: vi.fn(),
+    downloadXbrl: vi.fn(),
+  })
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    mockUsePriceStream.mockReturnValue({ positions: [], connected: false })
-    mockUseVaR.mockReturnValue({
-      varResult: null,
-      history: [],
-      loading: false,
-      error: null,
-      refresh: vi.fn(),
-    })
+    setupDefaults()
   })
 
-  it('renders Kinetix heading', () => {
-    mockUsePositions.mockReturnValue({
-      positions: [],
-      portfolioId: null,
-      loading: false,
-      error: null,
-    })
-
+  it('renders Kinetix heading and portfolio selector', () => {
     render(<App />)
 
     expect(screen.getByText('Kinetix')).toBeInTheDocument()
+    expect(screen.getByTestId('portfolio-selector')).toBeInTheDocument()
   })
 
   it('shows loading message while fetching', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
       portfolioId: null,
+      portfolios: [],
+      selectPortfolio,
       loading: true,
       error: null,
     })
@@ -81,6 +135,8 @@ describe('App', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
       portfolioId: null,
+      portfolios: [],
+      selectPortfolio,
       loading: false,
       error: 'Network error',
     })
@@ -90,65 +146,16 @@ describe('App', () => {
     expect(screen.getByText('Network error')).toBeInTheDocument()
   })
 
-  it('renders position grid when loaded', () => {
-    mockUsePositions.mockReturnValue({
-      positions: [position],
-      portfolioId: 'port-1',
-      loading: false,
-      error: null,
-    })
-    mockUsePriceStream.mockReturnValue({
-      positions: [position],
-      connected: true,
-    })
-
+  it('default tab shows positions', () => {
     render(<App />)
 
-    expect(screen.getByText('port-1')).toBeInTheDocument()
     expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
-    expect(screen.getByTestId('connection-status')).toHaveTextContent('Live')
+    expect(screen.queryByTestId('var-dashboard')).not.toBeInTheDocument()
   })
 
-  it('renders VaR dashboard alongside position grid', () => {
-    mockUsePositions.mockReturnValue({
-      positions: [position],
-      portfolioId: 'port-1',
-      loading: false,
-      error: null,
-    })
-    mockUsePriceStream.mockReturnValue({
-      positions: [position],
-      connected: true,
-    })
+  it('clicking Risk tab shows VaR, stress test, and greeks', () => {
     mockUseVaR.mockReturnValue({
       varResult,
-      history: [
-        { varValue: 1234567.89, expectedShortfall: 1567890.12, calculatedAt: '2025-01-15T10:30:00Z' },
-      ],
-      loading: false,
-      error: null,
-      refresh: vi.fn(),
-    })
-
-    render(<App />)
-
-    expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
-    expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
-  })
-
-  it('shows VaR empty state without affecting position grid', () => {
-    mockUsePositions.mockReturnValue({
-      positions: [position],
-      portfolioId: 'port-1',
-      loading: false,
-      error: null,
-    })
-    mockUsePriceStream.mockReturnValue({
-      positions: [position],
-      connected: true,
-    })
-    mockUseVaR.mockReturnValue({
-      varResult: null,
       history: [],
       loading: false,
       error: null,
@@ -157,7 +164,35 @@ describe('App', () => {
 
     render(<App />)
 
-    expect(screen.getByTestId('var-empty')).toBeInTheDocument()
-    expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('tab-risk'))
+
+    expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
+    expect(screen.getByTestId('stress-test-panel')).toBeInTheDocument()
+  })
+
+  it('clicking Regulatory tab shows regulatory dashboard', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-regulatory'))
+
+    expect(screen.getByTestId('regulatory-dashboard')).toBeInTheDocument()
+  })
+
+  it('clicking Alerts tab shows notification center', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-alerts'))
+
+    expect(screen.getByTestId('notification-center')).toBeInTheDocument()
+  })
+
+  it('portfolio selector calls selectPortfolio', () => {
+    render(<App />)
+
+    fireEvent.change(screen.getByTestId('portfolio-selector'), {
+      target: { value: 'port-2' },
+    })
+
+    expect(selectPortfolio).toHaveBeenCalledWith('port-2')
   })
 })

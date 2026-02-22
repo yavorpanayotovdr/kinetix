@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchPortfolios, fetchPositions } from '../api/positions'
 import type { PositionDto } from '../types'
 
-interface UsePositionsResult {
+export interface UsePositionsResult {
   positions: PositionDto[]
   portfolioId: string | null
+  portfolios: string[]
+  selectPortfolio: (id: string) => void
   loading: boolean
   error: string | null
 }
@@ -12,6 +14,7 @@ interface UsePositionsResult {
 export function usePositions(): UsePositionsResult {
   const [positions, setPositions] = useState<PositionDto[]>([])
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
+  const [portfolios, setPortfolios] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,15 +23,18 @@ export function usePositions(): UsePositionsResult {
 
     async function load() {
       try {
-        const portfolios = await fetchPortfolios()
+        const portfolioList = await fetchPortfolios()
         if (cancelled) return
 
-        if (portfolios.length === 0) {
+        const ids = portfolioList.map((p) => p.portfolioId)
+        setPortfolios(ids)
+
+        if (portfolioList.length === 0) {
           setLoading(false)
           return
         }
 
-        const firstPortfolioId = portfolios[0].portfolioId
+        const firstPortfolioId = portfolioList[0].portfolioId
         setPortfolioId(firstPortfolioId)
 
         const positionData = await fetchPositions(firstPortfolioId)
@@ -52,5 +58,19 @@ export function usePositions(): UsePositionsResult {
     }
   }, [])
 
-  return { positions, portfolioId, loading, error }
+  const selectPortfolio = useCallback(async (id: string) => {
+    setPortfolioId(id)
+    setLoading(true)
+    setError(null)
+    try {
+      const positionData = await fetchPositions(id)
+      setPositions(positionData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return { positions, portfolioId, portfolios, selectPortfolio, loading, error }
 }
