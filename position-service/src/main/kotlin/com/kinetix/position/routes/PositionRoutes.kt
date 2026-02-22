@@ -120,13 +120,13 @@ fun Route.positionRoutes(
         route("/{portfolioId}") {
 
             get("/positions") {
-                val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
                 call.respond(positions.map { it.toResponse() })
             }
 
             post("/trades") {
-                val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val request = call.receive<BookTradeRequest>()
                 val qty = BigDecimal(request.quantity)
                 require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }

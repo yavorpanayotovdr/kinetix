@@ -19,6 +19,7 @@ import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
+import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
 import com.kinetix.gateway.websocket.marketDataWebSocket
@@ -190,7 +191,7 @@ fun Application.module(
                 route("/api/v1/portfolios/{portfolioId}") {
                     requirePermission(Permission.WRITE_TRADES) {
                         post("/trades") {
-                            val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                            val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                             val request = call.receive<BookTradeRequest>()
                             val command = request.toCommand(portfolioId)
                             val result = positionClient.bookTrade(command)
@@ -199,7 +200,7 @@ fun Application.module(
                     }
                     requirePermission(Permission.READ_POSITIONS) {
                         get("/positions") {
-                            val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                            val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                             val positions = positionClient.getPositions(portfolioId)
                             call.respond(positions.map { it.toResponse() })
                         }

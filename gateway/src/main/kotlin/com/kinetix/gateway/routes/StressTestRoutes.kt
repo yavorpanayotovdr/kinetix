@@ -13,7 +13,7 @@ import io.ktor.server.routing.*
 fun Route.stressTestRoutes(client: RiskServiceClient) {
     route("/api/v1/risk/stress/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<StressTestRequest>()
             val params = request.toParams(portfolioId)
             val result = client.runStressTest(params)
@@ -32,7 +32,7 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
 
     route("/api/v1/risk/greeks/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<VaRCalculationRequest>()
             val params = request.toParams(portfolioId)
             val result = client.calculateGreeks(params)

@@ -14,6 +14,8 @@ import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.VaRCalculationService
 import io.grpc.ManagedChannelBuilder
+import io.grpc.TlsChannelCredentials
+import java.io.File
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -61,10 +63,19 @@ fun Application.moduleWithRoutes() {
     val grpcHost = grpcConfig.property("host").getString()
     val grpcPort = grpcConfig.property("port").getString().toInt()
 
-    val channel = ManagedChannelBuilder
-        .forAddress(grpcHost, grpcPort)
-        .usePlaintext()
-        .build()
+    val tlsEnabled = grpcConfig.propertyOrNull("tls.enabled")?.getString()?.toBoolean() ?: false
+    val channel = if (tlsEnabled) {
+        val caPath = grpcConfig.property("tls.caPath").getString()
+        val creds = TlsChannelCredentials.newBuilder()
+            .trustManager(File(caPath))
+            .build()
+        io.grpc.Grpc.newChannelBuilder("$grpcHost:$grpcPort", creds).build()
+    } else {
+        ManagedChannelBuilder
+            .forAddress(grpcHost, grpcPort)
+            .usePlaintext()
+            .build()
+    }
 
     val positionRepository = ExposedPositionRepository(db)
     val positionProvider = PositionServicePositionProvider(positionRepository)

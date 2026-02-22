@@ -1,6 +1,7 @@
 package com.kinetix.notification.engine
 
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -9,7 +10,7 @@ import io.kotest.matchers.shouldBe
 class RulesEngineTest : FunSpec({
 
     test("VaR breach triggers when value exceeds threshold") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
@@ -28,7 +29,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("VaR breach does not trigger below threshold") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
@@ -42,7 +43,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("PnL threshold triggers correctly") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r2", name = "ES Warning", type = AlertType.PNL_THRESHOLD,
@@ -58,7 +59,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("disabled rule does not trigger") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
@@ -73,7 +74,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("multiple rules can fire simultaneously") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
@@ -94,7 +95,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("add and remove rule") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
@@ -108,7 +109,7 @@ class RulesEngineTest : FunSpec({
     }
 
     test("list rules returns all") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         engine.addRule(
             AlertRule(
                 id = "r1", name = "Rule 1", type = AlertType.VAR_BREACH,
@@ -125,12 +126,10 @@ class RulesEngineTest : FunSpec({
         )
         val rules = engine.listRules()
         rules shouldHaveSize 2
-        rules[0].id shouldBe "r1"
-        rules[1].id shouldBe "r2"
     }
 
     test("empty rules returns no alerts") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         val event = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts.shouldBeEmpty()

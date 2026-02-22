@@ -21,6 +21,8 @@ data class ConnectionPoolConfig(
             "position-service" -> ConnectionPoolConfig(maxPoolSize = 15, minIdle = 3)
             "audit-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
             "market-data-service" -> ConnectionPoolConfig(maxPoolSize = 20, minIdle = 5)
+            "notification-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+            "regulatory-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
             else -> ConnectionPoolConfig()
         }
     }

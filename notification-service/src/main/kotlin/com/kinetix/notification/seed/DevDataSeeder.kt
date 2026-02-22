@@ -9,7 +9,7 @@ class DevDataSeeder(
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
-    fun seed() {
+    suspend fun seed() {
         val existing = rulesEngine.listRules()
         if (existing.isNotEmpty()) {
             log.info("Alert rules already present ({} rules), skipping seed", existing.size)

@@ -19,7 +19,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
         route("/{portfolioId}") {
 
             post("/trades") {
-                val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val request = call.receive<BookTradeRequest>()
                 val command = request.toCommand(portfolioId)
                 val result = client.bookTrade(command)
@@ -27,7 +27,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
             }
 
             get("/positions") {
-                val portfolioId = PortfolioId(call.parameters["portfolioId"]!!)
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val positions = client.getPositions(portfolioId)
                 call.respond(positions.map { it.toResponse() })
             }

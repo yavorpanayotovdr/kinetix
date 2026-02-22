@@ -1,3 +1,4 @@
+import os
 from concurrent import futures
 from pathlib import Path
 
@@ -66,9 +67,33 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
     regulatory_reporting_pb2_grpc.add_RegulatoryReportingServiceServicer_to_server(
         RegulatoryReportingServicer(), server
     )
-    server.add_insecure_port(f"[::]:{port}")
+
+    tls_enabled = os.environ.get("GRPC_TLS_ENABLED", "false").lower() == "true"
+
+    if tls_enabled:
+        cert_path = os.environ.get("GRPC_TLS_CERT", "certs/server-cert.pem")
+        key_path = os.environ.get("GRPC_TLS_KEY", "certs/server-key.pem")
+        ca_path = os.environ.get("GRPC_TLS_CA", "certs/ca-cert.pem")
+
+        with open(key_path, "rb") as f:
+            private_key = f.read()
+        with open(cert_path, "rb") as f:
+            certificate_chain = f.read()
+        with open(ca_path, "rb") as f:
+            root_certificates = f.read()
+
+        credentials = grpc.ssl_server_credentials(
+            [(private_key, certificate_chain)],
+            root_certificates=root_certificates,
+            require_client_auth=False,
+        )
+        server.add_secure_port(f"[::]:{port}", credentials)
+        print(f"Risk engine gRPC server started on port {port} with TLS")
+    else:
+        server.add_insecure_port(f"[::]:{port}")
+        print(f"Risk engine gRPC server started on port {port} (plaintext)")
+
     server.start()
-    print(f"Risk engine gRPC server started on port {port}")
     server.wait_for_termination()
 
 

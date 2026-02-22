@@ -1,6 +1,7 @@
 package com.kinetix.notification.delivery
 
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.InMemoryAlertEventRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -23,14 +24,14 @@ private fun sampleAlert(id: String = "evt-1") = AlertEvent(
 class InAppDeliveryServiceTest : FunSpec({
 
     test("deliver stores alert") {
-        val service = InAppDeliveryService()
+        val service = InAppDeliveryService(InMemoryAlertEventRepository())
         service.deliver(sampleAlert())
         service.getRecentAlerts() shouldHaveSize 1
         service.getRecentAlerts()[0].id shouldBe "evt-1"
     }
 
     test("recent alerts returns most recent first") {
-        val service = InAppDeliveryService()
+        val service = InAppDeliveryService(InMemoryAlertEventRepository())
         service.deliver(sampleAlert("evt-1"))
         service.deliver(sampleAlert("evt-2"))
         service.deliver(sampleAlert("evt-3"))
@@ -41,7 +42,7 @@ class InAppDeliveryServiceTest : FunSpec({
     }
 
     test("recent alerts respects limit") {
-        val service = InAppDeliveryService()
+        val service = InAppDeliveryService(InMemoryAlertEventRepository())
         repeat(10) { service.deliver(sampleAlert("evt-$it")) }
         val alerts = service.getRecentAlerts(limit = 3)
         alerts shouldHaveSize 3
@@ -71,7 +72,7 @@ class WebhookDeliveryServiceTest : FunSpec({
 class DeliveryRouterTest : FunSpec({
 
     test("routes to correct channels") {
-        val inApp = InAppDeliveryService()
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val email = EmailDeliveryService()
         val webhook = WebhookDeliveryService()
         val router = DeliveryRouter(listOf(inApp, email, webhook))
@@ -84,7 +85,7 @@ class DeliveryRouterTest : FunSpec({
     }
 
     test("routes to multiple channels") {
-        val inApp = InAppDeliveryService()
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val email = EmailDeliveryService()
         val webhook = WebhookDeliveryService()
         val router = DeliveryRouter(listOf(inApp, email, webhook))
@@ -97,7 +98,7 @@ class DeliveryRouterTest : FunSpec({
     }
 
     test("skips channels not configured") {
-        val inApp = InAppDeliveryService()
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
         router.route(sampleAlert(), listOf(DeliveryChannel.IN_APP, DeliveryChannel.WEBHOOK))

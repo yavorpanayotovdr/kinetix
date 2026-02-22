@@ -3,6 +3,8 @@ package com.kinetix.notification.kafka
 import com.kinetix.notification.delivery.*
 import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.InMemoryAlertEventRepository
+import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -22,8 +24,8 @@ import java.time.Duration
 class RiskResultConsumerTest : FunSpec({
 
     test("consumes risk result and evaluates rules") {
-        val rulesEngine = RulesEngine()
-        rulesEngine.addRule(
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
+        engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
                 threshold = 100_000.0, operator = ComparisonOperator.GREATER_THAN,
@@ -31,7 +33,7 @@ class RiskResultConsumerTest : FunSpec({
             ),
         )
 
-        val inApp = InAppDeliveryService()
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
         val riskEvent = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
@@ -49,7 +51,7 @@ class RiskResultConsumerTest : FunSpec({
             if (callCount++ == 0) records else emptyRecords
         }
 
-        val consumer = RiskResultConsumer(mockConsumer, rulesEngine, router)
+        val consumer = RiskResultConsumer(mockConsumer, engine, router)
         val job = launch { consumer.start() }
         delay(200)
         job.cancelAndJoin()
@@ -60,8 +62,8 @@ class RiskResultConsumerTest : FunSpec({
     }
 
     test("triggered alerts routed to delivery") {
-        val rulesEngine = RulesEngine()
-        rulesEngine.addRule(
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
+        engine.addRule(
             AlertRule(
                 id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
                 threshold = 100_000.0, operator = ComparisonOperator.GREATER_THAN,
@@ -70,7 +72,7 @@ class RiskResultConsumerTest : FunSpec({
             ),
         )
 
-        val inApp = InAppDeliveryService()
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val email = EmailDeliveryService()
         val router = DeliveryRouter(listOf(inApp, email))
 
@@ -89,7 +91,7 @@ class RiskResultConsumerTest : FunSpec({
             if (callCount++ == 0) records else emptyRecords
         }
 
-        val consumer = RiskResultConsumer(mockConsumer, rulesEngine, router)
+        val consumer = RiskResultConsumer(mockConsumer, engine, router)
         val job = launch { consumer.start() }
         delay(200)
         job.cancelAndJoin()
@@ -99,8 +101,8 @@ class RiskResultConsumerTest : FunSpec({
     }
 
     test("no rules produces no alerts") {
-        val rulesEngine = RulesEngine()
-        val inApp = InAppDeliveryService()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
         val riskEvent = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
@@ -118,7 +120,7 @@ class RiskResultConsumerTest : FunSpec({
             if (callCount++ == 0) records else emptyRecords
         }
 
-        val consumer = RiskResultConsumer(mockConsumer, rulesEngine, router)
+        val consumer = RiskResultConsumer(mockConsumer, engine, router)
         val job = launch { consumer.start() }
         delay(200)
         job.cancelAndJoin()

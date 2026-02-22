@@ -3,6 +3,7 @@ package com.kinetix.notification.seed
 import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.Severity
+import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -10,7 +11,7 @@ import io.kotest.matchers.shouldBe
 class DevDataSeederTest : FunSpec({
 
     test("seeds 3 rules when engine is empty") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         val seeder = DevDataSeeder(engine)
 
         seeder.seed()
@@ -19,7 +20,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("skips seeding when rules already exist") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         val seeder = DevDataSeeder(engine)
 
         seeder.seed()
@@ -31,7 +32,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("seeds VaR breach rule with CRITICAL severity") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         DevDataSeeder(engine).seed()
 
         val varRule = engine.listRules().find { it.type == AlertType.VAR_BREACH }!!
@@ -40,7 +41,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("seeds PnL threshold rule with WARNING severity") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         DevDataSeeder(engine).seed()
 
         val pnlRule = engine.listRules().find { it.type == AlertType.PNL_THRESHOLD }!!
@@ -49,7 +50,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("seeds risk limit rule with INFO severity") {
-        val engine = RulesEngine()
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
         DevDataSeeder(engine).seed()
 
         val riskRule = engine.listRules().find { it.type == AlertType.RISK_LIMIT }!!

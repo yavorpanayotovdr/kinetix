@@ -181,7 +181,7 @@ fun Route.riskRoutes(
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
             val request = VaRCalculationRequest(
                 portfolioId = PortfolioId(portfolioId),
@@ -200,7 +200,7 @@ fun Route.riskRoutes(
         }
 
         get {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val cached = varCache.get(portfolioId)
             if (cached != null) {
                 call.respond(cached.toResponse())
@@ -213,7 +213,7 @@ fun Route.riskRoutes(
     // Stress test routes
     route("/api/v1/risk/stress/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<StressTestRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
             val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
@@ -262,7 +262,7 @@ fun Route.riskRoutes(
     // Greeks routes
     route("/api/v1/risk/greeks/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
             val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
@@ -299,7 +299,7 @@ fun Route.riskRoutes(
     // FRTB routes
     route("/api/v1/regulatory/frtb/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
 
             val protoRequest = FrtbRequest.newBuilder()
@@ -337,7 +337,7 @@ fun Route.riskRoutes(
     // Report routes
     route("/api/v1/regulatory/report/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<GenerateReportRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
             val format = when (body.format?.uppercase()) {

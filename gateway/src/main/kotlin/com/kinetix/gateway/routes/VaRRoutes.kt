@@ -13,7 +13,7 @@ fun Route.varRoutes(client: RiskServiceClient) {
     route("/api/v1/risk/var/{portfolioId}") {
 
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<VaRCalculationRequest>()
             val params = request.toParams(portfolioId)
             val result = client.calculateVaR(params)
@@ -25,7 +25,7 @@ fun Route.varRoutes(client: RiskServiceClient) {
         }
 
         get {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val result = client.getLatestVaR(portfolioId)
             if (result != null) {
                 call.respond(result.toResponse())

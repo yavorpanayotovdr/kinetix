@@ -7,6 +7,10 @@ import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.ComparisonOperator
 import com.kinetix.notification.model.DeliveryChannel
 import com.kinetix.notification.model.Severity
+import com.kinetix.notification.persistence.DatabaseConfig
+import com.kinetix.notification.persistence.DatabaseFactory
+import com.kinetix.notification.persistence.ExposedAlertEventRepository
+import com.kinetix.notification.persistence.ExposedAlertRuleRepository
 import com.kinetix.notification.seed.DevDataSeeder
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -14,11 +18,13 @@ import io.ktor.server.application.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -28,6 +34,20 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(StatusPages) {
+        exception<IllegalArgumentException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(error = "Bad Request", message = cause.message ?: "Invalid request"),
+            )
+        }
+        exception<Throwable> { call, cause ->
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ErrorResponse(error = "Internal Server Error", message = cause.message ?: "Unexpected error"),
+            )
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -46,15 +66,34 @@ fun Application.module(rulesEngine: RulesEngine, inAppDelivery: InAppDeliverySer
 }
 
 fun Application.moduleWithRoutes() {
-    val rulesEngine = RulesEngine()
-    val inAppDelivery = InAppDeliveryService()
+    val dbConfig = environment.config.config("database")
+    val db = DatabaseFactory.init(
+        DatabaseConfig(
+            jdbcUrl = dbConfig.property("jdbcUrl").getString(),
+            username = dbConfig.property("username").getString(),
+            password = dbConfig.property("password").getString(),
+        ),
+    )
+
+    val ruleRepository = ExposedAlertRuleRepository(db)
+    val eventRepository = ExposedAlertEventRepository(db)
+    val rulesEngine = RulesEngine(ruleRepository)
+    val inAppDelivery = InAppDeliveryService(eventRepository)
     module(rulesEngine, inAppDelivery)
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
-        DevDataSeeder(rulesEngine).seed()
+        launch {
+            DevDataSeeder(rulesEngine).seed()
+        }
     }
 }
+
+@Serializable
+data class ErrorResponse(
+    val error: String,
+    val message: String,
+)
 
 @Serializable
 data class CreateAlertRuleRequest(
@@ -101,6 +140,8 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
 
         post("/rules") {
             val request = call.receive<CreateAlertRuleRequest>()
+            require(request.name.isNotBlank()) { "Rule name must not be blank" }
+            require(request.channels.isNotEmpty()) { "At least one delivery channel is required" }
             val rule = AlertRule(
                 id = UUID.randomUUID().toString(),
                 name = request.name,
@@ -115,7 +156,8 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
         }
 
         delete("/rules/{ruleId}") {
-            val ruleId = call.parameters["ruleId"]!!
+            val ruleId = call.parameters["ruleId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: ruleId")
             val exists = rulesEngine.listRules().any { it.id == ruleId }
             if (exists) {
                 rulesEngine.removeRule(ruleId)

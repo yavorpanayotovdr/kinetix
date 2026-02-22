@@ -6,6 +6,8 @@ import com.kinetix.notification.delivery.InAppDeliveryService
 import com.kinetix.notification.delivery.WebhookDeliveryService
 import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.InMemoryAlertEventRepository
+import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -15,8 +17,8 @@ import io.kotest.matchers.string.shouldContain
 class NotificationAlertingAcceptanceTest : BehaviorSpec({
 
     given("a portfolio with VaR breach alert rule configured") {
-        val rulesEngine = RulesEngine()
-        val inApp = InAppDeliveryService()
+        val rulesEngine = RulesEngine(InMemoryAlertRuleRepository())
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val email = EmailDeliveryService()
         val webhook = WebhookDeliveryService()
         val router = DeliveryRouter(listOf(inApp, email, webhook))
@@ -69,7 +71,7 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
         }
 
         `when`("VaR calculation result is below the threshold") {
-            val freshEngine = RulesEngine()
+            val freshEngine = RulesEngine(InMemoryAlertRuleRepository())
             freshEngine.addRule(
                 AlertRule(
                     id = "rule-var-2",
@@ -97,8 +99,8 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
     }
 
     given("multiple alert rules configured") {
-        val rulesEngine = RulesEngine()
-        val inApp = InAppDeliveryService()
+        val rulesEngine = RulesEngine(InMemoryAlertRuleRepository())
+        val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
         rulesEngine.addRule(

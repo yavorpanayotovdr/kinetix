@@ -11,7 +11,7 @@ import io.ktor.server.routing.*
 fun Route.regulatoryRoutes(client: RiskServiceClient) {
     route("/api/v1/regulatory/frtb/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val result = client.calculateFrtb(portfolioId)
             if (result != null) {
                 call.respond(result.toResponse())
@@ -23,7 +23,7 @@ fun Route.regulatoryRoutes(client: RiskServiceClient) {
 
     route("/api/v1/regulatory/report/{portfolioId}") {
         post {
-            val portfolioId = call.parameters["portfolioId"]!!
+            val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<GenerateReportRequest>()
             val format = request.format ?: "CSV"
             val result = client.generateReport(portfolioId, format)

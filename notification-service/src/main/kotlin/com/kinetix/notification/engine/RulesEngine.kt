@@ -1,24 +1,24 @@
 package com.kinetix.notification.engine
 
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.AlertRuleRepository
 import java.time.Instant
 import java.util.UUID
 
-class RulesEngine {
-    private val rules: MutableList<AlertRule> = mutableListOf()
+class RulesEngine(private val repository: AlertRuleRepository) {
 
-    fun addRule(rule: AlertRule) {
-        rules.add(rule)
+    suspend fun addRule(rule: AlertRule) {
+        repository.save(rule)
     }
 
-    fun removeRule(ruleId: String) {
-        rules.removeAll { it.id == ruleId }
+    suspend fun removeRule(ruleId: String): Boolean {
+        return repository.deleteById(ruleId)
     }
 
-    fun listRules(): List<AlertRule> = rules.toList()
+    suspend fun listRules(): List<AlertRule> = repository.findAll()
 
-    fun evaluate(event: RiskResultEvent): List<AlertEvent> {
-        return rules.filter { it.enabled }.mapNotNull { rule ->
+    suspend fun evaluate(event: RiskResultEvent): List<AlertEvent> {
+        return repository.findAll().filter { it.enabled }.mapNotNull { rule ->
             val currentValue = when (rule.type) {
                 AlertType.VAR_BREACH -> event.varValue
                 AlertType.PNL_THRESHOLD -> event.expectedShortfall

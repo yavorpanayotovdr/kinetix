@@ -12,7 +12,7 @@ fun Route.marketDataRoutes(client: MarketDataServiceClient) {
     route("/api/v1/market-data/{instrumentId}") {
 
         get("/latest") {
-            val instrumentId = InstrumentId(call.parameters["instrumentId"]!!)
+            val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
             val point = client.getLatestPrice(instrumentId)
             if (point != null) {
                 call.respond(point.toResponse())
@@ -22,7 +22,7 @@ fun Route.marketDataRoutes(client: MarketDataServiceClient) {
         }
 
         get("/history") {
-            val instrumentId = InstrumentId(call.parameters["instrumentId"]!!)
+            val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
             val from = call.queryParameters["from"]
                 ?: throw IllegalArgumentException("Missing required query parameter: from")
             val to = call.queryParameters["to"]

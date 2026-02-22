@@ -23,7 +23,7 @@ fun Route.notificationRoutes(client: NotificationServiceClient) {
         }
 
         delete("/rules/{ruleId}") {
-            val ruleId = call.parameters["ruleId"]!!
+            val ruleId = call.requirePathParam("ruleId")
             val deleted = client.deleteRule(ruleId)
             if (deleted) {
                 call.respond(HttpStatusCode.NoContent)

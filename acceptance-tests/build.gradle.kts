@@ -15,6 +15,7 @@ dependencies {
     testImplementation(project(":audit-service"))
     testImplementation(project(":risk-orchestrator"))
     testImplementation(project(":notification-service"))
+    testImplementation(project(":regulatory-service"))
     testImplementation(project(":gateway"))
     testImplementation(libs.bundles.exposed)
     testImplementation(libs.bundles.database)
