@@ -20,17 +20,17 @@ const SERVICE_LABELS: Record<string, string> = {
 const OBSERVABILITY_LINKS = [
   {
     name: 'System Health',
-    url: 'http://localhost:3000/d/system-health',
+    url: 'http://localhost:3000/d/kinetix-system-health',
     description: 'Request rate, error rate, latency, JVM, Kafka lag',
   },
   {
     name: 'Risk Overview',
-    url: 'http://localhost:3000/d/risk-overview',
+    url: 'http://localhost:3000/d/kinetix-risk-overview',
     description: 'VaR gauge, ES, component breakdown',
   },
   {
     name: 'Market Data',
-    url: 'http://localhost:3000/d/market-data',
+    url: 'http://localhost:3000/d/kinetix-market-data',
     description: 'Feed rate, latency, staleness',
   },
   {
@@ -133,9 +133,9 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className="group"
+            className="block group"
           >
-            <Card>
+            <Card className="hover:shadow-md hover:border-primary-300 transition-shadow">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-primary-600">{link.name}</span>
                 <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />

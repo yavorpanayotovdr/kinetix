@@ -150,7 +150,7 @@ describe('SystemDashboard', () => {
     const systemHealthLink = screen.getByTestId('obs-link-system-health')
     expect(systemHealthLink).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/system-health',
+      'http://localhost:3000/d/kinetix-system-health',
     )
     expect(systemHealthLink).toHaveAttribute('target', '_blank')
 
