@@ -4,10 +4,11 @@ import type { VaRResultDto } from '../types'
 
 vi.mock('../api/risk')
 
-import { fetchVaR } from '../api/risk'
+import { fetchVaR, triggerVaRCalculation } from '../api/risk'
 import { useVaR } from './useVaR'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
+const mockTriggerVaR = vi.mocked(triggerVaRCalculation)
 
 const varResult: VaRResultDto = {
   portfolioId: 'port-1',
@@ -188,8 +189,15 @@ describe('useVaR', () => {
     })
   })
 
-  it('refresh triggers immediate re-fetch', async () => {
+  it('refresh triggers a new VaR calculation', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
+
+    const freshResult = {
+      ...varResult,
+      varValue: '999999.00',
+      calculatedAt: '2025-01-15T11:00:00Z',
+    }
+    mockTriggerVaR.mockResolvedValue(freshResult)
 
     const { result } = renderHook(() => useVaR('port-1'))
 
@@ -198,13 +206,18 @@ describe('useVaR', () => {
     })
 
     expect(mockFetchVaR).toHaveBeenCalledTimes(1)
+    expect(mockTriggerVaR).not.toHaveBeenCalled()
 
     await act(async () => {
       result.current.refresh()
     })
 
     await waitFor(() => {
-      expect(mockFetchVaR).toHaveBeenCalledTimes(2)
+      expect(result.current.loading).toBe(false)
     })
+
+    expect(mockTriggerVaR).toHaveBeenCalledWith('port-1')
+    expect(result.current.varResult).toEqual(freshResult)
+    expect(result.current.history).toHaveLength(2)
   })
 })

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchVaR } from '../api/risk'
+import { fetchVaR, triggerVaRCalculation } from '../api/risk'
 import type { VaRResultDto } from '../types'
 
 export interface VaRHistoryEntry {
@@ -70,5 +70,36 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     return () => clearInterval(interval)
   }, [portfolioId, load])
 
-  return { varResult, history, loading, error, refresh: load }
+  const refresh = useCallback(async () => {
+    if (!portfolioId) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await triggerVaRCalculation(portfolioId)
+      setVarResult(result)
+
+      if (result) {
+        setHistory((prev) => {
+          if (prev.some((e) => e.calculatedAt === result.calculatedAt)) {
+            return prev
+          }
+          const entry: VaRHistoryEntry = {
+            varValue: Number(result.varValue),
+            expectedShortfall: Number(result.expectedShortfall),
+            calculatedAt: result.calculatedAt,
+          }
+          const next = [...prev, entry]
+          return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
+        })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [portfolioId])
+
+  return { varResult, history, loading, error, refresh }
 }
