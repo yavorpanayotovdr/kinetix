@@ -11,6 +11,7 @@ import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.kafka.NoOpRiskResultPublisher
 import com.kinetix.risk.routes.riskRoutes
+import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.VaRCalculationService
 import io.grpc.ManagedChannelBuilder
 import io.ktor.http.*
@@ -24,6 +25,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -96,5 +98,13 @@ fun Application.moduleWithRoutes() {
 
     routing {
         riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub)
+    }
+
+    launch {
+        ScheduledVaRCalculator(
+            varCalculationService = varCalculationService,
+            varCache = varCache,
+            portfolioIds = { positionRepository.findDistinctPortfolioIds() },
+        ).start()
     }
 }
