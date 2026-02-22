@@ -45,6 +45,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -193,13 +196,17 @@ fun Application.devModule() {
                     }
                 }.map { (name, deferred) -> name to deferred.await() }
             }
-            val services = mutableMapOf<String, Map<String, String>>()
-            services["gateway"] = mapOf("status" to "UP")
-            for ((name, status) in results) {
-                services[name] = mapOf("status" to status)
-            }
             val overall = if (results.all { it.second == "UP" }) "UP" else "DEGRADED"
-            call.respond(mapOf("status" to overall, "services" to services))
+            val response = buildJsonObject {
+                put("status", overall)
+                putJsonObject("services") {
+                    putJsonObject("gateway") { put("status", "UP") }
+                    for ((name, status) in results) {
+                        putJsonObject(name) { put("status", status) }
+                    }
+                }
+            }
+            call.respond(response)
         }
     }
 }
