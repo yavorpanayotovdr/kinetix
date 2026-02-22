@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
+import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info } from 'lucide-react'
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
 import { formatRelativeTime } from '../utils/format'
+import { Card, Button, Badge, Input, Select, Spinner } from './ui'
 
 interface NotificationCenterProps {
   rules: AlertRuleDto[]
@@ -11,16 +13,22 @@ interface NotificationCenterProps {
   onDeleteRule: (ruleId: string) => void
 }
 
-const severityColor: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-800',
-  WARNING: 'bg-yellow-100 text-yellow-800',
-  INFO: 'bg-blue-100 text-blue-800',
+const severityBadgeVariant: Record<string, 'critical' | 'warning' | 'info'> = {
+  CRITICAL: 'critical',
+  WARNING: 'warning',
+  INFO: 'info',
 }
 
 const severityBorderColor: Record<string, string> = {
   CRITICAL: 'border-red-500',
   WARNING: 'border-yellow-500',
   INFO: 'border-blue-500',
+}
+
+const severityIcon: Record<string, typeof AlertTriangle> = {
+  CRITICAL: AlertCircle,
+  WARNING: AlertTriangle,
+  INFO: Info,
 }
 
 const severityOrder: Record<string, number> = {
@@ -75,11 +83,13 @@ export function NotificationCenter({
   }
 
   return (
-    <div data-testid="notification-center" className="bg-white rounded-lg shadow p-4 mb-4">
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">Notification Center</h2>
-
+    <Card
+      data-testid="notification-center"
+      header={<span className="flex items-center gap-1.5"><Bell className="h-4 w-4" />Notification Center</span>}
+    >
       {loading && (
-        <div data-testid="notification-loading" className="text-gray-500 text-sm">
+        <div data-testid="notification-loading" className="flex items-center gap-2 text-slate-500 text-sm">
+          <Spinner size="sm" />
           Loading notifications...
         </div>
       )}
@@ -91,56 +101,51 @@ export function NotificationCenter({
       )}
 
       {/* Create Rule Form */}
-      <div data-testid="create-rule-form" className="mb-4 p-3 bg-gray-50 rounded">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Create Alert Rule</h3>
+      <div data-testid="create-rule-form" className="mb-4 p-3 bg-slate-50 rounded-lg">
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">Create Alert Rule</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-2 text-sm">
-          <input
+          <Input
             data-testid="rule-name-input"
             placeholder="Rule name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="border rounded px-2 py-1"
             required
           />
-          <select
+          <Select
             data-testid="rule-type-select"
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="border rounded px-2 py-1"
           >
             <option value="VAR_BREACH">VAR_BREACH</option>
             <option value="PNL_THRESHOLD">PNL_THRESHOLD</option>
             <option value="RISK_LIMIT">RISK_LIMIT</option>
-          </select>
-          <input
+          </Select>
+          <Input
             data-testid="rule-threshold-input"
             type="number"
             placeholder="Threshold"
             value={threshold}
             onChange={(e) => setThreshold(e.target.value)}
-            className="border rounded px-2 py-1"
             required
           />
-          <select
+          <Select
             data-testid="rule-operator-select"
             value={operator}
             onChange={(e) => setOperator(e.target.value)}
-            className="border rounded px-2 py-1"
           >
             <option value="GREATER_THAN">GREATER_THAN</option>
             <option value="LESS_THAN">LESS_THAN</option>
             <option value="EQUALS">EQUALS</option>
-          </select>
-          <select
+          </Select>
+          <Select
             data-testid="rule-severity-select"
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="border rounded px-2 py-1"
           >
             <option value="CRITICAL">CRITICAL</option>
             <option value="WARNING">WARNING</option>
             <option value="INFO">INFO</option>
-          </select>
+          </Select>
           <div className="flex items-center gap-2">
             {['IN_APP', 'EMAIL', 'WEBHOOK'].map((ch) => (
               <label key={ch} className="flex items-center gap-1 text-xs">
@@ -154,21 +159,24 @@ export function NotificationCenter({
               </label>
             ))}
           </div>
-          <button
+          <Button
             data-testid="create-rule-btn"
             type="submit"
-            className="col-span-3 px-4 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700"
+            variant="primary"
+            size="md"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            className="col-span-3"
           >
             Create Rule
-          </button>
+          </Button>
         </form>
       </div>
 
       {/* Alert Rules Table */}
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">Alert Rules</h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-2">Alert Rules</h3>
       <table data-testid="rules-table" className="w-full text-sm mb-4">
         <thead>
-          <tr className="border-b text-left text-gray-600">
+          <tr className="border-b text-left text-slate-600">
             <th className="py-2">Name</th>
             <th className="py-2">Type</th>
             <th className="py-2 text-right">Threshold</th>
@@ -179,23 +187,23 @@ export function NotificationCenter({
         </thead>
         <tbody>
           {rules.map((rule) => (
-            <tr key={rule.id} className="border-b">
+            <tr key={rule.id} className="border-b hover:bg-slate-50 transition-colors">
               <td className="py-1.5">{rule.name}</td>
               <td className="py-1.5">{rule.type}</td>
               <td className="py-1.5 text-right">{rule.threshold.toLocaleString()}</td>
               <td className="py-1.5">
-                <span className={`px-2 py-0.5 rounded text-xs ${severityColor[rule.severity] ?? ''}`}>
+                <Badge variant={severityBadgeVariant[rule.severity] ?? 'neutral'}>
                   {rule.severity}
-                </span>
+                </Badge>
               </td>
               <td className="py-1.5">{rule.enabled ? 'Yes' : 'No'}</td>
               <td className="py-1.5">
                 <button
                   data-testid={`delete-rule-${rule.id}`}
                   onClick={() => onDeleteRule(rule.id)}
-                  className="text-red-600 hover:text-red-800 text-xs"
+                  className="text-red-500 hover:text-red-700 transition-colors"
                 >
-                  Delete
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </td>
             </tr>
@@ -204,28 +212,36 @@ export function NotificationCenter({
       </table>
 
       {/* Recent Alerts */}
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">Recent Alerts</h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-2">Recent Alerts</h3>
       <div data-testid="alerts-list" className="space-y-2">
-        {sortedAlerts.map((alert) => (
-          <div
-            key={alert.id}
-            className={`flex items-start gap-2 p-2 bg-gray-50 rounded text-sm border-l-4 ${severityBorderColor[alert.severity] ?? 'border-gray-300'}`}
-          >
-            <span
-              data-testid={`severity-badge-${alert.id}`}
-              className={`px-2 py-0.5 rounded text-xs font-medium ${severityColor[alert.severity] ?? ''}`}
+        {sortedAlerts.map((alert) => {
+          const SevIcon = severityIcon[alert.severity] ?? Info
+          return (
+            <div
+              key={alert.id}
+              className={`flex items-start gap-2 p-2 bg-slate-50 rounded text-sm border-l-4 ${severityBorderColor[alert.severity] ?? 'border-gray-300'}`}
             >
-              {alert.severity}
-            </span>
-            <div className="flex-1">
-              <div className="text-gray-800">{alert.message}</div>
-              <div className="text-xs text-gray-500">
-                Portfolio: {alert.portfolioId} | {formatRelativeTime(alert.triggeredAt)}
+              <SevIcon className="h-4 w-4 mt-0.5 shrink-0 text-slate-500" />
+              <span
+                data-testid={`severity-badge-${alert.id}`}
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  alert.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                  alert.severity === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}
+              >
+                {alert.severity}
+              </span>
+              <div className="flex-1">
+                <div className="text-slate-800">{alert.message}</div>
+                <div className="text-xs text-slate-500">
+                  Portfolio: {alert.portfolioId} | {formatRelativeTime(alert.triggeredAt)}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
-    </div>
+    </Card>
   )
 }

@@ -1,4 +1,6 @@
+import { TrendingUp } from 'lucide-react'
 import type { GreeksResultDto } from '../types'
+import { Card, Spinner } from './ui'
 
 interface GreeksPanelProps {
   greeksResult: GreeksResultDto | null
@@ -22,17 +24,20 @@ export function GreeksPanel({
 }: GreeksPanelProps) {
   if (loading) {
     return (
-      <div data-testid="greeks-loading" className="bg-white rounded-lg shadow p-4 mb-4 text-gray-500">
-        Calculating Greeks...
-      </div>
+      <Card data-testid="greeks-loading">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Spinner size="sm" />
+          Calculating Greeks...
+        </div>
+      </Card>
     )
   }
 
   if (error) {
     return (
-      <div data-testid="greeks-error" className="bg-white rounded-lg shadow p-4 mb-4 text-red-600">
-        {error}
-      </div>
+      <Card data-testid="greeks-error">
+        <p className="text-red-600">{error}</p>
+      </Card>
     )
   }
 
@@ -46,13 +51,13 @@ export function GreeksPanel({
   )
 
   return (
-    <div data-testid="greeks-panel" className="bg-white rounded-lg shadow p-4 mb-4">
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">Portfolio Greeks</h2>
-
-      {/* Greeks heatmap table */}
+    <Card
+      data-testid="greeks-panel"
+      header={<span className="flex items-center gap-1.5"><TrendingUp className="h-4 w-4" />Portfolio Greeks</span>}
+    >
       <table data-testid="greeks-heatmap" className="w-full text-sm mb-4">
         <thead>
-          <tr className="border-b text-left text-gray-600">
+          <tr className="border-b text-left text-slate-600">
             <th className="py-2">Asset Class</th>
             <th className="py-2 text-right">Delta</th>
             <th className="py-2 text-right">Gamma</th>
@@ -61,7 +66,7 @@ export function GreeksPanel({
         </thead>
         <tbody>
           {greeksResult.assetClassGreeks.map((g) => (
-            <tr key={g.assetClass} data-testid={`greeks-row-${g.assetClass}`} className="border-b">
+            <tr key={g.assetClass} data-testid={`greeks-row-${g.assetClass}`} className="border-b hover:bg-slate-50 transition-colors">
               <td className="py-1.5 font-medium">{g.assetClass}</td>
               <td className="py-1.5 text-right">{formatNum(g.delta)}</td>
               <td className="py-1.5 text-right">{formatNum(g.gamma)}</td>
@@ -71,23 +76,21 @@ export function GreeksPanel({
         </tbody>
       </table>
 
-      {/* Theta and Rho summary */}
       <div data-testid="greeks-summary" className="flex gap-6 mb-4 text-sm">
         <div>
-          <span className="text-gray-600">Theta (time decay): </span>
+          <span className="text-slate-600">Theta (time decay): </span>
           <span className="font-medium">{formatNum(greeksResult.theta, 4)}</span>
         </div>
         <div>
-          <span className="text-gray-600">Rho (rate sensitivity): </span>
+          <span className="text-slate-600">Rho (rate sensitivity): </span>
           <span className="font-medium">{formatNum(greeksResult.rho, 4)}</span>
         </div>
       </div>
 
-      {/* What-if slider */}
-      <div data-testid="greeks-whatif" className="border-t pt-3">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">What-If Analysis</h3>
+      <div data-testid="greeks-whatif" className="border-t border-slate-100 pt-3">
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">What-If Analysis</h3>
         <div className="flex items-center gap-3">
-          <label className="text-xs text-gray-600">Vol bump (pp):</label>
+          <label className="text-xs text-slate-600">Vol bump (pp):</label>
           <input
             data-testid="vol-bump-slider"
             type="range"
@@ -96,17 +99,17 @@ export function GreeksPanel({
             step={0.5}
             value={volBump}
             onChange={(e) => onVolBumpChange(Number(e.target.value))}
-            className="flex-1"
+            className="flex-1 accent-primary-500"
           />
           <span className="text-xs w-12 text-right">{volBump > 0 ? '+' : ''}{volBump}pp</span>
         </div>
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-slate-500 mt-1">
           Projected VaR change:{' '}
           <span className={projectedVaRChange >= 0 ? 'text-red-600' : 'text-green-600'}>
             {projectedVaRChange >= 0 ? '+' : ''}{formatNum(projectedVaRChange)}
           </span>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

@@ -1,6 +1,8 @@
+import { RefreshCw } from 'lucide-react'
 import type { VaRResultDto } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRGauge } from './VaRGauge'
+import { Card, Button, Spinner } from './ui'
 
 interface VaRDashboardProps {
   varResult: VaRResultDto | null
@@ -20,7 +22,7 @@ const ASSET_CLASS_COLORS: Record<string, string> = {
 function TrendChart({ history }: { history: VaRHistoryEntry[] }) {
   if (history.length < 2) {
     return (
-      <div data-testid="var-trend" className="flex items-center justify-center h-32 text-sm text-gray-400">
+      <div data-testid="var-trend" className="flex items-center justify-center h-32 text-sm text-slate-400">
         Collecting data...
       </div>
     )
@@ -49,7 +51,7 @@ function TrendChart({ history }: { history: VaRHistoryEntry[] }) {
         <polyline
           points={points}
           fill="none"
-          stroke="#3b82f6"
+          stroke="#6366f1"
           strokeWidth="2"
           strokeLinejoin="round"
         />
@@ -61,25 +63,28 @@ function TrendChart({ history }: { history: VaRHistoryEntry[] }) {
 export function VaRDashboard({ varResult, history, loading, error, onRefresh }: VaRDashboardProps) {
   if (loading) {
     return (
-      <div data-testid="var-loading" className="bg-white rounded-lg shadow p-4 mb-4 text-gray-500">
-        Loading VaR data...
-      </div>
+      <Card data-testid="var-loading" className="mb-4">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Spinner size="sm" />
+          Loading VaR data...
+        </div>
+      </Card>
     )
   }
 
   if (error) {
     return (
-      <div data-testid="var-error" className="bg-white rounded-lg shadow p-4 mb-4 text-red-600">
-        {error}
-      </div>
+      <Card data-testid="var-error" className="mb-4">
+        <p className="text-red-600">{error}</p>
+      </Card>
     )
   }
 
   if (!varResult) {
     return (
-      <div data-testid="var-empty" className="bg-white rounded-lg shadow p-4 mb-4 text-gray-500">
-        No VaR data available.
-      </div>
+      <Card data-testid="var-empty" className="mb-4">
+        <p className="text-slate-500">No VaR data available.</p>
+      </Card>
     )
   }
 
@@ -87,18 +92,16 @@ export function VaRDashboard({ varResult, history, loading, error, onRefresh }: 
   const expectedShortfall = Number(varResult.expectedShortfall)
 
   return (
-    <div data-testid="var-dashboard" className="bg-white rounded-lg shadow p-4 mb-4">
+    <Card data-testid="var-dashboard" className="mb-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Col 1: Gauge */}
         <VaRGauge
           varValue={varValue}
           expectedShortfall={expectedShortfall}
           confidenceLevel={varResult.confidenceLevel}
         />
 
-        {/* Col 2: Component Breakdown */}
         <div data-testid="var-breakdown" className="flex flex-col justify-center">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Component Breakdown</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Component Breakdown</h3>
           <div className="flex h-4 rounded overflow-hidden mb-2">
             {varResult.componentBreakdown.map((comp) => (
               <div
@@ -121,27 +124,27 @@ export function VaRDashboard({ varResult, history, loading, error, onRefresh }: 
           </div>
         </div>
 
-        {/* Col 3: Trend Chart */}
         <div className="flex flex-col justify-center">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">VaR Trend</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">VaR Trend</h3>
           <TrendChart history={history} />
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
         <span>
           {varResult.calculationType} &middot;{' '}
           {new Date(varResult.calculatedAt).toLocaleString()}
         </span>
-        <button
+        <Button
           data-testid="var-recalculate"
+          variant="primary"
+          size="sm"
+          icon={<RefreshCw className="h-3 w-3" />}
           onClick={onRefresh}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
         >
           Recalculate
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }

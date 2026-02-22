@@ -1,4 +1,6 @@
+import { Calculator, Download, FileText } from 'lucide-react'
 import type { FrtbResultDto } from '../types'
+import { Card, Button, Spinner } from './ui'
 
 interface RegulatoryDashboardProps {
   result: FrtbResultDto | null
@@ -28,38 +30,43 @@ export function RegulatoryDashboard({
   const grandTotal = totalSbm + totalDrc + totalRrao
 
   return (
-    <div data-testid="regulatory-dashboard" className="bg-white rounded-lg shadow p-4 mb-4">
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">Regulatory Reporting — FRTB</h2>
-
+    <Card
+      data-testid="regulatory-dashboard"
+      header={<span className="flex items-center gap-1.5"><FileText className="h-4 w-4" />Regulatory Reporting — FRTB</span>}
+    >
       <div className="flex items-center gap-3 mb-4">
-        <button
+        <Button
           data-testid="frtb-calculate-btn"
+          variant="primary"
+          icon={<Calculator className="h-3.5 w-3.5" />}
           onClick={onCalculate}
-          disabled={loading}
-          className="px-4 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+          loading={loading}
         >
           {loading ? 'Calculating...' : 'Calculate FRTB'}
-        </button>
-        <button
+        </Button>
+        <Button
           data-testid="download-csv-btn"
+          variant="success"
+          icon={<Download className="h-3.5 w-3.5" />}
           onClick={onDownloadCsv}
           disabled={!result || loading}
-          className="px-4 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50"
         >
           Download CSV
-        </button>
-        <button
+        </Button>
+        <Button
           data-testid="download-xbrl-btn"
+          variant="secondary"
+          icon={<FileText className="h-3.5 w-3.5" />}
           onClick={onDownloadXbrl}
           disabled={!result || loading}
-          className="px-4 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
         >
           Download XBRL
-        </button>
+        </Button>
       </div>
 
       {loading && (
-        <div data-testid="regulatory-loading" className="text-gray-500 text-sm">
+        <div data-testid="regulatory-loading" className="flex items-center gap-2 text-slate-500 text-sm">
+          <Spinner size="sm" />
           Calculating FRTB capital requirements...
         </div>
       )}
@@ -72,27 +79,25 @@ export function RegulatoryDashboard({
 
       {result && !loading && (
         <div data-testid="regulatory-results">
-          {/* Capital charge summary stats */}
           <div data-testid="capital-summary" className="grid grid-cols-4 gap-3 mb-4">
-            <div className="bg-gray-50 rounded p-3 text-center">
-              <div className="text-xs text-gray-500">Total Capital</div>
-              <div className="text-lg font-bold text-gray-800">{formatCurrency(result.totalCapitalCharge)}</div>
+            <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500">Total Capital</div>
+              <div className="text-lg font-bold text-slate-800">{formatCurrency(result.totalCapitalCharge)}</div>
             </div>
-            <div className="bg-indigo-50 rounded p-3 text-center">
-              <div className="text-xs text-gray-500">SbM</div>
+            <div className="bg-indigo-50 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500">SbM</div>
               <div className="text-lg font-bold text-indigo-700">{formatCurrency(result.totalSbmCharge)}</div>
             </div>
-            <div className="bg-orange-50 rounded p-3 text-center">
-              <div className="text-xs text-gray-500">DRC</div>
+            <div className="bg-orange-50 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500">DRC</div>
               <div className="text-lg font-bold text-orange-700">{formatCurrency(result.netDrc)}</div>
             </div>
-            <div className="bg-red-50 rounded p-3 text-center">
-              <div className="text-xs text-gray-500">RRAO</div>
+            <div className="bg-red-50 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500">RRAO</div>
               <div className="text-lg font-bold text-red-700">{formatCurrency(result.totalRrao)}</div>
             </div>
           </div>
 
-          {/* Pie chart proportions */}
           <div data-testid="charge-proportions" className="flex gap-2 mb-4 text-xs">
             {grandTotal > 0 && (
               <>
@@ -118,11 +123,10 @@ export function RegulatoryDashboard({
             )}
           </div>
 
-          {/* SbM breakdown table */}
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">SbM Breakdown by Risk Class</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">SbM Breakdown by Risk Class</h3>
           <table data-testid="sbm-breakdown-table" className="w-full text-sm mb-4">
             <thead>
-              <tr className="border-b text-left text-gray-600">
+              <tr className="border-b text-left text-slate-600">
                 <th className="py-2">Risk Class</th>
                 <th className="py-2 text-right">Delta</th>
                 <th className="py-2 text-right">Vega</th>
@@ -134,7 +138,7 @@ export function RegulatoryDashboard({
               {result.sbmCharges
                 .filter((charge) => Number(charge.totalCharge) !== 0)
                 .map((charge) => (
-                <tr key={charge.riskClass} className="border-b">
+                <tr key={charge.riskClass} className="border-b hover:bg-slate-50 transition-colors">
                   <td className="py-1.5">{charge.riskClass}</td>
                   <td className="py-1.5 text-right">{formatCurrency(charge.deltaCharge)}</td>
                   <td className="py-1.5 text-right">{formatCurrency(charge.vegaCharge)}</td>
@@ -146,6 +150,6 @@ export function RegulatoryDashboard({
           </table>
         </div>
       )}
-    </div>
+    </Card>
   )
 }

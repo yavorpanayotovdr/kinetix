@@ -1,4 +1,6 @@
+import { Zap } from 'lucide-react'
 import type { StressTestResultDto } from '../types'
+import { Card, Button, Select, Spinner } from './ui'
 
 interface StressTestPanelProps {
   scenarios: string[]
@@ -33,78 +35,75 @@ export function StressTestPanel({
   onRun,
 }: StressTestPanelProps) {
   return (
-    <div data-testid="stress-test-panel" className="bg-white rounded-lg shadow p-4 mb-4">
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">Stress Testing</h2>
-
-      {/* Scenario selector */}
+    <Card
+      data-testid="stress-test-panel"
+      header={<span className="flex items-center gap-1.5"><Zap className="h-4 w-4" />Stress Testing</span>}
+    >
       <div className="flex items-center gap-3 mb-4">
-        <select
+        <Select
           data-testid="scenario-dropdown"
           value={selectedScenario}
           onChange={(e) => onScenarioChange(e.target.value)}
-          className="border rounded px-3 py-1.5 text-sm"
         >
           {scenarios.map((s) => (
             <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
           ))}
-        </select>
-        <button
+        </Select>
+        <Button
           data-testid="stress-run-btn"
+          variant="danger"
+          size="md"
+          icon={<Zap className="h-3.5 w-3.5" />}
           onClick={onRun}
-          disabled={loading}
-          className="px-4 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+          loading={loading}
         >
           {loading ? 'Running...' : 'Run Stress Test'}
-        </button>
+        </Button>
       </div>
 
-      {/* Loading */}
       {loading && (
-        <div data-testid="stress-loading" className="text-gray-500 text-sm">
+        <div data-testid="stress-loading" className="flex items-center gap-2 text-slate-500 text-sm">
+          <Spinner size="sm" />
           Running stress test...
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div data-testid="stress-error" className="text-red-600 text-sm">
           {error}
         </div>
       )}
 
-      {/* Results */}
       {result && !loading && (
         <div data-testid="stress-results">
-          {/* Summary table */}
           <table data-testid="stress-results-table" className="w-full text-sm mb-4">
             <thead>
-              <tr className="border-b text-left text-gray-600">
+              <tr className="border-b text-left text-slate-600">
                 <th className="py-2">Metric</th>
                 <th className="py-2 text-right">Value</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b">
+              <tr className="border-b hover:bg-slate-50 transition-colors">
                 <td className="py-1.5">Scenario</td>
                 <td className="py-1.5 text-right font-medium">{result.scenarioName}</td>
               </tr>
-              <tr className="border-b">
+              <tr className="border-b hover:bg-slate-50 transition-colors">
                 <td className="py-1.5">Base VaR</td>
                 <td className="py-1.5 text-right">{formatCurrency(result.baseVar)}</td>
               </tr>
-              <tr className="border-b">
+              <tr className="border-b hover:bg-slate-50 transition-colors">
                 <td className="py-1.5">Stressed VaR</td>
                 <td className="py-1.5 text-right text-red-600 font-medium">{formatCurrency(result.stressedVar)}</td>
               </tr>
-              <tr className="border-b">
+              <tr className="border-b hover:bg-slate-50 transition-colors">
                 <td className="py-1.5">P&L Impact</td>
                 <td className="py-1.5 text-right text-red-600 font-medium">{formatCurrency(result.pnlImpact)}</td>
               </tr>
             </tbody>
           </table>
 
-          {/* Asset class impact breakdown */}
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Impact by Asset Class</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Impact by Asset Class</h3>
           <div data-testid="stress-impact-chart" className="space-y-2">
             {result.assetClassImpacts.map((impact) => {
               const baseExp = Number(impact.baseExposure)
@@ -112,10 +111,10 @@ export function StressTestPanel({
               const maxExp = Math.max(baseExp, stressedExp, 1)
               return (
                 <div key={impact.assetClass} className="flex items-center gap-2 text-xs">
-                  <span className="w-24 text-gray-600">{impact.assetClass}</span>
+                  <span className="w-24 text-slate-600">{impact.assetClass}</span>
                   <div className="flex-1 flex gap-1">
                     <div
-                      className="h-4 bg-gray-300 rounded"
+                      className="h-4 bg-slate-300 rounded"
                       style={{ width: `${(baseExp / maxExp) * 100}%` }}
                       title={`Base: ${formatCurrency(baseExp)}`}
                     />
@@ -132,6 +131,6 @@ export function StressTestPanel({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   )
 }

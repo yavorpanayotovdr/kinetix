@@ -1,4 +1,6 @@
+import { RefreshCw, ExternalLink, Server } from 'lucide-react'
 import type { SystemHealthResponse } from '../api/system'
+import { Card, Button, StatusDot, Spinner } from './ui'
 
 interface Props {
   health: SystemHealthResponse | null
@@ -46,9 +48,10 @@ const OBSERVABILITY_LINKS = [
 export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
   if (loading) {
     return (
-      <p data-testid="system-loading" className="text-gray-500">
+      <div data-testid="system-loading" className="flex items-center gap-2 text-slate-500">
+        <Spinner size="sm" />
         Loading system health...
-      </p>
+      </div>
     )
   }
 
@@ -65,27 +68,30 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
 
   return (
     <div data-testid="system-dashboard">
-      {/* Overall status banner */}
       <div
         data-testid="system-status-banner"
-        className={`mb-6 rounded-lg px-4 py-3 text-sm font-medium ${
+        className={`mb-6 rounded-lg px-4 py-3 text-sm font-medium flex items-center justify-between ${
           overallUp
             ? 'bg-green-50 text-green-800 border border-green-200'
             : 'bg-yellow-50 text-yellow-800 border border-yellow-200'
         }`}
       >
-        {overallUp ? 'All Systems Operational' : 'Degraded'}
-        <button
+        <span>{overallUp ? 'All Systems Operational' : 'Degraded'}</span>
+        <Button
           data-testid="system-refresh-btn"
+          variant="secondary"
+          size="sm"
+          icon={<RefreshCw className="h-3 w-3" />}
           onClick={onRefresh}
-          className="ml-4 text-xs underline"
         >
           Refresh
-        </button>
+        </Button>
       </div>
 
-      {/* Service health grid */}
-      <h2 className="text-lg font-semibold mb-3">Service Health</h2>
+      <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+        <Server className="h-5 w-5 text-slate-500" />
+        Service Health
+      </h2>
       <div
         data-testid="service-health-grid"
         className="grid grid-cols-3 gap-4 mb-8"
@@ -93,17 +99,12 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
         {Object.entries(services).map(([key, svc]) => {
           const up = svc.status === 'UP'
           return (
-            <div
-              key={key}
-              data-testid={`service-card-${key}`}
-              className="rounded-lg border bg-white p-4"
-            >
+            <Card key={key} data-testid={`service-card-${key}`}>
               <div className="flex items-center gap-2">
-                <span
+                <StatusDot
                   data-testid={`service-status-dot-${key}`}
-                  className={`inline-block h-3 w-3 rounded-full ${
-                    up ? 'bg-green-500' : 'bg-red-500'
-                  }`}
+                  status={up ? 'up' : 'down'}
+                  pulse={up}
                 />
                 <span className="font-medium">
                   {SERVICE_LABELS[key] ?? key}
@@ -115,12 +116,11 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
               >
                 {svc.status}
               </p>
-            </div>
+            </Card>
           )
         })}
       </div>
 
-      {/* Observability links */}
       <h2 className="text-lg font-semibold mb-3">Observability</h2>
       <div
         data-testid="observability-links"
@@ -133,10 +133,15 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className="rounded-lg border bg-white p-4 hover:shadow transition-shadow"
+            className="group"
           >
-            <span className="font-medium text-indigo-600">{link.name}</span>
-            <p className="mt-1 text-sm text-gray-500">{link.description}</p>
+            <Card>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-primary-600">{link.name}</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
+              </div>
+              <p className="mt-1 text-sm text-slate-500">{link.description}</p>
+            </Card>
           </a>
         ))}
       </div>
