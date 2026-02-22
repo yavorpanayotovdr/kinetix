@@ -26,7 +26,7 @@ export function usePositions(): UsePositionsResult {
         const portfolioList = await fetchPortfolios()
         if (cancelled) return
 
-        const ids = portfolioList.map((p) => p.portfolioId)
+        const ids = portfolioList.map((p) => p.portfolioId).sort()
         setPortfolios(ids)
 
         if (portfolioList.length === 0) {

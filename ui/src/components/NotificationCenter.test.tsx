@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { AlertRuleDto, AlertEventDto } from '../types'
 import { NotificationCenter } from './NotificationCenter'
 
@@ -158,5 +158,88 @@ describe('NotificationCenter', () => {
 
     expect(screen.getByTestId('notification-error')).toBeInTheDocument()
     expect(screen.getByTestId('notification-error')).toHaveTextContent('Failed to load')
+  })
+
+  it('shows relative timestamps instead of ISO strings', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+    render(
+      <NotificationCenter
+        rules={[]}
+        alerts={sampleAlerts}
+        loading={false}
+        error={null}
+        onCreateRule={() => {}}
+        onDeleteRule={() => {}}
+      />,
+    )
+
+    expect(screen.getByText(/2h ago/)).toBeInTheDocument()
+    expect(screen.queryByText('2025-01-15T10:00:00Z')).not.toBeInTheDocument()
+
+    vi.useRealTimers()
+  })
+
+  it('applies severity border colors to alert cards', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+    render(
+      <NotificationCenter
+        rules={[]}
+        alerts={sampleAlerts}
+        loading={false}
+        error={null}
+        onCreateRule={() => {}}
+        onDeleteRule={() => {}}
+      />,
+    )
+
+    const alertsList = screen.getByTestId('alerts-list')
+    const cards = alertsList.children
+    expect(cards[0].className).toContain('border-yellow-500')
+    expect(cards[1].className).toContain('border-red-500')
+
+    vi.useRealTimers()
+  })
+
+  it('sorts alerts by recency then severity', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+    const alerts: AlertEventDto[] = [
+      {
+        ...sampleAlerts[0],
+        id: 'evt-old',
+        triggeredAt: '2025-01-15T09:00:00Z',
+        severity: 'CRITICAL',
+      },
+      {
+        ...sampleAlerts[1],
+        id: 'evt-new',
+        triggeredAt: '2025-01-15T11:00:00Z',
+        severity: 'WARNING',
+      },
+    ]
+
+    render(
+      <NotificationCenter
+        rules={[]}
+        alerts={alerts}
+        loading={false}
+        error={null}
+        onCreateRule={() => {}}
+        onDeleteRule={() => {}}
+      />,
+    )
+
+    const alertsList = screen.getByTestId('alerts-list')
+    const badges = alertsList.querySelectorAll('[data-testid^="severity-badge"]')
+    // Most recent first (WARNING at 11:00), then older (CRITICAL at 09:00)
+    expect(badges[0]).toHaveTextContent('WARNING')
+    expect(badges[1]).toHaveTextContent('CRITICAL')
+
+    vi.useRealTimers()
   })
 })

@@ -65,6 +65,14 @@ function App() {
             }`}
           >
             {label}
+            {key === 'alerts' && notifications.alerts.length > 0 && (
+              <span
+                data-testid="alert-count-badge"
+                className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full"
+              >
+                {notifications.alerts.length}
+              </span>
+            )}
           </button>
         ))}
       </nav>

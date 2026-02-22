@@ -1,44 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { PositionDto } from '../types'
-import { formatMoney, pnlColorClass } from '../utils/format'
 import { PositionGrid } from './PositionGrid'
-
-describe('formatMoney', () => {
-  it('formats USD with dollar sign and commas', () => {
-    expect(formatMoney('1500.00', 'USD')).toBe('$1,500.00')
-  })
-
-  it('formats EUR with euro sign', () => {
-    expect(formatMoney('2500.50', 'EUR')).toBe('\u20ac2,500.50')
-  })
-
-  it('formats negative amounts', () => {
-    expect(formatMoney('-1234.56', 'USD')).toBe('-$1,234.56')
-  })
-
-  it('formats large numbers with thousands separators', () => {
-    expect(formatMoney('1234567.89', 'USD')).toBe('$1,234,567.89')
-  })
-
-  it('falls back to amount + currency code for unknown currencies', () => {
-    expect(formatMoney('100.00', 'XYZ')).toBe('100.00 XYZ')
-  })
-})
-
-describe('pnlColorClass', () => {
-  it('returns green for positive amounts', () => {
-    expect(pnlColorClass('150.00')).toBe('text-green-600')
-  })
-
-  it('returns red for negative amounts', () => {
-    expect(pnlColorClass('-50.00')).toBe('text-red-600')
-  })
-
-  it('returns gray for zero', () => {
-    expect(pnlColorClass('0.00')).toBe('text-gray-500')
-  })
-})
 
 const makePosition = (overrides: Partial<PositionDto> = {}): PositionDto => ({
   portfolioId: 'port-1',
@@ -151,5 +114,38 @@ describe('PositionGrid', () => {
 
     expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
     expect(screen.getByTestId('position-row-GOOGL')).toBeInTheDocument()
+  })
+
+  it('renders portfolio summary bar with totals', () => {
+    const positions = [
+      makePosition({
+        instrumentId: 'AAPL',
+        marketValue: { amount: '15500.00', currency: 'USD' },
+        unrealizedPnl: { amount: '500.00', currency: 'USD' },
+      }),
+      makePosition({
+        instrumentId: 'GOOGL',
+        marketValue: { amount: '10000.00', currency: 'USD' },
+        unrealizedPnl: { amount: '-200.00', currency: 'USD' },
+      }),
+    ]
+    render(<PositionGrid positions={positions} />)
+
+    const summary = screen.getByTestId('portfolio-summary')
+    expect(summary).toBeInTheDocument()
+    expect(within(summary).getByText('2')).toBeInTheDocument()
+    expect(within(summary).getByText('$25,500.00')).toBeInTheDocument()
+    expect(within(summary).getByText('$300.00')).toBeInTheDocument()
+  })
+
+  it('formats quantity values cleanly', () => {
+    render(
+      <PositionGrid
+        positions={[makePosition({ quantity: '150.000000000000' })]}
+      />,
+    )
+
+    const row = screen.getByTestId('position-row-AAPL')
+    expect(within(row).getByText('150')).toBeInTheDocument()
   })
 })

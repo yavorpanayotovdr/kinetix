@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
+import { formatRelativeTime } from '../utils/format'
 
 interface NotificationCenterProps {
   rules: AlertRuleDto[]
@@ -16,6 +17,18 @@ const severityColor: Record<string, string> = {
   INFO: 'bg-blue-100 text-blue-800',
 }
 
+const severityBorderColor: Record<string, string> = {
+  CRITICAL: 'border-red-500',
+  WARNING: 'border-yellow-500',
+  INFO: 'border-blue-500',
+}
+
+const severityOrder: Record<string, number> = {
+  CRITICAL: 0,
+  WARNING: 1,
+  INFO: 2,
+}
+
 export function NotificationCenter({
   rules,
   alerts,
@@ -30,6 +43,16 @@ export function NotificationCenter({
   const [operator, setOperator] = useState('GREATER_THAN')
   const [severity, setSeverity] = useState('CRITICAL')
   const [channels, setChannels] = useState<string[]>(['IN_APP'])
+
+  const sortedAlerts = useMemo(
+    () =>
+      [...alerts].sort((a, b) => {
+        const timeCompare = new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+        if (timeCompare !== 0) return timeCompare
+        return (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
+      }),
+    [alerts],
+  )
 
   function handleChannelToggle(ch: string) {
     setChannels((prev) =>
@@ -183,8 +206,11 @@ export function NotificationCenter({
       {/* Recent Alerts */}
       <h3 className="text-sm font-semibold text-gray-700 mb-2">Recent Alerts</h3>
       <div data-testid="alerts-list" className="space-y-2">
-        {alerts.map((alert) => (
-          <div key={alert.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded text-sm">
+        {sortedAlerts.map((alert) => (
+          <div
+            key={alert.id}
+            className={`flex items-start gap-2 p-2 bg-gray-50 rounded text-sm border-l-4 ${severityBorderColor[alert.severity] ?? 'border-gray-300'}`}
+          >
             <span
               data-testid={`severity-badge-${alert.id}`}
               className={`px-2 py-0.5 rounded text-xs font-medium ${severityColor[alert.severity] ?? ''}`}
@@ -194,7 +220,7 @@ export function NotificationCenter({
             <div className="flex-1">
               <div className="text-gray-800">{alert.message}</div>
               <div className="text-xs text-gray-500">
-                Portfolio: {alert.portfolioId} | {alert.triggeredAt}
+                Portfolio: {alert.portfolioId} | {formatRelativeTime(alert.triggeredAt)}
               </div>
             </div>
           </div>

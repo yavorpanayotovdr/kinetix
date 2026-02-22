@@ -38,10 +38,10 @@ describe('usePositions', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('loads positions from first portfolio and exposes portfolio list', async () => {
+  it('loads positions from first portfolio and exposes sorted portfolio list', async () => {
     const portfolios: PortfolioDto[] = [
-      { portfolioId: 'port-1' },
       { portfolioId: 'port-2' },
+      { portfolioId: 'port-1' },
     ]
     mockFetchPortfolios.mockResolvedValue(portfolios)
     mockFetchPositions.mockResolvedValue([position])
@@ -53,10 +53,10 @@ describe('usePositions', () => {
     })
 
     expect(result.current.positions).toEqual([position])
-    expect(result.current.portfolioId).toBe('port-1')
+    expect(result.current.portfolioId).toBe('port-2')
     expect(result.current.portfolios).toEqual(['port-1', 'port-2'])
     expect(result.current.error).toBeNull()
-    expect(mockFetchPositions).toHaveBeenCalledWith('port-1')
+    expect(mockFetchPositions).toHaveBeenCalledWith('port-2')
   })
 
   it('returns empty positions when no portfolios exist', async () => {

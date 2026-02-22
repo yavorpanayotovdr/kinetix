@@ -131,7 +131,9 @@ export function RegulatoryDashboard({
               </tr>
             </thead>
             <tbody>
-              {result.sbmCharges.map((charge) => (
+              {result.sbmCharges
+                .filter((charge) => Number(charge.totalCharge) !== 0)
+                .map((charge) => (
                 <tr key={charge.riskClass} className="border-b">
                   <td className="py-1.5">{charge.riskClass}</td>
                   <td className="py-1.5 text-right">{formatCurrency(charge.deltaCharge)}</td>

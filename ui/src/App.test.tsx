@@ -195,4 +195,40 @@ describe('App', () => {
 
     expect(selectPortfolio).toHaveBeenCalledWith('port-2')
   })
+
+  it('shows alert count badge when alerts exist', () => {
+    mockUseNotifications.mockReturnValue({
+      rules: [],
+      alerts: [
+        {
+          id: 'evt-1',
+          ruleId: 'rule-1',
+          ruleName: 'VaR Limit',
+          type: 'VAR_BREACH',
+          severity: 'CRITICAL',
+          message: 'VaR exceeded threshold',
+          currentValue: 150000,
+          threshold: 100000,
+          portfolioId: 'port-1',
+          triggeredAt: '2025-01-15T10:00:00Z',
+        },
+      ],
+      loading: false,
+      error: null,
+      createRule: vi.fn(),
+      deleteRule: vi.fn(),
+    })
+
+    render(<App />)
+
+    const badge = screen.getByTestId('alert-count-badge')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveTextContent('1')
+  })
+
+  it('does not show alert badge when no alerts', () => {
+    render(<App />)
+
+    expect(screen.queryByTestId('alert-count-badge')).not.toBeInTheDocument()
+  })
 })

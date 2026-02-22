@@ -42,7 +42,7 @@ describe('RegulatoryDashboard', () => {
     expect(screen.getByTestId('regulatory-results')).toBeInTheDocument()
   })
 
-  it('renders SbM breakdown table with 7 risk classes', () => {
+  it('renders SbM breakdown table filtering zero-value rows', () => {
     render(
       <RegulatoryDashboard
         result={frtbResult}
@@ -56,9 +56,9 @@ describe('RegulatoryDashboard', () => {
 
     const table = screen.getByTestId('sbm-breakdown-table')
     expect(table).toBeInTheDocument()
-    // 7 risk class rows in tbody
+    // 5 non-zero risk class rows (CSR_SEC_CTP and CSR_SEC_NON_CTP filtered out)
     const rows = table.querySelectorAll('tbody tr')
-    expect(rows.length).toBe(7)
+    expect(rows.length).toBe(5)
   })
 
   it('renders report download buttons', () => {

@@ -1,5 +1,5 @@
 import type { PositionDto } from '../types'
-import { formatMoney, pnlColorClass } from '../utils/format'
+import { formatMoney, formatQuantity, pnlColorClass } from '../utils/format'
 
 interface PositionGridProps {
   positions: PositionDto[]
@@ -10,6 +10,16 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
   if (positions.length === 0) {
     return <p className="text-gray-500 p-4">No positions to display.</p>
   }
+
+  const totalMarketValue = positions.reduce(
+    (sum, pos) => sum + Number(pos.marketValue.amount),
+    0,
+  )
+  const totalPnl = positions.reduce(
+    (sum, pos) => sum + Number(pos.unrealizedPnl.amount),
+    0,
+  )
+  const currency = positions[0].marketValue.currency
 
   return (
     <div>
@@ -22,6 +32,26 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
           )}
         </div>
       )}
+
+      <div data-testid="portfolio-summary" className="grid grid-cols-3 gap-3 mb-4">
+        <div className="bg-white rounded-lg shadow p-3 text-center">
+          <div className="text-xs text-gray-500">Positions</div>
+          <div className="text-lg font-bold text-gray-800">{positions.length}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-3 text-center">
+          <div className="text-xs text-gray-500">Market Value</div>
+          <div className="text-lg font-bold text-gray-800">
+            {formatMoney(String(totalMarketValue), currency)}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-3 text-center">
+          <div className="text-xs text-gray-500">Unrealized P&amp;L</div>
+          <div className={`text-lg font-bold ${pnlColorClass(String(totalPnl))}`}>
+            {formatMoney(String(totalPnl), currency)}
+          </div>
+        </div>
+      </div>
+
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
@@ -53,7 +83,7 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
             <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`}>
               <td className="px-4 py-2 text-sm">{pos.instrumentId}</td>
               <td className="px-4 py-2 text-sm">{pos.assetClass}</td>
-              <td className="px-4 py-2 text-sm text-right">{pos.quantity}</td>
+              <td className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>
               <td className="px-4 py-2 text-sm text-right">
                 {formatMoney(pos.averageCost.amount, pos.averageCost.currency)}
               </td>
