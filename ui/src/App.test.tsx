@@ -285,4 +285,40 @@ describe('App', () => {
 
     expect(screen.queryByTestId('system-degraded-dot')).not.toBeInTheDocument()
   })
+
+  it('System tab renders even when positions are loading', () => {
+    mockUsePositions.mockReturnValue({
+      positions: [],
+      portfolioId: null,
+      portfolios: [],
+      selectPortfolio,
+      loading: true,
+      error: null,
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-system'))
+
+    expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('Loading positions...')).not.toBeInTheDocument()
+  })
+
+  it('System tab renders even when positions have an error', () => {
+    mockUsePositions.mockReturnValue({
+      positions: [],
+      portfolioId: null,
+      portfolios: [],
+      selectPortfolio,
+      loading: false,
+      error: 'Network error',
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-system'))
+
+    expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('Network error')).not.toBeInTheDocument()
+  })
 })

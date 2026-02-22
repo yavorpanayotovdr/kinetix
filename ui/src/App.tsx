@@ -87,74 +87,76 @@ function App() {
         ))}
       </nav>
 
-      {loading && <p className="text-gray-500">Loading positions...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-
-      {!loading && !error && (
+      {activeTab === 'system' ? (
+        <SystemDashboard
+          health={systemHealth.health}
+          loading={systemHealth.loading}
+          error={systemHealth.error}
+          onRefresh={systemHealth.refresh}
+        />
+      ) : (
         <>
-          {activeTab === 'positions' && (
-            <PositionGrid positions={positions} connected={connected} />
-          )}
+          {loading && <p className="text-gray-500">Loading positions...</p>}
+          {error && <p className="text-red-600">{error}</p>}
 
-          {activeTab === 'risk' && (
-            <div>
-              <VaRDashboard
-                varResult={varResult}
-                history={history}
-                loading={varLoading}
-                error={varError}
-                onRefresh={refresh}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <StressTestPanel
-                  scenarios={stress.scenarios}
-                  result={stress.result}
-                  loading={stress.loading}
-                  error={stress.error}
-                  selectedScenario={stress.selectedScenario}
-                  onScenarioChange={stress.setSelectedScenario}
-                  onRun={stress.run}
+          {!loading && !error && (
+            <>
+              {activeTab === 'positions' && (
+                <PositionGrid positions={positions} connected={connected} />
+              )}
+
+              {activeTab === 'risk' && (
+                <div>
+                  <VaRDashboard
+                    varResult={varResult}
+                    history={history}
+                    loading={varLoading}
+                    error={varError}
+                    onRefresh={refresh}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <StressTestPanel
+                      scenarios={stress.scenarios}
+                      result={stress.result}
+                      loading={stress.loading}
+                      error={stress.error}
+                      selectedScenario={stress.selectedScenario}
+                      onScenarioChange={stress.setSelectedScenario}
+                      onRun={stress.run}
+                    />
+                    <GreeksPanel
+                      greeksResult={greeks.greeksResult}
+                      loading={greeks.loading}
+                      error={greeks.error}
+                      volBump={greeks.volBump}
+                      onVolBumpChange={greeks.setVolBump}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'regulatory' && (
+                <RegulatoryDashboard
+                  result={regulatory.result}
+                  loading={regulatory.loading}
+                  error={regulatory.error}
+                  onCalculate={regulatory.calculate}
+                  onDownloadCsv={regulatory.downloadCsv}
+                  onDownloadXbrl={regulatory.downloadXbrl}
                 />
-                <GreeksPanel
-                  greeksResult={greeks.greeksResult}
-                  loading={greeks.loading}
-                  error={greeks.error}
-                  volBump={greeks.volBump}
-                  onVolBumpChange={greeks.setVolBump}
+              )}
+
+              {activeTab === 'alerts' && (
+                <NotificationCenter
+                  rules={notifications.rules}
+                  alerts={notifications.alerts}
+                  loading={notifications.loading}
+                  error={notifications.error}
+                  onCreateRule={notifications.createRule}
+                  onDeleteRule={notifications.deleteRule}
                 />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'regulatory' && (
-            <RegulatoryDashboard
-              result={regulatory.result}
-              loading={regulatory.loading}
-              error={regulatory.error}
-              onCalculate={regulatory.calculate}
-              onDownloadCsv={regulatory.downloadCsv}
-              onDownloadXbrl={regulatory.downloadXbrl}
-            />
-          )}
-
-          {activeTab === 'alerts' && (
-            <NotificationCenter
-              rules={notifications.rules}
-              alerts={notifications.alerts}
-              loading={notifications.loading}
-              error={notifications.error}
-              onCreateRule={notifications.createRule}
-              onDeleteRule={notifications.deleteRule}
-            />
-          )}
-
-          {activeTab === 'system' && (
-            <SystemDashboard
-              health={systemHealth.health}
-              loading={systemHealth.loading}
-              error={systemHealth.error}
-              onRefresh={systemHealth.refresh}
-            />
+              )}
+            </>
           )}
         </>
       )}
