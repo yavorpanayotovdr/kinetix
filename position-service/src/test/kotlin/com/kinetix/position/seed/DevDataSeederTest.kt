@@ -21,7 +21,7 @@ class DevDataSeederTest : FunSpec({
         clearMocks(tradeBookingService, positionRepository)
     }
 
-    test("seeds 14 trades when database is empty") {
+    test("seeds all trades when database is empty") {
         coEvery { positionRepository.findDistinctPortfolioIds() } returns emptyList()
         coEvery { tradeBookingService.handle(any()) } answers {
             val cmd = firstArg<BookTradeCommand>()
@@ -44,7 +44,7 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        coVerify(exactly = 14) { tradeBookingService.handle(any()) }
+        coVerify(exactly = DevDataSeeder.TRADES.size) { tradeBookingService.handle(any()) }
     }
 
     test("skips seeding when portfolios already exist") {
@@ -80,10 +80,7 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 14 market price updates (one per position)
-        // findByKey returns null so save is not called for market price updates
-        // but the calls are still made
-        coVerify(atLeast = 14) { positionRepository.findByKey(any(), any()) }
+        coVerify(atLeast = DevDataSeeder.MARKET_PRICES.size) { positionRepository.findByKey(any(), any()) }
     }
 
     test("trade data has correct number of trades per portfolio") {
@@ -91,6 +88,11 @@ class DevDataSeederTest : FunSpec({
         tradesByPortfolio["equity-growth"]!!.size shouldBe 5
         tradesByPortfolio["multi-asset"]!!.size shouldBe 6
         tradesByPortfolio["fixed-income"]!!.size shouldBe 3
+        tradesByPortfolio["emerging-markets"]!!.size shouldBe 6
+        tradesByPortfolio["macro-hedge"]!!.size shouldBe 7
+        tradesByPortfolio["tech-momentum"]!!.size shouldBe 5
+        tradesByPortfolio["balanced-income"]!!.size shouldBe 6
+        tradesByPortfolio["derivatives-book"]!!.size shouldBe 6
     }
 
     test("all trade IDs are unique") {

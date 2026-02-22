@@ -38,9 +38,9 @@ class DevDataSeeder(
         val latestTime = LATEST_TIME
         val startPrice = config.startPrice
         val latestPrice = config.latestPrice
-        val hours = 24
+        val hours = 168 // 7 days of hourly data
 
-        // Generate 24 hourly data points interpolating from startPrice to latestPrice
+        // Generate hourly data points interpolating from startPrice to latestPrice
         for (i in 0..hours) {
             val fraction = i.toDouble() / hours
             // Linear interpolation with small variation
@@ -74,6 +74,11 @@ class DevDataSeeder(
         val INSTRUMENT_IDS: Set<String> = setOf(
             "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA",
             "EURUSD", "US2Y", "US10Y", "US30Y", "GC", "SPX-PUT-4500",
+            "NVDA", "META", "JPM", "BABA",
+            "GBPUSD", "USDJPY",
+            "CL", "SI",
+            "SPX-CALL-5000", "VIX-PUT-15",
+            "DE10Y",
         )
 
         private val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
@@ -83,16 +88,27 @@ class DevDataSeeder(
             InstrumentId("MSFT") to InstrumentConfig("USD", 422.30, 425.60),
             InstrumentId("AMZN") to InstrumentConfig("USD", 207.80, 210.30),
             InstrumentId("TSLA") to InstrumentConfig("USD", 244.50, 242.15),
+            InstrumentId("NVDA") to InstrumentConfig("USD", 875.00, 892.50),
+            InstrumentId("META") to InstrumentConfig("USD", 498.20, 508.40),
+            InstrumentId("JPM") to InstrumentConfig("USD", 206.50, 211.80),
+            InstrumentId("BABA") to InstrumentConfig("USD", 82.40, 86.10),
             // FX
             InstrumentId("EURUSD") to InstrumentConfig("USD", 1.0830, 1.0856, scale = 4),
+            InstrumentId("GBPUSD") to InstrumentConfig("USD", 1.2550, 1.2620, scale = 4),
+            InstrumentId("USDJPY") to InstrumentConfig("USD", 149.20, 150.80, scale = 4),
             // Fixed Income
             InstrumentId("US2Y") to InstrumentConfig("USD", 99.30, 99.40),
             InstrumentId("US10Y") to InstrumentConfig("USD", 96.85, 97.10),
             InstrumentId("US30Y") to InstrumentConfig("USD", 92.80, 93.25),
-            // Commodity
+            InstrumentId("DE10Y") to InstrumentConfig("EUR", 97.50, 98.20),
+            // Commodities
             InstrumentId("GC") to InstrumentConfig("USD", 2038.20, 2058.40),
-            // Derivative
+            InstrumentId("CL") to InstrumentConfig("USD", 75.80, 78.30),
+            InstrumentId("SI") to InstrumentConfig("USD", 22.80, 23.65),
+            // Derivatives
             InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75),
+            InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80),
+            InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60),
         )
     }
 }

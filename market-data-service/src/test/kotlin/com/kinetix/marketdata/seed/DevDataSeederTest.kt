@@ -23,8 +23,8 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 11 instruments × 25 data points each (0..24 hours inclusive)
-        coVerify(exactly = 11 * 25) { repository.save(any()) }
+        // 22 instruments × 169 data points each (0..168 hours inclusive)
+        coVerify(exactly = 22 * 169) { repository.save(any()) }
     }
 
     test("skips seeding when data already exists") {
@@ -40,25 +40,30 @@ class DevDataSeederTest : FunSpec({
         coVerify(exactly = 0) { repository.save(any()) }
     }
 
-    test("instruments list contains all 11 expected instruments") {
+    test("instruments list contains all 22 expected instruments") {
         DevDataSeeder.INSTRUMENT_IDS shouldBe setOf(
             "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA",
             "EURUSD", "US2Y", "US10Y", "US30Y", "GC", "SPX-PUT-4500",
+            "NVDA", "META", "JPM", "BABA",
+            "GBPUSD", "USDJPY",
+            "CL", "SI",
+            "SPX-CALL-5000", "VIX-PUT-15",
+            "DE10Y",
         )
     }
 
-    test("saved points have timestamps spanning 24 hours") {
+    test("saved points have timestamps spanning 7 days") {
         coEvery { repository.findLatest(InstrumentId("AAPL")) } returns null
         val savedPoints = mutableListOf<MarketDataPoint>()
         coEvery { repository.save(capture(savedPoints)) } just runs
 
         seeder.seed()
 
-        // Check AAPL points span 24 hours
+        // Check AAPL points span 168 hours (7 days)
         val aaplPoints = savedPoints.filter { it.instrumentId.value == "AAPL" }
             .sortedBy { it.timestamp }
-        aaplPoints.size shouldBe 25
+        aaplPoints.size shouldBe 169
         val duration = java.time.Duration.between(aaplPoints.first().timestamp, aaplPoints.last().timestamp)
-        duration.toHours() shouldBe 24
+        duration.toHours() shouldBe 168
     }
 })

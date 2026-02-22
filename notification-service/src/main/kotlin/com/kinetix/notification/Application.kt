@@ -84,7 +84,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(rulesEngine).seed()
+            DevDataSeeder(rulesEngine, eventRepository).seed()
         }
     }
 }

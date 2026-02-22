@@ -15,13 +15,13 @@ class DevDataSeederTest : FunSpec({
         clearMocks(repository)
     }
 
-    test("seeds 14 audit events when database is empty") {
+    test("seeds audit events when database is empty") {
         coEvery { repository.findAll() } returns emptyList()
         coEvery { repository.save(any()) } just runs
 
         seeder.seed()
 
-        coVerify(exactly = 14) { repository.save(any()) }
+        coVerify(exactly = DevDataSeeder.EVENTS.size) { repository.save(any()) }
     }
 
     test("skips seeding when events already exist") {
@@ -47,17 +47,21 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("event data has correct count") {
-        DevDataSeeder.EVENTS.size shouldBe 14
+        DevDataSeeder.EVENTS.size shouldBe 44
     }
 
-    test("all trade IDs match position-service trade IDs") {
+    test("all trade IDs are unique and match seed convention") {
         val tradeIds = DevDataSeeder.EVENTS.map { it.tradeId }.toSet()
-        tradeIds.size shouldBe 14
+        tradeIds.size shouldBe DevDataSeeder.EVENTS.size
         tradeIds.all { it.startsWith("seed-") } shouldBe true
     }
 
-    test("events cover all three portfolios") {
+    test("events cover all eight portfolios") {
         val portfolios = DevDataSeeder.EVENTS.map { it.portfolioId }.distinct().sorted()
-        portfolios shouldBe listOf("equity-growth", "fixed-income", "multi-asset")
+        portfolios shouldBe listOf(
+            "balanced-income", "derivatives-book", "emerging-markets",
+            "equity-growth", "fixed-income", "macro-hedge",
+            "multi-asset", "tech-momentum",
+        )
     }
 })

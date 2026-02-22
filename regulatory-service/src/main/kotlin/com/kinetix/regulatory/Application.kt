@@ -7,6 +7,7 @@ import com.kinetix.regulatory.persistence.DatabaseFactory
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import com.kinetix.regulatory.routes.regulatoryRoutes
+import com.kinetix.regulatory.seed.DevDataSeeder
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -21,6 +22,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.launch
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -85,4 +87,11 @@ fun Application.moduleWithRoutes() {
     val client = RiskOrchestratorClient(httpClient, riskOrchestratorUrl)
 
     module(repository, client)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(repository).seed()
+        }
+    }
 }
