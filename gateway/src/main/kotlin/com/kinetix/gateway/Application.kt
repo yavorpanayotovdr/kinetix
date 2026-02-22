@@ -25,6 +25,7 @@ import com.kinetix.gateway.websocket.PriceBroadcaster
 import com.kinetix.gateway.websocket.marketDataWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.request.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -38,6 +39,9 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
@@ -168,6 +172,35 @@ fun Application.devModule() {
     module(positionClient, marketDataClient, broadcaster, riskClient)
     routing {
         notificationRoutes(notificationClient)
+        get("/api/v1/system/health") {
+            val serviceUrls = mapOf(
+                "position-service" to positionUrl,
+                "market-data-service" to marketDataUrl,
+                "risk-orchestrator" to riskUrl,
+                "notification-service" to notificationUrl,
+            )
+            val results = coroutineScope {
+                serviceUrls.map { (name, url) ->
+                    name to async {
+                        try {
+                            val resp = withTimeoutOrNull(2000L) {
+                                httpClient.get("$url/health")
+                            }
+                            if (resp != null && resp.status == HttpStatusCode.OK) "UP" else "DOWN"
+                        } catch (_: Exception) {
+                            "DOWN"
+                        }
+                    }
+                }.map { (name, deferred) -> name to deferred.await() }
+            }
+            val services = mutableMapOf<String, Map<String, String>>()
+            services["gateway"] = mapOf("status" to "UP")
+            for ((name, status) in results) {
+                services[name] = mapOf("status" to status)
+            }
+            val overall = if (results.all { it.second == "UP" }) "UP" else "DEGRADED"
+            call.respond(mapOf("status" to overall, "services" to services))
+        }
     }
 }
 

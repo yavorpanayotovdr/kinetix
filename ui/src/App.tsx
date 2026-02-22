@@ -5,6 +5,7 @@ import { StressTestPanel } from './components/StressTestPanel'
 import { GreeksPanel } from './components/GreeksPanel'
 import { NotificationCenter } from './components/NotificationCenter'
 import { RegulatoryDashboard } from './components/RegulatoryDashboard'
+import { SystemDashboard } from './components/SystemDashboard'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useVaR } from './hooks/useVaR'
@@ -12,14 +13,16 @@ import { useStressTest } from './hooks/useStressTest'
 import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
+import { useSystemHealth } from './hooks/useSystemHealth'
 
-type Tab = 'positions' | 'risk' | 'regulatory' | 'alerts'
+type Tab = 'positions' | 'risk' | 'regulatory' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'positions', label: 'Positions' },
   { key: 'risk', label: 'Risk' },
   { key: 'regulatory', label: 'Regulatory' },
   { key: 'alerts', label: 'Alerts' },
+  { key: 'system', label: 'System' },
 ]
 
 function App() {
@@ -32,6 +35,7 @@ function App() {
   const greeks = useGreeks(portfolioId)
   const notifications = useNotifications()
   const regulatory = useRegulatory(portfolioId)
+  const systemHealth = useSystemHealth()
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -72,6 +76,12 @@ function App() {
               >
                 {notifications.alerts.length}
               </span>
+            )}
+            {key === 'system' && systemHealth.health?.status === 'DEGRADED' && (
+              <span
+                data-testid="system-degraded-dot"
+                className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500"
+              />
             )}
           </button>
         ))}
@@ -135,6 +145,15 @@ function App() {
               error={notifications.error}
               onCreateRule={notifications.createRule}
               onDeleteRule={notifications.deleteRule}
+            />
+          )}
+
+          {activeTab === 'system' && (
+            <SystemDashboard
+              health={systemHealth.health}
+              loading={systemHealth.loading}
+              error={systemHealth.error}
+              onRefresh={systemHealth.refresh}
             />
           )}
         </>

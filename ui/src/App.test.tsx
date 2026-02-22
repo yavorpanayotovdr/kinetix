@@ -9,6 +9,7 @@ vi.mock('./hooks/useStressTest')
 vi.mock('./hooks/useGreeks')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useRegulatory')
+vi.mock('./hooks/useSystemHealth')
 
 import App from './App'
 import { usePositions } from './hooks/usePositions'
@@ -18,6 +19,7 @@ import { useStressTest } from './hooks/useStressTest'
 import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
+import { useSystemHealth } from './hooks/useSystemHealth'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
@@ -26,6 +28,7 @@ const mockUseStressTest = vi.mocked(useStressTest)
 const mockUseGreeks = vi.mocked(useGreeks)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseRegulatory = vi.mocked(useRegulatory)
+const mockUseSystemHealth = vi.mocked(useSystemHealth)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -100,6 +103,21 @@ function setupDefaults() {
     calculate: vi.fn(),
     downloadCsv: vi.fn(),
     downloadXbrl: vi.fn(),
+  })
+  mockUseSystemHealth.mockReturnValue({
+    health: {
+      status: 'UP',
+      services: {
+        gateway: { status: 'UP' },
+        'position-service': { status: 'UP' },
+        'market-data-service': { status: 'UP' },
+        'risk-orchestrator': { status: 'UP' },
+        'notification-service': { status: 'UP' },
+      },
+    },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
   })
 }
 
@@ -230,5 +248,41 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.queryByTestId('alert-count-badge')).not.toBeInTheDocument()
+  })
+
+  it('clicking System tab shows system dashboard', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-system'))
+
+    expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
+  })
+
+  it('shows degraded dot on System tab when a service is DOWN', () => {
+    mockUseSystemHealth.mockReturnValue({
+      health: {
+        status: 'DEGRADED',
+        services: {
+          gateway: { status: 'UP' },
+          'position-service': { status: 'DOWN' },
+          'market-data-service': { status: 'UP' },
+          'risk-orchestrator': { status: 'UP' },
+          'notification-service': { status: 'UP' },
+        },
+      },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+
+    render(<App />)
+
+    expect(screen.getByTestId('system-degraded-dot')).toBeInTheDocument()
+  })
+
+  it('does not show degraded dot when all systems are UP', () => {
+    render(<App />)
+
+    expect(screen.queryByTestId('system-degraded-dot')).not.toBeInTheDocument()
   })
 })
