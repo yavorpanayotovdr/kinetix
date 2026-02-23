@@ -49,11 +49,13 @@ export OTEL_LOGS_EXPORTER=otlp
 export OTEL_METRICS_EXPORTER=none   # keep Micrometer/Prometheus scrape
 export OTEL_TRACES_EXPORTER=none    # not enabled yet
 
+# Stop existing Gradle daemons so new ones inherit the OTEL_* env vars
+"$ROOT_DIR/gradlew" --stop >/dev/null 2>&1 || true
+
 start_gradle_service() {
   local module="$1"
   local port="$2"
   echo "==> Starting $module on port $port..."
-  OTEL_SERVICE_NAME="$module" \
   "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${module}:run" --args="-port=$port" \
     > "$LOG_DIR/${module}.log" 2>&1 &
   echo "$! $module" >> "$PID_FILE"

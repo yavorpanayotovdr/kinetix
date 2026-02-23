@@ -13,3 +13,7 @@ dependencies {
 
     "testImplementation"(libs.findLibrary("ktor-server-test-host").get())
 }
+
+tasks.named<JavaExec>("run") {
+    environment("OTEL_SERVICE_NAME", project.name)
+}
