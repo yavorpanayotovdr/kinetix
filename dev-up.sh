@@ -76,6 +76,21 @@ echo "==> Starting risk-engine..."
   > "$LOG_DIR/risk-engine.log" 2>&1 &
 echo "$! risk-engine" >> "$PID_FILE"
 
+# Wait for gateway before starting UI (avoids proxy errors on first load)
+echo "==> Waiting for gateway to be healthy..."
+retries=0
+until curl -sf http://localhost:8080/api/v1/system/health >/dev/null 2>&1; do
+  retries=$((retries + 1))
+  if [[ $retries -ge 60 ]]; then
+    echo "    WARNING: Gateway not healthy after 60s, starting UI anyway"
+    break
+  fi
+  sleep 1
+done
+if [[ $retries -lt 60 ]]; then
+  echo "    Gateway healthy"
+fi
+
 # React UI
 echo "==> Starting ui..."
 (cd "$ROOT_DIR/ui" && npm run dev) \

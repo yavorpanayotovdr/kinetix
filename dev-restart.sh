@@ -107,6 +107,8 @@ export OTEL_TRACES_EXPORTER=none
 
 mkdir -p "$LOG_DIR"
 
+start_ui=false
+
 for target in "${TARGETS[@]}"; do
   # Gradle services
   port=$(port_for_service "$target" 2>/dev/null || true)
@@ -127,15 +129,35 @@ for target in "${TARGETS[@]}"; do
     continue
   fi
 
-  # UI
+  # UI — deferred until gateway is healthy
   if [[ "$target" == "ui" ]]; then
-    echo "==> Starting ui..."
-    (cd "$ROOT_DIR/ui" && npm run dev) \
-      > "$LOG_DIR/ui.log" 2>&1 &
-    echo "$! ui" >> "$PID_FILE"
+    start_ui=true
     continue
   fi
 done
+
+# ── Wait for gateway before starting UI ──────────────────────────────────────
+
+if [[ "$start_ui" == true ]]; then
+  echo "==> Waiting for gateway to be healthy..."
+  retries=0
+  until curl -sf http://localhost:8080/api/v1/system/health >/dev/null 2>&1; do
+    retries=$((retries + 1))
+    if [[ $retries -ge 60 ]]; then
+      echo "    WARNING: Gateway not healthy after 60s, starting UI anyway"
+      break
+    fi
+    sleep 1
+  done
+  if [[ $retries -lt 60 ]]; then
+    echo "    Gateway healthy"
+  fi
+
+  echo "==> Starting ui..."
+  (cd "$ROOT_DIR/ui" && npm run dev) \
+    > "$LOG_DIR/ui.log" 2>&1 &
+  echo "$! ui" >> "$PID_FILE"
+fi
 
 echo ""
 echo "==> Restarted: ${TARGETS[*]}"
