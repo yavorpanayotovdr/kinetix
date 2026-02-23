@@ -34,25 +34,27 @@ fi
 
 # ── Service definitions ──────────────────────────────────────────────────────
 
-declare -A SERVICE_PORTS=(
-  [gateway]=8080
-  [position-service]=8081
-  [market-data-service]=8082
-  [risk-orchestrator]=8083
-  [audit-service]=8084
-  [regulatory-service]=8085
-  [notification-service]=8086
-)
+# service:port pairs for Gradle services
+GRADLE_SERVICES="gateway:8080 position-service:8081 market-data-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086"
+ALL_SERVICES="gateway position-service market-data-service risk-orchestrator audit-service regulatory-service notification-service risk-engine ui"
 
-GRADLE_SERVICES=(gateway position-service market-data-service risk-orchestrator audit-service regulatory-service notification-service)
-ALL_SERVICES=("${GRADLE_SERVICES[@]}" risk-engine ui)
+port_for_service() {
+  local svc="$1"
+  for entry in $GRADLE_SERVICES; do
+    if [[ "${entry%%:*}" == "$svc" ]]; then
+      echo "${entry##*:}"
+      return 0
+    fi
+  done
+  return 1
+}
 
 # Determine which services to restart
 if [[ $# -gt 0 ]]; then
   TARGETS=("$@")
   for svc in "${TARGETS[@]}"; do
     found=false
-    for valid in "${ALL_SERVICES[@]}"; do
+    for valid in $ALL_SERVICES; do
       [[ "$svc" == "$valid" ]] && found=true && break
     done
     if [[ "$found" == false ]]; then
@@ -62,7 +64,7 @@ if [[ $# -gt 0 ]]; then
     fi
   done
 else
-  TARGETS=("${ALL_SERVICES[@]}")
+  TARGETS=($ALL_SERVICES)
 fi
 
 # ── Stop selected services ───────────────────────────────────────────────────
@@ -107,8 +109,8 @@ mkdir -p "$LOG_DIR"
 
 for target in "${TARGETS[@]}"; do
   # Gradle services
-  if [[ -v "SERVICE_PORTS[$target]" ]]; then
-    port="${SERVICE_PORTS[$target]}"
+  port=$(port_for_service "$target" 2>/dev/null || true)
+  if [[ -n "$port" ]]; then
     echo "==> Starting $target on port $port..."
     "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${target}:run" --args="-port=$port" \
       > "$LOG_DIR/${target}.log" 2>&1 &
