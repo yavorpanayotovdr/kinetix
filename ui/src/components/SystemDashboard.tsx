@@ -34,6 +34,11 @@ const OBSERVABILITY_LINKS = [
     description: 'Feed rate, latency, staleness',
   },
   {
+    name: 'Service Logs',
+    url: 'http://localhost:3000/d/kinetix-service-logs',
+    description: 'Log volume, errors, warnings, full log lines',
+  },
+  {
     name: 'Prometheus',
     url: 'http://localhost:9090',
     description: 'Raw metrics & alert rules',
