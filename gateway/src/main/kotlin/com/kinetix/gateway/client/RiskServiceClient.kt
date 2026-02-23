@@ -97,6 +97,26 @@ data class ReportResult(
     val generatedAt: Instant,
 )
 
+data class DependenciesParams(
+    val portfolioId: String,
+    val calculationType: String,
+    val confidenceLevel: String,
+)
+
+data class MarketDataDependencyItem(
+    val dataType: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val required: Boolean,
+    val description: String,
+    val parameters: Map<String, String>,
+)
+
+data class DataDependenciesSummary(
+    val portfolioId: String,
+    val dependencies: List<MarketDataDependencyItem>,
+)
+
 interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): VaRResultSummary?
     suspend fun getLatestVaR(portfolioId: String): VaRResultSummary?
@@ -105,4 +125,5 @@ interface RiskServiceClient {
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
     suspend fun generateReport(portfolioId: String, format: String): ReportResult?
+    suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
 }

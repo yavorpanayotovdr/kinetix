@@ -175,6 +175,30 @@ data class ReportResultDto(
     val generatedAt: String,
 )
 
+// --- Dependencies DTOs ---
+
+@Serializable
+data class DependenciesRequestDto(
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class MarketDataDependencyItemDto(
+    val dataType: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val required: Boolean,
+    val description: String,
+    val parameters: Map<String, String>,
+)
+
+@Serializable
+data class DataDependenciesDto(
+    val portfolioId: String,
+    val dependencies: List<MarketDataDependencyItemDto>,
+)
+
 // --- Notification DTOs ---
 
 @Serializable
@@ -325,6 +349,20 @@ fun ReportResultDto.toDomain() = ReportResult(
     format = format,
     content = content,
     generatedAt = Instant.parse(generatedAt),
+)
+
+fun DataDependenciesDto.toDomain() = DataDependenciesSummary(
+    portfolioId = portfolioId,
+    dependencies = dependencies.map {
+        MarketDataDependencyItem(
+            dataType = it.dataType,
+            instrumentId = it.instrumentId,
+            assetClass = it.assetClass,
+            required = it.required,
+            description = it.description,
+            parameters = it.parameters,
+        )
+    },
 )
 
 fun AlertRuleDto.toDomain() = AlertRuleItem(

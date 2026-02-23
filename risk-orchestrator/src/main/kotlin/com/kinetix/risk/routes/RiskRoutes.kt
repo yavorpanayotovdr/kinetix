@@ -4,6 +4,7 @@ import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.mapper.*
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
@@ -129,6 +130,28 @@ data class ReportResponse(
 )
 
 @Serializable
+data class DependenciesRequestBody(
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class MarketDataDependencyDto(
+    val dataType: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val required: Boolean,
+    val description: String,
+    val parameters: Map<String, String>,
+)
+
+@Serializable
+data class DataDependenciesResponse(
+    val portfolioId: String,
+    val dependencies: List<MarketDataDependencyDto>,
+)
+
+@Serializable
 data class ErrorResponse(val error: String, val message: String)
 
 // --- Mappers ---
@@ -171,12 +194,25 @@ private val PROTO_ASSET_CLASS_TO_DOMAIN = ASSET_CLASS_TO_PROTO.entries.associate
 
 // --- Routes ---
 
+private val MARKET_DATA_TYPE_NAMES = mapOf(
+    MarketDataType.SPOT_PRICE to "SPOT_PRICE",
+    MarketDataType.HISTORICAL_PRICES to "HISTORICAL_PRICES",
+    MarketDataType.VOLATILITY_SURFACE to "VOLATILITY_SURFACE",
+    MarketDataType.YIELD_CURVE to "YIELD_CURVE",
+    MarketDataType.RISK_FREE_RATE to "RISK_FREE_RATE",
+    MarketDataType.DIVIDEND_YIELD to "DIVIDEND_YIELD",
+    MarketDataType.CREDIT_SPREAD to "CREDIT_SPREAD",
+    MarketDataType.FORWARD_CURVE to "FORWARD_CURVE",
+    MarketDataType.CORRELATION_MATRIX to "CORRELATION_MATRIX",
+)
+
 fun Route.riskRoutes(
     varCalculationService: VaRCalculationService,
     varCache: LatestVaRCache,
     positionProvider: PositionProvider,
     stressTestStub: StressTestServiceGrpcKt.StressTestServiceCoroutineStub,
     regulatoryStub: RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub,
+    riskEngineClient: RiskEngineClient? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -360,6 +396,36 @@ fun Route.riskRoutes(
                     generatedAt = Instant.ofEpochSecond(response.generatedAt.seconds, response.generatedAt.nanos.toLong()).toString(),
                 )
             )
+        }
+    }
+
+    // Market data dependencies routes
+    if (riskEngineClient != null) {
+        route("/api/v1/risk/dependencies/{portfolioId}") {
+            post {
+                val portfolioId = call.requirePathParam("portfolioId")
+                val body = call.receive<DependenciesRequestBody>()
+                val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+                val calcType = body.calculationType ?: "PARAMETRIC"
+                val confLevel = body.confidenceLevel ?: "CL_95"
+
+                val response = riskEngineClient.discoverDependencies(positions, calcType, confLevel)
+                call.respond(
+                    DataDependenciesResponse(
+                        portfolioId = portfolioId,
+                        dependencies = response.dependenciesList.map {
+                            MarketDataDependencyDto(
+                                dataType = MARKET_DATA_TYPE_NAMES[it.dataType] ?: it.dataType.name,
+                                instrumentId = it.instrumentId,
+                                assetClass = it.assetClass,
+                                required = it.required,
+                                description = it.description,
+                                parameters = it.parametersMap,
+                            )
+                        },
+                    )
+                )
+            }
         }
     }
 }

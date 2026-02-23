@@ -14,6 +14,7 @@ import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.marketDataRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
@@ -112,6 +113,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
+        dependenciesRoutes(riskClient)
     }
 }
 
@@ -142,6 +144,7 @@ fun Application.module(
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
+        dependenciesRoutes(riskClient)
     }
 }
 
@@ -250,6 +253,7 @@ fun Application.module(
             if (riskClient != null) {
                 requirePermission(Permission.CALCULATE_RISK) {
                     varRoutes(riskClient)
+                    dependenciesRoutes(riskClient)
                 }
                 requirePermission(Permission.READ_RISK) {
                     stressTestRoutes(riskClient)

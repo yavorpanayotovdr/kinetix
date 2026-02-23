@@ -94,4 +94,19 @@ class HttpRiskServiceClient(
         val dto: ReportResultDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/dependencies/${params.portfolioId}") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                DependenciesRequestDto(
+                    calculationType = params.calculationType,
+                    confidenceLevel = params.confidenceLevel,
+                )
+            )
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        val dto: DataDependenciesDto = response.body()
+        return dto.toDomain()
+    }
 }

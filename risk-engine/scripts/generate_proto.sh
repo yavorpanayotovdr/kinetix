@@ -16,7 +16,8 @@ uv run python -m grpc_tools.protoc \
     --pyi_out="$OUT_DIR" \
     --grpc_python_out="$OUT_DIR" \
     kinetix/common/types.proto \
-    kinetix/risk/risk_calculation.proto
+    kinetix/risk/risk_calculation.proto \
+    kinetix/risk/market_data_dependencies.proto
 
 # Create __init__.py files for generated packages
 touch "$OUT_DIR/__init__.py"

@@ -3,7 +3,7 @@ import time
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from kinetix.common import types_pb2
-from kinetix.risk import regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
+from kinetix.risk import market_data_dependencies_pb2, regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, FrtbResult, FrtbRiskClass,
     GreeksResult, PositionRisk, StressScenario, StressTestResult, VaRResult,
@@ -222,4 +222,39 @@ def report_to_proto(
         format=fmt,
         content=content,
         generated_at=now,
+    )
+
+
+_MARKET_DATA_TYPE_NAME_TO_PROTO = {
+    "SPOT_PRICE": market_data_dependencies_pb2.SPOT_PRICE,
+    "HISTORICAL_PRICES": market_data_dependencies_pb2.HISTORICAL_PRICES,
+    "VOLATILITY_SURFACE": market_data_dependencies_pb2.VOLATILITY_SURFACE,
+    "YIELD_CURVE": market_data_dependencies_pb2.YIELD_CURVE,
+    "RISK_FREE_RATE": market_data_dependencies_pb2.RISK_FREE_RATE,
+    "DIVIDEND_YIELD": market_data_dependencies_pb2.DIVIDEND_YIELD,
+    "CREDIT_SPREAD": market_data_dependencies_pb2.CREDIT_SPREAD,
+    "FORWARD_CURVE": market_data_dependencies_pb2.FORWARD_CURVE,
+    "CORRELATION_MATRIX": market_data_dependencies_pb2.CORRELATION_MATRIX,
+}
+
+
+def dependencies_to_proto(
+    dependencies: list,
+) -> market_data_dependencies_pb2.DataDependenciesResponse:
+    proto_deps = []
+    for dep in dependencies:
+        proto_data_type = _MARKET_DATA_TYPE_NAME_TO_PROTO.get(
+            dep.data_type,
+            market_data_dependencies_pb2.MARKET_DATA_TYPE_UNSPECIFIED,
+        )
+        proto_deps.append(market_data_dependencies_pb2.MarketDataDependency(
+            data_type=proto_data_type,
+            instrument_id=dep.instrument_id,
+            asset_class=dep.asset_class,
+            required=dep.required,
+            description=dep.description,
+            parameters=dep.parameters,
+        ))
+    return market_data_dependencies_pb2.DataDependenciesResponse(
+        dependencies=proto_deps,
     )

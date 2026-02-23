@@ -3,6 +3,7 @@ package com.kinetix.risk
 import com.kinetix.position.persistence.DatabaseConfig as PositionDatabaseConfig
 import com.kinetix.position.persistence.DatabaseFactory as PositionDatabaseFactory
 import com.kinetix.position.persistence.ExposedPositionRepository
+import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
@@ -79,8 +80,10 @@ fun Application.moduleWithRoutes() {
 
     val positionRepository = ExposedPositionRepository(db)
     val positionProvider = PositionServicePositionProvider(positionRepository)
+    val dependenciesStub = MarketDataDependenciesServiceGrpcKt.MarketDataDependenciesServiceCoroutineStub(channel)
     val riskEngineClient = GrpcRiskEngineClient(
-        RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel)
+        RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
+        dependenciesStub,
     )
     val resultPublisher = NoOpRiskResultPublisher()
     val varCalculationService = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher)
@@ -108,7 +111,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub)
+        riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub, riskEngineClient)
     }
 
     launch {

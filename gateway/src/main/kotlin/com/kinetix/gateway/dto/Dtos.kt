@@ -5,6 +5,9 @@ import com.kinetix.gateway.client.AlertEventItem
 import com.kinetix.gateway.client.AlertRuleItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
+import com.kinetix.gateway.client.DataDependenciesSummary
+import com.kinetix.gateway.client.DependenciesParams
+import com.kinetix.gateway.client.MarketDataDependencyItem
 import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.CreateAlertRuleParams
@@ -380,6 +383,62 @@ fun ReportResult.toResponse(): ReportResponse = ReportResponse(
     format = format,
     content = content,
     generatedAt = generatedAt.toString(),
+)
+
+// --- Dependencies DTOs ---
+
+@Serializable
+data class DependenciesRequest(
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class MarketDataDependencyResponse(
+    val dataType: String,
+    val instrumentId: String,
+    val assetClass: String,
+    val required: Boolean,
+    val description: String,
+    val parameters: Map<String, String>,
+)
+
+@Serializable
+data class DataDependenciesResponse(
+    val portfolioId: String,
+    val dependencies: List<MarketDataDependencyResponse>,
+)
+
+// --- Dependencies mappers ---
+
+fun DependenciesRequest.toParams(portfolioId: String): DependenciesParams {
+    val calcType = calculationType ?: "PARAMETRIC"
+    require(calcType in validCalculationTypes) {
+        "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
+    }
+    val confLevel = confidenceLevel ?: "CL_95"
+    require(confLevel in validConfidenceLevels) {
+        "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
+    }
+    return DependenciesParams(
+        portfolioId = portfolioId,
+        calculationType = calcType,
+        confidenceLevel = confLevel,
+    )
+}
+
+fun MarketDataDependencyItem.toDto(): MarketDataDependencyResponse = MarketDataDependencyResponse(
+    dataType = dataType,
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    required = required,
+    description = description,
+    parameters = parameters,
+)
+
+fun DataDependenciesSummary.toResponse(): DataDependenciesResponse = DataDependenciesResponse(
+    portfolioId = portfolioId,
+    dependencies = dependencies.map { it.toDto() },
 )
 
 // --- Alert / Notification DTOs ---

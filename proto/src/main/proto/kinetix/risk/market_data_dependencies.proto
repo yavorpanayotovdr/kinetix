@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "kinetix/risk/risk_calculation.proto";
+
+enum MarketDataType {
+  MARKET_DATA_TYPE_UNSPECIFIED = 0;
+  SPOT_PRICE = 1;
+  HISTORICAL_PRICES = 2;
+  VOLATILITY_SURFACE = 3;
+  YIELD_CURVE = 4;
+  RISK_FREE_RATE = 5;
+  DIVIDEND_YIELD = 6;
+  CREDIT_SPREAD = 7;
+  FORWARD_CURVE = 8;
+  CORRELATION_MATRIX = 9;
+}
+
+message MarketDataDependency {
+  MarketDataType data_type = 1;
+  string instrument_id = 2;
+  string asset_class = 3;
+  bool required = 4;
+  string description = 5;
+  map<string, string> parameters = 6;
+}
+
+message DataDependenciesRequest {
+  repeated kinetix.common.Position positions = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+}
+
+message DataDependenciesResponse {
+  repeated MarketDataDependency dependencies = 1;
+}
+
+service MarketDataDependenciesService {
+  rpc DiscoverDependencies(DataDependenciesRequest) returns (DataDependenciesResponse);
+}

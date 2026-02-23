@@ -86,6 +86,12 @@ private class StubRiskEngineClient : RiskEngineClient {
             calculatedAt = Instant.now(),
         )
     }
+
+    override suspend fun discoverDependencies(
+        positions: List<Position>,
+        calculationType: String,
+        confidenceLevel: String,
+    ) = throw UnsupportedOperationException("Not used in VaR acceptance test")
 }
 
 @Suppress("DEPRECATION")
