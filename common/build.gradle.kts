@@ -8,4 +8,9 @@ dependencies {
     compileOnly(libs.logback.classic)
     compileOnly(libs.opentelemetry.sdk.autoconfigure)
     compileOnly(libs.opentelemetry.logback.appender)
+
+    testImplementation(libs.opentelemetry.sdk)
+    testImplementation(libs.opentelemetry.sdk.testing)
+    testImplementation(libs.opentelemetry.logback.appender)
+    testImplementation(libs.logback.classic)
 }
