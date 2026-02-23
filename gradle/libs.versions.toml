@@ -17,6 +17,7 @@ logback = "1.5.16"
 slf4j = "2.0.17"
 micrometer = "1.14.4"
 opentelemetry = "1.46.0"
+opentelemetry-instrumentation = "2.12.0-alpha"
 redis-lettuce = "6.5.3.RELEASE"
 
 # Testing
@@ -89,6 +90,8 @@ micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus
 opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
 opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
 opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
+opentelemetry-sdk-autoconfigure = { module = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure", version.ref = "opentelemetry" }
+opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 
 # Redis
 redis-lettuce = { module = "io.lettuce:lettuce-core", version.ref = "redis-lettuce" }
@@ -143,6 +146,12 @@ database = [
     "hikari",
     "flyway-core",
     "flyway-postgresql",
+]
+opentelemetry-logging = [
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-sdk-autoconfigure",
+    "opentelemetry-logback-appender",
 ]
 
 [plugins]

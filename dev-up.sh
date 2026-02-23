@@ -43,10 +43,17 @@ done
 
 # ── Phase 3: Application services ───────────────────────────────────────────
 
+export OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+export OTEL_LOGS_EXPORTER=otlp
+export OTEL_METRICS_EXPORTER=none   # keep Micrometer/Prometheus scrape
+export OTEL_TRACES_EXPORTER=none    # not enabled yet
+
 start_gradle_service() {
   local module="$1"
   local port="$2"
   echo "==> Starting $module on port $port..."
+  OTEL_SERVICE_NAME="$module" \
   "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${module}:run" --args="-port=$port" \
     > "$LOG_DIR/${module}.log" 2>&1 &
   echo "$! $module" >> "$PID_FILE"
