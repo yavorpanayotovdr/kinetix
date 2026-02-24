@@ -14,6 +14,7 @@ class VaRCalculationService(
     private val riskEngineClient: RiskEngineClient,
     private val resultPublisher: RiskResultPublisher,
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
+    private val dependenciesDiscoverer: DependenciesDiscoverer? = null,
     private val marketDataFetcher: MarketDataFetcher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
@@ -30,12 +31,23 @@ class VaRCalculationService(
             request.calculationType, request.portfolioId.value, positions.size,
         )
 
-        val marketData = try {
-            marketDataFetcher?.fetch(
+        val dependencies = try {
+            dependenciesDiscoverer?.discover(
                 positions,
                 request.calculationType.name,
                 request.confidenceLevel.name,
             ) ?: emptyList()
+        } catch (e: Exception) {
+            logger.warn("Market data dependency discovery failed, proceeding with defaults", e)
+            emptyList()
+        }
+
+        val marketData = try {
+            if (dependencies.isNotEmpty() && marketDataFetcher != null) {
+                marketDataFetcher.fetch(dependencies)
+            } else {
+                emptyList()
+            }
         } catch (e: Exception) {
             logger.warn("Market data fetch failed, proceeding with defaults", e)
             emptyList()

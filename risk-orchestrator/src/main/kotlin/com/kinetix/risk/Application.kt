@@ -14,6 +14,7 @@ import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.kafka.NoOpRiskResultPublisher
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
+import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.VaRCalculationService
 import io.grpc.ManagedChannelBuilder
@@ -97,11 +98,13 @@ fun Application.moduleWithRoutes() {
         install(ClientContentNegotiation) { json() }
     }
     val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
-    val marketDataFetcher = MarketDataFetcher(riskEngineClient, priceServiceClient)
+    val dependenciesDiscoverer = DependenciesDiscoverer(riskEngineClient)
+    val marketDataFetcher = MarketDataFetcher(priceServiceClient)
 
     val resultPublisher = NoOpRiskResultPublisher()
     val varCalculationService = VaRCalculationService(
         positionProvider, riskEngineClient, resultPublisher,
+        dependenciesDiscoverer = dependenciesDiscoverer,
         marketDataFetcher = marketDataFetcher,
     )
     val varCache = LatestVaRCache()

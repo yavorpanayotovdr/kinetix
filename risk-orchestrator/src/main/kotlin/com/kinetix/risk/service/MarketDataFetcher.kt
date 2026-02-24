@@ -1,9 +1,8 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.Position
 import com.kinetix.risk.client.PriceServiceClient
-import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.model.DiscoveredDependency
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
@@ -13,44 +12,25 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class MarketDataFetcher(
-    private val riskEngineClient: RiskEngineClient,
     private val priceServiceClient: PriceServiceClient,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
-    suspend fun fetch(
-        positions: List<Position>,
-        calculationType: String,
-        confidenceLevel: String,
-    ): List<MarketDataValue> {
-        val depsResponse = try {
-            riskEngineClient.discoverDependencies(positions, calculationType, confidenceLevel)
-        } catch (e: Exception) {
-            logger.warn("Failed to discover market data dependencies, proceeding without market data", e)
-            return emptyList()
-        }
-
-        val seen = mutableSetOf<Pair<String, String>>()
+    suspend fun fetch(dependencies: List<DiscoveredDependency>): List<MarketDataValue> {
         val results = mutableListOf<MarketDataValue>()
 
-        for (dep in depsResponse.dependenciesList) {
-            val dataTypeName = dep.dataType.name
-            val instrumentId = dep.instrumentId
-            val key = dataTypeName to instrumentId
-
-            if (!seen.add(key)) continue
-
+        for (dep in dependencies) {
             try {
-                val value = fetchDependency(dataTypeName, instrumentId, dep.assetClass, dep.parametersMap)
+                val value = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
                 if (value != null) {
                     results.add(value)
                 }
             } catch (e: Exception) {
-                logger.warn("Failed to fetch {} for {}, skipping", dataTypeName, instrumentId, e)
+                logger.warn("Failed to fetch {} for {}, skipping", dep.dataType, dep.instrumentId, e)
             }
         }
 
-        logger.debug("Fetched {} market data values for {} positions", results.size, positions.size)
+        logger.debug("Fetched {} market data values for {} dependencies", results.size, dependencies.size)
         return results
     }
 
