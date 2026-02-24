@@ -11,7 +11,7 @@ service:
 env:
   PORT: "8080"
   POSITION_SERVICE_URL: "http://kinetix-position-service:8081"
-  MARKET_DATA_SERVICE_URL: "http://kinetix-market-data-service:8082"
+  PRICE_SERVICE_URL: "http://kinetix-price-service:8082"
   RISK_SERVICE_URL: "http://kinetix-risk-orchestrator:8083"
   NOTIFICATION_SERVICE_URL: "http://kinetix-notification-service:8086"
 

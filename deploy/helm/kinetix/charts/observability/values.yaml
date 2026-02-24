@@ -11,10 +11,10 @@ kube-prometheus-stack:
           metrics_path: "/metrics"
           static_configs:
             - targets: ["kinetix-position-service:8081"]
-        - job_name: "market-data-service"
+        - job_name: "price-service"
           metrics_path: "/metrics"
           static_configs:
-            - targets: ["kinetix-market-data-service:8082"]
+            - targets: ["kinetix-price-service:8082"]
         - job_name: "risk-orchestrator"
           metrics_path: "/metrics"
           static_configs:
@@ -56,16 +56,16 @@ kube-prometheus-stack:
                   annotations:
                     summary: "Risk calculation p95 latency exceeds 30s"
                     description: "P95 VaR calculation duration is {{ $value }}s"
-            - name: kinetix-market-data
+            - name: kinetix-price
               rules:
-                - alert: MarketDataStale
-                  expr: marketdata_staleness_seconds > 60
+                - alert: PriceStale
+                  expr: price_staleness_seconds > 60
                   for: 5m
                   labels:
                     severity: warning
                   annotations:
-                    summary: "Market data is stale for {{ $labels.instrument_id }}"
-                    description: "Market data staleness is {{ $value }}s for {{ $labels.instrument_id }}"
+                    summary: "Price data is stale for {{ $labels.instrument_id }}"
+                    description: "Price staleness is {{ $value }}s for {{ $labels.instrument_id }}"
             - name: kinetix-kafka
               rules:
                 - alert: KafkaConsumerLag

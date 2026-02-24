@@ -36,7 +36,7 @@ jobs:
               - 'common/**'
               - 'gateway/**'
               - 'position-service/**'
-              - 'market-data-service/**'
+              - 'price-service/**'
               - 'risk-orchestrator/**'
               - 'regulatory-service/**'
               - 'notification-service/**'
@@ -76,7 +76,7 @@ jobs:
       matrix:
         module:
           - position-service
-          - market-data-service
+          - price-service
           - risk-orchestrator
           - audit-service
     steps:

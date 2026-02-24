@@ -40,7 +40,7 @@ kafka:
       - name: trades.lifecycle
         partitions: 3
         replicationFactor: 1
-      - name: market.data.prices
+      - name: price.updates
         partitions: 3
         replicationFactor: 1
       - name: risk.results
@@ -102,10 +102,10 @@ position-service:
     PORT: "8081"
     SEED_DATA: "true"
 
-market-data-service:
+price-service:
   replicaCount: 1
   image:
-    repository: kinetix/market-data-service
+    repository: kinetix/price-service
   service:
     port: 8082
   env:

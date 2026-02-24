@@ -5,17 +5,17 @@ import com.kinetix.common.security.Permission
 import com.kinetix.gateway.auth.JwtConfig
 import com.kinetix.gateway.auth.configureJwtAuth
 import com.kinetix.gateway.auth.requirePermission
-import com.kinetix.gateway.client.HttpMarketDataServiceClient
 import com.kinetix.gateway.client.HttpNotificationServiceClient
 import com.kinetix.gateway.client.HttpPositionServiceClient
+import com.kinetix.gateway.client.HttpPriceServiceClient
 import com.kinetix.gateway.client.HttpRiskServiceClient
-import com.kinetix.gateway.client.MarketDataServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
+import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.dependenciesRoutes
-import com.kinetix.gateway.routes.marketDataRoutes
+import com.kinetix.gateway.routes.priceRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
@@ -23,7 +23,7 @@ import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
-import com.kinetix.gateway.websocket.marketDataWebSocket
+import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -93,17 +93,17 @@ fun Application.module(positionClient: PositionServiceClient) {
     }
 }
 
-fun Application.module(marketDataClient: MarketDataServiceClient) {
+fun Application.module(priceClient: PriceServiceClient) {
     module()
     routing {
-        marketDataRoutes(marketDataClient)
+        priceRoutes(priceClient)
     }
 }
 
 fun Application.module(broadcaster: PriceBroadcaster) {
     module()
     routing {
-        marketDataWebSocket(broadcaster)
+        priceWebSocket(broadcaster)
     }
 }
 
@@ -119,28 +119,28 @@ fun Application.module(riskClient: RiskServiceClient) {
 
 fun Application.module(
     positionClient: PositionServiceClient,
-    marketDataClient: MarketDataServiceClient,
+    priceClient: PriceServiceClient,
     broadcaster: PriceBroadcaster,
 ) {
     module()
     routing {
         positionRoutes(positionClient)
-        marketDataRoutes(marketDataClient)
-        marketDataWebSocket(broadcaster)
+        priceRoutes(priceClient)
+        priceWebSocket(broadcaster)
     }
 }
 
 fun Application.module(
     positionClient: PositionServiceClient,
-    marketDataClient: MarketDataServiceClient,
+    priceClient: PriceServiceClient,
     broadcaster: PriceBroadcaster,
     riskClient: RiskServiceClient,
 ) {
     module()
     routing {
         positionRoutes(positionClient)
-        marketDataRoutes(marketDataClient)
-        marketDataWebSocket(broadcaster)
+        priceRoutes(priceClient)
+        priceWebSocket(broadcaster)
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
@@ -158,7 +158,7 @@ fun Application.module(notificationClient: NotificationServiceClient) {
 fun Application.devModule() {
     val servicesConfig = environment.config.config("services")
     val positionUrl = servicesConfig.property("position.url").getString()
-    val marketDataUrl = servicesConfig.property("marketData.url").getString()
+    val priceUrl = servicesConfig.property("price.url").getString()
     val riskUrl = servicesConfig.property("risk.url").getString()
     val notificationUrl = servicesConfig.property("notification.url").getString()
 
@@ -170,18 +170,18 @@ fun Application.devModule() {
     }
 
     val positionClient = HttpPositionServiceClient(httpClient, positionUrl)
-    val marketDataClient = HttpMarketDataServiceClient(httpClient, marketDataUrl)
+    val priceClient = HttpPriceServiceClient(httpClient, priceUrl)
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
     val broadcaster = PriceBroadcaster()
 
-    module(positionClient, marketDataClient, broadcaster, riskClient)
+    module(positionClient, priceClient, broadcaster, riskClient)
     routing {
         notificationRoutes(notificationClient)
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(
                 "position-service" to positionUrl,
-                "market-data-service" to marketDataUrl,
+                "price-service" to priceUrl,
                 "risk-orchestrator" to riskUrl,
                 "notification-service" to notificationUrl,
             )

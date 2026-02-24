@@ -1,6 +1,6 @@
 package com.kinetix.gateway.websocket
 
-import com.kinetix.common.model.MarketDataPoint
+import com.kinetix.common.model.PricePoint
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,7 +19,7 @@ data class PriceUpdate(
     val source: String,
 ) {
     companion object {
-        fun from(point: MarketDataPoint): PriceUpdate = PriceUpdate(
+        fun from(point: PricePoint): PriceUpdate = PriceUpdate(
             instrumentId = point.instrumentId.value,
             priceAmount = point.price.amount.toPlainString(),
             priceCurrency = point.price.currency.currencyCode,

@@ -24,7 +24,7 @@ Use Apache Kafka 4.0 in KRaft mode (no ZooKeeper dependency).
 - Heavier resource footprint in local dev
 
 ### Kafka Topics
-- `market.data.prices` — Market data ticks (consumers: risk-orchestrator, position-service)
+- `price.updates` — Price updates (consumers: risk-orchestrator, position-service)
 - `trades.lifecycle` — Trade events (consumers: risk-orchestrator, audit-service)
 - `risk.results` — Completed risk calculations (consumers: regulatory-service, notification-service, gateway)
 

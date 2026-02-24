@@ -12,7 +12,7 @@ interface Props {
 const SERVICE_LABELS: Record<string, string> = {
   gateway: 'Gateway',
   'position-service': 'Position Service',
-  'market-data-service': 'Market Data',
+  'price-service': 'Prices',
   'risk-orchestrator': 'Risk Orchestrator',
   'notification-service': 'Notifications',
 }
@@ -29,8 +29,8 @@ const OBSERVABILITY_LINKS = [
     description: 'VaR gauge, ES, component breakdown',
   },
   {
-    name: 'Market Data',
-    url: 'http://localhost:3000/d/kinetix-market-data',
+    name: 'Prices',
+    url: 'http://localhost:3000/d/kinetix-prices',
     description: 'Feed rate, latency, staleness',
   },
   {

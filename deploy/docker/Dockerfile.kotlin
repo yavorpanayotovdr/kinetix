@@ -21,7 +21,7 @@ COPY common/ common/
 # Copy all service directories (cross-project dependencies)
 COPY gateway/ gateway/
 COPY position-service/ position-service/
-COPY market-data-service/ market-data-service/
+COPY price-service/ price-service/
 COPY risk-orchestrator/ risk-orchestrator/
 COPY audit-service/ audit-service/
 COPY regulatory-service/ regulatory-service/

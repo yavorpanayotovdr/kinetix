@@ -8,7 +8,7 @@ const allUpHealth: SystemHealthResponse = {
   services: {
     gateway: { status: 'UP' },
     'position-service': { status: 'UP' },
-    'market-data-service': { status: 'UP' },
+    'price-service': { status: 'UP' },
     'risk-orchestrator': { status: 'UP' },
     'notification-service': { status: 'UP' },
   },
@@ -19,7 +19,7 @@ const degradedHealth: SystemHealthResponse = {
   services: {
     gateway: { status: 'UP' },
     'position-service': { status: 'UP' },
-    'market-data-service': { status: 'UP' },
+    'price-service': { status: 'UP' },
     'risk-orchestrator': { status: 'DOWN' },
     'notification-service': { status: 'UP' },
   },
@@ -67,7 +67,7 @@ describe('SystemDashboard', () => {
     expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-gateway')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-position-service')).toBeInTheDocument()
-    expect(screen.getByTestId('service-card-market-data-service')).toBeInTheDocument()
+    expect(screen.getByTestId('service-card-price-service')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-risk-orchestrator')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-notification-service')).toBeInTheDocument()
   })
@@ -173,8 +173,8 @@ describe('SystemDashboard', () => {
 
     expect(screen.getByText('Gateway')).toBeInTheDocument()
     expect(screen.getByText('Position Service')).toBeInTheDocument()
-    // "Market Data" appears in both service card and observability link
-    expect(screen.getAllByText('Market Data').length).toBeGreaterThanOrEqual(1)
+    // "Prices" appears in both service card and observability link
+    expect(screen.getAllByText('Prices').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Risk Orchestrator')).toBeInTheDocument()
     expect(screen.getByText('Notifications')).toBeInTheDocument()
   })

@@ -39,12 +39,12 @@ position-service:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
 
-market-data-service:
+price-service:
   replicaCount: 3
   env:
     PORT: "8082"
     SEED_DATA: "false"
-    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_market_data"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_price"
   autoscaling:
     enabled: true
     minReplicas: 3

@@ -49,7 +49,7 @@ class ConnectionPoolConfigTest : FunSpec({
         auditConfig.maxPoolSize shouldBe 8
         auditConfig.minIdle shouldBe 2
 
-        val mdConfig = ConnectionPoolConfig.forService("market-data-service")
+        val mdConfig = ConnectionPoolConfig.forService("price-service")
         mdConfig.maxPoolSize shouldBe 20
         mdConfig.minIdle shouldBe 5
 

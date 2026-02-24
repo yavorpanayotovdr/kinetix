@@ -56,10 +56,10 @@ data class BookTradeRequestDto(
     val tradedAt: String,
 )
 
-// --- Market Data Service DTOs ---
+// --- Price Service DTOs ---
 
 @Serializable
-data class MarketDataPointDto(
+data class PricePointDto(
     val instrumentId: String,
     val price: MoneyDto,
     val timestamp: String,
@@ -268,11 +268,11 @@ fun BookTradeResponseDto.toDomain() = BookTradeResult(
     position = position.toDomain(),
 )
 
-fun MarketDataPointDto.toDomain() = MarketDataPoint(
+fun PricePointDto.toDomain() = PricePoint(
     instrumentId = InstrumentId(instrumentId),
     price = price.toDomainMoney(),
     timestamp = Instant.parse(timestamp),
-    source = MarketDataSource.valueOf(source),
+    source = PriceSource.valueOf(source),
 )
 
 fun VaRResultDto.toDomain() = VaRResultSummary(

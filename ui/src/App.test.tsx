@@ -110,7 +110,7 @@ function setupDefaults() {
       services: {
         gateway: { status: 'UP' },
         'position-service': { status: 'UP' },
-        'market-data-service': { status: 'UP' },
+        'price-service': { status: 'UP' },
         'risk-orchestrator': { status: 'UP' },
         'notification-service': { status: 'UP' },
       },
@@ -265,7 +265,7 @@ describe('App', () => {
         services: {
           gateway: { status: 'UP' },
           'position-service': { status: 'DOWN' },
-          'market-data-service': { status: 'UP' },
+          'price-service': { status: 'UP' },
           'risk-orchestrator': { status: 'UP' },
           'notification-service': { status: 'UP' },
         },

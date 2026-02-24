@@ -1,0 +1,45 @@
+dependencies:
+- name: gateway
+  repository: file://charts/gateway
+  version: 0.1.0
+- name: position-service
+  repository: file://charts/position-service
+  version: 0.1.0
+- name: price-service
+  repository: file://charts/price-service
+  version: 0.1.0
+- name: risk-orchestrator
+  repository: file://charts/risk-orchestrator
+  version: 0.1.0
+- name: audit-service
+  repository: file://charts/audit-service
+  version: 0.1.0
+- name: regulatory-service
+  repository: file://charts/regulatory-service
+  version: 0.1.0
+- name: notification-service
+  repository: file://charts/notification-service
+  version: 0.1.0
+- name: risk-engine
+  repository: file://charts/risk-engine
+  version: 0.1.0
+- name: ui
+  repository: file://charts/ui
+  version: 0.1.0
+- name: observability
+  repository: file://charts/observability
+  version: 0.1.0
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 16.0.6
+- name: kafka
+  repository: https://charts.bitnami.com/bitnami
+  version: 31.0.0
+- name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 20.0.5
+- name: keycloak
+  repository: https://charts.bitnami.com/bitnami
+  version: 24.0.5
+digest: sha256:5b7957a6264ecbe8e4f0335870b30a2393022ffe9591b7ed7b68adb186521992
+generated: "2026-02-22T17:04:17.619941+02:00"

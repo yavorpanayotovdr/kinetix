@@ -6,7 +6,7 @@ KAFKA_TOPICS="/opt/kafka/bin/kafka-topics.sh"
 
 topics=(
   "trades.lifecycle"
-  "market.data.prices"
+  "price.updates"
   "risk.results"
 )
 

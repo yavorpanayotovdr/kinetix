@@ -48,7 +48,7 @@ export function usePriceStream(
 
     const url =
       wsUrl ??
-      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market-data`
+      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/prices`
     const ws = new WebSocket(url)
     wsRef.current = ws
 

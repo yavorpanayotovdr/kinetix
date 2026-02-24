@@ -31,7 +31,7 @@ jobs:
     outputs:
       gateway: ${{ steps.filter.outputs.gateway }}
       position-service: ${{ steps.filter.outputs.position-service }}
-      market-data-service: ${{ steps.filter.outputs.market-data-service }}
+      price-service: ${{ steps.filter.outputs.price-service }}
       risk-orchestrator: ${{ steps.filter.outputs.risk-orchestrator }}
       audit-service: ${{ steps.filter.outputs.audit-service }}
       regulatory-service: ${{ steps.filter.outputs.regulatory-service }}
@@ -56,8 +56,8 @@ jobs:
               - 'common/**'
               - 'build-logic/**'
               - '*.gradle.kts'
-            market-data-service:
-              - 'market-data-service/**'
+            price-service:
+              - 'price-service/**'
               - 'proto/**'
               - 'common/**'
               - 'build-logic/**'
@@ -100,7 +100,7 @@ jobs:
         service:
           - gateway
           - position-service
-          - market-data-service
+          - price-service
           - risk-orchestrator
           - audit-service
           - regulatory-service
@@ -108,7 +108,7 @@ jobs:
         exclude:
           - service: ${{ needs.changes.outputs.gateway != 'true' && 'gateway' || 'NONE' }}
           - service: ${{ needs.changes.outputs['position-service'] != 'true' && 'position-service' || 'NONE' }}
-          - service: ${{ needs.changes.outputs['market-data-service'] != 'true' && 'market-data-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['price-service'] != 'true' && 'price-service' || 'NONE' }}
           - service: ${{ needs.changes.outputs['risk-orchestrator'] != 'true' && 'risk-orchestrator' || 'NONE' }}
           - service: ${{ needs.changes.outputs['audit-service'] != 'true' && 'audit-service' || 'NONE' }}
           - service: ${{ needs.changes.outputs['regulatory-service'] != 'true' && 'regulatory-service' || 'NONE' }}

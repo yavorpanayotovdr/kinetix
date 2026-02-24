@@ -41,7 +41,7 @@ tests:
 
   - interval: 1m
     input_series:
-      - series: 'marketdata_staleness_seconds{instrument_id="AAPL"}'
+      - series: 'price_staleness_seconds{instrument_id="AAPL"}'
         values: "10 20 30 61 62 63 64 65 66 67 68"
 
     alert_rule_test:

@@ -15,7 +15,7 @@ Stateless orchestration layer that coordinates VaR calculations across the Kinet
 | `mapper/VaRResultMapper.kt` | Proto `VaRResponse` → domain `VaRResult`, plus enum converters |
 | `service/VaRCalculationService.kt` | Core orchestrator: fetches positions → calls gRPC → publishes results to Kafka |
 | `kafka/TradeEventConsumer.kt` | Consumes `trades.lifecycle`, triggers VaR recalculation per portfolio |
-| `kafka/MarketDataEventConsumer.kt` | Consumes `market.data.prices`, triggers VaR recalculation for affected portfolios |
+| `kafka/MarketDataEventConsumer.kt` | Consumes `price.updates`, triggers VaR recalculation for affected portfolios |
 | `kafka/KafkaRiskResultPublisher.kt` | Publishes `VaRResult` to `risk.results` topic (portfolio ID as partition key) |
 | `kafka/RiskResultEvent.kt` | `@Serializable` DTO for Kafka transport |
 | `schedule/ScheduledVaRCalculator.kt` | Periodic VaR recalculation loop with configurable interval |
@@ -40,7 +40,7 @@ The `:proto` module generates `RiskCalculationServiceCoroutineStub`. The orchest
 ### Kafka consumers as triggers
 Two Kafka consumers trigger VaR recalculation:
 - `TradeEventConsumer` (topic: `trades.lifecycle`) — recalculates when positions change
-- `MarketDataEventConsumer` (topic: `market.data.prices`) — recalculates when prices move
+- `MarketDataEventConsumer` (topic: `price.updates`) — recalculates when prices move
 
 Both follow the established pattern: `coroutineContext.isActive` loop, `Dispatchers.IO` for blocking Kafka calls, JSON deserialization, error logging.
 

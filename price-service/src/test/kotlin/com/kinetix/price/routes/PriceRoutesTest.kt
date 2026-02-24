@@ -1,0 +1,126 @@
+package com.kinetix.price.routes
+
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.PricePoint
+import com.kinetix.common.model.PriceSource
+import com.kinetix.common.model.Money
+import com.kinetix.price.module
+import com.kinetix.price.persistence.PriceRepository
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.Currency
+
+private val USD = Currency.getInstance("USD")
+
+private fun point(
+    instrumentId: String = "AAPL",
+    priceAmount: BigDecimal = BigDecimal("150.00"),
+    timestamp: Instant = Instant.parse("2025-01-15T10:00:00Z"),
+    source: PriceSource = PriceSource.EXCHANGE,
+) = PricePoint(
+    instrumentId = InstrumentId(instrumentId),
+    price = Money(priceAmount, USD),
+    timestamp = timestamp,
+    source = source,
+)
+
+class PriceRoutesTest : FunSpec({
+
+    val repository = mockk<PriceRepository>()
+
+    test("GET /api/v1/prices/{id}/latest returns 200 with price point") {
+        val p = point()
+
+        coEvery { repository.findLatest(InstrumentId("AAPL")) } returns p
+
+        testApplication {
+            application { module(repository) }
+
+            val response = client.get("/api/v1/prices/AAPL/latest")
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+            body["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content shouldBe "150.00"
+            body["price"]!!.jsonObject["currency"]!!.jsonPrimitive.content shouldBe "USD"
+            body["timestamp"]!!.jsonPrimitive.content shouldBe "2025-01-15T10:00:00Z"
+            body["source"]!!.jsonPrimitive.content shouldBe "EXCHANGE"
+        }
+    }
+
+    test("GET /api/v1/prices/{id}/latest returns 404 for unknown instrument") {
+        coEvery { repository.findLatest(InstrumentId("UNKNOWN")) } returns null
+
+        testApplication {
+            application { module(repository) }
+
+            val response = client.get("/api/v1/prices/UNKNOWN/latest")
+
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("GET /api/v1/prices/{id}/history returns 200 with price history") {
+        val from = Instant.parse("2025-01-15T09:00:00Z")
+        val to = Instant.parse("2025-01-15T11:00:00Z")
+        val points = listOf(
+            point(timestamp = Instant.parse("2025-01-15T09:30:00Z"), priceAmount = BigDecimal("149.50")),
+            point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00")),
+            point(timestamp = Instant.parse("2025-01-15T10:30:00Z"), priceAmount = BigDecimal("150.75")),
+        )
+
+        coEvery { repository.findByInstrumentId(InstrumentId("AAPL"), from, to) } returns points
+
+        testApplication {
+            application { module(repository) }
+
+            val response = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z")
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 3
+
+            val first = body[0].jsonObject
+            first["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+            first["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content shouldBe "149.50"
+            first["timestamp"]!!.jsonPrimitive.content shouldBe "2025-01-15T09:30:00Z"
+            first["source"]!!.jsonPrimitive.content shouldBe "EXCHANGE"
+
+            val last = body[2].jsonObject
+            last["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content shouldBe "150.75"
+            last["timestamp"]!!.jsonPrimitive.content shouldBe "2025-01-15T10:30:00Z"
+        }
+    }
+
+    test("GET /api/v1/prices/{id}/history returns 400 for missing query params") {
+        testApplication {
+            application { module(repository) }
+
+            val noParams = client.get("/api/v1/prices/AAPL/history")
+            noParams.status shouldBe HttpStatusCode.BadRequest
+            val noParamsBody = Json.parseToJsonElement(noParams.bodyAsText()).jsonObject
+            noParamsBody["error"]!!.jsonPrimitive.content shouldBe "bad_request"
+            noParamsBody["message"]!!.jsonPrimitive.content shouldBe "Missing required query parameter: from"
+
+            val onlyFrom = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z")
+            onlyFrom.status shouldBe HttpStatusCode.BadRequest
+            val onlyFromBody = Json.parseToJsonElement(onlyFrom.bodyAsText()).jsonObject
+            onlyFromBody["error"]!!.jsonPrimitive.content shouldBe "bad_request"
+            onlyFromBody["message"]!!.jsonPrimitive.content shouldBe "Missing required query parameter: to"
+        }
+    }
+})

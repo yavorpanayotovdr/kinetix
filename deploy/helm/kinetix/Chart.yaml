@@ -13,9 +13,9 @@ dependencies:
   - name: position-service
     version: 0.1.0
     repository: "file://charts/position-service"
-  - name: market-data-service
+  - name: price-service
     version: 0.1.0
-    repository: "file://charts/market-data-service"
+    repository: "file://charts/price-service"
   - name: risk-orchestrator
     version: 0.1.0
     repository: "file://charts/risk-orchestrator"

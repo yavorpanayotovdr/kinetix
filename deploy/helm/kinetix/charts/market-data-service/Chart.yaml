@@ -1,6 +1,0 @@
-apiVersion: v2
-name: market-data-service
-description: Kinetix Market Data Service
-version: 0.1.0
-appVersion: "1.0.0"
-type: application

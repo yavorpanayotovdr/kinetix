@@ -20,7 +20,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
                ┌─────────────┘   │   └─────────────┐
                │                 │                  │
         ┌──────▼───────┐ ┌──────▼───────┐ ┌────────▼─────────┐
-        │  Position    │ │ Market Data  │ │ Risk Orchestrator │
+        │  Position    │ │    Price     │ │ Risk Orchestrator │
         │ Svc :8081    │ │  Svc :8082   │ │    Svc :8083      │
         └──────┬───────┘ └──────┬───────┘ └────────┬──────────┘
                │                │                  │ gRPC
@@ -31,7 +31,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
                │                │
         ┌──────▼────────────────▼──────────────────┐
         │             Apache Kafka :9092            │
-        │  trades.lifecycle │ market.data.prices    │
+        │  trades.lifecycle │ price.updates          │
         │              risk.results                 │
         └──┬────────────────────────────────────┬──┘
            │                                    │
@@ -70,7 +70,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
 |---------|------|----------|------|
 | Gateway | 8080 | Kotlin | API gateway, JWT auth, routing, WebSocket proxy |
 | Position Service | 8081 | Kotlin | Trade booking, position calculation, event sourcing |
-| Market Data Service | 8082 | Kotlin | Price ingestion, Redis caching, Kafka publishing |
+| Price Service | 8082 | Kotlin | Price ingestion, Redis caching, Kafka publishing |
 | Risk Orchestrator | 8083 | Kotlin | Coordinates risk calculations, gRPC client to Risk Engine |
 | Audit Service | 8084 | Kotlin | Immutable audit log from Kafka trade events |
 | Regulatory Service | 8085 | Kotlin | FRTB regulatory reporting |
@@ -110,7 +110,7 @@ settings.gradle.kts
 ├── common                 (shared Kotlin library)
 ├── gateway
 ├── position-service
-├── market-data-service
+├── price-service
 ├── risk-orchestrator
 ├── regulatory-service
 ├── notification-service
@@ -158,7 +158,7 @@ A single PostgreSQL instance (TimescaleDB image) hosts per-service databases.
 | Database | Service | Key Tables |
 |----------|---------|------------|
 | kinetix_position | Position Service | trade_events (V1), positions (V2) |
-| kinetix_market_data | Market Data Service | market_data (V1) — TimescaleDB hypertable |
+| kinetix_price | Price Service | market_data (V1) — TimescaleDB hypertable |
 | kinetix_audit | Audit Service | audit_events (V1) |
 | kinetix_gateway | Gateway | — |
 | kinetix_risk | Risk Orchestrator | — |
@@ -185,7 +185,7 @@ Runs in KRaft mode (no ZooKeeper). All topics have 3 partitions and replication 
 | Topic | Producer | Consumer(s) | Payload |
 |-------|----------|-------------|---------|
 | `trades.lifecycle` | Position Service | Audit Service, Risk Orchestrator | Trade events (booked, amended, cancelled) |
-| `market.data.prices` | Market Data Service | Position Service, Risk Orchestrator | Price updates |
+| `price.updates` | Price Service | Position Service, Risk Orchestrator | Price updates |
 | `risk.results` | Risk Orchestrator | Notification Service | VaR and risk calculation results |
 
 ---
@@ -196,7 +196,7 @@ Runs in KRaft mode (no ZooKeeper). All topics have 3 partitions and replication 
 
 | Client | Version | Service | Use Case |
 |--------|---------|---------|----------|
-| Lettuce | 6.5.3.RELEASE | Market Data Service | Cache latest prices for fast lookup |
+| Lettuce | 6.5.3.RELEASE | Price Service | Cache latest prices for fast lookup |
 
 ---
 
@@ -436,7 +436,7 @@ kinetix/
 ├── common/                       # Shared Kotlin library
 ├── gateway/                      # API gateway (Ktor)
 ├── position-service/             # Trade booking and positions
-├── market-data-service/          # Price ingestion and caching
+├── price-service/                # Price ingestion and caching
 ├── risk-orchestrator/            # Risk calculation coordinator
 ├── audit-service/                # Immutable audit log
 ├── regulatory-service/           # FRTB regulatory reporting

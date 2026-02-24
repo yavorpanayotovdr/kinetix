@@ -1,6 +1,6 @@
 package com.kinetix.gateway.websocket
 
-import com.kinetix.common.model.MarketDataPoint
+import com.kinetix.common.model.PricePoint
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.encodeToString
@@ -30,7 +30,7 @@ class PriceBroadcaster {
         }
     }
 
-    suspend fun broadcast(point: MarketDataPoint) {
+    suspend fun broadcast(point: PricePoint) {
         val sessions = subscriptions[point.instrumentId.value] ?: return
         val message = json.encodeToString(PriceUpdate.from(point))
         val dead = mutableListOf<WebSocketServerSession>()

@@ -31,7 +31,7 @@ Modern risk management platform for large financial institutions.
 ### 0.4 Service Scaffolds (Kotlin)
 - [x] Scaffold `gateway/` (Ktor Application.kt, /health endpoint, first test)
 - [x] Scaffold `position-service/`
-- [x] Scaffold `market-data-service/`
+- [x] Scaffold `price-service/`
 - [x] Scaffold `risk-orchestrator/`
 - [x] Scaffold `regulatory-service/`
 - [x] Scaffold `notification-service/`
@@ -112,12 +112,12 @@ Modern risk management platform for large financial institutions.
 ### 2.1 Market Data Domain
 - [x] TDD: Domain objects for `MarketDataPoint`, `YieldCurve`, `VolSurface`
 
-### 2.2 Market Data Service — Ingestion & Storage
+### 2.2 Price Service — Ingestion & Storage
 - [x] Flyway migration for `market_data` TimescaleDB hypertable
 - [x] TDD: Simulated market data feed generator
 - [x] TDD: TimescaleDB repository (Testcontainers)
 - [x] TDD: Redis cache for latest prices
-- [x] TDD: Kafka publisher for `market.data.prices`
+- [x] TDD: Kafka publisher for `price.updates`
 
 ### 2.3 Position Service — P&L Updates
 - [x] TDD: Kafka consumer for market data, mark-to-market P&L recalculation

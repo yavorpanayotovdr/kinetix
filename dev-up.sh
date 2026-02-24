@@ -30,7 +30,7 @@ echo "    Keycloak ready."
 # ── Phase 2: Kafka topics ───────────────────────────────────────────────────
 
 echo "==> Creating Kafka topics..."
-topics=("trades.lifecycle" "market.data.prices" "risk.results")
+topics=("trades.lifecycle" "price.updates" "risk.results")
 for topic in "${topics[@]}"; do
   docker exec kinetix-kafka /opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server localhost:9092 \
@@ -64,7 +64,7 @@ start_gradle_service() {
 # Kotlin services (dependency order)
 start_gradle_service gateway              8080
 start_gradle_service position-service     8081
-start_gradle_service market-data-service  8082
+start_gradle_service price-service        8082
 start_gradle_service risk-orchestrator    8083
 start_gradle_service audit-service        8084
 start_gradle_service regulatory-service   8085
@@ -108,7 +108,7 @@ printf "  %-22s %s\n" "Service" "URL"
 printf "  %-22s %s\n" "──────────────────────" "──────────────────────────"
 printf "  %-22s %s\n" "Gateway API"          "http://localhost:8080"
 printf "  %-22s %s\n" "Position Service"     "http://localhost:8081"
-printf "  %-22s %s\n" "Market Data Service"  "http://localhost:8082"
+printf "  %-22s %s\n" "Price Service"        "http://localhost:8082"
 printf "  %-22s %s\n" "Risk Orchestrator"    "http://localhost:8083"
 printf "  %-22s %s\n" "Audit Service"        "http://localhost:8084"
 printf "  %-22s %s\n" "Regulatory Service"   "http://localhost:8085"

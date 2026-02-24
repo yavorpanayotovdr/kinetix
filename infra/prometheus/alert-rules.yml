@@ -19,10 +19,10 @@ groups:
           summary: "Risk calculation p95 latency exceeds 30s"
           description: "P95 VaR calculation duration is {{ $value }}s"
 
-  - name: kinetix-market-data
+  - name: kinetix-price
     rules:
       - alert: MarketDataStale
-        expr: marketdata_staleness_seconds > 60
+        expr: price_staleness_seconds > 60
         for: 5m
         labels:
           severity: warning

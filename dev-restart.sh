@@ -12,7 +12,7 @@ usage() {
   echo "Infrastructure (Postgres, Kafka, Redis, etc.) is NOT restarted."
   echo ""
   echo "Services:"
-  echo "  gateway  position-service  market-data-service  risk-orchestrator"
+  echo "  gateway  position-service  price-service  risk-orchestrator"
   echo "  audit-service  regulatory-service  notification-service"
   echo "  risk-engine  ui"
   echo ""
@@ -35,8 +35,8 @@ fi
 # ── Service definitions ──────────────────────────────────────────────────────
 
 # service:port pairs for Gradle services
-GRADLE_SERVICES="gateway:8080 position-service:8081 market-data-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086"
-ALL_SERVICES="gateway position-service market-data-service risk-orchestrator audit-service regulatory-service notification-service risk-engine ui"
+GRADLE_SERVICES="gateway:8080 position-service:8081 price-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086"
+ALL_SERVICES="gateway position-service price-service risk-orchestrator audit-service regulatory-service notification-service risk-engine ui"
 
 port_for_service() {
   local svc="$1"

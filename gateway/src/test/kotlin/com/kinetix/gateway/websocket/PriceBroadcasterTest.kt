@@ -1,8 +1,8 @@
 package com.kinetix.gateway.websocket
 
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.MarketDataPoint
-import com.kinetix.common.model.MarketDataSource
+import com.kinetix.common.model.PricePoint
+import com.kinetix.common.model.PriceSource
 import com.kinetix.common.model.Money
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -15,18 +15,18 @@ import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
 
-private fun aaplPrice(amount: String = "170.00") = MarketDataPoint(
+private fun aaplPrice(amount: String = "170.00") = PricePoint(
     instrumentId = InstrumentId("AAPL"),
     price = Money(BigDecimal(amount), USD),
     timestamp = Instant.parse("2025-06-15T14:30:00Z"),
-    source = MarketDataSource.BLOOMBERG,
+    source = PriceSource.BLOOMBERG,
 )
 
-private fun msftPrice(amount: String = "400.00") = MarketDataPoint(
+private fun msftPrice(amount: String = "400.00") = PricePoint(
     instrumentId = InstrumentId("MSFT"),
     price = Money(BigDecimal(amount), USD),
     timestamp = Instant.parse("2025-06-15T14:30:00Z"),
-    source = MarketDataSource.REUTERS,
+    source = PriceSource.REUTERS,
 )
 
 private fun mockSession(): WebSocketServerSession {

@@ -2,7 +2,7 @@ locals {
   services = [
     "gateway",
     "position-service",
-    "market-data-service",
+    "price-service",
     "risk-orchestrator",
     "audit-service",
     "regulatory-service",

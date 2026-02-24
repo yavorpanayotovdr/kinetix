@@ -37,12 +37,12 @@ class ErrorResponseConsistencyIntegrationTest : BehaviorSpec({
             }
         }
 
-        `when`("market-data missing query params") {
+        `when`("price service missing query params") {
             then("returns 400 with { error, message } shape") {
-                val marketDataClient = mockk<MarketDataServiceClient>()
+                val priceClient = mockk<PriceServiceClient>()
                 testApplication {
-                    application { module(marketDataClient) }
-                    val response = client.get("/api/v1/market-data/AAPL/history")
+                    application { module(priceClient) }
+                    val response = client.get("/api/v1/prices/AAPL/history")
                     response.status shouldBe HttpStatusCode.BadRequest
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
                     body.containsKey("error") shouldBe true

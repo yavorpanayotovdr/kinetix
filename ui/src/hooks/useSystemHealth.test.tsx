@@ -13,7 +13,7 @@ const healthyResponse = {
   services: {
     gateway: { status: 'UP' as const },
     'position-service': { status: 'UP' as const },
-    'market-data-service': { status: 'UP' as const },
+    'price-service': { status: 'UP' as const },
     'risk-orchestrator': { status: 'UP' as const },
     'notification-service': { status: 'UP' as const },
   },

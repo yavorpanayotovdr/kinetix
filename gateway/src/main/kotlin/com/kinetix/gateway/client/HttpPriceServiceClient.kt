@@ -1,0 +1,35 @@
+package com.kinetix.gateway.client
+
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.PricePoint
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import java.time.Instant
+
+class HttpPriceServiceClient(
+    private val httpClient: HttpClient,
+    private val baseUrl: String,
+) : PriceServiceClient {
+
+    override suspend fun getLatestPrice(instrumentId: InstrumentId): PricePoint? {
+        val response = httpClient.get("$baseUrl/api/v1/prices/${instrumentId.value}/latest")
+        if (response.status == HttpStatusCode.NotFound) return null
+        val dto: PricePointDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun getPriceHistory(
+        instrumentId: InstrumentId,
+        from: Instant,
+        to: Instant,
+    ): List<PricePoint> {
+        val response = httpClient.get("$baseUrl/api/v1/prices/${instrumentId.value}/history") {
+            parameter("from", from.toString())
+            parameter("to", to.toString())
+        }
+        val dtos: List<PricePointDto> = response.body()
+        return dtos.map { it.toDomain() }
+    }
+}

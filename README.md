@@ -15,8 +15,8 @@ Real-time portfolio risk management platform built as a polyglot microservices m
               ┌───────────────┼───────────────┐
               │               │               │
      ┌────────┴──┐   ┌───────┴───┐   ┌───────┴────────┐
-     │ Position   │   │ Market    │   │ Risk           │
-     │ Service    │   │ Data Svc  │   │ Orchestrator   │
+     │ Position   │   │ Price     │   │ Risk           │
+     │ Service    │   │ Service   │   │ Orchestrator   │
      │ :8081      │   │ :8082     │   │ :8083          │
      └─────┬──────┘   └─────┬────┘   └───┬────────┬───┘
            │               │             │        │ gRPC
@@ -66,7 +66,7 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 |---|---|---|
 | Gateway | 8080 | API routing, JWT authentication, WebSocket proxy |
 | Position Service | 8081 | Trade booking, position calculation, event sourcing |
-| Market Data Service | 8082 | Price ingestion, Redis caching, Kafka publishing |
+| Price Service | 8082 | Price ingestion, Redis caching, Kafka publishing |
 | Risk Orchestrator | 8083 | Coordinates VaR and risk calculations via gRPC |
 | Audit Service | 8084 | Immutable audit log from Kafka trade events |
 | Regulatory Service | 8085 | FRTB regulatory reporting |
@@ -129,7 +129,7 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 
 ```bash
 ./gradlew :position-service:integrationTest
-./gradlew :market-data-service:integrationTest
+./gradlew :price-service:integrationTest
 ./gradlew :risk-orchestrator:integrationTest
 ./gradlew :audit-service:integrationTest
 ```
@@ -178,7 +178,7 @@ Key docs in the repo:
 kinetix/
 ├── gateway/               Ktor API gateway
 ├── position-service/      Trade booking and positions
-├── market-data-service/   Price ingestion pipeline
+├── price-service/         Price ingestion pipeline
 ├── risk-orchestrator/     Risk calculation coordinator
 ├── audit-service/         Immutable audit trail
 ├── regulatory-service/    FRTB regulatory reporting

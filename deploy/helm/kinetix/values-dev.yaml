@@ -34,12 +34,12 @@ position-service:
     SEED_DATA: "true"
     DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_position"
 
-market-data-service:
+price-service:
   replicaCount: 1
   env:
     PORT: "8082"
     SEED_DATA: "true"
-    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_market_data"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_price"
 
 risk-orchestrator:
   replicaCount: 1

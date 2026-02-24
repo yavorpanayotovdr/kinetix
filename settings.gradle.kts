@@ -19,7 +19,7 @@ include(
     "common",
     "gateway",
     "position-service",
-    "market-data-service",
+    "price-service",
     "risk-orchestrator",
     "regulatory-service",
     "notification-service",
