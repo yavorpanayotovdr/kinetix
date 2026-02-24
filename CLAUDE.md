@@ -12,6 +12,12 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 
+## Code Organisation
+
+- **One type per file.** Data classes, enums, sealed classes, and interfaces should each live in their own file rather than being inlined in the implementation class that uses them. This keeps files focused and easy to navigate.
+- **DTOs, events, and domain types get separate files.** For example, put `PriceEvent` in `PriceEvent.kt`, not inside `KafkaPricePublisher.kt`. Same for response/request DTOs — pull them into a dedicated file (e.g. `Dtos.kt` or named per type).
+- **Keep implementation files focused on behaviour.** A service or route file should contain the logic, not a mix of logic and type definitions.
+
 ## Project Conventions
 
 - **Kotlin tests** use Kotest `FunSpec` with `shouldBe` / `shouldThrow` matchers and MockK for mocking.
