@@ -7,6 +7,7 @@ import com.kinetix.common.model.ReferenceDataSource
 import com.kinetix.referencedata.module
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -26,6 +27,7 @@ class ReferenceDataRoutesTest : FunSpec({
 
     val dividendYieldRepo = mockk<DividendYieldRepository>()
     val creditSpreadRepo = mockk<CreditSpreadRepository>()
+    val ingestionService = mockk<ReferenceDataIngestionService>()
 
     beforeEach {
         clearMocks(dividendYieldRepo, creditSpreadRepo)
@@ -42,7 +44,7 @@ class ReferenceDataRoutesTest : FunSpec({
         coEvery { dividendYieldRepo.findLatest(InstrumentId("AAPL")) } returns dividendYield
 
         testApplication {
-            application { module(dividendYieldRepo, creditSpreadRepo) }
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
             val response = client.get("/api/v1/reference-data/dividends/AAPL/latest")
             response.status shouldBe HttpStatusCode.OK
@@ -57,7 +59,7 @@ class ReferenceDataRoutesTest : FunSpec({
         coEvery { dividendYieldRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
 
         testApplication {
-            application { module(dividendYieldRepo, creditSpreadRepo) }
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
             val response = client.get("/api/v1/reference-data/dividends/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound
@@ -75,7 +77,7 @@ class ReferenceDataRoutesTest : FunSpec({
         coEvery { creditSpreadRepo.findLatest(InstrumentId("CORP-BOND-1")) } returns creditSpread
 
         testApplication {
-            application { module(dividendYieldRepo, creditSpreadRepo) }
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
             val response = client.get("/api/v1/reference-data/credit-spreads/CORP-BOND-1/latest")
             response.status shouldBe HttpStatusCode.OK
@@ -90,7 +92,7 @@ class ReferenceDataRoutesTest : FunSpec({
         coEvery { creditSpreadRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
 
         testApplication {
-            application { module(dividendYieldRepo, creditSpreadRepo) }
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
             val response = client.get("/api/v1/reference-data/credit-spreads/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound

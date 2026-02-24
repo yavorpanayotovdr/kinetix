@@ -1,18 +1,25 @@
 package com.kinetix.rates.routes
 
-import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.YieldCurve
-import com.kinetix.common.model.RiskFreeRate
+import com.kinetix.common.model.CurvePoint
 import com.kinetix.common.model.ForwardCurve
-import com.kinetix.rates.persistence.YieldCurveRepository
-import com.kinetix.rates.persistence.RiskFreeRateRepository
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.RateSource
+import com.kinetix.common.model.RiskFreeRate
+import com.kinetix.common.model.Tenor
+import com.kinetix.common.model.YieldCurve
 import com.kinetix.rates.persistence.ForwardCurveRepository
+import com.kinetix.rates.persistence.RiskFreeRateRepository
+import com.kinetix.rates.persistence.YieldCurveRepository
 import com.kinetix.rates.routes.dtos.*
+import com.kinetix.rates.service.RateIngestionService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
 
@@ -20,6 +27,7 @@ fun Route.ratesRoutes(
     yieldCurveRepository: YieldCurveRepository,
     riskFreeRateRepository: RiskFreeRateRepository,
     forwardCurveRepository: ForwardCurveRepository,
+    ingestionService: RateIngestionService,
 ) {
     route("/api/v1/rates") {
         route("/yield-curves/{curveId}") {
@@ -44,6 +52,19 @@ fun Route.ratesRoutes(
             }
         }
 
+        post("/yield-curves") {
+            val request = call.receive<IngestYieldCurveRequest>()
+            val curve = YieldCurve(
+                curveId = request.curveId,
+                currency = Currency.getInstance(request.currency),
+                tenors = request.tenors.map { Tenor(it.label, it.days, BigDecimal(it.rate)) },
+                asOf = Instant.now(),
+                source = RateSource.valueOf(request.source),
+            )
+            ingestionService.ingest(curve)
+            call.respond(HttpStatusCode.Created, curve.toResponse())
+        }
+
         route("/risk-free/{currency}") {
             get("/latest") {
                 val currencyCode = call.requirePathParam("currency")
@@ -57,6 +78,19 @@ fun Route.ratesRoutes(
                     call.respond(HttpStatusCode.NotFound)
                 }
             }
+        }
+
+        post("/risk-free") {
+            val request = call.receive<IngestRiskFreeRateRequest>()
+            val rate = RiskFreeRate(
+                currency = Currency.getInstance(request.currency),
+                tenor = request.tenor,
+                rate = BigDecimal(request.rate).toDouble(),
+                asOfDate = Instant.now(),
+                source = RateSource.valueOf(request.source),
+            )
+            ingestionService.ingest(rate)
+            call.respond(HttpStatusCode.Created, rate.toResponse())
         }
 
         route("/forwards/{instrumentId}") {
@@ -79,6 +113,19 @@ fun Route.ratesRoutes(
                 val curves = forwardCurveRepository.findByTimeRange(instrumentId, Instant.parse(from), Instant.parse(to))
                 call.respond(curves.map { it.toResponse() })
             }
+        }
+
+        post("/forwards") {
+            val request = call.receive<IngestForwardCurveRequest>()
+            val curve = ForwardCurve(
+                instrumentId = InstrumentId(request.instrumentId),
+                assetClass = request.assetClass,
+                points = request.points.map { CurvePoint(it.tenor, BigDecimal(it.value).toDouble()) },
+                asOfDate = Instant.now(),
+                source = RateSource.valueOf(request.source),
+            )
+            ingestionService.ingest(curve)
+            call.respond(HttpStatusCode.Created, curve.toResponse())
         }
     }
 }

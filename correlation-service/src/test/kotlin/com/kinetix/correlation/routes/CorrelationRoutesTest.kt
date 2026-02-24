@@ -4,6 +4,7 @@ import com.kinetix.common.model.CorrelationMatrix
 import com.kinetix.common.model.EstimationMethod
 import com.kinetix.correlation.module
 import com.kinetix.correlation.persistence.CorrelationMatrixRepository
+import com.kinetix.correlation.service.CorrelationIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -21,6 +22,7 @@ private val NOW = Instant.parse("2026-02-24T10:00:00Z")
 class CorrelationRoutesTest : FunSpec({
 
     val correlationRepo = mockk<CorrelationMatrixRepository>()
+    val ingestionService = mockk<CorrelationIngestionService>()
 
     beforeEach {
         clearMocks(correlationRepo)
@@ -37,7 +39,7 @@ class CorrelationRoutesTest : FunSpec({
         coEvery { correlationRepo.findLatest(listOf("AAPL", "MSFT"), 252) } returns matrix
 
         testApplication {
-            application { module(correlationRepo) }
+            application { module(correlationRepo, ingestionService) }
 
             val response = client.get("/api/v1/correlations/latest?labels=AAPL,MSFT&window=252")
             response.status shouldBe HttpStatusCode.OK
@@ -53,7 +55,7 @@ class CorrelationRoutesTest : FunSpec({
         coEvery { correlationRepo.findLatest(listOf("UNKNOWN1", "UNKNOWN2"), 252) } returns null
 
         testApplication {
-            application { module(correlationRepo) }
+            application { module(correlationRepo, ingestionService) }
 
             val response = client.get("/api/v1/correlations/latest?labels=UNKNOWN1,UNKNOWN2&window=252")
             response.status shouldBe HttpStatusCode.NotFound

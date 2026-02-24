@@ -6,6 +6,7 @@ import com.kinetix.common.model.VolSurface
 import com.kinetix.common.model.VolatilitySource
 import com.kinetix.volatility.module
 import com.kinetix.volatility.persistence.VolSurfaceRepository
+import com.kinetix.volatility.service.VolatilityIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -24,6 +25,7 @@ private val NOW = Instant.parse("2026-02-24T10:00:00Z")
 class VolatilityRoutesTest : FunSpec({
 
     val volSurfaceRepo = mockk<VolSurfaceRepository>()
+    val ingestionService = mockk<VolatilityIngestionService>()
 
     beforeEach {
         clearMocks(volSurfaceRepo)
@@ -42,7 +44,7 @@ class VolatilityRoutesTest : FunSpec({
         coEvery { volSurfaceRepo.findLatest(InstrumentId("AAPL")) } returns surface
 
         testApplication {
-            application { module(volSurfaceRepo) }
+            application { module(volSurfaceRepo, ingestionService) }
 
             val response = client.get("/api/v1/volatility/AAPL/surface/latest")
             response.status shouldBe HttpStatusCode.OK
@@ -57,7 +59,7 @@ class VolatilityRoutesTest : FunSpec({
         coEvery { volSurfaceRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
 
         testApplication {
-            application { module(volSurfaceRepo) }
+            application { module(volSurfaceRepo, ingestionService) }
 
             val response = client.get("/api/v1/volatility/UNKNOWN/surface/latest")
             response.status shouldBe HttpStatusCode.NotFound

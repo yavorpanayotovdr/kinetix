@@ -1,5 +1,6 @@
 package com.kinetix.risk
 
+import com.kinetix.common.resilience.CircuitBreaker
 import com.kinetix.position.persistence.DatabaseConfig as PositionDatabaseConfig
 import com.kinetix.position.persistence.DatabaseFactory as PositionDatabaseFactory
 import com.kinetix.position.persistence.ExposedPositionRepository
@@ -15,7 +16,10 @@ import com.kinetix.risk.client.HttpReferenceDataServiceClient
 import com.kinetix.risk.client.HttpCorrelationServiceClient
 import com.kinetix.risk.client.HttpVolatilityServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
-import com.kinetix.risk.kafka.NoOpRiskResultPublisher
+import com.kinetix.risk.client.ResilientRiskEngineClient
+import com.kinetix.risk.kafka.KafkaRiskResultPublisher
+import com.kinetix.risk.kafka.PriceEventConsumer
+import com.kinetix.risk.kafka.TradeEventConsumer
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DependenciesDiscoverer
@@ -41,6 +45,13 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -92,10 +103,12 @@ fun Application.moduleWithRoutes() {
     val positionRepository = ExposedPositionRepository(db)
     val positionProvider = PositionServicePositionProvider(positionRepository)
     val dependenciesStub = MarketDataDependenciesServiceGrpcKt.MarketDataDependenciesServiceCoroutineStub(channel)
-    val riskEngineClient = GrpcRiskEngineClient(
+    val grpcRiskEngineClient = GrpcRiskEngineClient(
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
         dependenciesStub,
     )
+    val riskEngineClient = ResilientRiskEngineClient(grpcRiskEngineClient, CircuitBreaker())
+
     val priceServiceBaseUrl = environment.config
         .propertyOrNull("priceService.baseUrl")?.getString() ?: "http://localhost:8082"
     val priceHttpClient = HttpClient(CIO) {
@@ -120,7 +133,18 @@ fun Application.moduleWithRoutes() {
         volatilityServiceClient, correlationServiceClient,
     )
 
-    val resultPublisher = NoOpRiskResultPublisher()
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val kafkaProducer = KafkaProducer<String, String>(producerProps)
+    val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
+
     val varCalculationService = VaRCalculationService(
         positionProvider, riskEngineClient, resultPublisher,
         dependenciesDiscoverer = dependenciesDiscoverer,
@@ -153,6 +177,33 @@ fun Application.moduleWithRoutes() {
         riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub, riskEngineClient)
     }
 
+    val tradeConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "risk-orchestrator-trades-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val tradeEventConsumer = TradeEventConsumer(
+        KafkaConsumer<String, String>(tradeConsumerProps),
+        varCalculationService,
+    )
+
+    val priceConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "risk-orchestrator-prices-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val priceEventConsumer = PriceEventConsumer(
+        KafkaConsumer<String, String>(priceConsumerProps),
+        varCalculationService,
+        affectedPortfolios = { positionRepository.findDistinctPortfolioIds() },
+    )
+
+    launch { tradeEventConsumer.start() }
+    launch { priceEventConsumer.start() }
     launch {
         ScheduledVaRCalculator(
             varCalculationService = varCalculationService,

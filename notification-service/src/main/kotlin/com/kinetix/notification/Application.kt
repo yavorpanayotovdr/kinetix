@@ -1,7 +1,12 @@
 package com.kinetix.notification
 
+import com.kinetix.notification.delivery.DeliveryRouter
+import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
+import com.kinetix.notification.delivery.WebhookDeliveryService
 import com.kinetix.notification.engine.RulesEngine
+import com.kinetix.notification.kafka.AnomalyEventConsumer
+import com.kinetix.notification.kafka.RiskResultConsumer
 import com.kinetix.notification.model.AlertRule
 import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.ComparisonOperator
@@ -26,6 +31,10 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.serialization.StringDeserializer
+import java.util.Properties
 import java.util.UUID
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -79,7 +88,41 @@ fun Application.moduleWithRoutes() {
     val eventRepository = ExposedAlertEventRepository(db)
     val rulesEngine = RulesEngine(ruleRepository)
     val inAppDelivery = InAppDeliveryService(eventRepository)
+    val emailDelivery = EmailDeliveryService()
+    val webhookDelivery = WebhookDeliveryService()
+    val deliveryRouter = DeliveryRouter(listOf(inAppDelivery, emailDelivery, webhookDelivery))
+
     module(rulesEngine, inAppDelivery)
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+
+    val riskConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service-risk-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val riskResultConsumer = RiskResultConsumer(
+        KafkaConsumer<String, String>(riskConsumerProps),
+        rulesEngine,
+        deliveryRouter,
+    )
+
+    val anomalyConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service-anomaly-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val anomalyEventConsumer = AnomalyEventConsumer(
+        KafkaConsumer<String, String>(anomalyConsumerProps),
+    )
+
+    launch { riskResultConsumer.start() }
+    launch { anomalyEventConsumer.start() }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {

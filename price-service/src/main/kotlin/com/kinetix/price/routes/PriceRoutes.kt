@@ -1,14 +1,20 @@
 package com.kinetix.price.routes
 
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PricePoint
 import com.kinetix.common.model.Money
+import com.kinetix.common.model.PricePoint
+import com.kinetix.common.model.PriceSource
 import com.kinetix.price.persistence.PriceRepository
+import com.kinetix.price.routes.dtos.IngestPriceRequest
+import com.kinetix.price.service.PriceIngestionService
 import io.ktor.http.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import java.time.Instant
+import java.util.Currency
 
 // --- Response DTOs matching gateway's expected shapes ---
 
@@ -37,7 +43,7 @@ private fun PricePoint.toResponse() = PricePointResponse(
 
 // --- Routes ---
 
-fun Route.priceRoutes(repository: PriceRepository) {
+fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngestionService) {
     route("/api/v1/prices/{instrumentId}") {
 
         get("/latest") {
@@ -58,6 +64,20 @@ fun Route.priceRoutes(repository: PriceRepository) {
                 ?: throw IllegalArgumentException("Missing required query parameter: to")
             val points = repository.findByInstrumentId(instrumentId, Instant.parse(from), Instant.parse(to))
             call.respond(points.map { it.toResponse() })
+        }
+    }
+
+    route("/api/v1/prices") {
+        post("/ingest") {
+            val request = call.receive<IngestPriceRequest>()
+            val point = PricePoint(
+                instrumentId = InstrumentId(request.instrumentId),
+                price = Money(BigDecimal(request.priceAmount), Currency.getInstance(request.priceCurrency)),
+                timestamp = Instant.now(),
+                source = PriceSource.valueOf(request.source),
+            )
+            ingestionService.ingest(point)
+            call.respond(HttpStatusCode.Created, point.toResponse())
         }
     }
 }

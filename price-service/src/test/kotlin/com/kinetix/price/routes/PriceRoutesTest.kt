@@ -6,6 +6,7 @@ import com.kinetix.common.model.PriceSource
 import com.kinetix.common.model.Money
 import com.kinetix.price.module
 import com.kinetix.price.persistence.PriceRepository
+import com.kinetix.price.service.PriceIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -39,6 +40,7 @@ private fun point(
 class PriceRoutesTest : FunSpec({
 
     val repository = mockk<PriceRepository>()
+    val ingestionService = mockk<PriceIngestionService>()
 
     test("GET /api/v1/prices/{id}/latest returns 200 with price point") {
         val p = point()
@@ -46,7 +48,7 @@ class PriceRoutesTest : FunSpec({
         coEvery { repository.findLatest(InstrumentId("AAPL")) } returns p
 
         testApplication {
-            application { module(repository) }
+            application { module(repository, ingestionService) }
 
             val response = client.get("/api/v1/prices/AAPL/latest")
 
@@ -65,7 +67,7 @@ class PriceRoutesTest : FunSpec({
         coEvery { repository.findLatest(InstrumentId("UNKNOWN")) } returns null
 
         testApplication {
-            application { module(repository) }
+            application { module(repository, ingestionService) }
 
             val response = client.get("/api/v1/prices/UNKNOWN/latest")
 
@@ -85,7 +87,7 @@ class PriceRoutesTest : FunSpec({
         coEvery { repository.findByInstrumentId(InstrumentId("AAPL"), from, to) } returns points
 
         testApplication {
-            application { module(repository) }
+            application { module(repository, ingestionService) }
 
             val response = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z")
 
@@ -108,7 +110,7 @@ class PriceRoutesTest : FunSpec({
 
     test("GET /api/v1/prices/{id}/history returns 400 for missing query params") {
         testApplication {
-            application { module(repository) }
+            application { module(repository, ingestionService) }
 
             val noParams = client.get("/api/v1/prices/AAPL/history")
             noParams.status shouldBe HttpStatusCode.BadRequest

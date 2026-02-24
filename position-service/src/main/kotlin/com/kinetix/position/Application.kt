@@ -1,6 +1,7 @@
 package com.kinetix.position
 
-import com.kinetix.position.kafka.NoOpTradeEventPublisher
+import com.kinetix.position.kafka.KafkaTradeEventPublisher
+import com.kinetix.position.kafka.PriceConsumer
 import com.kinetix.position.persistence.DatabaseConfig
 import com.kinetix.position.persistence.DatabaseFactory
 import com.kinetix.position.persistence.ExposedPositionRepository
@@ -9,6 +10,7 @@ import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.seed.DevDataSeeder
 import com.kinetix.position.service.ExposedTransactionalRunner
 import com.kinetix.position.service.PositionQueryService
+import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -23,6 +25,13 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -56,7 +65,18 @@ fun Application.moduleWithRoutes() {
     val positionRepository = ExposedPositionRepository(db)
     val tradeEventRepository = ExposedTradeEventRepository(db)
     val transactionalRunner = ExposedTransactionalRunner(db)
-    val tradeEventPublisher = NoOpTradeEventPublisher()
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val kafkaProducer = KafkaProducer<String, String>(producerProps)
+    val tradeEventPublisher = KafkaTradeEventPublisher(kafkaProducer)
 
     val tradeBookingService = TradeBookingService(
         tradeEventRepository = tradeEventRepository,
@@ -65,6 +85,17 @@ fun Application.moduleWithRoutes() {
         tradeEventPublisher = tradeEventPublisher,
     )
     val positionQueryService = PositionQueryService(positionRepository)
+
+    val priceUpdateService = PriceUpdateService(positionRepository)
+    val consumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "position-service-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val priceKafkaConsumer = KafkaConsumer<String, String>(consumerProps)
+    val priceConsumer = PriceConsumer(priceKafkaConsumer, priceUpdateService)
 
     module()
 
@@ -86,6 +117,10 @@ fun Application.moduleWithRoutes() {
 
     routing {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService)
+    }
+
+    launch {
+        priceConsumer.start()
     }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true

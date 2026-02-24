@@ -1,5 +1,7 @@
 package com.kinetix.referencedata
 
+import com.kinetix.referencedata.cache.RedisReferenceDataCache
+import com.kinetix.referencedata.kafka.KafkaReferenceDataPublisher
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DatabaseConfig
 import com.kinetix.referencedata.persistence.DatabaseFactory
@@ -7,6 +9,7 @@ import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.routes.referenceDataRoutes
+import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -21,9 +24,14 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.serialization.StringSerializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -47,6 +55,7 @@ private data class ErrorBody(val error: String, val message: String)
 fun Application.module(
     dividendYieldRepository: DividendYieldRepository,
     creditSpreadRepository: CreditSpreadRepository,
+    ingestionService: ReferenceDataIngestionService,
 ) {
     module()
     install(StatusPages) {
@@ -65,7 +74,7 @@ fun Application.module(
         }
     }
     routing {
-        referenceDataRoutes(dividendYieldRepository, creditSpreadRepository)
+        referenceDataRoutes(dividendYieldRepository, creditSpreadRepository, ingestionService)
     }
 }
 
@@ -82,5 +91,26 @@ fun Application.moduleWithRoutes() {
     val dividendYieldRepository = ExposedDividendYieldRepository(db)
     val creditSpreadRepository = ExposedCreditSpreadRepository(db)
 
-    module(dividendYieldRepository, creditSpreadRepository)
+    val redisConfig = environment.config.config("redis")
+    val redisUrl = redisConfig.property("url").getString()
+    val redisClient = RedisClient.create(redisUrl)
+    val redisConnection = redisClient.connect()
+    val cache = RedisReferenceDataCache(redisConnection)
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val kafkaProducer = KafkaProducer<String, String>(producerProps)
+    val publisher = KafkaReferenceDataPublisher(kafkaProducer)
+
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepository, creditSpreadRepository, cache, publisher,
+    )
+
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService)
 }

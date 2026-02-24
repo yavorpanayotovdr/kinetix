@@ -1,5 +1,7 @@
 package com.kinetix.rates
 
+import com.kinetix.rates.cache.RedisRatesCache
+import com.kinetix.rates.kafka.KafkaRatesPublisher
 import com.kinetix.rates.persistence.DatabaseConfig
 import com.kinetix.rates.persistence.DatabaseFactory
 import com.kinetix.rates.persistence.ExposedForwardCurveRepository
@@ -9,6 +11,7 @@ import com.kinetix.rates.persistence.ForwardCurveRepository
 import com.kinetix.rates.persistence.RiskFreeRateRepository
 import com.kinetix.rates.persistence.YieldCurveRepository
 import com.kinetix.rates.routes.ratesRoutes
+import com.kinetix.rates.service.RateIngestionService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -23,9 +26,14 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.serialization.StringSerializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -50,6 +58,7 @@ fun Application.module(
     yieldCurveRepository: YieldCurveRepository,
     riskFreeRateRepository: RiskFreeRateRepository,
     forwardCurveRepository: ForwardCurveRepository,
+    ingestionService: RateIngestionService,
 ) {
     module()
     install(StatusPages) {
@@ -68,7 +77,7 @@ fun Application.module(
         }
     }
     routing {
-        ratesRoutes(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository)
+        ratesRoutes(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository, ingestionService)
     }
 }
 
@@ -86,5 +95,26 @@ fun Application.moduleWithRoutes() {
     val riskFreeRateRepository = ExposedRiskFreeRateRepository(db)
     val forwardCurveRepository = ExposedForwardCurveRepository(db)
 
-    module(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository)
+    val redisConfig = environment.config.config("redis")
+    val redisUrl = redisConfig.property("url").getString()
+    val redisClient = RedisClient.create(redisUrl)
+    val redisConnection = redisClient.connect()
+    val cache = RedisRatesCache(redisConnection)
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val kafkaProducer = KafkaProducer<String, String>(producerProps)
+    val publisher = KafkaRatesPublisher(kafkaProducer)
+
+    val ingestionService = RateIngestionService(
+        yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository, cache, publisher,
+    )
+
+    module(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository, ingestionService)
 }

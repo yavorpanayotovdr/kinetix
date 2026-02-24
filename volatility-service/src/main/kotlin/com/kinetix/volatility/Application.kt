@@ -1,10 +1,13 @@
 package com.kinetix.volatility
 
+import com.kinetix.volatility.cache.RedisVolatilityCache
+import com.kinetix.volatility.kafka.KafkaVolatilityPublisher
 import com.kinetix.volatility.persistence.DatabaseConfig
 import com.kinetix.volatility.persistence.DatabaseFactory
 import com.kinetix.volatility.persistence.ExposedVolSurfaceRepository
 import com.kinetix.volatility.persistence.VolSurfaceRepository
 import com.kinetix.volatility.routes.volatilityRoutes
+import com.kinetix.volatility.service.VolatilityIngestionService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -19,9 +22,14 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.serialization.StringSerializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -44,6 +52,7 @@ private data class ErrorBody(val error: String, val message: String)
 
 fun Application.module(
     volSurfaceRepository: VolSurfaceRepository,
+    ingestionService: VolatilityIngestionService,
 ) {
     module()
     install(StatusPages) {
@@ -62,7 +71,7 @@ fun Application.module(
         }
     }
     routing {
-        volatilityRoutes(volSurfaceRepository)
+        volatilityRoutes(volSurfaceRepository, ingestionService)
     }
 }
 
@@ -78,5 +87,24 @@ fun Application.moduleWithRoutes() {
 
     val volSurfaceRepository = ExposedVolSurfaceRepository(db)
 
-    module(volSurfaceRepository)
+    val redisConfig = environment.config.config("redis")
+    val redisUrl = redisConfig.property("url").getString()
+    val redisClient = RedisClient.create(redisUrl)
+    val redisConnection = redisClient.connect()
+    val cache = RedisVolatilityCache(redisConnection)
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val kafkaProducer = KafkaProducer<String, String>(producerProps)
+    val publisher = KafkaVolatilityPublisher(kafkaProducer)
+
+    val ingestionService = VolatilityIngestionService(volSurfaceRepository, cache, publisher)
+
+    module(volSurfaceRepository, ingestionService)
 }

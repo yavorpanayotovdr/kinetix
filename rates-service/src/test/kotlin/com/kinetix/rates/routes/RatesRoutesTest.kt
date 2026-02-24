@@ -5,6 +5,7 @@ import com.kinetix.rates.module
 import com.kinetix.rates.persistence.ForwardCurveRepository
 import com.kinetix.rates.persistence.RiskFreeRateRepository
 import com.kinetix.rates.persistence.YieldCurveRepository
+import com.kinetix.rates.service.RateIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -27,6 +28,7 @@ class RatesRoutesTest : FunSpec({
     val yieldCurveRepo = mockk<YieldCurveRepository>()
     val riskFreeRateRepo = mockk<RiskFreeRateRepository>()
     val forwardCurveRepo = mockk<ForwardCurveRepository>()
+    val ingestionService = mockk<RateIngestionService>()
 
     beforeEach {
         clearMocks(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo)
@@ -46,7 +48,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { yieldCurveRepo.findLatest("USD-TREASURY") } returns curve
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/yield-curves/USD-TREASURY/latest")
             response.status shouldBe HttpStatusCode.OK
@@ -60,7 +62,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { yieldCurveRepo.findLatest("UNKNOWN") } returns null
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/yield-curves/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound
@@ -78,7 +80,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { riskFreeRateRepo.findLatest(USD, "3M") } returns rate
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/risk-free/USD/latest?tenor=3M")
             response.status shouldBe HttpStatusCode.OK
@@ -92,7 +94,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { riskFreeRateRepo.findLatest(any(), any()) } returns null
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/risk-free/JPY/latest?tenor=O/N")
             response.status shouldBe HttpStatusCode.NotFound
@@ -113,7 +115,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { forwardCurveRepo.findLatest(InstrumentId("EURUSD")) } returns curve
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/forwards/EURUSD/latest")
             response.status shouldBe HttpStatusCode.OK
@@ -127,7 +129,7 @@ class RatesRoutesTest : FunSpec({
         coEvery { forwardCurveRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
 
         testApplication {
-            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo) }
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
             val response = client.get("/api/v1/rates/forwards/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound

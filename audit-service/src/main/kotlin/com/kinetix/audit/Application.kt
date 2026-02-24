@@ -1,6 +1,7 @@
 package com.kinetix.audit
 
 import com.kinetix.audit.dto.ErrorResponse
+import com.kinetix.audit.kafka.AuditEventConsumer
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.DatabaseConfig
 import com.kinetix.audit.persistence.DatabaseFactory
@@ -20,6 +21,10 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.serialization.StringDeserializer
+import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -74,6 +79,22 @@ fun Application.moduleWithRoutes() {
     )
     val repository = ExposedAuditEventRepository(db)
     module(repository)
+
+    val kafkaConfig = environment.config.config("kafka")
+    val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
+    val consumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "audit-service-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    }
+    val kafkaConsumer = KafkaConsumer<String, String>(consumerProps)
+    val auditEventConsumer = AuditEventConsumer(kafkaConsumer, repository)
+
+    launch {
+        auditEventConsumer.start()
+    }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
