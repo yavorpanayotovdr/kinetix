@@ -165,7 +165,7 @@ export interface JobStepDto {
   error: string | null
 }
 
-export interface CalculationJobSummaryDto {
+export interface ValuationJobSummaryDto {
   jobId: string
   portfolioId: string
   triggerType: string
@@ -178,7 +178,7 @@ export interface CalculationJobSummaryDto {
   expectedShortfall: number | null
 }
 
-export interface CalculationJobDetailDto {
+export interface ValuationJobDetailDto {
   jobId: string
   portfolioId: string
   triggerType: string

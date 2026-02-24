@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCalculationJobs, fetchCalculationJobDetail } from './jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail } from './jobHistory'
 
 describe('jobHistory API', () => {
   const mockFetch = vi.fn()
@@ -42,7 +42,7 @@ describe('jobHistory API', () => {
     error: null,
   }
 
-  describe('fetchCalculationJobs', () => {
+  describe('fetchValuationJobs', () => {
     it('returns parsed JSON on 200', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
@@ -50,7 +50,7 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve([jobSummary]),
       })
 
-      const result = await fetchCalculationJobs('port-1')
+      const result = await fetchValuationJobs('port-1')
 
       expect(result).toEqual([jobSummary])
       expect(mockFetch).toHaveBeenCalledWith(
@@ -65,7 +65,7 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve([]),
       })
 
-      await fetchCalculationJobs('port-1', 5, 10)
+      await fetchValuationJobs('port-1', 5, 10)
 
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/v1/risk/jobs/port-1?limit=5&offset=10',
@@ -79,13 +79,13 @@ describe('jobHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchCalculationJobs('port-1')).rejects.toThrow(
-        'Failed to fetch calculation jobs: 500 Internal Server Error',
+      await expect(fetchValuationJobs('port-1')).rejects.toThrow(
+        'Failed to fetch valuation jobs: 500 Internal Server Error',
       )
     })
   })
 
-  describe('fetchCalculationJobDetail', () => {
+  describe('fetchValuationJobDetail', () => {
     it('returns parsed JSON on 200', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
@@ -93,7 +93,7 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve(jobDetail),
       })
 
-      const result = await fetchCalculationJobDetail('job-1')
+      const result = await fetchValuationJobDetail('job-1')
 
       expect(result).toEqual(jobDetail)
       expect(mockFetch).toHaveBeenCalledWith(
@@ -108,7 +108,7 @@ describe('jobHistory API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchCalculationJobDetail('unknown')
+      const result = await fetchValuationJobDetail('unknown')
 
       expect(result).toBeNull()
     })
@@ -120,7 +120,7 @@ describe('jobHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchCalculationJobDetail('job-1')).rejects.toThrow(
+      await expect(fetchValuationJobDetail('job-1')).rejects.toThrow(
         'Failed to fetch job detail: 500 Internal Server Error',
       )
     })

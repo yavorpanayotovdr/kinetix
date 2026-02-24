@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { CalculationJobSummaryDto, CalculationJobDetailDto } from '../types'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { JobHistoryTable } from './JobHistoryTable'
 
-const runs: CalculationJobSummaryDto[] = [
+const runs: ValuationJobSummaryDto[] = [
   {
     jobId: 'job-1',
     portfolioId: 'port-1',
@@ -30,7 +30,7 @@ const runs: CalculationJobSummaryDto[] = [
   },
 ]
 
-const jobDetail: CalculationJobDetailDto = {
+const jobDetail: ValuationJobDetailDto = {
   jobId: 'job-1',
   portfolioId: 'port-1',
   triggerType: 'ON_DEMAND',
@@ -56,7 +56,7 @@ const jobDetail: CalculationJobDetailDto = {
   error: null,
 }
 
-const jobDetail2: CalculationJobDetailDto = {
+const jobDetail2: ValuationJobDetailDto = {
   jobId: 'job-2',
   portfolioId: 'port-1',
   triggerType: 'TRADE_EVENT',
@@ -83,7 +83,7 @@ const jobDetail2: CalculationJobDetailDto = {
 }
 
 const defaultProps = {
-  expandedJobs: {} as Record<string, CalculationJobDetailDto>,
+  expandedJobs: {} as Record<string, ValuationJobDetailDto>,
   loadingJobIds: new Set<string>(),
   onSelectJob: () => {},
   onCloseJob: () => {},
@@ -132,7 +132,7 @@ describe('JobHistoryTable', () => {
     render(<JobHistoryTable runs={[]} {...defaultProps} />)
 
     expect(screen.getByTestId('job-history-empty')).toBeInTheDocument()
-    expect(screen.getByText('No calculation jobs yet.')).toBeInTheDocument()
+    expect(screen.getByText('No valuation jobs yet.')).toBeInTheDocument()
   })
 
   it('shows dash for null VaR and ES values', () => {

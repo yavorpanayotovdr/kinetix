@@ -1,7 +1,7 @@
 package com.kinetix.risk.persistence
 
 import com.kinetix.risk.model.*
-import com.kinetix.risk.service.CalculationJobRecorder
+import com.kinetix.risk.service.ValuationJobRecorder
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -10,10 +10,10 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 
-class ExposedCalculationJobRecorder(private val db: Database? = null) : CalculationJobRecorder {
+class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJobRecorder {
 
-    override suspend fun save(job: CalculationJob): Unit = newSuspendedTransaction(db = db) {
-        CalculationJobsTable.insert {
+    override suspend fun save(job: ValuationJob): Unit = newSuspendedTransaction(db = db) {
+        ValuationJobsTable.insert {
             it[jobId] = job.jobId
             it[portfolioId] = job.portfolioId
             it[triggerType] = job.triggerType.name
@@ -34,22 +34,22 @@ class ExposedCalculationJobRecorder(private val db: Database? = null) : Calculat
         portfolioId: String,
         limit: Int,
         offset: Int,
-    ): List<CalculationJob> = newSuspendedTransaction(db = db) {
-        CalculationJobsTable
+    ): List<ValuationJob> = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
             .selectAll()
-            .where { CalculationJobsTable.portfolioId eq portfolioId }
-            .orderBy(CalculationJobsTable.startedAt, SortOrder.DESC)
+            .where { ValuationJobsTable.portfolioId eq portfolioId }
+            .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
             .limit(limit)
             .offset(offset.toLong())
-            .map { it.toCalculationJob() }
+            .map { it.toValuationJob() }
     }
 
-    override suspend fun findByJobId(jobId: UUID): CalculationJob? = newSuspendedTransaction(db = db) {
-        CalculationJobsTable
+    override suspend fun findByJobId(jobId: UUID): ValuationJob? = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
             .selectAll()
-            .where { CalculationJobsTable.jobId eq jobId }
+            .where { ValuationJobsTable.jobId eq jobId }
             .firstOrNull()
-            ?.toCalculationJob()
+            ?.toValuationJob()
     }
 
     private fun JobStep.toJson(): JobStepJson = JobStepJson(
@@ -72,19 +72,19 @@ class ExposedCalculationJobRecorder(private val db: Database? = null) : Calculat
         error = error,
     )
 
-    private fun ResultRow.toCalculationJob(): CalculationJob = CalculationJob(
-        jobId = this[CalculationJobsTable.jobId],
-        portfolioId = this[CalculationJobsTable.portfolioId],
-        triggerType = TriggerType.valueOf(this[CalculationJobsTable.triggerType]),
-        status = RunStatus.valueOf(this[CalculationJobsTable.status]),
-        startedAt = this[CalculationJobsTable.startedAt].toInstant(),
-        completedAt = this[CalculationJobsTable.completedAt]?.toInstant(),
-        durationMs = this[CalculationJobsTable.durationMs],
-        calculationType = this[CalculationJobsTable.calculationType],
-        confidenceLevel = this[CalculationJobsTable.confidenceLevel],
-        varValue = this[CalculationJobsTable.varValue],
-        expectedShortfall = this[CalculationJobsTable.expectedShortfall],
-        steps = this[CalculationJobsTable.steps].map { it.toDomain() },
-        error = this[CalculationJobsTable.error],
+    private fun ResultRow.toValuationJob(): ValuationJob = ValuationJob(
+        jobId = this[ValuationJobsTable.jobId],
+        portfolioId = this[ValuationJobsTable.portfolioId],
+        triggerType = TriggerType.valueOf(this[ValuationJobsTable.triggerType]),
+        status = RunStatus.valueOf(this[ValuationJobsTable.status]),
+        startedAt = this[ValuationJobsTable.startedAt].toInstant(),
+        completedAt = this[ValuationJobsTable.completedAt]?.toInstant(),
+        durationMs = this[ValuationJobsTable.durationMs],
+        calculationType = this[ValuationJobsTable.calculationType],
+        confidenceLevel = this[ValuationJobsTable.confidenceLevel],
+        varValue = this[ValuationJobsTable.varValue],
+        expectedShortfall = this[ValuationJobsTable.expectedShortfall],
+        steps = this[ValuationJobsTable.steps].map { it.toDomain() },
+        error = this[ValuationJobsTable.error],
     )
 }

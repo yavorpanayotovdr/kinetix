@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.json.jsonb
 import kotlinx.serialization.json.Json
 
-object CalculationJobsTable : Table("calculation_jobs") {
+object ValuationJobsTable : Table("valuation_jobs") {
     val jobId = uuid("job_id")
     val portfolioId = varchar("portfolio_id", 255)
     val triggerType = varchar("trigger_type", 50)

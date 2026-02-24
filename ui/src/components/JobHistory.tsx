@@ -24,7 +24,7 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
       >
         {expanded ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
         <History className="h-4 w-4 text-slate-500" />
-        <span className="text-sm font-semibold text-slate-700">Calculation Jobs</span>
+        <span className="text-sm font-semibold text-slate-700">Valuation Jobs</span>
         {expanded && runs.length > 0 && (
           <Badge variant="neutral">{runs.length}</Badge>
         )}

@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../api/jobHistory')
 
-import { fetchCalculationJobs, fetchCalculationJobDetail } from '../api/jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
 import { useJobHistory } from './useJobHistory'
 
-const mockFetchJobs = vi.mocked(fetchCalculationJobs)
-const mockFetchJobDetail = vi.mocked(fetchCalculationJobDetail)
+const mockFetchJobs = vi.mocked(fetchValuationJobs)
+const mockFetchJobDetail = vi.mocked(fetchValuationJobDetail)
 
 const jobSummary = {
   jobId: 'job-1',

@@ -251,7 +251,7 @@ data class JobStepClientDto(
 )
 
 @Serializable
-data class CalculationJobSummaryClientDto(
+data class ValuationJobSummaryClientDto(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -265,7 +265,7 @@ data class CalculationJobSummaryClientDto(
 )
 
 @Serializable
-data class CalculationJobDetailClientDto(
+data class ValuationJobDetailClientDto(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -443,7 +443,7 @@ fun JobStepClientDto.toDomain() = JobStepItem(
     error = error,
 )
 
-fun CalculationJobSummaryClientDto.toDomain() = CalculationJobSummaryItem(
+fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
@@ -456,7 +456,7 @@ fun CalculationJobSummaryClientDto.toDomain() = CalculationJobSummaryItem(
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationJobDetailClientDto.toDomain() = CalculationJobDetailItem(
+fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,

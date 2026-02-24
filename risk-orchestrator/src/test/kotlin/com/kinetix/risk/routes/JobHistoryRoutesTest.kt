@@ -1,7 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.risk.model.*
-import com.kinetix.risk.service.CalculationJobRecorder
+import com.kinetix.risk.service.ValuationJobRecorder
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -23,7 +23,7 @@ private fun completedJob(
     jobId: UUID = JOB_ID,
     portfolioId: String = "port-1",
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
-) = CalculationJob(
+) = ValuationJob(
     jobId = jobId,
     portfolioId = portfolioId,
     triggerType = TriggerType.ON_DEMAND,
@@ -49,13 +49,13 @@ private fun completedJob(
 
 class JobHistoryRoutesTest : FunSpec({
 
-    val jobRecorder = mockk<CalculationJobRecorder>()
+    val jobRecorder = mockk<ValuationJobRecorder>()
 
     beforeEach {
         clearMocks(jobRecorder)
     }
 
-    test("lists calculation jobs for a portfolio") {
+    test("lists valuation jobs for a portfolio") {
         val jobs = listOf(
             completedJob(jobId = JOB_ID),
             completedJob(jobId = JOB_ID_2, startedAt = Instant.parse("2025-01-15T09:00:00Z")),

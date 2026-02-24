@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { CalculationJobDetailDto } from '../types'
+import type { ValuationJobDetailDto } from '../types'
 
 vi.mock('../hooks/useJobHistory')
 
@@ -11,7 +11,7 @@ const mockUseJobHistory = vi.mocked(useJobHistory)
 
 const defaultHookResult = {
   runs: [],
-  expandedJobs: {} as Record<string, CalculationJobDetailDto>,
+  expandedJobs: {} as Record<string, ValuationJobDetailDto>,
   loadingJobIds: new Set<string>(),
   loading: false,
   error: null,
@@ -49,7 +49,7 @@ describe('JobHistory', () => {
     render(<JobHistory portfolioId="port-1" />)
 
     expect(screen.getByTestId('job-history')).toBeInTheDocument()
-    expect(screen.getByText('Calculation Jobs')).toBeInTheDocument()
+    expect(screen.getByText('Valuation Jobs')).toBeInTheDocument()
     expect(screen.getByTestId('job-history-table')).toBeInTheDocument()
   })
 

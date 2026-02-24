@@ -3,7 +3,7 @@ package com.kinetix.risk.model
 import java.time.Instant
 import java.util.UUID
 
-data class CalculationJob(
+data class ValuationJob(
     val jobId: UUID,
     val portfolioId: String,
     val triggerType: TriggerType,

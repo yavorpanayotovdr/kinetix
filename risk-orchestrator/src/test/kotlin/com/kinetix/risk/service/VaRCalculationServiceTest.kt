@@ -60,7 +60,7 @@ class VaRCalculationServiceTest : FunSpec({
     val positionProvider = mockk<PositionProvider>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val resultPublisher = mockk<RiskResultPublisher>()
-    val jobRecorder = mockk<CalculationJobRecorder>()
+    val jobRecorder = mockk<ValuationJobRecorder>()
     val service = VaRCalculationService(
         positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
         jobRecorder = jobRecorder,
@@ -165,7 +165,7 @@ class VaRCalculationServiceTest : FunSpec({
         result!!.componentBreakdown.size shouldBe 3
     }
 
-    test("records a completed calculation job with all job steps") {
+    test("records a completed valuation job with all job steps") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -181,7 +181,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val jobSlot = slot<CalculationJob>()
+        val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.save(capture(jobSlot)) }
 
         val job = jobSlot.captured
@@ -230,7 +230,7 @@ class VaRCalculationServiceTest : FunSpec({
             // expected
         }
 
-        val jobSlot = slot<CalculationJob>()
+        val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.save(capture(jobSlot)) }
 
         val job = jobSlot.captured
@@ -275,7 +275,7 @@ class VaRCalculationServiceTest : FunSpec({
             triggerType = TriggerType.TRADE_EVENT,
         )
 
-        val jobSlot = slot<CalculationJob>()
+        val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.save(capture(jobSlot)) }
 
         jobSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
@@ -309,7 +309,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val jobSlot = slot<CalculationJob>()
+        val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.save(capture(jobSlot)) }
 
         val discoverStep = jobSlot.captured.steps.first { it.name == JobStepName.DISCOVER_DEPENDENCIES }

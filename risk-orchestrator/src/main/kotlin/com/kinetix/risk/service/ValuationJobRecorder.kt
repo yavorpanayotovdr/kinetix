@@ -1,10 +1,10 @@
 package com.kinetix.risk.service
 
-import com.kinetix.risk.model.CalculationJob
+import com.kinetix.risk.model.ValuationJob
 import java.util.UUID
 
-interface CalculationJobRecorder {
-    suspend fun save(job: CalculationJob)
-    suspend fun findByPortfolioId(portfolioId: String, limit: Int = 50, offset: Int = 0): List<CalculationJob>
-    suspend fun findByJobId(jobId: UUID): CalculationJob?
+interface ValuationJobRecorder {
+    suspend fun save(job: ValuationJob)
+    suspend fun findByPortfolioId(portfolioId: String, limit: Int = 50, offset: Int = 0): List<ValuationJob>
+    suspend fun findByJobId(jobId: UUID): ValuationJob?
 }

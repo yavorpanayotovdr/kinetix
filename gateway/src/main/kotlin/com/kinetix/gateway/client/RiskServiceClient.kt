@@ -127,7 +127,7 @@ data class JobStepItem(
     val error: String?,
 )
 
-data class CalculationJobSummaryItem(
+data class ValuationJobSummaryItem(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -140,7 +140,7 @@ data class CalculationJobSummaryItem(
     val expectedShortfall: Double?,
 )
 
-data class CalculationJobDetailItem(
+data class ValuationJobDetailItem(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -165,6 +165,6 @@ interface RiskServiceClient {
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
     suspend fun generateReport(portfolioId: String, format: String): ReportResult?
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
-    suspend fun listCalculationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0): List<CalculationJobSummaryItem>
-    suspend fun getCalculationJobDetail(jobId: String): CalculationJobDetailItem?
+    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0): List<ValuationJobSummaryItem>
+    suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
 }

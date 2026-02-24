@@ -18,7 +18,7 @@ class VaRCalculationService(
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
     private val dependenciesDiscoverer: DependenciesDiscoverer? = null,
     private val marketDataFetcher: MarketDataFetcher? = null,
-    private val jobRecorder: CalculationJobRecorder = NoOpCalculationJobRecorder(),
+    private val jobRecorder: ValuationJobRecorder = NoOpValuationJobRecorder(),
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -184,7 +184,7 @@ class VaRCalculationService(
             )
 
             val jobCompletedAt = Instant.now()
-            val job = CalculationJob(
+            val job = ValuationJob(
                 jobId = jobId,
                 portfolioId = request.portfolioId.value,
                 triggerType = triggerType,
@@ -204,7 +204,7 @@ class VaRCalculationService(
         } catch (e: Exception) {
             jobError = e.message ?: e.javaClass.simpleName
             val jobCompletedAt = Instant.now()
-            val job = CalculationJob(
+            val job = ValuationJob(
                 jobId = jobId,
                 portfolioId = request.portfolioId.value,
                 triggerType = triggerType,
@@ -222,11 +222,11 @@ class VaRCalculationService(
         }
     }
 
-    private suspend fun saveJobSafely(job: CalculationJob) {
+    private suspend fun saveJobSafely(job: ValuationJob) {
         try {
             jobRecorder.save(job)
         } catch (e: Exception) {
-            logger.warn("Failed to record calculation job {}", job.jobId, e)
+            logger.warn("Failed to record valuation job {}", job.jobId, e)
         }
     }
 }

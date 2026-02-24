@@ -1,10 +1,10 @@
-import type { CalculationJobSummaryDto, CalculationJobDetailDto } from '../types'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
-export async function fetchCalculationJobs(
+export async function fetchValuationJobs(
   portfolioId: string,
   limit: number = 20,
   offset: number = 0,
-): Promise<CalculationJobSummaryDto[]> {
+): Promise<ValuationJobSummaryDto[]> {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -14,15 +14,15 @@ export async function fetchCalculationJobs(
   )
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch calculation jobs: ${response.status} ${response.statusText}`,
+      `Failed to fetch valuation jobs: ${response.status} ${response.statusText}`,
     )
   }
   return response.json()
 }
 
-export async function fetchCalculationJobDetail(
+export async function fetchValuationJobDetail(
   jobId: string,
-): Promise<CalculationJobDetailDto | null> {
+): Promise<ValuationJobDetailDto | null> {
   const response = await fetch(
     `/api/v1/risk/jobs/detail/${encodeURIComponent(jobId)}`,
   )

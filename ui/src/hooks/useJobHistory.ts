@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCalculationJobs, fetchCalculationJobDetail } from '../api/jobHistory'
-import type { CalculationJobSummaryDto, CalculationJobDetailDto } from '../types'
+import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 export interface UseJobHistoryResult {
-  runs: CalculationJobSummaryDto[]
-  expandedJobs: Record<string, CalculationJobDetailDto>
+  runs: ValuationJobSummaryDto[]
+  expandedJobs: Record<string, ValuationJobDetailDto>
   loadingJobIds: Set<string>
   loading: boolean
   error: string | null
@@ -15,8 +15,8 @@ export interface UseJobHistoryResult {
 }
 
 export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
-  const [runs, setRuns] = useState<CalculationJobSummaryDto[]>([])
-  const [expandedJobs, setExpandedJobs] = useState<Record<string, CalculationJobDetailDto>>({})
+  const [runs, setRuns] = useState<ValuationJobSummaryDto[]>([])
+  const [expandedJobs, setExpandedJobs] = useState<Record<string, ValuationJobDetailDto>>({})
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +28,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setError(null)
 
     try {
-      const result = await fetchCalculationJobs(portfolioId)
+      const result = await fetchValuationJobs(portfolioId)
       setRuns(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -60,7 +60,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setLoadingJobIds((prev) => new Set(prev).add(jobId))
 
     try {
-      const detail = await fetchCalculationJobDetail(jobId)
+      const detail = await fetchValuationJobDetail(jobId)
       setExpandedJobs((prev) => ({ ...prev, [jobId]: detail }))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

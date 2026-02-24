@@ -3,8 +3,8 @@ package com.kinetix.gateway.dto
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.AlertEventItem
 import com.kinetix.gateway.client.AlertRuleItem
-import com.kinetix.gateway.client.CalculationJobDetailItem
-import com.kinetix.gateway.client.CalculationJobSummaryItem
+import com.kinetix.gateway.client.ValuationJobDetailItem
+import com.kinetix.gateway.client.ValuationJobSummaryItem
 import com.kinetix.gateway.client.JobStepItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
@@ -531,7 +531,7 @@ data class JobStepDto(
 )
 
 @Serializable
-data class CalculationJobSummaryResponse(
+data class ValuationJobSummaryResponse(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -545,7 +545,7 @@ data class CalculationJobSummaryResponse(
 )
 
 @Serializable
-data class CalculationJobDetailResponse(
+data class ValuationJobDetailResponse(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,
@@ -573,7 +573,7 @@ fun JobStepItem.toDto(): JobStepDto = JobStepDto(
     error = error,
 )
 
-fun CalculationJobSummaryItem.toResponse(): CalculationJobSummaryResponse = CalculationJobSummaryResponse(
+fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = ValuationJobSummaryResponse(
     jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
@@ -586,7 +586,7 @@ fun CalculationJobSummaryItem.toResponse(): CalculationJobSummaryResponse = Calc
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationJobDetailItem.toResponse(): CalculationJobDetailResponse = CalculationJobDetailResponse(
+fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
     jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,

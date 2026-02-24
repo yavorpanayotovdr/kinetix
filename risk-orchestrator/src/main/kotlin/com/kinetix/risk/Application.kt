@@ -20,7 +20,7 @@ import com.kinetix.risk.client.ResilientRiskEngineClient
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
-import com.kinetix.risk.persistence.ExposedCalculationJobRecorder
+import com.kinetix.risk.persistence.ExposedValuationJobRecorder
 import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
@@ -145,7 +145,7 @@ fun Application.moduleWithRoutes() {
             password = riskDbConfig.property("password").getString(),
         )
     )
-    val jobRecorder = ExposedCalculationJobRecorder(riskDb)
+    val jobRecorder = ExposedValuationJobRecorder(riskDb)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()

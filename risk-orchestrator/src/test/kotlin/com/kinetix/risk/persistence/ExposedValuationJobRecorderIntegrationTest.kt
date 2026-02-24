@@ -16,7 +16,7 @@ private fun completedJob(
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
     varValue: Double = 5000.0,
-) = CalculationJob(
+) = ValuationJob(
     jobId = UUID.randomUUID(),
     portfolioId = portfolioId,
     triggerType = triggerType,
@@ -72,16 +72,16 @@ private fun completedJob(
     ),
 )
 
-class ExposedCalculationJobRecorderIntegrationTest : FunSpec({
+class ExposedValuationJobRecorderIntegrationTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
-    val recorder = ExposedCalculationJobRecorder(db)
+    val recorder = ExposedValuationJobRecorder(db)
 
     beforeEach {
-        newSuspendedTransaction(db = db) { CalculationJobsTable.deleteAll() }
+        newSuspendedTransaction(db = db) { ValuationJobsTable.deleteAll() }
     }
 
-    test("saves and retrieves a completed calculation job") {
+    test("saves and retrieves a completed valuation job") {
         val job = completedJob()
         recorder.save(job)
 

@@ -2,13 +2,13 @@ package com.kinetix.risk.routes
 
 import com.kinetix.risk.mapper.toDetailResponse
 import com.kinetix.risk.mapper.toSummaryResponse
-import com.kinetix.risk.service.CalculationJobRecorder
+import com.kinetix.risk.service.ValuationJobRecorder
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.UUID
 
-fun Route.jobHistoryRoutes(jobRecorder: CalculationJobRecorder) {
+fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
 
     get("/api/v1/risk/jobs/{portfolioId}") {
         val portfolioId = call.requirePathParam("portfolioId")

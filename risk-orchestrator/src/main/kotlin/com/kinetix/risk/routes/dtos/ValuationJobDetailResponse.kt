@@ -3,7 +3,7 @@ package com.kinetix.risk.routes.dtos
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CalculationJobDetailResponse(
+data class ValuationJobDetailResponse(
     val jobId: String,
     val portfolioId: String,
     val triggerType: String,

@@ -1,12 +1,12 @@
 import { Fragment } from 'react'
-import type { CalculationJobSummaryDto, CalculationJobDetailDto } from '../types'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { JobTimeline } from './JobTimeline'
 import { formatRelativeTime } from '../utils/format'
 
 interface JobHistoryTableProps {
-  runs: CalculationJobSummaryDto[]
-  expandedJobs: Record<string, CalculationJobDetailDto>
+  runs: ValuationJobSummaryDto[]
+  expandedJobs: Record<string, ValuationJobDetailDto>
   loadingJobIds: Set<string>
   onSelectJob: (jobId: string) => void
   onCloseJob: (jobId: string) => void
@@ -29,7 +29,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
   if (runs.length === 0) {
     return (
       <div data-testid="job-history-empty" className="text-sm text-slate-400 py-4 text-center">
-        No calculation jobs yet.
+        No valuation jobs yet.
       </div>
     )
   }

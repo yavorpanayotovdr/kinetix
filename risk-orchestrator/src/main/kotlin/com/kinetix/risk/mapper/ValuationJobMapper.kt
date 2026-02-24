@@ -1,12 +1,12 @@
 package com.kinetix.risk.mapper
 
-import com.kinetix.risk.model.CalculationJob
+import com.kinetix.risk.model.ValuationJob
 import com.kinetix.risk.model.JobStep
-import com.kinetix.risk.routes.dtos.CalculationJobDetailResponse
-import com.kinetix.risk.routes.dtos.CalculationJobSummaryResponse
+import com.kinetix.risk.routes.dtos.ValuationJobDetailResponse
+import com.kinetix.risk.routes.dtos.ValuationJobSummaryResponse
 import com.kinetix.risk.routes.dtos.JobStepResponse
 
-fun CalculationJob.toSummaryResponse(): CalculationJobSummaryResponse = CalculationJobSummaryResponse(
+fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJobSummaryResponse(
     jobId = jobId.toString(),
     portfolioId = portfolioId,
     triggerType = triggerType.name,
@@ -19,7 +19,7 @@ fun CalculationJob.toSummaryResponse(): CalculationJobSummaryResponse = Calculat
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationJob.toDetailResponse(): CalculationJobDetailResponse = CalculationJobDetailResponse(
+fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
     jobId = jobId.toString(),
     portfolioId = portfolioId,
     triggerType = triggerType.name,
