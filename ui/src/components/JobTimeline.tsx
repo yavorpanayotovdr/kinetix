@@ -38,7 +38,7 @@ function CopyButton({ text, testId }: { text: string; testId: string }) {
     <button
       data-testid={testId}
       onClick={handleCopy}
-      className="absolute top-1.5 right-1.5 p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+      className="absolute top-1.5 left-1.5 p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
       title="Copy JSON"
     >
       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
@@ -147,7 +147,7 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                             <CopyButton text={JSON.stringify(pos, null, 2)} testId={`copy-position-${pos.instrumentId}`} />
                             <pre
                               data-testid={`position-json-${pos.instrumentId}`}
-                              className="p-2 pr-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                             >
                               {JSON.stringify(pos, null, 2)}
                             </pre>
@@ -174,7 +174,7 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                             <CopyButton text={JSON.stringify(dep, null, 2)} testId={`copy-dependency-${dep.instrumentId}-${dep.dataType}`} />
                             <pre
                               data-testid={`dependency-json-${dep.instrumentId}-${dep.dataType}`}
-                              className="p-2 pr-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                             >
                               {JSON.stringify(dep, null, 2)}
                             </pre>
