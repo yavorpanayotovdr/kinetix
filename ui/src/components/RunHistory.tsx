@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, History } from 'lucide-react'
 import { useRunHistory } from '../hooks/useRunHistory'
 import { RunHistoryTable } from './RunHistoryTable'
-import { PipelineTimeline } from './PipelineTimeline'
 import { Card, Badge, Spinner, Button } from './ui'
 import { RefreshCw } from 'lucide-react'
 
@@ -11,7 +10,7 @@ interface RunHistoryProps {
 }
 
 export function RunHistory({ portfolioId }: RunHistoryProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const { runs, selectedRun, loading, error, selectRun, clearSelection, refresh } = useRunHistory(
     expanded ? portfolioId : null,
   )
@@ -63,28 +62,11 @@ export function RunHistory({ portfolioId }: RunHistoryProps) {
               <RunHistoryTable
                 runs={runs}
                 selectedRunId={selectedRun?.runId ?? null}
+                selectedRun={selectedRun}
                 onSelectRun={selectRun}
+                onClearSelection={clearSelection}
               />
             </>
-          )}
-
-          {selectedRun && (
-            <div data-testid="run-detail-panel" className="mt-4 pt-3 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-slate-700">Pipeline Detail</h4>
-                <button
-                  data-testid="close-detail"
-                  onClick={clearSelection}
-                  className="text-xs text-slate-400 hover:text-slate-600"
-                >
-                  Close
-                </button>
-              </div>
-              <PipelineTimeline steps={selectedRun.steps} />
-              {selectedRun.error && (
-                <p className="mt-2 text-xs text-red-600">Error: {selectedRun.error}</p>
-              )}
-            </div>
           )}
         </div>
       )}
