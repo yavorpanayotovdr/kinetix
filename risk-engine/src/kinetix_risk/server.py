@@ -9,9 +9,11 @@ from kinetix.risk import market_data_dependencies_pb2_grpc, ml_prediction_pb2_gr
 from kinetix_risk.converters import (
     proto_calculation_type_to_domain,
     proto_confidence_to_domain,
+    proto_market_data_to_domain,
     proto_positions_to_domain,
     var_result_to_proto_response,
 )
+from kinetix_risk.market_data_consumer import consume_market_data
 from kinetix_risk.metrics import risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
@@ -28,12 +30,17 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
         calc_type = proto_calculation_type_to_domain(request.calculation_type)
         confidence = proto_confidence_to_domain(request.confidence_level)
 
+        market_data_dicts = proto_market_data_to_domain(request.market_data)
+        bundle = consume_market_data(market_data_dicts)
+
         result = calculate_portfolio_var(
             positions=positions,
             calculation_type=calc_type,
             confidence_level=confidence,
             time_horizon_days=request.time_horizon_days or 1,
             num_simulations=request.num_simulations or 10_000,
+            volatility_provider=bundle.volatility_provider,
+            correlation_matrix=bundle.correlation_matrix,
         )
 
         risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_value)

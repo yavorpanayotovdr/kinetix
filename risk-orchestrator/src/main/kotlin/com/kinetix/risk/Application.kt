@@ -9,13 +9,19 @@ import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.client.GrpcRiskEngineClient
+import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.kafka.NoOpRiskResultPublisher
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
+import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.VaRCalculationService
 import io.grpc.ManagedChannelBuilder
 import io.grpc.TlsChannelCredentials
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.serialization.kotlinx.json.*
 import java.io.File
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -85,8 +91,19 @@ fun Application.moduleWithRoutes() {
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
         dependenciesStub,
     )
+    val priceServiceBaseUrl = environment.config
+        .propertyOrNull("priceService.baseUrl")?.getString() ?: "http://localhost:8082"
+    val priceHttpClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) { json() }
+    }
+    val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
+    val marketDataFetcher = MarketDataFetcher(riskEngineClient, priceServiceClient)
+
     val resultPublisher = NoOpRiskResultPublisher()
-    val varCalculationService = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher)
+    val varCalculationService = VaRCalculationService(
+        positionProvider, riskEngineClient, resultPublisher,
+        marketDataFetcher = marketDataFetcher,
+    )
     val varCache = LatestVaRCache()
 
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)

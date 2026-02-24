@@ -225,16 +225,67 @@ def report_to_proto(
     )
 
 
+_PROTO_MARKET_DATA_TYPE_TO_NAME = {
+    risk_calculation_pb2.SPOT_PRICE: "SPOT_PRICE",
+    risk_calculation_pb2.HISTORICAL_PRICES: "HISTORICAL_PRICES",
+    risk_calculation_pb2.VOLATILITY_SURFACE: "VOLATILITY_SURFACE",
+    risk_calculation_pb2.YIELD_CURVE: "YIELD_CURVE",
+    risk_calculation_pb2.RISK_FREE_RATE: "RISK_FREE_RATE",
+    risk_calculation_pb2.DIVIDEND_YIELD: "DIVIDEND_YIELD",
+    risk_calculation_pb2.CREDIT_SPREAD: "CREDIT_SPREAD",
+    risk_calculation_pb2.FORWARD_CURVE: "FORWARD_CURVE",
+    risk_calculation_pb2.CORRELATION_MATRIX: "CORRELATION_MATRIX",
+}
+
+
+def proto_market_data_to_domain(market_data_list) -> list[dict]:
+    result = []
+    for md in market_data_list:
+        data_type_name = _PROTO_MARKET_DATA_TYPE_TO_NAME.get(
+            md.data_type, "UNKNOWN"
+        )
+        item = {
+            "data_type": data_type_name,
+            "instrument_id": md.instrument_id,
+            "asset_class": md.asset_class,
+        }
+        value_field = md.WhichOneof("value")
+        if value_field == "scalar":
+            item["scalar"] = md.scalar
+        elif value_field == "time_series":
+            item["time_series"] = [
+                {
+                    "timestamp_seconds": pt.timestamp.seconds,
+                    "value": pt.value,
+                }
+                for pt in md.time_series.points
+            ]
+        elif value_field == "matrix":
+            item["matrix"] = {
+                "rows": md.matrix.rows,
+                "cols": md.matrix.cols,
+                "values": list(md.matrix.values),
+                "labels": list(md.matrix.labels),
+            }
+        elif value_field == "curve":
+            item["curve"] = [
+                {"tenor": pt.tenor, "value": pt.value}
+                for pt in md.curve.points
+            ]
+        result.append(item)
+    return result
+
+
 _MARKET_DATA_TYPE_NAME_TO_PROTO = {
-    "SPOT_PRICE": market_data_dependencies_pb2.SPOT_PRICE,
-    "HISTORICAL_PRICES": market_data_dependencies_pb2.HISTORICAL_PRICES,
-    "VOLATILITY_SURFACE": market_data_dependencies_pb2.VOLATILITY_SURFACE,
-    "YIELD_CURVE": market_data_dependencies_pb2.YIELD_CURVE,
-    "RISK_FREE_RATE": market_data_dependencies_pb2.RISK_FREE_RATE,
-    "DIVIDEND_YIELD": market_data_dependencies_pb2.DIVIDEND_YIELD,
-    "CREDIT_SPREAD": market_data_dependencies_pb2.CREDIT_SPREAD,
-    "FORWARD_CURVE": market_data_dependencies_pb2.FORWARD_CURVE,
-    "CORRELATION_MATRIX": market_data_dependencies_pb2.CORRELATION_MATRIX,
+    "SPOT_PRICE": risk_calculation_pb2.SPOT_PRICE,
+    "HISTORICAL_PRICES": risk_calculation_pb2.HISTORICAL_PRICES,
+    "VOLATILITY_SURFACE": risk_calculation_pb2.VOLATILITY_SURFACE,
+    "YIELD_CURVE": risk_calculation_pb2.YIELD_CURVE,
+    "RISK_FREE_RATE": risk_calculation_pb2.RISK_FREE_RATE,
+    "DIVIDEND_YIELD": risk_calculation_pb2.DIVIDEND_YIELD,
+    "CREDIT_SPREAD": risk_calculation_pb2.CREDIT_SPREAD,
+    "FORWARD_CURVE": risk_calculation_pb2.FORWARD_CURVE,
+    "CORRELATION_MATRIX": risk_calculation_pb2.CORRELATION_MATRIX,
 }
 
 
@@ -245,7 +296,7 @@ def dependencies_to_proto(
     for dep in dependencies:
         proto_data_type = _MARKET_DATA_TYPE_NAME_TO_PROTO.get(
             dep.data_type,
-            market_data_dependencies_pb2.MARKET_DATA_TYPE_UNSPECIFIED,
+            risk_calculation_pb2.MARKET_DATA_TYPE_UNSPECIFIED,
         )
         proto_deps.append(market_data_dependencies_pb2.MarketDataDependency(
             data_type=proto_data_type,

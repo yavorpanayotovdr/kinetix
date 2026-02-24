@@ -1,4 +1,4 @@
-from kinetix.risk import market_data_dependencies_pb2
+from kinetix.risk import market_data_dependencies_pb2, risk_calculation_pb2
 from kinetix_risk.converters import dependencies_to_proto
 from kinetix_risk.dependencies import MarketDataDependency
 
@@ -22,7 +22,7 @@ class TestDependenciesToProto:
         assert len(result.dependencies) == 1
 
         proto_dep = result.dependencies[0]
-        assert proto_dep.data_type == market_data_dependencies_pb2.SPOT_PRICE
+        assert proto_dep.data_type == risk_calculation_pb2.SPOT_PRICE
         assert proto_dep.instrument_id == "AAPL"
         assert proto_dep.asset_class == "EQUITY"
         assert proto_dep.required is True
@@ -43,7 +43,7 @@ class TestDependenciesToProto:
         result = dependencies_to_proto(deps)
 
         proto_dep = result.dependencies[0]
-        assert proto_dep.data_type == market_data_dependencies_pb2.HISTORICAL_PRICES
+        assert proto_dep.data_type == risk_calculation_pb2.HISTORICAL_PRICES
         assert proto_dep.required is False
         assert proto_dep.parameters["lookbackDays"] == "252"
 
@@ -60,15 +60,15 @@ class TestDependenciesToProto:
             "CORRELATION_MATRIX",
         ]
         expected_protos = [
-            market_data_dependencies_pb2.SPOT_PRICE,
-            market_data_dependencies_pb2.HISTORICAL_PRICES,
-            market_data_dependencies_pb2.VOLATILITY_SURFACE,
-            market_data_dependencies_pb2.YIELD_CURVE,
-            market_data_dependencies_pb2.RISK_FREE_RATE,
-            market_data_dependencies_pb2.DIVIDEND_YIELD,
-            market_data_dependencies_pb2.CREDIT_SPREAD,
-            market_data_dependencies_pb2.FORWARD_CURVE,
-            market_data_dependencies_pb2.CORRELATION_MATRIX,
+            risk_calculation_pb2.SPOT_PRICE,
+            risk_calculation_pb2.HISTORICAL_PRICES,
+            risk_calculation_pb2.VOLATILITY_SURFACE,
+            risk_calculation_pb2.YIELD_CURVE,
+            risk_calculation_pb2.RISK_FREE_RATE,
+            risk_calculation_pb2.DIVIDEND_YIELD,
+            risk_calculation_pb2.CREDIT_SPREAD,
+            risk_calculation_pb2.FORWARD_CURVE,
+            risk_calculation_pb2.CORRELATION_MATRIX,
         ]
         deps = [
             MarketDataDependency(
@@ -96,7 +96,7 @@ class TestDependenciesToProto:
             ),
         ]
         result = dependencies_to_proto(deps)
-        assert result.dependencies[0].data_type == market_data_dependencies_pb2.MARKET_DATA_TYPE_UNSPECIFIED
+        assert result.dependencies[0].data_type == risk_calculation_pb2.MARKET_DATA_TYPE_UNSPECIFIED
 
     def test_portfolio_level_dependency(self):
         deps = [

@@ -86,8 +86,8 @@ class TestDiscoverDependenciesGrpc:
         assert len(response.dependencies) >= 2
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.SPOT_PRICE in data_types
-        assert market_data_dependencies_pb2.HISTORICAL_PRICES in data_types
+        assert risk_calculation_pb2.SPOT_PRICE in data_types
+        assert risk_calculation_pb2.HISTORICAL_PRICES in data_types
 
     def test_derivative_returns_vol_surface_and_risk_free_rate(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -98,9 +98,9 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.SPOT_PRICE in data_types
-        assert market_data_dependencies_pb2.VOLATILITY_SURFACE in data_types
-        assert market_data_dependencies_pb2.RISK_FREE_RATE in data_types
+        assert risk_calculation_pb2.SPOT_PRICE in data_types
+        assert risk_calculation_pb2.VOLATILITY_SURFACE in data_types
+        assert risk_calculation_pb2.RISK_FREE_RATE in data_types
 
     def test_mixed_portfolio_includes_correlation_matrix(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -111,7 +111,7 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.CORRELATION_MATRIX in data_types
+        assert risk_calculation_pb2.CORRELATION_MATRIX in data_types
 
     def test_single_asset_class_no_correlation_matrix(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -122,7 +122,7 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.CORRELATION_MATRIX not in data_types
+        assert risk_calculation_pb2.CORRELATION_MATRIX not in data_types
 
     def test_dependency_fields_are_populated(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -133,7 +133,7 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         for dep in response.dependencies:
-            assert dep.data_type != market_data_dependencies_pb2.MARKET_DATA_TYPE_UNSPECIFIED
+            assert dep.data_type != risk_calculation_pb2.MARKET_DATA_TYPE_UNSPECIFIED
             assert dep.asset_class != ""
             assert dep.description != ""
 
@@ -148,7 +148,7 @@ class TestDiscoverDependenciesGrpc:
 
         spot_prices = [
             d for d in response.dependencies
-            if d.data_type == market_data_dependencies_pb2.SPOT_PRICE
+            if d.data_type == risk_calculation_pb2.SPOT_PRICE
         ]
         assert len(spot_prices) == 1
 
@@ -161,8 +161,8 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.YIELD_CURVE in data_types
-        assert market_data_dependencies_pb2.CREDIT_SPREAD in data_types
+        assert risk_calculation_pb2.YIELD_CURVE in data_types
+        assert risk_calculation_pb2.CREDIT_SPREAD in data_types
 
     def test_required_flag_is_set(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -173,8 +173,8 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         by_type = {d.data_type: d for d in response.dependencies}
-        assert by_type[market_data_dependencies_pb2.SPOT_PRICE].required is True
-        assert by_type[market_data_dependencies_pb2.HISTORICAL_PRICES].required is False
+        assert by_type[risk_calculation_pb2.SPOT_PRICE].required is True
+        assert by_type[risk_calculation_pb2.HISTORICAL_PRICES].required is False
 
     def test_parameters_are_populated(self, stub):
         request = market_data_dependencies_pb2.DataDependenciesRequest(
@@ -186,7 +186,7 @@ class TestDiscoverDependenciesGrpc:
 
         hist = [
             d for d in response.dependencies
-            if d.data_type == market_data_dependencies_pb2.HISTORICAL_PRICES
+            if d.data_type == risk_calculation_pb2.HISTORICAL_PRICES
         ]
         assert len(hist) == 1
         assert hist[0].parameters["lookbackDays"] == "252"
@@ -212,12 +212,12 @@ class TestDiscoverDependenciesGrpc:
         response = stub.DiscoverDependencies(request)
 
         data_types = {d.data_type for d in response.dependencies}
-        assert market_data_dependencies_pb2.SPOT_PRICE in data_types
-        assert market_data_dependencies_pb2.HISTORICAL_PRICES in data_types
-        assert market_data_dependencies_pb2.YIELD_CURVE in data_types
-        assert market_data_dependencies_pb2.CREDIT_SPREAD in data_types
-        assert market_data_dependencies_pb2.FORWARD_CURVE in data_types
-        assert market_data_dependencies_pb2.VOLATILITY_SURFACE in data_types
-        assert market_data_dependencies_pb2.RISK_FREE_RATE in data_types
-        assert market_data_dependencies_pb2.CORRELATION_MATRIX in data_types
+        assert risk_calculation_pb2.SPOT_PRICE in data_types
+        assert risk_calculation_pb2.HISTORICAL_PRICES in data_types
+        assert risk_calculation_pb2.YIELD_CURVE in data_types
+        assert risk_calculation_pb2.CREDIT_SPREAD in data_types
+        assert risk_calculation_pb2.FORWARD_CURVE in data_types
+        assert risk_calculation_pb2.VOLATILITY_SURFACE in data_types
+        assert risk_calculation_pb2.RISK_FREE_RATE in data_types
+        assert risk_calculation_pb2.CORRELATION_MATRIX in data_types
         assert len(response.dependencies) > 0

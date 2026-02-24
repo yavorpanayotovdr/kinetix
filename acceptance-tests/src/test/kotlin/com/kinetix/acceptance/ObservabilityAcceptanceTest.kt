@@ -24,6 +24,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
     override suspend fun calculateVaR(
         request: VaRCalculationRequest,
         positions: List<Position>,
+        marketData: List<com.kinetix.risk.model.MarketDataValue>,
     ): VaRResult {
         delay(31_000)
         return VaRResult(

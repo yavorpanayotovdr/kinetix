@@ -8,19 +8,6 @@ option java_multiple_files = true;
 import "kinetix/common/types.proto";
 import "kinetix/risk/risk_calculation.proto";
 
-enum MarketDataType {
-  MARKET_DATA_TYPE_UNSPECIFIED = 0;
-  SPOT_PRICE = 1;
-  HISTORICAL_PRICES = 2;
-  VOLATILITY_SURFACE = 3;
-  YIELD_CURVE = 4;
-  RISK_FREE_RATE = 5;
-  DIVIDEND_YIELD = 6;
-  CREDIT_SPREAD = 7;
-  FORWARD_CURVE = 8;
-  CORRELATION_MATRIX = 9;
-}
-
 message MarketDataDependency {
   MarketDataType data_type = 1;
   string instrument_id = 2;

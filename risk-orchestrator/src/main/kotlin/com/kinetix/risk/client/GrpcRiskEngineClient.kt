@@ -10,6 +10,7 @@ import com.kinetix.risk.mapper.toProto
 import com.kinetix.risk.mapper.toDomain
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
@@ -19,7 +20,11 @@ class GrpcRiskEngineClient(
     private val dependenciesStub: MarketDataDependenciesServiceCoroutineStub? = null,
 ) : RiskEngineClient {
 
-    override suspend fun calculateVaR(request: VaRCalculationRequest, positions: List<Position>): VaRResult {
+    override suspend fun calculateVaR(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<MarketDataValue>,
+    ): VaRResult {
         val protoRequest = VaRRequest.newBuilder()
             .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(request.portfolioId.value))
             .setCalculationType(request.calculationType.toProto())
@@ -27,6 +32,7 @@ class GrpcRiskEngineClient(
             .setTimeHorizonDays(request.timeHorizonDays)
             .setNumSimulations(request.numSimulations)
             .addAllPositions(positions.map { it.toProto() })
+            .addAllMarketData(marketData.map { it.toProto() })
             .build()
 
         val response = stub.calculateVaR(protoRequest)

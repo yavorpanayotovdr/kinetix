@@ -21,6 +21,56 @@ enum ConfidenceLevel {
   CL_99 = 2;
 }
 
+enum MarketDataType {
+  MARKET_DATA_TYPE_UNSPECIFIED = 0;
+  SPOT_PRICE = 1;
+  HISTORICAL_PRICES = 2;
+  VOLATILITY_SURFACE = 3;
+  YIELD_CURVE = 4;
+  RISK_FREE_RATE = 5;
+  DIVIDEND_YIELD = 6;
+  CREDIT_SPREAD = 7;
+  FORWARD_CURVE = 8;
+  CORRELATION_MATRIX = 9;
+}
+
+message TimeSeriesPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double value = 2;
+}
+
+message TimeSeries {
+  repeated TimeSeriesPoint points = 1;
+}
+
+message Matrix {
+  int32 rows = 1;
+  int32 cols = 2;
+  repeated double values = 3;   // row-major
+  repeated string labels = 4;
+}
+
+message CurvePoint {
+  string tenor = 1;
+  double value = 2;
+}
+
+message Curve {
+  repeated CurvePoint points = 1;
+}
+
+message MarketDataValue {
+  MarketDataType data_type = 1;
+  string instrument_id = 2;
+  string asset_class = 3;
+  oneof value {
+    double scalar = 4;           // SPOT_PRICE, RISK_FREE_RATE, DIVIDEND_YIELD, CREDIT_SPREAD
+    TimeSeries time_series = 5;  // HISTORICAL_PRICES
+    Matrix matrix = 6;           // CORRELATION_MATRIX, VOLATILITY_SURFACE
+    Curve curve = 7;             // YIELD_CURVE, FORWARD_CURVE
+  }
+}
+
 message VaRRequest {
   kinetix.common.PortfolioId portfolio_id = 1;
   RiskCalculationType calculation_type = 2;
@@ -28,6 +78,7 @@ message VaRRequest {
   int32 time_horizon_days = 4;
   int32 num_simulations = 5; // For Monte Carlo
   repeated kinetix.common.Position positions = 6;
+  repeated MarketDataValue market_data = 7;
 }
 
 message VaRResponse {

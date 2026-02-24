@@ -49,6 +49,7 @@ private class StubRiskEngineClient : RiskEngineClient {
     override suspend fun calculateVaR(
         request: VaRCalculationRequest,
         positions: List<Position>,
+        marketData: List<com.kinetix.risk.model.MarketDataValue>,
     ): VaRResult {
         val zScore = when (request.confidenceLevel) {
             ConfidenceLevel.CL_95 -> 1.645
