@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import type { JobStepDto } from '../types'
 
 interface JobTimelineProps {
@@ -22,6 +22,28 @@ function StatusDotInline({ status }: { status: string }) {
         ? 'bg-red-500'
         : 'bg-slate-300'
   return <span data-testid={`step-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
+}
+
+function CopyButton({ text, testId }: { text: string; testId: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <button
+      data-testid={testId}
+      onClick={handleCopy}
+      className="absolute top-1.5 right-1.5 p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+      title="Copy JSON"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  )
 }
 
 interface PositionItem {
@@ -121,12 +143,15 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                           <span>{pos.instrumentId}</span>
                         </button>
                         {isPosOpen && (
-                          <pre
-                            data-testid={`position-json-${pos.instrumentId}`}
-                            className="ml-4 mt-0.5 p-2 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
-                          >
-                            {JSON.stringify(pos, null, 2)}
-                          </pre>
+                          <div className="relative ml-4 mt-0.5">
+                            <CopyButton text={JSON.stringify(pos, null, 2)} testId={`copy-position-${pos.instrumentId}`} />
+                            <pre
+                              data-testid={`position-json-${pos.instrumentId}`}
+                              className="p-2 pr-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                            >
+                              {JSON.stringify(pos, null, 2)}
+                            </pre>
+                          </div>
                         )}
                       </div>
                     )
@@ -145,12 +170,15 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                           <span>{dep.dataType} — {dep.instrumentId}</span>
                         </button>
                         {isDepOpen && (
-                          <pre
-                            data-testid={`dependency-json-${dep.instrumentId}-${dep.dataType}`}
-                            className="ml-4 mt-0.5 p-2 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
-                          >
-                            {JSON.stringify(dep, null, 2)}
-                          </pre>
+                          <div className="relative ml-4 mt-0.5">
+                            <CopyButton text={JSON.stringify(dep, null, 2)} testId={`copy-dependency-${dep.instrumentId}-${dep.dataType}`} />
+                            <pre
+                              data-testid={`dependency-json-${dep.instrumentId}-${dep.dataType}`}
+                              className="p-2 pr-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                            >
+                              {JSON.stringify(dep, null, 2)}
+                            </pre>
+                          </div>
                         )}
                       </div>
                     )
