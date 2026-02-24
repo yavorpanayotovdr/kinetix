@@ -1,4 +1,5 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
+import { Search } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { JobTimeline } from './JobTimeline'
@@ -26,6 +27,8 @@ const TRIGGER_VARIANT: Record<string, 'info' | 'neutral' | 'warning'> = {
 }
 
 export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob }: JobHistoryTableProps) {
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
+
   if (runs.length === 0) {
     return (
       <div data-testid="job-history-empty" className="text-sm text-slate-400 py-4 text-center">
@@ -87,16 +90,32 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                       <div data-testid="job-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-700">Job Details</h4>
-                          <button
-                            data-testid={`close-detail-${run.jobId}`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onCloseJob(run.jobId)
-                            }}
-                            className="text-xs text-slate-400 hover:text-slate-600"
-                          >
-                            Close
-                          </button>
+                          <div className="flex items-center gap-3">
+                            {detail && !isLoading && (
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                                <input
+                                  data-testid={`detail-search-${run.jobId}`}
+                                  type="text"
+                                  value={searchTerms[run.jobId] ?? ''}
+                                  onChange={(e) => setSearchTerms((prev) => ({ ...prev, [run.jobId]: e.target.value }))}
+                                  placeholder="Search steps…"
+                                  className="pl-7 pr-2 py-1 text-xs rounded border border-slate-200 bg-white focus:outline-none focus:border-primary-300 w-48"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            )}
+                            <button
+                              data-testid={`close-detail-${run.jobId}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onCloseJob(run.jobId)
+                              }}
+                              className="text-xs text-slate-400 hover:text-slate-600"
+                            >
+                              Close
+                            </button>
+                          </div>
                         </div>
                         {isLoading && (
                           <div data-testid="detail-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2">
@@ -106,7 +125,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                         )}
                         {detail && !isLoading && (
                           <>
-                            <JobTimeline steps={detail.steps} />
+                            <JobTimeline steps={detail.steps} search={searchTerms[run.jobId] ?? ''} />
                             {detail.error && (
                               <p className="mt-2 text-xs text-red-600">Error: {detail.error}</p>
                             )}

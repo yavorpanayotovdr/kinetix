@@ -194,4 +194,126 @@ describe('JobTimeline', () => {
 
     expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
   })
+
+  describe('search prop filters steps by content', () => {
+    it('shows all steps when search is empty', () => {
+      render(<JobTimeline steps={steps} search="" />)
+
+      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
+    })
+
+    it('filters steps to those whose details contain the search term', () => {
+      render(<JobTimeline steps={steps} search="AAPL" />)
+
+      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-FETCH_MARKET_DATA')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-PUBLISH_RESULT')).not.toBeInTheDocument()
+    })
+
+    it('matches step detail key-value pairs', () => {
+      render(<JobTimeline steps={steps} search="risk.results" />)
+
+      expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
+    })
+
+    it('matches step label name', () => {
+      render(<JobTimeline steps={steps} search="Calculate" />)
+
+      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
+    })
+
+    it('is case-insensitive', () => {
+      render(<JobTimeline steps={steps} search="aapl" />)
+
+      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    })
+
+    it('auto-expands matching steps when search is active', () => {
+      render(<JobTimeline steps={steps} search="AAPL" />)
+
+      expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    })
+
+    it('shows no-results message when nothing matches', () => {
+      render(<JobTimeline steps={steps} search="NONEXISTENT" />)
+
+      expect(screen.getByText('No steps match your search.')).toBeInTheDocument()
+    })
+  })
+
+  describe('in-step item filtering', () => {
+    it('shows a filter input when positions step is expanded', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      expect(screen.getByTestId('filter-FETCH_POSITIONS')).toBeInTheDocument()
+    })
+
+    it('filters positions by instrument ID', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'TSLA' } })
+
+      expect(screen.getByTestId('position-TSLA')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('filters positions by any field value', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: '17000' } })
+
+      expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-TSLA')).not.toBeInTheDocument()
+    })
+
+    it('shows a filter input when dependencies step is expanded', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+
+      expect(screen.getByTestId('filter-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    })
+
+    it('filters dependencies by instrument ID', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+
+      fireEvent.change(screen.getByTestId('filter-DISCOVER_DEPENDENCIES'), { target: { value: 'USD_SOFR' } })
+
+      expect(screen.getByTestId('dependency-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
+      expect(screen.queryByTestId('dependency-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
+    })
+
+    it('filters dependencies by data type', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+
+      fireEvent.change(screen.getByTestId('filter-DISCOVER_DEPENDENCIES'), { target: { value: 'YIELD' } })
+
+      expect(screen.getByTestId('dependency-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
+      expect(screen.queryByTestId('dependency-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
+    })
+
+    it('is case-insensitive', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'tsla' } })
+
+      expect(screen.getByTestId('position-TSLA')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-AAPL')).not.toBeInTheDocument()
+    })
+  })
 })

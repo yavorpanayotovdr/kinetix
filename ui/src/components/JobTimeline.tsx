@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, Check, Search } from 'lucide-react'
 import type { JobStepDto } from '../types'
 
 interface JobTimelineProps {
   steps: JobStepDto[]
+  search?: string
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -57,9 +58,44 @@ interface DependencyItem {
   [key: string]: string
 }
 
-export function JobTimeline({ steps }: JobTimelineProps) {
+function stepMatchesSearch(step: JobStepDto, term: string): boolean {
+  const lower = term.toLowerCase()
+  const label = (STEP_LABELS[step.name] ?? step.name).toLowerCase()
+  if (label.includes(lower)) return true
+  for (const value of Object.values(step.details)) {
+    if (value.toLowerCase().includes(lower)) return true
+  }
+  if (step.error?.toLowerCase().includes(lower)) return true
+  return false
+}
+
+function itemMatchesFilter(item: Record<string, string>, term: string): boolean {
+  const lower = term.toLowerCase()
+  return Object.values(item).some((v) => v.toLowerCase().includes(lower))
+}
+
+function FilterInput({ testId, value, onChange }: { testId: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative mb-1.5">
+      <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+      <input
+        data-testid={testId}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Filter…"
+        className="w-full pl-6 pr-2 py-1 text-xs rounded border border-slate-200 bg-white focus:outline-none focus:border-primary-300"
+      />
+    </div>
+  )
+}
+
+export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
+  const [itemFilters, setItemFilters] = useState<Record<string, string>>({})
+
+  const isSearchActive = search.trim().length > 0
 
   const toggle = (index: number) => {
     setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))
@@ -67,6 +103,10 @@ export function JobTimeline({ steps }: JobTimelineProps) {
 
   const toggleItem = (key: string) => {
     setExpandedItems((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const setItemFilter = (stepName: string, value: string) => {
+    setItemFilters((prev) => ({ ...prev, [stepName]: value }))
   }
 
   const parsePositions = (details: Record<string, string>): PositionItem[] | null => {
@@ -89,18 +129,32 @@ export function JobTimeline({ steps }: JobTimelineProps) {
     }
   }
 
+  const filteredSteps = isSearchActive
+    ? steps.filter((step) => stepMatchesSearch(step, search))
+    : steps
+
+  if (isSearchActive && filteredSteps.length === 0) {
+    return (
+      <div data-testid="job-timeline" className="relative pl-4">
+        <p className="text-xs text-slate-400 py-2">No steps match your search.</p>
+      </div>
+    )
+  }
+
   return (
     <div data-testid="job-timeline" className="relative pl-4">
       <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-300" />
-      {steps.map((step, i) => {
-        const isOpen = expanded[i] ?? false
+      {filteredSteps.map((step) => {
+        const stepIndex = steps.indexOf(step)
+        const isOpen = isSearchActive || (expanded[stepIndex] ?? false)
         const hasDetails = Object.keys(step.details).length > 0
+        const filter = itemFilters[step.name] ?? ''
 
         return (
-          <div key={i} data-testid={`job-step-${step.name}`} className="relative mb-3 last:mb-0">
+          <div key={stepIndex} data-testid={`job-step-${step.name}`} className="relative mb-3 last:mb-0">
             <div
               data-testid={`toggle-${step.name}`}
-              onClick={hasDetails ? () => toggle(i) : undefined}
+              onClick={hasDetails ? () => toggle(stepIndex) : undefined}
               className={`flex items-center gap-2${hasDetails ? ' cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded' : ''}`}
             >
               <StatusDotInline status={step.status} />
@@ -120,6 +174,13 @@ export function JobTimeline({ steps }: JobTimelineProps) {
             {isOpen && hasDetails && (() => {
               const positions = parsePositions(step.details)
               const dependencies = parseDependencies(step.details)
+              const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0)
+              const filteredPositions = positions && filter
+                ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, filter))
+                : positions
+              const filteredDependencies = dependencies && filter
+                ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, string>, filter))
+                : dependencies
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {Object.entries(step.details)
@@ -129,8 +190,15 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                         <span className="font-medium">{key}:</span> {value}
                       </div>
                     ))}
-                  {positions && positions.map((pos, j) => {
-                    const posKey = `${i}-${pos.instrumentId}`
+                  {hasItems && (
+                    <FilterInput
+                      testId={`filter-${step.name}`}
+                      value={filter}
+                      onChange={(v) => setItemFilter(step.name, v)}
+                    />
+                  )}
+                  {filteredPositions && filteredPositions.map((pos, j) => {
+                    const posKey = `${stepIndex}-${pos.instrumentId}`
                     const isPosOpen = expandedItems[posKey] ?? false
                     return (
                       <div key={j} className="mt-1">
@@ -156,8 +224,8 @@ export function JobTimeline({ steps }: JobTimelineProps) {
                       </div>
                     )
                   })}
-                  {dependencies && dependencies.map((dep, j) => {
-                    const depKey = `${i}-dep-${dep.instrumentId}-${dep.dataType}`
+                  {filteredDependencies && filteredDependencies.map((dep, j) => {
+                    const depKey = `${stepIndex}-dep-${dep.instrumentId}-${dep.dataType}`
                     const isDepOpen = expandedItems[depKey] ?? false
                     return (
                       <div key={j} className="mt-1">

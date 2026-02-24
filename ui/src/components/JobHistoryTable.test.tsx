@@ -200,6 +200,67 @@ describe('JobHistoryTable', () => {
     expect(screen.queryByTestId('job-detail-row-job-2')).not.toBeInTheDocument()
   })
 
+  it('shows a search input in the detail panel', () => {
+    render(
+      <JobHistoryTable
+        runs={runs}
+        expandedJobs={{ 'job-1': jobDetail }}
+        loadingJobIds={new Set()}
+        onSelectJob={() => {}}
+        onCloseJob={() => {}}
+      />,
+    )
+
+    expect(screen.getByTestId('detail-search-job-1')).toBeInTheDocument()
+  })
+
+  it('passes search term to JobTimeline for filtering', () => {
+    const detailWithPositions: ValuationJobDetailDto = {
+      ...jobDetail,
+      steps: [
+        {
+          name: 'FETCH_POSITIONS',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.020Z',
+          durationMs: 20,
+          details: {
+            positionCount: '2',
+            positions: JSON.stringify([
+              { instrumentId: 'AAPL', assetClass: 'EQUITY' },
+              { instrumentId: 'TSLA', assetClass: 'EQUITY' },
+            ]),
+          },
+          error: null,
+        },
+        {
+          name: 'CALCULATE_VAR',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00.080Z',
+          completedAt: '2025-01-15T10:00:00.130Z',
+          durationMs: 50,
+          details: { varValue: '5000.0' },
+          error: null,
+        },
+      ],
+    }
+
+    render(
+      <JobHistoryTable
+        runs={runs}
+        expandedJobs={{ 'job-1': detailWithPositions }}
+        loadingJobIds={new Set()}
+        onSelectJob={() => {}}
+        onCloseJob={() => {}}
+      />,
+    )
+
+    fireEvent.change(screen.getByTestId('detail-search-job-1'), { target: { value: 'AAPL' } })
+
+    expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+  })
+
   it('renders multiple detail panels when multiple jobs are expanded', () => {
     render(
       <JobHistoryTable
