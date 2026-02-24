@@ -22,7 +22,7 @@ class PriceEventConsumerIntegrationTest : FunSpec({
         val kafkaConsumer = KafkaTestSetup.createConsumer(bootstrapServers, "price-consumer-test-1")
 
         val portfoliosCalculated = mutableListOf<String>()
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
             null
         }
@@ -87,7 +87,7 @@ class PriceEventConsumerIntegrationTest : FunSpec({
 
         delay(2_000)
 
-        coVerify(exactly = 0) { varService.calculateVaR(any()) }
+        coVerify(exactly = 0) { varService.calculateVaR(any(), any()) }
 
         job.cancel()
         producer.close()

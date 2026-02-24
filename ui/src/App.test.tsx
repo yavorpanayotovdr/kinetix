@@ -10,6 +10,7 @@ vi.mock('./hooks/useGreeks')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useRegulatory')
 vi.mock('./hooks/useSystemHealth')
+vi.mock('./hooks/useRunHistory')
 
 import App from './App'
 import { usePositions } from './hooks/usePositions'
@@ -20,6 +21,7 @@ import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
+import { useRunHistory } from './hooks/useRunHistory'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
@@ -29,6 +31,7 @@ const mockUseGreeks = vi.mocked(useGreeks)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseRegulatory = vi.mocked(useRegulatory)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
+const mockUseRunHistory = vi.mocked(useRunHistory)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -117,6 +120,15 @@ function setupDefaults() {
     },
     loading: false,
     error: null,
+    refresh: vi.fn(),
+  })
+  mockUseRunHistory.mockReturnValue({
+    runs: [],
+    selectedRun: null,
+    loading: false,
+    error: null,
+    selectRun: vi.fn(),
+    clearSelection: vi.fn(),
     refresh: vi.fn(),
   })
 }
@@ -302,6 +314,14 @@ describe('App', () => {
 
     expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
     expect(screen.queryByText('Loading positions...')).not.toBeInTheDocument()
+  })
+
+  it('shows RunHistory in the risk tab', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-risk'))
+
+    expect(screen.getByTestId('run-history')).toBeInTheDocument()
   })
 
   it('System tab renders even when positions have an error', () => {

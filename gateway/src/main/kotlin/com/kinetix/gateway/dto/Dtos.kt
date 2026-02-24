@@ -3,6 +3,9 @@ package com.kinetix.gateway.dto
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.AlertEventItem
 import com.kinetix.gateway.client.AlertRuleItem
+import com.kinetix.gateway.client.CalculationRunDetailItem
+import com.kinetix.gateway.client.CalculationRunSummaryItem
+import com.kinetix.gateway.client.PipelineStepItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.DataDependenciesSummary
@@ -512,4 +515,89 @@ fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRulePa
     operator = operator,
     severity = severity,
     channels = channels,
+)
+
+// --- Run History DTOs ---
+
+@Serializable
+data class PipelineStepDto(
+    val name: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val details: Map<String, String> = emptyMap(),
+    val error: String? = null,
+)
+
+@Serializable
+data class CalculationRunSummaryResponse(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val calculationType: String? = null,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+)
+
+@Serializable
+data class CalculationRunDetailResponse(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+    val steps: List<PipelineStepDto> = emptyList(),
+    val error: String? = null,
+)
+
+// --- Run History mappers ---
+
+fun PipelineStepItem.toDto(): PipelineStepDto = PipelineStepDto(
+    name = name,
+    status = status,
+    startedAt = startedAt.toString(),
+    completedAt = completedAt?.toString(),
+    durationMs = durationMs,
+    details = details,
+    error = error,
+)
+
+fun CalculationRunSummaryItem.toResponse(): CalculationRunSummaryResponse = CalculationRunSummaryResponse(
+    runId = runId,
+    portfolioId = portfolioId,
+    triggerType = triggerType,
+    status = status,
+    startedAt = startedAt.toString(),
+    completedAt = completedAt?.toString(),
+    durationMs = durationMs,
+    calculationType = calculationType,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+)
+
+fun CalculationRunDetailItem.toResponse(): CalculationRunDetailResponse = CalculationRunDetailResponse(
+    runId = runId,
+    portfolioId = portfolioId,
+    triggerType = triggerType,
+    status = status,
+    startedAt = startedAt.toString(),
+    completedAt = completedAt?.toString(),
+    durationMs = durationMs,
+    calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+    steps = steps.map { it.toDto() },
+    error = error,
 )

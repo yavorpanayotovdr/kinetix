@@ -20,7 +20,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val varCache = LatestVaRCache()
 
         var callCount = 0
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             callCount++
             null
         }
@@ -45,7 +45,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val varCache = LatestVaRCache()
 
         val portfoliosCalculated = mutableSetOf<String>()
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
             null
         }
@@ -70,7 +70,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val varCache = LatestVaRCache()
 
         var callCount = 0
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             callCount++
             if (callCount == 1) throw RuntimeException("Simulated failure")
             null
@@ -96,7 +96,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val varCache = LatestVaRCache()
         val mockResult = mockk<VaRResult>()
 
-        coEvery { varService.calculateVaR(any()) } returns mockResult
+        coEvery { varService.calculateVaR(any(), any()) } returns mockResult
 
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,

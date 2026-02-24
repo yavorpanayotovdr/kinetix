@@ -3,6 +3,7 @@ package com.kinetix.risk.kafka
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,8 @@ class TradeEventConsumer(
                             portfolioId = portfolioId,
                             calculationType = CalculationType.PARAMETRIC,
                             confidenceLevel = ConfidenceLevel.CL_95,
-                        )
+                        ),
+                        triggerType = TriggerType.TRADE_EVENT,
                     )
                 } catch (e: Exception) {
                     logger.error(

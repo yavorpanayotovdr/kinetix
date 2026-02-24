@@ -23,7 +23,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         val consumer = TradeEventConsumer(kafkaConsumer, varService, topic)
 
         var capturedPortfolioId: String? = null
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             capturedPortfolioId = firstArg<VaRCalculationRequest>().portfolioId.value
             null
         }
@@ -52,7 +52,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         }
 
         capturedPortfolioId shouldBe "port-1"
-        coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == PortfolioId("port-1") }) }
+        coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == PortfolioId("port-1") }, any()) }
 
         job.cancel()
         producer.close()
@@ -66,7 +66,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         val consumer = TradeEventConsumer(kafkaConsumer, varService, topic)
 
         val portfoliosCalculated = mutableListOf<String>()
-        coEvery { varService.calculateVaR(any()) } answers {
+        coEvery { varService.calculateVaR(any(), any()) } answers {
             portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
             null
         }

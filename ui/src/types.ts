@@ -154,3 +154,42 @@ export interface CreateAlertRuleRequestDto {
   severity: string
   channels: string[]
 }
+
+export interface PipelineStepDto {
+  name: string
+  status: string
+  startedAt: string
+  completedAt: string | null
+  durationMs: number | null
+  details: Record<string, string>
+  error: string | null
+}
+
+export interface CalculationRunSummaryDto {
+  runId: string
+  portfolioId: string
+  triggerType: string
+  status: string
+  startedAt: string
+  completedAt: string | null
+  durationMs: number | null
+  calculationType: string | null
+  varValue: number | null
+  expectedShortfall: number | null
+}
+
+export interface CalculationRunDetailDto {
+  runId: string
+  portfolioId: string
+  triggerType: string
+  status: string
+  startedAt: string
+  completedAt: string | null
+  durationMs: number | null
+  calculationType: string | null
+  confidenceLevel: string | null
+  varValue: number | null
+  expectedShortfall: number | null
+  steps: PipelineStepDto[]
+  error: string | null
+}

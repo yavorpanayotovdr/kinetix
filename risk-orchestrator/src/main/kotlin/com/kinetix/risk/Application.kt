@@ -20,7 +20,11 @@ import com.kinetix.risk.client.ResilientRiskEngineClient
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
+import com.kinetix.risk.persistence.ExposedCalculationRunRecorder
+import com.kinetix.risk.persistence.RiskDatabaseConfig
+import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
+import com.kinetix.risk.routes.runHistoryRoutes
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.MarketDataFetcher
@@ -133,6 +137,16 @@ fun Application.moduleWithRoutes() {
         volatilityServiceClient, correlationServiceClient,
     )
 
+    val riskDbConfig = environment.config.config("riskDatabase")
+    val riskDb = RiskDatabaseFactory.init(
+        RiskDatabaseConfig(
+            jdbcUrl = riskDbConfig.property("jdbcUrl").getString(),
+            username = riskDbConfig.property("username").getString(),
+            password = riskDbConfig.property("password").getString(),
+        )
+    )
+    val runRecorder = ExposedCalculationRunRecorder(riskDb)
+
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
 
@@ -149,6 +163,7 @@ fun Application.moduleWithRoutes() {
         positionProvider, riskEngineClient, resultPublisher,
         dependenciesDiscoverer = dependenciesDiscoverer,
         marketDataFetcher = marketDataFetcher,
+        runRecorder = runRecorder,
     )
     val varCache = LatestVaRCache()
 
@@ -175,6 +190,7 @@ fun Application.moduleWithRoutes() {
 
     routing {
         riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub, riskEngineClient)
+        runHistoryRoutes(runRecorder)
     }
 
     val tradeConsumerProps = Properties().apply {

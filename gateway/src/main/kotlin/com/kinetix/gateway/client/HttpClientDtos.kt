@@ -237,6 +237,50 @@ data class CreateAlertRuleRequestDto(
     val channels: List<String>,
 )
 
+// --- Run History DTOs ---
+
+@Serializable
+data class PipelineStepClientDto(
+    val name: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val details: Map<String, String> = emptyMap(),
+    val error: String? = null,
+)
+
+@Serializable
+data class CalculationRunSummaryClientDto(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val calculationType: String? = null,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+)
+
+@Serializable
+data class CalculationRunDetailClientDto(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: String,
+    val completedAt: String? = null,
+    val durationMs: Long? = null,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+    val steps: List<PipelineStepClientDto> = emptyList(),
+    val error: String? = null,
+)
+
 // --- Domain mappers ---
 
 fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
@@ -387,4 +431,43 @@ fun AlertEventDto.toDomain() = AlertEventItem(
     threshold = threshold,
     portfolioId = portfolioId,
     triggeredAt = Instant.parse(triggeredAt),
+)
+
+fun PipelineStepClientDto.toDomain() = PipelineStepItem(
+    name = name,
+    status = status,
+    startedAt = Instant.parse(startedAt),
+    completedAt = completedAt?.let { Instant.parse(it) },
+    durationMs = durationMs,
+    details = details,
+    error = error,
+)
+
+fun CalculationRunSummaryClientDto.toDomain() = CalculationRunSummaryItem(
+    runId = runId,
+    portfolioId = portfolioId,
+    triggerType = triggerType,
+    status = status,
+    startedAt = Instant.parse(startedAt),
+    completedAt = completedAt?.let { Instant.parse(it) },
+    durationMs = durationMs,
+    calculationType = calculationType,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+)
+
+fun CalculationRunDetailClientDto.toDomain() = CalculationRunDetailItem(
+    runId = runId,
+    portfolioId = portfolioId,
+    triggerType = triggerType,
+    status = status,
+    startedAt = Instant.parse(startedAt),
+    completedAt = completedAt?.let { Instant.parse(it) },
+    durationMs = durationMs,
+    calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+    steps = steps.map { it.toDomain() },
+    error = error,
 )

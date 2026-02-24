@@ -7,7 +7,8 @@ import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.*
 import java.math.BigDecimal
@@ -53,10 +54,16 @@ class VaRCalculationServiceTest : FunSpec({
     val positionProvider = mockk<PositionProvider>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val resultPublisher = mockk<RiskResultPublisher>()
-    val service = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry())
+    val runRecorder = mockk<CalculationRunRecorder>()
+    val service = VaRCalculationService(
+        positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+        runRecorder = runRecorder,
+    )
+    val serviceNoRecorder = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry())
 
     beforeEach {
-        clearMocks(positionProvider, riskEngineClient, resultPublisher)
+        clearMocks(positionProvider, riskEngineClient, resultPublisher, runRecorder)
+        coEvery { runRecorder.save(any()) } just Runs
     }
 
     test("fetches positions, calls risk engine, and publishes result") {
@@ -67,7 +74,7 @@ class VaRCalculationServiceTest : FunSpec({
         coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
-        val result = service.calculateVaR(
+        val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
                 portfolioId = PortfolioId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
@@ -87,7 +94,7 @@ class VaRCalculationServiceTest : FunSpec({
     test("returns null and does not call risk engine for empty portfolio") {
         coEvery { positionProvider.getPositions(PortfolioId("empty")) } returns emptyList()
 
-        val result = service.calculateVaR(
+        val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
                 portfolioId = PortfolioId("empty"),
                 calculationType = CalculationType.PARAMETRIC,
@@ -111,7 +118,7 @@ class VaRCalculationServiceTest : FunSpec({
             coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
             coEvery { resultPublisher.publish(any()) } just Runs
 
-            val result = service.calculateVaR(
+            val result = serviceNoRecorder.calculateVaR(
                 VaRCalculationRequest(
                     portfolioId = PortfolioId("port-1"),
                     calculationType = calcType,
@@ -141,7 +148,7 @@ class VaRCalculationServiceTest : FunSpec({
         coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
-        val result = service.calculateVaR(
+        val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
                 portfolioId = PortfolioId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
@@ -150,5 +157,115 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         result!!.componentBreakdown.size shouldBe 3
+    }
+
+    test("records a completed calculation run with all pipeline steps") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val runSlot = slot<CalculationRun>()
+        coVerify { runRecorder.save(capture(runSlot)) }
+
+        val run = runSlot.captured
+        run.portfolioId shouldBe "port-1"
+        run.status shouldBe RunStatus.COMPLETED
+        run.triggerType shouldBe TriggerType.ON_DEMAND
+        run.calculationType shouldBe "PARAMETRIC"
+        run.confidenceLevel shouldBe "CL_95"
+        run.varValue shouldBe expectedResult.varValue
+        run.expectedShortfall shouldBe expectedResult.expectedShortfall
+        run.completedAt.shouldNotBeNull()
+        run.durationMs.shouldNotBeNull()
+        run.error shouldBe null
+
+        run.steps shouldHaveSize 5
+        run.steps[0].name shouldBe PipelineStepName.FETCH_POSITIONS
+        run.steps[1].name shouldBe PipelineStepName.DISCOVER_DEPENDENCIES
+        run.steps[2].name shouldBe PipelineStepName.FETCH_MARKET_DATA
+        run.steps[3].name shouldBe PipelineStepName.CALCULATE_VAR
+        run.steps[4].name shouldBe PipelineStepName.PUBLISH_RESULT
+
+        run.steps[0].details["positionCount"] shouldBe 1
+    }
+
+    test("records a failed run when risk engine throws") {
+        val positions = listOf(position())
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } throws RuntimeException("Engine down")
+
+        try {
+            service.calculateVaR(
+                VaRCalculationRequest(
+                    portfolioId = PortfolioId("port-1"),
+                    calculationType = CalculationType.PARAMETRIC,
+                    confidenceLevel = ConfidenceLevel.CL_95,
+                )
+            )
+        } catch (_: RuntimeException) {
+            // expected
+        }
+
+        val runSlot = slot<CalculationRun>()
+        coVerify { runRecorder.save(capture(runSlot)) }
+
+        val run = runSlot.captured
+        run.status shouldBe RunStatus.FAILED
+        run.error shouldBe "Engine down"
+    }
+
+    test("does not fail the calculation if run recorder throws") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+        coEvery { runRecorder.save(any()) } throws RuntimeException("DB connection failed")
+
+        val result = service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result shouldBe expectedResult
+    }
+
+    test("passes trigger type through to the recorded run") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            ),
+            triggerType = TriggerType.TRADE_EVENT,
+        )
+
+        val runSlot = slot<CalculationRun>()
+        coVerify { runRecorder.save(capture(runSlot)) }
+
+        runSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
     }
 })

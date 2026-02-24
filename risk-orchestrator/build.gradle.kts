@@ -24,5 +24,6 @@ dependencies {
 
     testImplementation(libs.testcontainers.core)
     testImplementation(libs.testcontainers.kafka)
+    testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.ktor.client.mock)
 }

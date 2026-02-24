@@ -123,7 +123,7 @@ class RiskRoutesTest : FunSpec({
 
     test("POST /api/v1/risk/var/{portfolioId} returns 200 with VaR result when service returns result") {
         val result = varResult(portfolioId = "port-2", varValue = 7500.0)
-        coEvery { varCalculationService.calculateVaR(any()) } returns result
+        coEvery { varCalculationService.calculateVaR(any(), any()) } returns result
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -165,7 +165,7 @@ class RiskRoutesTest : FunSpec({
     }
 
     test("POST /api/v1/risk/var/{portfolioId} returns 404 when service returns null") {
-        coEvery { varCalculationService.calculateVaR(any()) } returns null
+        coEvery { varCalculationService.calculateVaR(any(), any()) } returns null
 
         testApplication {
             install(ContentNegotiation) { json() }

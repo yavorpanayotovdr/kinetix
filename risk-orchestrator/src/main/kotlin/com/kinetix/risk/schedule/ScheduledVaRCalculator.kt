@@ -4,6 +4,7 @@ import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.delay
@@ -30,7 +31,8 @@ class ScheduledVaRCalculator(
                                 portfolioId = portfolioId,
                                 calculationType = CalculationType.PARAMETRIC,
                                 confidenceLevel = ConfidenceLevel.CL_95,
-                            )
+                            ),
+                            triggerType = TriggerType.SCHEDULED,
                         )
                         if (result != null) {
                             varCache.put(portfolioId.value, result)

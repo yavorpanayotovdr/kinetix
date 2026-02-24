@@ -4,6 +4,7 @@ import { PositionGrid } from './components/PositionGrid'
 import { VaRDashboard } from './components/VaRDashboard'
 import { StressTestPanel } from './components/StressTestPanel'
 import { GreeksPanel } from './components/GreeksPanel'
+import { RunHistory } from './components/RunHistory'
 import { NotificationCenter } from './components/NotificationCenter'
 import { RegulatoryDashboard } from './components/RegulatoryDashboard'
 import { SystemDashboard } from './components/SystemDashboard'
@@ -136,6 +137,9 @@ function App() {
                         volBump={greeks.volBump}
                         onVolBumpChange={greeks.setVolBump}
                       />
+                    </div>
+                    <div className="mt-4">
+                      <RunHistory portfolioId={portfolioId} />
                     </div>
                   </div>
                 )}

@@ -117,6 +117,45 @@ data class DataDependenciesSummary(
     val dependencies: List<MarketDataDependencyItem>,
 )
 
+data class PipelineStepItem(
+    val name: String,
+    val status: String,
+    val startedAt: Instant,
+    val completedAt: Instant?,
+    val durationMs: Long?,
+    val details: Map<String, String>,
+    val error: String?,
+)
+
+data class CalculationRunSummaryItem(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: Instant,
+    val completedAt: Instant?,
+    val durationMs: Long?,
+    val calculationType: String?,
+    val varValue: Double?,
+    val expectedShortfall: Double?,
+)
+
+data class CalculationRunDetailItem(
+    val runId: String,
+    val portfolioId: String,
+    val triggerType: String,
+    val status: String,
+    val startedAt: Instant,
+    val completedAt: Instant?,
+    val durationMs: Long?,
+    val calculationType: String?,
+    val confidenceLevel: String?,
+    val varValue: Double?,
+    val expectedShortfall: Double?,
+    val steps: List<PipelineStepItem>,
+    val error: String?,
+)
+
 interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): VaRResultSummary?
     suspend fun getLatestVaR(portfolioId: String): VaRResultSummary?
@@ -126,4 +165,6 @@ interface RiskServiceClient {
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
     suspend fun generateReport(portfolioId: String, format: String): ReportResult?
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
+    suspend fun listCalculationRuns(portfolioId: String, limit: Int = 20, offset: Int = 0): List<CalculationRunSummaryItem>
+    suspend fun getCalculationRunDetail(runId: String): CalculationRunDetailItem?
 }
