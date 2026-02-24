@@ -94,6 +94,16 @@ class VaRCalculationService(
                     details = mapOf(
                         "dependencyCount" to dependencies.size,
                         "dataTypes" to dataTypes,
+                        "dependencies" to Json.encodeToString(dependencies.map { dep ->
+                            buildMap {
+                                put("instrumentId", dep.instrumentId)
+                                put("dataType", dep.dataType)
+                                put("assetClass", dep.assetClass)
+                                if (dep.parameters.isNotEmpty()) {
+                                    put("parameters", dep.parameters.entries.joinToString(", ") { "${it.key}=${it.value}" })
+                                }
+                            }
+                        }),
                     ),
                 )
             )

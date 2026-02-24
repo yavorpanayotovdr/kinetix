@@ -5,6 +5,10 @@ import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
@@ -275,5 +279,54 @@ class VaRCalculationServiceTest : FunSpec({
         coVerify { runRecorder.save(capture(runSlot)) }
 
         runSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
+    }
+
+    test("captures discovered dependencies in step details") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        val dependencies = listOf(
+            DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
+            DiscoveredDependency("HISTORICAL_PRICES", "AAPL", "EQUITY", mapOf("lookback" to "252")),
+        )
+
+        val discoverer = mockk<DependenciesDiscoverer>()
+        coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions, any()) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        val serviceWithDiscoverer = VaRCalculationService(
+            positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+            dependenciesDiscoverer = discoverer,
+            runRecorder = runRecorder,
+        )
+
+        serviceWithDiscoverer.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val runSlot = slot<CalculationRun>()
+        coVerify { runRecorder.save(capture(runSlot)) }
+
+        val discoverStep = runSlot.captured.steps.first { it.name == PipelineStepName.DISCOVER_DEPENDENCIES }
+        discoverStep.details["dependencyCount"] shouldBe 2
+
+        val depsJson = discoverStep.details["dependencies"]
+        depsJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(depsJson).jsonArray
+        parsed shouldHaveSize 2
+
+        parsed[0].jsonObject["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+        parsed[0].jsonObject["dataType"]!!.jsonPrimitive.content shouldBe "SPOT_PRICE"
+        parsed[0].jsonObject["assetClass"]!!.jsonPrimitive.content shouldBe "EQUITY"
+
+        parsed[1].jsonObject["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+        parsed[1].jsonObject["dataType"]!!.jsonPrimitive.content shouldBe "HISTORICAL_PRICES"
+        parsed[1].jsonObject["parameters"]!!.jsonPrimitive.content shouldContain "lookback=252"
     }
 })

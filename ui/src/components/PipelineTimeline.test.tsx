@@ -25,7 +25,14 @@ const steps: PipelineStepDto[] = [
     startedAt: '2025-01-15T10:00:00.020Z',
     completedAt: '2025-01-15T10:00:00.050Z',
     durationMs: 30,
-    details: { dependencyCount: '3', dataTypes: 'SPOT_PRICE,YIELD_CURVE' },
+    details: {
+      dependencyCount: '3',
+      dataTypes: 'SPOT_PRICE,YIELD_CURVE',
+      dependencies: JSON.stringify([
+        { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY' },
+        { instrumentId: 'USD_SOFR', dataType: 'YIELD_CURVE', assetClass: 'RATES', parameters: 'tenors=1M,3M,6M' },
+      ]),
+    },
     error: null,
   },
   {
@@ -147,6 +154,39 @@ describe('PipelineTimeline', () => {
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
     expect(screen.queryByText('positions:')).not.toBeInTheDocument()
+  })
+
+  it('renders expandable dependencies in DISCOVER_DEPENDENCIES details', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+
+    expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
+    expect(screen.getByText('AAPL — SPOT_PRICE')).toBeInTheDocument()
+    expect(screen.getByTestId('dependency-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
+    expect(screen.getByText('USD_SOFR — YIELD_CURVE')).toBeInTheDocument()
+  })
+
+  it('expands dependency to show JSON', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+    fireEvent.click(screen.getByTestId('dependency-AAPL-SPOT_PRICE'))
+
+    const jsonBlock = screen.getByTestId('dependency-json-AAPL-SPOT_PRICE')
+    expect(jsonBlock).toBeInTheDocument()
+    expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
+    expect(jsonBlock.textContent).toContain('"dataType": "SPOT_PRICE"')
+    expect(jsonBlock.textContent).toContain('"assetClass": "EQUITY"')
+  })
+
+  it('does not render dependencies key as a regular detail', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
+
+    expect(screen.queryByText('dependencies:')).not.toBeInTheDocument()
   })
 
   it('renders empty list without errors', () => {

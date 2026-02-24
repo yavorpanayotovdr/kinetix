@@ -29,16 +29,22 @@ interface PositionItem {
   [key: string]: string
 }
 
+interface DependencyItem {
+  instrumentId: string
+  dataType: string
+  [key: string]: string
+}
+
 export function PipelineTimeline({ steps }: PipelineTimelineProps) {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
-  const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({})
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
 
   const toggle = (index: number) => {
     setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))
   }
 
-  const togglePosition = (key: string) => {
-    setExpandedPositions((prev) => ({ ...prev, [key]: !prev[key] }))
+  const toggleItem = (key: string) => {
+    setExpandedItems((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   const parsePositions = (details: Record<string, string>): PositionItem[] | null => {
@@ -46,6 +52,16 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
     if (!raw) return null
     try {
       return JSON.parse(raw) as PositionItem[]
+    } catch {
+      return null
+    }
+  }
+
+  const parseDependencies = (details: Record<string, string>): DependencyItem[] | null => {
+    const raw = details['dependencies']
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as DependencyItem[]
     } catch {
       return null
     }
@@ -83,10 +99,11 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
             )}
             {isOpen && hasDetails && (() => {
               const positions = parsePositions(step.details)
+              const dependencies = parseDependencies(step.details)
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {Object.entries(step.details)
-                    .filter(([key]) => key !== 'positions')
+                    .filter(([key]) => key !== 'positions' && key !== 'dependencies')
                     .map(([key, value]) => (
                       <div key={key}>
                         <span className="font-medium">{key}:</span> {value}
@@ -94,12 +111,12 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
                     ))}
                   {positions && positions.map((pos, j) => {
                     const posKey = `${i}-${pos.instrumentId}`
-                    const isPosOpen = expandedPositions[posKey] ?? false
+                    const isPosOpen = expandedItems[posKey] ?? false
                     return (
                       <div key={j} className="mt-1">
                         <button
                           data-testid={`position-${pos.instrumentId}`}
-                          onClick={() => togglePosition(posKey)}
+                          onClick={() => toggleItem(posKey)}
                           className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
                         >
                           {isPosOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -111,6 +128,30 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
                             className="ml-4 mt-0.5 p-2 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                           >
                             {JSON.stringify(pos, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {dependencies && dependencies.map((dep, j) => {
+                    const depKey = `${i}-dep-${dep.instrumentId}-${dep.dataType}`
+                    const isDepOpen = expandedItems[depKey] ?? false
+                    return (
+                      <div key={j} className="mt-1">
+                        <button
+                          data-testid={`dependency-${dep.instrumentId}-${dep.dataType}`}
+                          onClick={() => toggleItem(depKey)}
+                          className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                        >
+                          {isDepOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          <span>{dep.instrumentId} — {dep.dataType}</span>
+                        </button>
+                        {isDepOpen && (
+                          <pre
+                            data-testid={`dependency-json-${dep.instrumentId}-${dep.dataType}`}
+                            className="ml-4 mt-0.5 p-2 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                          >
+                            {JSON.stringify(dep, null, 2)}
                           </pre>
                         )}
                       </div>
