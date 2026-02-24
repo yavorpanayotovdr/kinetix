@@ -3,15 +3,17 @@ import { ChevronDown, ChevronRight, History, Search, RefreshCw } from 'lucide-re
 import { useJobHistory } from '../hooks/useJobHistory'
 import { JobHistoryTable } from './JobHistoryTable'
 import { Card, Badge, Spinner, Button } from './ui'
-import type { ValuationJobSummaryDto } from '../types'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 interface JobHistoryProps {
   portfolioId: string | null
 }
 
-function jobMatchesSearch(run: ValuationJobSummaryDto, term: string): boolean {
-  const lower = term.toLowerCase()
-  const fields = [
+function buildSearchableText(
+  run: ValuationJobSummaryDto,
+  detail: ValuationJobDetailDto | undefined,
+): string {
+  const parts = [
     run.triggerType,
     run.status,
     run.calculationType,
@@ -19,7 +21,26 @@ function jobMatchesSearch(run: ValuationJobSummaryDto, term: string): boolean {
     run.expectedShortfall?.toString(),
     run.durationMs?.toString(),
   ]
-  return fields.some((f) => f?.toLowerCase().includes(lower))
+
+  if (detail) {
+    for (const step of detail.steps) {
+      parts.push(...Object.values(step.details))
+      if (step.error) parts.push(step.error)
+    }
+    if (detail.error) parts.push(detail.error)
+  }
+
+  return parts.filter(Boolean).join(' ').toLowerCase()
+}
+
+function jobMatchesSearch(
+  run: ValuationJobSummaryDto,
+  term: string,
+  detail: ValuationJobDetailDto | undefined,
+): boolean {
+  const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
+  const text = buildSearchableText(run, detail)
+  return tokens.every((t) => text.includes(t))
 }
 
 export function JobHistory({ portfolioId }: JobHistoryProps) {
@@ -29,7 +50,9 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
     expanded ? portfolioId : null,
   )
 
-  const filteredRuns = search.trim() ? runs.filter((r) => jobMatchesSearch(r, search)) : runs
+  const filteredRuns = search.trim()
+    ? runs.filter((r) => jobMatchesSearch(r, search, expandedJobs[r.jobId]))
+    : runs
 
   return (
     <Card data-testid="job-history">

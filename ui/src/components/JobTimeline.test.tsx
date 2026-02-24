@@ -254,6 +254,21 @@ describe('JobTimeline', () => {
       expect(screen.queryByTestId('dependency-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
     })
 
+    it('treats spaces as AND for step filtering', () => {
+      render(<JobTimeline steps={steps} search="AAPL EQUITY" />)
+
+      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+    })
+
+    it('treats spaces as AND for item filtering within steps', () => {
+      render(<JobTimeline steps={steps} search="SPOT AAPL" />)
+
+      expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.queryByTestId('dependency-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
+    })
+
     it('shows no-results message when nothing matches', () => {
       render(<JobTimeline steps={steps} search="NONEXISTENT" />)
 
@@ -324,6 +339,16 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('position-TSLA')).toBeInTheDocument()
       expect(screen.queryByTestId('position-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('treats spaces as AND in the item filter', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'EQUITY 170' } })
+
+      expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-TSLA')).not.toBeInTheDocument()
     })
   })
 })

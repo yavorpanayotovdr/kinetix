@@ -309,6 +309,157 @@ describe('JobHistory', () => {
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 
+  it('treats spaces as AND — all terms must match', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'FAILED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: null,
+          expectedShortfall: null,
+        },
+        {
+          jobId: 'job-3',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T08:00:00Z',
+          completedAt: '2025-01-15T08:00:00.100Z',
+          durationMs: 100,
+          calculationType: 'PARAMETRIC',
+          varValue: 2000.0,
+          expectedShortfall: 3000.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'completed scheduled' } })
+
+    expect(screen.getByTestId('job-row-job-1')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-job-2')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-job-3')).not.toBeInTheDocument()
+  })
+
+  it('filters jobs by content in expanded job details', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: 3000.0,
+          expectedShortfall: 4000.0,
+        },
+      ],
+      expandedJobs: {
+        'job-1': {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          confidenceLevel: 'CL_95',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+          steps: [
+            {
+              name: 'FETCH_POSITIONS',
+              status: 'COMPLETED',
+              startedAt: '2025-01-15T10:00:00Z',
+              completedAt: '2025-01-15T10:00:00.020Z',
+              durationMs: 20,
+              details: {
+                positions: JSON.stringify([
+                  { instrumentId: 'USD_SOFR', assetClass: 'RATES' },
+                ]),
+              },
+              error: null,
+            },
+          ],
+          error: null,
+        },
+        'job-2': {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          confidenceLevel: 'CL_95',
+          varValue: 3000.0,
+          expectedShortfall: 4000.0,
+          steps: [
+            {
+              name: 'FETCH_POSITIONS',
+              status: 'COMPLETED',
+              startedAt: '2025-01-15T09:00:00Z',
+              completedAt: '2025-01-15T09:00:00.020Z',
+              durationMs: 20,
+              details: {
+                positions: JSON.stringify([
+                  { instrumentId: 'AAPL', assetClass: 'EQUITY' },
+                ]),
+              },
+              error: null,
+            },
+          ],
+          error: null,
+        },
+      },
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'USD' } })
+
+    expect(screen.getByTestId('job-row-job-1')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-job-2')).not.toBeInTheDocument()
+  })
+
   it('calls closeJob when close detail button is clicked', () => {
     const closeJob = vi.fn()
     mockUseJobHistory.mockReturnValue({

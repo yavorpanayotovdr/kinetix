@@ -59,19 +59,17 @@ interface DependencyItem {
 }
 
 function stepMatchesSearch(step: JobStepDto, term: string): boolean {
-  const lower = term.toLowerCase()
-  const label = (STEP_LABELS[step.name] ?? step.name).toLowerCase()
-  if (label.includes(lower)) return true
-  for (const value of Object.values(step.details)) {
-    if (value.toLowerCase().includes(lower)) return true
-  }
-  if (step.error?.toLowerCase().includes(lower)) return true
-  return false
+  const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
+  const parts = [STEP_LABELS[step.name] ?? step.name, ...Object.values(step.details)]
+  if (step.error) parts.push(step.error)
+  const text = parts.join(' ').toLowerCase()
+  return tokens.every((t) => text.includes(t))
 }
 
 function itemMatchesFilter(item: Record<string, string>, term: string): boolean {
-  const lower = term.toLowerCase()
-  return Object.values(item).some((v) => v.toLowerCase().includes(lower))
+  const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
+  const text = Object.values(item).join(' ').toLowerCase()
+  return tokens.every((t) => text.includes(t))
 }
 
 function FilterInput({ testId, value, onChange }: { testId: string; value: string; onChange: (v: string) => void }) {
