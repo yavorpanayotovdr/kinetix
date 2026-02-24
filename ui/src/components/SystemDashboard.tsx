@@ -1,4 +1,18 @@
-import { RefreshCw, ExternalLink, Server } from 'lucide-react'
+import {
+  RefreshCw,
+  ExternalLink,
+  Server,
+  Globe,
+  Briefcase,
+  DollarSign,
+  Shield,
+  Bell,
+  Percent,
+  Database,
+  Activity,
+  GitMerge,
+  type LucideIcon,
+} from 'lucide-react'
 import type { SystemHealthResponse } from '../api/system'
 import { Card, Button, StatusDot, Spinner } from './ui'
 
@@ -18,7 +32,19 @@ const SERVICE_LABELS: Record<string, string> = {
   'rates-service': 'Rates',
   'reference-data-service': 'Reference Data',
   'volatility-service': 'Volatility',
-  'correlation-service': 'Correlation',
+  'correlation-service': 'Correlations',
+}
+
+const SERVICE_ICONS: Record<string, LucideIcon> = {
+  gateway: Globe,
+  'position-service': Briefcase,
+  'price-service': DollarSign,
+  'risk-orchestrator': Shield,
+  'notification-service': Bell,
+  'rates-service': Percent,
+  'reference-data-service': Database,
+  'volatility-service': Activity,
+  'correlation-service': GitMerge,
 }
 
 const OBSERVABILITY_LINKS = [
@@ -107,6 +133,7 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
       >
         {Object.entries(services).map(([key, svc]) => {
           const up = svc.status === 'UP'
+          const Icon = SERVICE_ICONS[key]
           return (
             <Card key={key} data-testid={`service-card-${key}`}>
               <div className="flex items-center gap-2">
@@ -115,6 +142,7 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
                   status={up ? 'up' : 'down'}
                   pulse={up}
                 />
+                {Icon && <Icon className="h-4 w-4 text-slate-400" />}
                 <span className="font-medium">
                   {SERVICE_LABELS[key] ?? key}
                 </span>

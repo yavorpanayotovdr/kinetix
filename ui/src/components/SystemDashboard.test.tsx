@@ -192,7 +192,7 @@ describe('SystemDashboard', () => {
     expect(screen.getByText('Rates')).toBeInTheDocument()
     expect(screen.getByText('Reference Data')).toBeInTheDocument()
     expect(screen.getByText('Volatility')).toBeInTheDocument()
-    expect(screen.getByText('Correlation')).toBeInTheDocument()
+    expect(screen.getByText('Correlations')).toBeInTheDocument()
   })
 
   it('calls onRefresh when refresh button is clicked', () => {
