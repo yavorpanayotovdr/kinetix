@@ -123,8 +123,8 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
-        <div className="col-span-3">
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Server className="h-5 w-5 text-slate-500" />
             Service Health
@@ -161,12 +161,9 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
           </div>
         </div>
 
-        <div className="col-span-2">
+        <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-3">Observability</h2>
-          <div
-            data-testid="observability-links"
-            className="grid grid-cols-2 gap-4"
-          >
+          <div data-testid="observability-links" className="space-y-2">
             {OBSERVABILITY_LINKS.map((link) => (
               <a
                 key={link.name}
@@ -174,15 +171,13 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-                className="block group"
+                className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-slate-50 transition-colors group"
               >
-                <Card className="hover:shadow-md hover:border-primary-300 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-primary-600">{link.name}</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
-                  </div>
-                  <p className="mt-1 text-sm text-slate-500">{link.description}</p>
-                </Card>
+                <div>
+                  <span className="font-medium text-primary-600">{link.name}</span>
+                  <p className="text-sm text-slate-500">{link.description}</p>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 group-hover:text-primary-500 transition-colors" />
               </a>
             ))}
           </div>
