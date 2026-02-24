@@ -86,7 +86,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                     <td colSpan={6} className="p-0">
                       <div data-testid="job-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold text-slate-700">Job Detail</h4>
+                          <h4 className="text-sm font-semibold text-slate-700">Job Details</h4>
                           <button
                             data-testid={`close-detail-${run.jobId}`}
                             onClick={(e) => {

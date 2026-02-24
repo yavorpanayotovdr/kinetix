@@ -76,22 +76,20 @@ export function JobTimeline({ steps }: JobTimelineProps) {
 
         return (
           <div key={i} data-testid={`job-step-${step.name}`} className="relative mb-3 last:mb-0">
-            <div className="flex items-center gap-2">
+            <div
+              data-testid={`toggle-${step.name}`}
+              onClick={hasDetails ? () => toggle(i) : undefined}
+              className={`flex items-center gap-2${hasDetails ? ' cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded' : ''}`}
+            >
               <StatusDotInline status={step.status} />
+              {hasDetails && (
+                isOpen ? <ChevronDown className="h-3 w-3 text-slate-400" /> : <ChevronRight className="h-3 w-3 text-slate-400" />
+              )}
               <span className="text-sm font-medium text-slate-700">
                 {STEP_LABELS[step.name] ?? step.name}
               </span>
               {step.durationMs != null && (
                 <span className="text-xs text-slate-400">{step.durationMs}ms</span>
-              )}
-              {hasDetails && (
-                <button
-                  data-testid={`toggle-${step.name}`}
-                  onClick={() => toggle(i)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                </button>
               )}
             </div>
             {step.error && (

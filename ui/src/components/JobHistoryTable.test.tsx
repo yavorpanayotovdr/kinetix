@@ -156,7 +156,7 @@ describe('JobHistoryTable', () => {
     expect(screen.getByTestId('job-detail-row-job-1')).toBeInTheDocument()
     expect(screen.getByTestId('job-detail-panel')).toBeInTheDocument()
     expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
-    expect(screen.getByText('Job Detail')).toBeInTheDocument()
+    expect(screen.getByText('Job Details')).toBeInTheDocument()
   })
 
   it('shows loading indicator while detail is fetching', () => {
@@ -214,6 +214,6 @@ describe('JobHistoryTable', () => {
     expect(screen.getByTestId('job-detail-row-job-1')).toBeInTheDocument()
     expect(screen.getByTestId('job-detail-row-job-2')).toBeInTheDocument()
     expect(screen.getAllByTestId('job-detail-panel')).toHaveLength(2)
-    expect(screen.getAllByText('Job Detail')).toHaveLength(2)
+    expect(screen.getAllByText('Job Details')).toHaveLength(2)
   })
 })
