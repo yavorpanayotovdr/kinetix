@@ -2,6 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.routes.dtos.*
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
@@ -11,7 +12,14 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
-import com.kinetix.proto.risk.*
+import com.kinetix.proto.risk.FrtbRequest
+import com.kinetix.proto.risk.GenerateReportRequest
+import com.kinetix.proto.risk.GreeksRequest
+import com.kinetix.proto.risk.ListScenariosRequest
+import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
+import com.kinetix.proto.risk.ReportFormat
+import com.kinetix.proto.risk.StressTestRequest
+import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*

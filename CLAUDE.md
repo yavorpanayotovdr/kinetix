@@ -15,7 +15,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 ## Code Organisation
 
 - **One type per file.** Data classes, enums, sealed classes, and interfaces should each live in their own file rather than being inlined in the implementation class that uses them. This keeps files focused and easy to navigate.
-- **DTOs, events, and domain types get separate files.** For example, put `PriceEvent` in `PriceEvent.kt`, not inside `KafkaPricePublisher.kt`. Same for response/request DTOs — pull them into a dedicated file (e.g. `Dtos.kt` or named per type).
+- **DTOs live in a `dtos` sub-package, one per file.** For example, route DTOs go in `routes/dtos/VaRResultResponse.kt`, not grouped in a single `RiskDtos.kt`. Each file contains exactly one `@Serializable` data class. The same applies to events and domain types — e.g. `PriceEvent` in `PriceEvent.kt`, not inside `KafkaPricePublisher.kt`.
 - **Keep implementation files focused on behaviour.** A service or route file should contain the logic, not a mix of logic and type definitions.
 
 ## Project Conventions

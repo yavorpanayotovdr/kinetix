@@ -2,6 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.routes.dtos.*
 import com.kinetix.proto.risk.DataDependenciesResponse as ProtoDataDependenciesResponse
 import com.kinetix.proto.risk.MarketDataDependency as ProtoMarketDataDependency
 import com.kinetix.proto.risk.MarketDataType
