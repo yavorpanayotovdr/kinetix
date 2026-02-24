@@ -123,64 +123,70 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
         </Button>
       </div>
 
-      <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-        <Server className="h-5 w-5 text-slate-500" />
-        Service Health
-      </h2>
-      <div
-        data-testid="service-health-grid"
-        className="grid grid-cols-3 gap-4 mb-8"
-      >
-        {Object.entries(services).map(([key, svc]) => {
-          const up = svc.status === 'UP'
-          const Icon = SERVICE_ICONS[key]
-          return (
-            <Card key={key} data-testid={`service-card-${key}`}>
-              <div className="flex items-center gap-2">
-                <StatusDot
-                  data-testid={`service-status-dot-${key}`}
-                  status={up ? 'up' : 'down'}
-                  pulse={up}
-                />
-                {Icon && <Icon className="h-4 w-4 text-slate-400" />}
-                <span className="font-medium">
-                  {SERVICE_LABELS[key] ?? key}
-                </span>
-              </div>
-              <p
-                data-testid={`service-status-text-${key}`}
-                className={`mt-1 text-sm ${up ? 'text-green-700' : 'text-red-700'}`}
-              >
-                {svc.status}
-              </p>
-            </Card>
-          )
-        })}
-      </div>
-
-      <h2 className="text-lg font-semibold mb-3">Observability</h2>
-      <div
-        data-testid="observability-links"
-        className="grid grid-cols-3 gap-4"
-      >
-        {OBSERVABILITY_LINKS.map((link) => (
-          <a
-            key={link.name}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className="block group"
+      <div className="grid grid-cols-5 gap-6">
+        <div className="col-span-3">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Server className="h-5 w-5 text-slate-500" />
+            Service Health
+          </h2>
+          <div
+            data-testid="service-health-grid"
+            className="grid grid-cols-3 gap-4"
           >
-            <Card className="hover:shadow-md hover:border-primary-300 transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-primary-600">{link.name}</span>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
-              </div>
-              <p className="mt-1 text-sm text-slate-500">{link.description}</p>
-            </Card>
-          </a>
-        ))}
+            {Object.entries(services).map(([key, svc]) => {
+              const up = svc.status === 'UP'
+              const Icon = SERVICE_ICONS[key]
+              return (
+                <Card key={key} data-testid={`service-card-${key}`}>
+                  <div className="flex items-center gap-2">
+                    <StatusDot
+                      data-testid={`service-status-dot-${key}`}
+                      status={up ? 'up' : 'down'}
+                      pulse={up}
+                    />
+                    {Icon && <Icon className="h-4 w-4 text-slate-400" />}
+                    <span className="font-medium">
+                      {SERVICE_LABELS[key] ?? key}
+                    </span>
+                  </div>
+                  <p
+                    data-testid={`service-status-text-${key}`}
+                    className={`mt-1 text-sm ${up ? 'text-green-700' : 'text-red-700'}`}
+                  >
+                    {svc.status}
+                  </p>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="col-span-2">
+          <h2 className="text-lg font-semibold mb-3">Observability</h2>
+          <div
+            data-testid="observability-links"
+            className="grid grid-cols-2 gap-4"
+          >
+            {OBSERVABILITY_LINKS.map((link) => (
+              <a
+                key={link.name}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
+                className="block group"
+              >
+                <Card className="hover:shadow-md hover:border-primary-300 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-primary-600">{link.name}</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">{link.description}</p>
+                </Card>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
