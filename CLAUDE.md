@@ -12,6 +12,12 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 
+## Design Principles
+
+- **Single responsibility.** Each class or function should have one reason to change. If a class is doing parsing, validation, persistence, and notification, split it up. A service orchestrates; a repository persists; a mapper converts — don't blend these roles.
+- **Prefer small, composable units.** Favour multiple focused classes over one large class with many methods. When a new responsibility appears, introduce a new collaborator rather than growing an existing one.
+- **Depend on abstractions.** Use interfaces at module boundaries (repositories, clients, publishers) so implementations can be swapped and tested independently.
+
 ## Code Organisation
 
 - **One type per file.** Data classes, enums, sealed classes, and interfaces should each live in their own file rather than being inlined in the implementation class that uses them. This keeps files focused and easy to navigate.
