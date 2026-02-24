@@ -49,6 +49,12 @@ export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
   }, [portfolioId, load])
 
   const selectRun = useCallback(async (runId: string) => {
+    if (runId === selectedRunId) {
+      setSelectedRunId(null)
+      setSelectedRun(null)
+      return
+    }
+
     setSelectedRunId(runId)
     setSelectedRun(null)
     setDetailLoading(true)
@@ -62,7 +68,7 @@ export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
     } finally {
       setDetailLoading(false)
     }
-  }, [])
+  }, [selectedRunId])
 
   const clearSelection = useCallback(() => {
     setSelectedRunId(null)

@@ -109,6 +109,33 @@ describe('useRunHistory', () => {
     expect(mockFetchDetail).toHaveBeenCalledWith('run-1')
   })
 
+  it('selectRun toggles off when clicking the same run again', async () => {
+    mockFetchRuns.mockResolvedValue([runSummary])
+    mockFetchDetail.mockResolvedValue(runDetail)
+
+    const { result } = renderHook(() => useRunHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.runs).toHaveLength(1)
+    })
+
+    await act(async () => {
+      result.current.selectRun('run-1')
+    })
+
+    await waitFor(() => {
+      expect(result.current.selectedRun).not.toBeNull()
+    })
+
+    act(() => {
+      result.current.selectRun('run-1')
+    })
+
+    expect(result.current.selectedRunId).toBeNull()
+    expect(result.current.selectedRun).toBeNull()
+    expect(mockFetchDetail).toHaveBeenCalledTimes(1)
+  })
+
   it('clearSelection resets selectedRun', async () => {
     mockFetchRuns.mockResolvedValue([runSummary])
     mockFetchDetail.mockResolvedValue(runDetail)
