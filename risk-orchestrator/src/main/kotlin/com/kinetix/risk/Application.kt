@@ -120,16 +120,16 @@ fun Application.moduleWithRoutes() {
     }
     val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
     val ratesServiceBaseUrl = environment.config
-        .propertyOrNull("ratesService.baseUrl")?.getString() ?: "http://localhost:8084"
+        .propertyOrNull("ratesService.baseUrl")?.getString() ?: "http://localhost:8088"
     val ratesServiceClient = HttpRatesServiceClient(priceHttpClient, ratesServiceBaseUrl)
     val referenceDataServiceBaseUrl = environment.config
-        .propertyOrNull("referenceDataService.baseUrl")?.getString() ?: "http://localhost:8085"
+        .propertyOrNull("referenceDataService.baseUrl")?.getString() ?: "http://localhost:8089"
     val referenceDataServiceClient = HttpReferenceDataServiceClient(priceHttpClient, referenceDataServiceBaseUrl)
     val volatilityServiceBaseUrl = environment.config
-        .propertyOrNull("volatilityService.baseUrl")?.getString() ?: "http://localhost:8086"
+        .propertyOrNull("volatilityService.baseUrl")?.getString() ?: "http://localhost:8090"
     val volatilityServiceClient = HttpVolatilityServiceClient(priceHttpClient, volatilityServiceBaseUrl)
     val correlationServiceBaseUrl = environment.config
-        .propertyOrNull("correlationService.baseUrl")?.getString() ?: "http://localhost:8087"
+        .propertyOrNull("correlationService.baseUrl")?.getString() ?: "http://localhost:8091"
     val correlationServiceClient = HttpCorrelationServiceClient(priceHttpClient, correlationServiceBaseUrl)
     val dependenciesDiscoverer = DependenciesDiscoverer(riskEngineClient)
     val marketDataFetcher = MarketDataFetcher(
