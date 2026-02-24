@@ -112,21 +112,28 @@ describe('PipelineTimeline', () => {
     expect(screen.getByText('Connection timeout')).toBeInTheDocument()
   })
 
-  it('expands step details on toggle click', () => {
+  it('auto-expands FETCH_POSITIONS step by default', () => {
     render(<PipelineTimeline steps={steps} />)
-
-    expect(screen.queryByTestId('details-FETCH_POSITIONS')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
     expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
     expect(screen.getByText('positionCount:')).toBeInTheDocument()
+    expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
+    expect(screen.getByTestId('position-TSLA')).toBeInTheDocument()
+  })
+
+  it('expands step details on toggle click', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    expect(screen.queryByTestId('details-FETCH_MARKET_DATA')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+    expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
+    expect(screen.getByText('requested:')).toBeInTheDocument()
   })
 
   it('renders expandable positions in FETCH_POSITIONS details', () => {
     render(<PipelineTimeline steps={steps} />)
-
-    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
     expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
     expect(screen.getByText('positionCount:')).toBeInTheDocument()
@@ -138,7 +145,6 @@ describe('PipelineTimeline', () => {
   it('expands position to show JSON', () => {
     render(<PipelineTimeline steps={steps} />)
 
-    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
     fireEvent.click(screen.getByTestId('position-AAPL'))
 
     const jsonBlock = screen.getByTestId('position-json-AAPL')
@@ -150,8 +156,6 @@ describe('PipelineTimeline', () => {
 
   it('does not render positions key as a regular detail', () => {
     render(<PipelineTimeline steps={steps} />)
-
-    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
     expect(screen.queryByText('positions:')).not.toBeInTheDocument()
   })

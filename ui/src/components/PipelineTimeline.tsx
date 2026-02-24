@@ -36,7 +36,12 @@ interface DependencyItem {
 }
 
 export function PipelineTimeline({ steps }: PipelineTimelineProps) {
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  const [expanded, setExpanded] = useState<Record<number, boolean>>(() => {
+    const init: Record<number, boolean> = {}
+    const idx = steps.findIndex((s) => s.name === 'FETCH_POSITIONS')
+    if (idx !== -1) init[idx] = true
+    return init
+  })
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
 
   const toggle = (index: number) => {
