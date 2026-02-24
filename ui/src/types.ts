@@ -155,7 +155,7 @@ export interface CreateAlertRuleRequestDto {
   channels: string[]
 }
 
-export interface PipelineStepDto {
+export interface JobStepDto {
   name: string
   status: string
   startedAt: string
@@ -165,8 +165,8 @@ export interface PipelineStepDto {
   error: string | null
 }
 
-export interface CalculationRunSummaryDto {
-  runId: string
+export interface CalculationJobSummaryDto {
+  jobId: string
   portfolioId: string
   triggerType: string
   status: string
@@ -178,8 +178,8 @@ export interface CalculationRunSummaryDto {
   expectedShortfall: number | null
 }
 
-export interface CalculationRunDetailDto {
-  runId: string
+export interface CalculationJobDetailDto {
+  jobId: string
   portfolioId: string
   triggerType: string
   status: string
@@ -190,6 +190,6 @@ export interface CalculationRunDetailDto {
   confidenceLevel: string | null
   varValue: number | null
   expectedShortfall: number | null
-  steps: PipelineStepDto[]
+  steps: JobStepDto[]
   error: string | null
 }

@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { PipelineStepDto } from '../types'
-import { PipelineTimeline } from './PipelineTimeline'
+import type { JobStepDto } from '../types'
+import { JobTimeline } from './JobTimeline'
 
-const steps: PipelineStepDto[] = [
+const steps: JobStepDto[] = [
   {
     name: 'FETCH_POSITIONS',
     status: 'COMPLETED',
@@ -64,20 +64,20 @@ const steps: PipelineStepDto[] = [
   },
 ]
 
-describe('PipelineTimeline', () => {
-  it('renders all 5 pipeline steps', () => {
-    render(<PipelineTimeline steps={steps} />)
+describe('JobTimeline', () => {
+  it('renders all 5 job steps', () => {
+    render(<JobTimeline steps={steps} />)
 
-    expect(screen.getByTestId('pipeline-timeline')).toBeInTheDocument()
-    expect(screen.getByTestId('pipeline-step-FETCH_POSITIONS')).toBeInTheDocument()
-    expect(screen.getByTestId('pipeline-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-    expect(screen.getByTestId('pipeline-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-    expect(screen.getByTestId('pipeline-step-CALCULATE_VAR')).toBeInTheDocument()
-    expect(screen.getByTestId('pipeline-step-PUBLISH_RESULT')).toBeInTheDocument()
+    expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
   })
 
   it('displays human-readable step labels', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     expect(screen.getByText('Fetch Positions')).toBeInTheDocument()
     expect(screen.getByText('Discover Dependencies')).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('shows duration for each step', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     expect(screen.getAllByText('20ms')).toHaveLength(2)
     expect(screen.getAllByText('30ms')).toHaveLength(2)
@@ -95,25 +95,25 @@ describe('PipelineTimeline', () => {
   })
 
   it('shows green status dot for completed steps', () => {
-    render(<PipelineTimeline steps={[steps[0]]} />)
+    render(<JobTimeline steps={[steps[0]]} />)
 
     expect(screen.getByTestId('step-dot-COMPLETED')).toBeInTheDocument()
   })
 
   it('shows red status dot for failed steps', () => {
-    const failedStep: PipelineStepDto = {
+    const failedStep: JobStepDto = {
       ...steps[0],
       status: 'FAILED',
       error: 'Connection timeout',
     }
-    render(<PipelineTimeline steps={[failedStep]} />)
+    render(<JobTimeline steps={[failedStep]} />)
 
     expect(screen.getByTestId('step-dot-FAILED')).toBeInTheDocument()
     expect(screen.getByText('Connection timeout')).toBeInTheDocument()
   })
 
   it('expands step details on toggle click', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     expect(screen.queryByTestId('details-FETCH_POSITIONS')).not.toBeInTheDocument()
 
@@ -124,7 +124,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('renders expandable positions in FETCH_POSITIONS details', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
@@ -136,7 +136,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('expands position to show JSON', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
     fireEvent.click(screen.getByTestId('position-AAPL'))
@@ -149,7 +149,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('does not render positions key as a regular detail', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
@@ -157,7 +157,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('renders expandable dependencies in DISCOVER_DEPENDENCIES details', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
@@ -169,7 +169,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('expands dependency to show JSON', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
     fireEvent.click(screen.getByTestId('dependency-AAPL-SPOT_PRICE'))
@@ -182,7 +182,7 @@ describe('PipelineTimeline', () => {
   })
 
   it('does not render dependencies key as a regular detail', () => {
-    render(<PipelineTimeline steps={steps} />)
+    render(<JobTimeline steps={steps} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
@@ -190,8 +190,8 @@ describe('PipelineTimeline', () => {
   })
 
   it('renders empty list without errors', () => {
-    render(<PipelineTimeline steps={[]} />)
+    render(<JobTimeline steps={[]} />)
 
-    expect(screen.getByTestId('pipeline-timeline')).toBeInTheDocument()
+    expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
   })
 })

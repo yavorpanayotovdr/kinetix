@@ -15,7 +15,7 @@ import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.dependenciesRoutes
-import com.kinetix.gateway.routes.runHistoryRoutes
+import com.kinetix.gateway.routes.jobHistoryRoutes
 import com.kinetix.gateway.routes.priceRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
@@ -115,7 +115,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
-        runHistoryRoutes(riskClient)
+        jobHistoryRoutes(riskClient)
     }
 }
 
@@ -147,7 +147,7 @@ fun Application.module(
         stressTestRoutes(riskClient)
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
-        runHistoryRoutes(riskClient)
+        jobHistoryRoutes(riskClient)
     }
 }
 
@@ -268,7 +268,7 @@ fun Application.module(
                 }
                 requirePermission(Permission.READ_RISK) {
                     stressTestRoutes(riskClient)
-                    runHistoryRoutes(riskClient)
+                    jobHistoryRoutes(riskClient)
                 }
                 requirePermission(Permission.READ_REGULATORY) {
                     regulatoryRoutes(riskClient)

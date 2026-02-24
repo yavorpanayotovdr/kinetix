@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCalculationRuns, fetchCalculationRunDetail } from './runHistory'
+import { fetchCalculationJobs, fetchCalculationJobDetail } from './jobHistory'
 
-describe('runHistory API', () => {
+describe('jobHistory API', () => {
   const mockFetch = vi.fn()
 
   beforeEach(() => {
@@ -12,8 +12,8 @@ describe('runHistory API', () => {
     vi.restoreAllMocks()
   })
 
-  const runSummary = {
-    runId: 'run-1',
+  const jobSummary = {
+    jobId: 'job-1',
     portfolioId: 'port-1',
     triggerType: 'ON_DEMAND',
     status: 'COMPLETED',
@@ -25,8 +25,8 @@ describe('runHistory API', () => {
     expectedShortfall: 6250.0,
   }
 
-  const runDetail = {
-    ...runSummary,
+  const jobDetail = {
+    ...jobSummary,
     confidenceLevel: 'CL_95',
     steps: [
       {
@@ -42,19 +42,19 @@ describe('runHistory API', () => {
     error: null,
   }
 
-  describe('fetchCalculationRuns', () => {
+  describe('fetchCalculationJobs', () => {
     it('returns parsed JSON on 200', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([runSummary]),
+        json: () => Promise.resolve([jobSummary]),
       })
 
-      const result = await fetchCalculationRuns('port-1')
+      const result = await fetchCalculationJobs('port-1')
 
-      expect(result).toEqual([runSummary])
+      expect(result).toEqual([jobSummary])
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/runs/port-1?limit=20&offset=0',
+        '/api/v1/risk/jobs/port-1?limit=20&offset=0',
       )
     })
 
@@ -65,10 +65,10 @@ describe('runHistory API', () => {
         json: () => Promise.resolve([]),
       })
 
-      await fetchCalculationRuns('port-1', 5, 10)
+      await fetchCalculationJobs('port-1', 5, 10)
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/runs/port-1?limit=5&offset=10',
+        '/api/v1/risk/jobs/port-1?limit=5&offset=10',
       )
     })
 
@@ -79,25 +79,25 @@ describe('runHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchCalculationRuns('port-1')).rejects.toThrow(
-        'Failed to fetch calculation runs: 500 Internal Server Error',
+      await expect(fetchCalculationJobs('port-1')).rejects.toThrow(
+        'Failed to fetch calculation jobs: 500 Internal Server Error',
       )
     })
   })
 
-  describe('fetchCalculationRunDetail', () => {
+  describe('fetchCalculationJobDetail', () => {
     it('returns parsed JSON on 200', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(runDetail),
+        json: () => Promise.resolve(jobDetail),
       })
 
-      const result = await fetchCalculationRunDetail('run-1')
+      const result = await fetchCalculationJobDetail('job-1')
 
-      expect(result).toEqual(runDetail)
+      expect(result).toEqual(jobDetail)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/runs/detail/run-1',
+        '/api/v1/risk/jobs/detail/job-1',
       )
     })
 
@@ -108,7 +108,7 @@ describe('runHistory API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchCalculationRunDetail('unknown')
+      const result = await fetchCalculationJobDetail('unknown')
 
       expect(result).toBeNull()
     })
@@ -120,8 +120,8 @@ describe('runHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchCalculationRunDetail('run-1')).rejects.toThrow(
-        'Failed to fetch run detail: 500 Internal Server Error',
+      await expect(fetchCalculationJobDetail('job-1')).rejects.toThrow(
+        'Failed to fetch job detail: 500 Internal Server Error',
       )
     })
   })

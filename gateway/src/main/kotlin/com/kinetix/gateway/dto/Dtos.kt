@@ -3,9 +3,9 @@ package com.kinetix.gateway.dto
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.AlertEventItem
 import com.kinetix.gateway.client.AlertRuleItem
-import com.kinetix.gateway.client.CalculationRunDetailItem
-import com.kinetix.gateway.client.CalculationRunSummaryItem
-import com.kinetix.gateway.client.PipelineStepItem
+import com.kinetix.gateway.client.CalculationJobDetailItem
+import com.kinetix.gateway.client.CalculationJobSummaryItem
+import com.kinetix.gateway.client.JobStepItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.DataDependenciesSummary
@@ -517,10 +517,10 @@ fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRulePa
     channels = channels,
 )
 
-// --- Run History DTOs ---
+// --- Job History DTOs ---
 
 @Serializable
-data class PipelineStepDto(
+data class JobStepDto(
     val name: String,
     val status: String,
     val startedAt: String,
@@ -531,8 +531,8 @@ data class PipelineStepDto(
 )
 
 @Serializable
-data class CalculationRunSummaryResponse(
-    val runId: String,
+data class CalculationJobSummaryResponse(
+    val jobId: String,
     val portfolioId: String,
     val triggerType: String,
     val status: String,
@@ -545,8 +545,8 @@ data class CalculationRunSummaryResponse(
 )
 
 @Serializable
-data class CalculationRunDetailResponse(
-    val runId: String,
+data class CalculationJobDetailResponse(
+    val jobId: String,
     val portfolioId: String,
     val triggerType: String,
     val status: String,
@@ -557,13 +557,13 @@ data class CalculationRunDetailResponse(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
-    val steps: List<PipelineStepDto> = emptyList(),
+    val steps: List<JobStepDto> = emptyList(),
     val error: String? = null,
 )
 
-// --- Run History mappers ---
+// --- Job History mappers ---
 
-fun PipelineStepItem.toDto(): PipelineStepDto = PipelineStepDto(
+fun JobStepItem.toDto(): JobStepDto = JobStepDto(
     name = name,
     status = status,
     startedAt = startedAt.toString(),
@@ -573,8 +573,8 @@ fun PipelineStepItem.toDto(): PipelineStepDto = PipelineStepDto(
     error = error,
 )
 
-fun CalculationRunSummaryItem.toResponse(): CalculationRunSummaryResponse = CalculationRunSummaryResponse(
-    runId = runId,
+fun CalculationJobSummaryItem.toResponse(): CalculationJobSummaryResponse = CalculationJobSummaryResponse(
+    jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = status,
@@ -586,8 +586,8 @@ fun CalculationRunSummaryItem.toResponse(): CalculationRunSummaryResponse = Calc
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationRunDetailItem.toResponse(): CalculationRunDetailResponse = CalculationRunDetailResponse(
-    runId = runId,
+fun CalculationJobDetailItem.toResponse(): CalculationJobDetailResponse = CalculationJobDetailResponse(
+    jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = status,

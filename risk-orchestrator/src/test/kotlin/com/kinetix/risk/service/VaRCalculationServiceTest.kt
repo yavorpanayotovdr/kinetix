@@ -60,16 +60,16 @@ class VaRCalculationServiceTest : FunSpec({
     val positionProvider = mockk<PositionProvider>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val resultPublisher = mockk<RiskResultPublisher>()
-    val runRecorder = mockk<CalculationRunRecorder>()
+    val jobRecorder = mockk<CalculationJobRecorder>()
     val service = VaRCalculationService(
         positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
-        runRecorder = runRecorder,
+        jobRecorder = jobRecorder,
     )
     val serviceNoRecorder = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry())
 
     beforeEach {
-        clearMocks(positionProvider, riskEngineClient, resultPublisher, runRecorder)
-        coEvery { runRecorder.save(any()) } just Runs
+        clearMocks(positionProvider, riskEngineClient, resultPublisher, jobRecorder)
+        coEvery { jobRecorder.save(any()) } just Runs
     }
 
     test("fetches positions, calls risk engine, and publishes result") {
@@ -165,7 +165,7 @@ class VaRCalculationServiceTest : FunSpec({
         result!!.componentBreakdown.size shouldBe 3
     }
 
-    test("records a completed calculation run with all pipeline steps") {
+    test("records a completed calculation job with all job steps") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -181,38 +181,38 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val runSlot = slot<CalculationRun>()
-        coVerify { runRecorder.save(capture(runSlot)) }
+        val jobSlot = slot<CalculationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
 
-        val run = runSlot.captured
-        run.portfolioId shouldBe "port-1"
-        run.status shouldBe RunStatus.COMPLETED
-        run.triggerType shouldBe TriggerType.ON_DEMAND
-        run.calculationType shouldBe "PARAMETRIC"
-        run.confidenceLevel shouldBe "CL_95"
-        run.varValue shouldBe expectedResult.varValue
-        run.expectedShortfall shouldBe expectedResult.expectedShortfall
-        run.completedAt.shouldNotBeNull()
-        run.durationMs.shouldNotBeNull()
-        run.error shouldBe null
+        val job = jobSlot.captured
+        job.portfolioId shouldBe "port-1"
+        job.status shouldBe RunStatus.COMPLETED
+        job.triggerType shouldBe TriggerType.ON_DEMAND
+        job.calculationType shouldBe "PARAMETRIC"
+        job.confidenceLevel shouldBe "CL_95"
+        job.varValue shouldBe expectedResult.varValue
+        job.expectedShortfall shouldBe expectedResult.expectedShortfall
+        job.completedAt.shouldNotBeNull()
+        job.durationMs.shouldNotBeNull()
+        job.error shouldBe null
 
-        run.steps shouldHaveSize 5
-        run.steps[0].name shouldBe PipelineStepName.FETCH_POSITIONS
-        run.steps[1].name shouldBe PipelineStepName.DISCOVER_DEPENDENCIES
-        run.steps[2].name shouldBe PipelineStepName.FETCH_MARKET_DATA
-        run.steps[3].name shouldBe PipelineStepName.CALCULATE_VAR
-        run.steps[4].name shouldBe PipelineStepName.PUBLISH_RESULT
+        job.steps shouldHaveSize 5
+        job.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
+        job.steps[1].name shouldBe JobStepName.DISCOVER_DEPENDENCIES
+        job.steps[2].name shouldBe JobStepName.FETCH_MARKET_DATA
+        job.steps[3].name shouldBe JobStepName.CALCULATE_VAR
+        job.steps[4].name shouldBe JobStepName.PUBLISH_RESULT
 
-        run.steps[0].details["positionCount"] shouldBe 1
+        job.steps[0].details["positionCount"] shouldBe 1
 
-        val positionsJson = run.steps[0].details["positions"]
+        val positionsJson = job.steps[0].details["positions"]
         positionsJson.shouldBeInstanceOf<String>()
         positionsJson shouldContain "AAPL"
         positionsJson shouldContain "EQUITY"
         positionsJson shouldContain "100"
     }
 
-    test("records a failed run when risk engine throws") {
+    test("records a failed job when risk engine throws") {
         val positions = listOf(position())
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
@@ -230,22 +230,22 @@ class VaRCalculationServiceTest : FunSpec({
             // expected
         }
 
-        val runSlot = slot<CalculationRun>()
-        coVerify { runRecorder.save(capture(runSlot)) }
+        val jobSlot = slot<CalculationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
 
-        val run = runSlot.captured
-        run.status shouldBe RunStatus.FAILED
-        run.error shouldBe "Engine down"
+        val job = jobSlot.captured
+        job.status shouldBe RunStatus.FAILED
+        job.error shouldBe "Engine down"
     }
 
-    test("does not fail the calculation if run recorder throws") {
+    test("does not fail the calculation if job recorder throws") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
         coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
-        coEvery { runRecorder.save(any()) } throws RuntimeException("DB connection failed")
+        coEvery { jobRecorder.save(any()) } throws RuntimeException("DB connection failed")
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
@@ -258,7 +258,7 @@ class VaRCalculationServiceTest : FunSpec({
         result shouldBe expectedResult
     }
 
-    test("passes trigger type through to the recorded run") {
+    test("passes trigger type through to the recorded job") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -275,10 +275,10 @@ class VaRCalculationServiceTest : FunSpec({
             triggerType = TriggerType.TRADE_EVENT,
         )
 
-        val runSlot = slot<CalculationRun>()
-        coVerify { runRecorder.save(capture(runSlot)) }
+        val jobSlot = slot<CalculationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
 
-        runSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
+        jobSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
     }
 
     test("captures discovered dependencies in step details") {
@@ -298,7 +298,7 @@ class VaRCalculationServiceTest : FunSpec({
         val serviceWithDiscoverer = VaRCalculationService(
             positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
             dependenciesDiscoverer = discoverer,
-            runRecorder = runRecorder,
+            jobRecorder = jobRecorder,
         )
 
         serviceWithDiscoverer.calculateVaR(
@@ -309,10 +309,10 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val runSlot = slot<CalculationRun>()
-        coVerify { runRecorder.save(capture(runSlot)) }
+        val jobSlot = slot<CalculationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
 
-        val discoverStep = runSlot.captured.steps.first { it.name == PipelineStepName.DISCOVER_DEPENDENCIES }
+        val discoverStep = jobSlot.captured.steps.first { it.name == JobStepName.DISCOVER_DEPENDENCIES }
         discoverStep.details["dependencyCount"] shouldBe 2
 
         val depsJson = discoverStep.details["dependencies"]

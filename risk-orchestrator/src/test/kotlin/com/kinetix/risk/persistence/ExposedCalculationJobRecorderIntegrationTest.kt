@@ -11,13 +11,13 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.time.Instant
 import java.util.UUID
 
-private fun completedRun(
+private fun completedJob(
     portfolioId: String = "port-1",
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
     varValue: Double = 5000.0,
-) = CalculationRun(
-    runId = UUID.randomUUID(),
+) = CalculationJob(
+    jobId = UUID.randomUUID(),
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = RunStatus.COMPLETED,
@@ -29,40 +29,40 @@ private fun completedRun(
     varValue = varValue,
     expectedShortfall = varValue * 1.25,
     steps = listOf(
-        PipelineStep(
-            name = PipelineStepName.FETCH_POSITIONS,
+        JobStep(
+            name = JobStepName.FETCH_POSITIONS,
             status = RunStatus.COMPLETED,
             startedAt = startedAt,
             completedAt = startedAt.plusMillis(20),
             durationMs = 20,
             details = mapOf("positionCount" to 5),
         ),
-        PipelineStep(
-            name = PipelineStepName.DISCOVER_DEPENDENCIES,
+        JobStep(
+            name = JobStepName.DISCOVER_DEPENDENCIES,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(20),
             completedAt = startedAt.plusMillis(50),
             durationMs = 30,
             details = mapOf("dependencyCount" to 3, "dataTypes" to "SPOT_PRICE,YIELD_CURVE"),
         ),
-        PipelineStep(
-            name = PipelineStepName.FETCH_MARKET_DATA,
+        JobStep(
+            name = JobStepName.FETCH_MARKET_DATA,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(50),
             completedAt = startedAt.plusMillis(80),
             durationMs = 30,
             details = mapOf("requested" to 3, "fetched" to 2),
         ),
-        PipelineStep(
-            name = PipelineStepName.CALCULATE_VAR,
+        JobStep(
+            name = JobStepName.CALCULATE_VAR,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(80),
             completedAt = startedAt.plusMillis(130),
             durationMs = 50,
             details = mapOf("varValue" to 5000.0, "expectedShortfall" to 6250.0),
         ),
-        PipelineStep(
-            name = PipelineStepName.PUBLISH_RESULT,
+        JobStep(
+            name = JobStepName.PUBLISH_RESULT,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(130),
             completedAt = startedAt.plusMillis(150),
@@ -72,22 +72,22 @@ private fun completedRun(
     ),
 )
 
-class ExposedCalculationRunRecorderIntegrationTest : FunSpec({
+class ExposedCalculationJobRecorderIntegrationTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
-    val recorder = ExposedCalculationRunRecorder(db)
+    val recorder = ExposedCalculationJobRecorder(db)
 
     beforeEach {
-        newSuspendedTransaction(db = db) { CalculationRunsTable.deleteAll() }
+        newSuspendedTransaction(db = db) { CalculationJobsTable.deleteAll() }
     }
 
-    test("saves and retrieves a completed calculation run") {
-        val run = completedRun()
-        recorder.save(run)
+    test("saves and retrieves a completed calculation job") {
+        val job = completedJob()
+        recorder.save(job)
 
-        val found = recorder.findByRunId(run.runId)
+        val found = recorder.findByJobId(job.jobId)
         found.shouldNotBeNull()
-        found.runId shouldBe run.runId
+        found.jobId shouldBe job.jobId
         found.portfolioId shouldBe "port-1"
         found.triggerType shouldBe TriggerType.ON_DEMAND
         found.status shouldBe RunStatus.COMPLETED
@@ -98,34 +98,34 @@ class ExposedCalculationRunRecorderIntegrationTest : FunSpec({
         found.durationMs shouldBe 150
         found.error shouldBe null
         found.steps shouldHaveSize 5
-        found.steps[0].name shouldBe PipelineStepName.FETCH_POSITIONS
+        found.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
         found.steps[0].details["positionCount"] shouldBe "5"
-        found.steps[4].name shouldBe PipelineStepName.PUBLISH_RESULT
+        found.steps[4].name shouldBe JobStepName.PUBLISH_RESULT
     }
 
-    test("lists runs ordered by started_at descending") {
-        val run1 = completedRun(startedAt = Instant.parse("2025-01-15T10:00:00Z"))
-        val run2 = completedRun(startedAt = Instant.parse("2025-01-15T11:00:00Z"))
-        val run3 = completedRun(startedAt = Instant.parse("2025-01-15T09:00:00Z"))
+    test("lists jobs ordered by started_at descending") {
+        val job1 = completedJob(startedAt = Instant.parse("2025-01-15T10:00:00Z"))
+        val job2 = completedJob(startedAt = Instant.parse("2025-01-15T11:00:00Z"))
+        val job3 = completedJob(startedAt = Instant.parse("2025-01-15T09:00:00Z"))
 
-        recorder.save(run1)
-        recorder.save(run2)
-        recorder.save(run3)
+        recorder.save(job1)
+        recorder.save(job2)
+        recorder.save(job3)
 
-        val runs = recorder.findByPortfolioId("port-1")
-        runs shouldHaveSize 3
-        runs[0].runId shouldBe run2.runId
-        runs[1].runId shouldBe run1.runId
-        runs[2].runId shouldBe run3.runId
+        val jobs = recorder.findByPortfolioId("port-1")
+        jobs shouldHaveSize 3
+        jobs[0].jobId shouldBe job2.jobId
+        jobs[1].jobId shouldBe job1.jobId
+        jobs[2].jobId shouldBe job3.jobId
     }
 
-    test("returns null for unknown run ID") {
-        recorder.findByRunId(UUID.randomUUID()).shouldBeNull()
+    test("returns null for unknown job ID") {
+        recorder.findByJobId(UUID.randomUUID()).shouldBeNull()
     }
 
     test("respects limit and offset") {
         for (i in 0 until 5) {
-            recorder.save(completedRun(startedAt = Instant.parse("2025-01-15T${10 + i}:00:00Z")))
+            recorder.save(completedJob(startedAt = Instant.parse("2025-01-15T${10 + i}:00:00Z")))
         }
 
         val page1 = recorder.findByPortfolioId("port-1", limit = 2, offset = 0)
@@ -138,7 +138,7 @@ class ExposedCalculationRunRecorderIntegrationTest : FunSpec({
         page3 shouldHaveSize 1
 
         // No overlap between pages
-        val allIds = (page1 + page2 + page3).map { it.runId }.toSet()
+        val allIds = (page1 + page2 + page3).map { it.jobId }.toSet()
         allIds shouldHaveSize 5
     }
 })

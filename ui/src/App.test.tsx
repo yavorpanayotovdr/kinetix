@@ -10,7 +10,7 @@ vi.mock('./hooks/useGreeks')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useRegulatory')
 vi.mock('./hooks/useSystemHealth')
-vi.mock('./hooks/useRunHistory')
+vi.mock('./hooks/useJobHistory')
 
 import App from './App'
 import { usePositions } from './hooks/usePositions'
@@ -21,7 +21,7 @@ import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
-import { useRunHistory } from './hooks/useRunHistory'
+import { useJobHistory } from './hooks/useJobHistory'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
@@ -31,7 +31,7 @@ const mockUseGreeks = vi.mocked(useGreeks)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseRegulatory = vi.mocked(useRegulatory)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
-const mockUseRunHistory = vi.mocked(useRunHistory)
+const mockUseJobHistory = vi.mocked(useJobHistory)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -122,12 +122,14 @@ function setupDefaults() {
     error: null,
     refresh: vi.fn(),
   })
-  mockUseRunHistory.mockReturnValue({
+  mockUseJobHistory.mockReturnValue({
     runs: [],
-    selectedRun: null,
+    expandedJobs: {},
+    loadingJobIds: new Set(),
     loading: false,
     error: null,
-    selectRun: vi.fn(),
+    toggleJob: vi.fn(),
+    closeJob: vi.fn(),
     clearSelection: vi.fn(),
     refresh: vi.fn(),
   })
@@ -316,12 +318,12 @@ describe('App', () => {
     expect(screen.queryByText('Loading positions...')).not.toBeInTheDocument()
   })
 
-  it('shows RunHistory in the risk tab', () => {
+  it('shows JobHistory in the risk tab', () => {
     render(<App />)
 
     fireEvent.click(screen.getByTestId('tab-risk'))
 
-    expect(screen.getByTestId('run-history')).toBeInTheDocument()
+    expect(screen.getByTestId('job-history')).toBeInTheDocument()
   })
 
   it('System tab renders even when positions have an error', () => {

@@ -110,21 +110,21 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun listCalculationRuns(portfolioId: String, limit: Int, offset: Int): List<CalculationRunSummaryItem> {
-        val response = httpClient.get("$baseUrl/api/v1/risk/runs/$portfolioId") {
+    override suspend fun listCalculationJobs(portfolioId: String, limit: Int, offset: Int): List<CalculationJobSummaryItem> {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId") {
             url {
                 parameters.append("limit", limit.toString())
                 parameters.append("offset", offset.toString())
             }
         }
-        val dtos: List<CalculationRunSummaryClientDto> = response.body()
+        val dtos: List<CalculationJobSummaryClientDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getCalculationRunDetail(runId: String): CalculationRunDetailItem? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/runs/detail/$runId")
+    override suspend fun getCalculationJobDetail(jobId: String): CalculationJobDetailItem? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/detail/$jobId")
         if (response.status == HttpStatusCode.NotFound) return null
-        val dto: CalculationRunDetailClientDto = response.body()
+        val dto: CalculationJobDetailClientDto = response.body()
         return dto.toDomain()
     }
 }

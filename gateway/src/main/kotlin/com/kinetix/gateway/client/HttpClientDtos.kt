@@ -237,10 +237,10 @@ data class CreateAlertRuleRequestDto(
     val channels: List<String>,
 )
 
-// --- Run History DTOs ---
+// --- Job History DTOs ---
 
 @Serializable
-data class PipelineStepClientDto(
+data class JobStepClientDto(
     val name: String,
     val status: String,
     val startedAt: String,
@@ -251,8 +251,8 @@ data class PipelineStepClientDto(
 )
 
 @Serializable
-data class CalculationRunSummaryClientDto(
-    val runId: String,
+data class CalculationJobSummaryClientDto(
+    val jobId: String,
     val portfolioId: String,
     val triggerType: String,
     val status: String,
@@ -265,8 +265,8 @@ data class CalculationRunSummaryClientDto(
 )
 
 @Serializable
-data class CalculationRunDetailClientDto(
-    val runId: String,
+data class CalculationJobDetailClientDto(
+    val jobId: String,
     val portfolioId: String,
     val triggerType: String,
     val status: String,
@@ -277,7 +277,7 @@ data class CalculationRunDetailClientDto(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
-    val steps: List<PipelineStepClientDto> = emptyList(),
+    val steps: List<JobStepClientDto> = emptyList(),
     val error: String? = null,
 )
 
@@ -433,7 +433,7 @@ fun AlertEventDto.toDomain() = AlertEventItem(
     triggeredAt = Instant.parse(triggeredAt),
 )
 
-fun PipelineStepClientDto.toDomain() = PipelineStepItem(
+fun JobStepClientDto.toDomain() = JobStepItem(
     name = name,
     status = status,
     startedAt = Instant.parse(startedAt),
@@ -443,8 +443,8 @@ fun PipelineStepClientDto.toDomain() = PipelineStepItem(
     error = error,
 )
 
-fun CalculationRunSummaryClientDto.toDomain() = CalculationRunSummaryItem(
-    runId = runId,
+fun CalculationJobSummaryClientDto.toDomain() = CalculationJobSummaryItem(
+    jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = status,
@@ -456,8 +456,8 @@ fun CalculationRunSummaryClientDto.toDomain() = CalculationRunSummaryItem(
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationRunDetailClientDto.toDomain() = CalculationRunDetailItem(
-    runId = runId,
+fun CalculationJobDetailClientDto.toDomain() = CalculationJobDetailItem(
+    jobId = jobId,
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = status,

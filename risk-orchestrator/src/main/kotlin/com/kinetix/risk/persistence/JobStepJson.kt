@@ -1,9 +1,9 @@
-package com.kinetix.risk.routes.dtos
+package com.kinetix.risk.persistence
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PipelineStepResponse(
+data class JobStepJson(
     val name: String,
     val status: String,
     val startedAt: String,

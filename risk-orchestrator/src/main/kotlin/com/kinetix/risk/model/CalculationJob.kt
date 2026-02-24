@@ -3,8 +3,8 @@ package com.kinetix.risk.model
 import java.time.Instant
 import java.util.UUID
 
-data class CalculationRun(
-    val runId: UUID,
+data class CalculationJob(
+    val jobId: UUID,
     val portfolioId: String,
     val triggerType: TriggerType,
     val status: RunStatus,
@@ -15,6 +15,6 @@ data class CalculationRun(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
-    val steps: List<PipelineStep> = emptyList(),
+    val steps: List<JobStep> = emptyList(),
     val error: String? = null,
 )

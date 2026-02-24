@@ -4,7 +4,7 @@ import { PositionGrid } from './components/PositionGrid'
 import { VaRDashboard } from './components/VaRDashboard'
 import { StressTestPanel } from './components/StressTestPanel'
 import { GreeksPanel } from './components/GreeksPanel'
-import { RunHistory } from './components/RunHistory'
+import { JobHistory } from './components/JobHistory'
 import { NotificationCenter } from './components/NotificationCenter'
 import { RegulatoryDashboard } from './components/RegulatoryDashboard'
 import { SystemDashboard } from './components/SystemDashboard'
@@ -139,7 +139,7 @@ function App() {
                       />
                     </div>
                     <div className="mt-4">
-                      <RunHistory portfolioId={portfolioId} />
+                      <JobHistory portfolioId={portfolioId} />
                     </div>
                   </div>
                 )}

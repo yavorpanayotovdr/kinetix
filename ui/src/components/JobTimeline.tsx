@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import type { PipelineStepDto } from '../types'
+import type { JobStepDto } from '../types'
 
-interface PipelineTimelineProps {
-  steps: PipelineStepDto[]
+interface JobTimelineProps {
+  steps: JobStepDto[]
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -35,7 +35,7 @@ interface DependencyItem {
   [key: string]: string
 }
 
-export function PipelineTimeline({ steps }: PipelineTimelineProps) {
+export function JobTimeline({ steps }: JobTimelineProps) {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
 
@@ -68,14 +68,14 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
   }
 
   return (
-    <div data-testid="pipeline-timeline" className="relative pl-4">
+    <div data-testid="job-timeline" className="relative pl-4">
       <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-300" />
       {steps.map((step, i) => {
         const isOpen = expanded[i] ?? false
         const hasDetails = Object.keys(step.details).length > 0
 
         return (
-          <div key={i} data-testid={`pipeline-step-${step.name}`} className="relative mb-3 last:mb-0">
+          <div key={i} data-testid={`job-step-${step.name}`} className="relative mb-3 last:mb-0">
             <div className="flex items-center gap-2">
               <StatusDotInline status={step.status} />
               <span className="text-sm font-medium text-slate-700">

@@ -1,7 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.risk.model.*
-import com.kinetix.risk.service.CalculationRunRecorder
+import com.kinetix.risk.service.CalculationJobRecorder
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -16,15 +16,15 @@ import io.mockk.*
 import java.time.Instant
 import java.util.UUID
 
-private val RUN_ID = UUID.fromString("11111111-1111-1111-1111-111111111111")
-private val RUN_ID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222")
+private val JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111")
+private val JOB_ID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222")
 
-private fun completedRun(
-    runId: UUID = RUN_ID,
+private fun completedJob(
+    jobId: UUID = JOB_ID,
     portfolioId: String = "port-1",
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
-) = CalculationRun(
-    runId = runId,
+) = CalculationJob(
+    jobId = jobId,
     portfolioId = portfolioId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
@@ -36,8 +36,8 @@ private fun completedRun(
     varValue = 5000.0,
     expectedShortfall = 6250.0,
     steps = listOf(
-        PipelineStep(
-            name = PipelineStepName.FETCH_POSITIONS,
+        JobStep(
+            name = JobStepName.FETCH_POSITIONS,
             status = RunStatus.COMPLETED,
             startedAt = startedAt,
             completedAt = startedAt.plusMillis(20),
@@ -47,45 +47,45 @@ private fun completedRun(
     ),
 )
 
-class RunHistoryRoutesTest : FunSpec({
+class JobHistoryRoutesTest : FunSpec({
 
-    val runRecorder = mockk<CalculationRunRecorder>()
+    val jobRecorder = mockk<CalculationJobRecorder>()
 
     beforeEach {
-        clearMocks(runRecorder)
+        clearMocks(jobRecorder)
     }
 
-    test("lists calculation runs for a portfolio") {
-        val runs = listOf(
-            completedRun(runId = RUN_ID),
-            completedRun(runId = RUN_ID_2, startedAt = Instant.parse("2025-01-15T09:00:00Z")),
+    test("lists calculation jobs for a portfolio") {
+        val jobs = listOf(
+            completedJob(jobId = JOB_ID),
+            completedJob(jobId = JOB_ID_2, startedAt = Instant.parse("2025-01-15T09:00:00Z")),
         )
-        coEvery { runRecorder.findByPortfolioId("port-1", 20, 0) } returns runs
+        coEvery { jobRecorder.findByPortfolioId("port-1", 20, 0) } returns jobs
 
         testApplication {
             install(ContentNegotiation) { json() }
-            routing { runHistoryRoutes(runRecorder) }
+            routing { jobHistoryRoutes(jobRecorder) }
 
-            val response = client.get("/api/v1/risk/runs/port-1")
+            val response = client.get("/api/v1/risk/jobs/port-1")
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
-            body shouldContain RUN_ID.toString()
-            body shouldContain RUN_ID_2.toString()
+            body shouldContain JOB_ID.toString()
+            body shouldContain JOB_ID_2.toString()
             body shouldContain "ON_DEMAND"
             body shouldContain "COMPLETED"
         }
     }
 
-    test("returns run detail with pipeline steps") {
-        val run = completedRun()
-        coEvery { runRecorder.findByRunId(RUN_ID) } returns run
+    test("returns job detail with job steps") {
+        val job = completedJob()
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 
         testApplication {
             install(ContentNegotiation) { json() }
-            routing { runHistoryRoutes(runRecorder) }
+            routing { jobHistoryRoutes(jobRecorder) }
 
-            val response = client.get("/api/v1/risk/runs/detail/$RUN_ID")
+            val response = client.get("/api/v1/risk/jobs/detail/$JOB_ID")
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -96,31 +96,31 @@ class RunHistoryRoutesTest : FunSpec({
         }
     }
 
-    test("returns 404 for unknown run ID") {
+    test("returns 404 for unknown job ID") {
         val unknownId = UUID.fromString("99999999-9999-9999-9999-999999999999")
-        coEvery { runRecorder.findByRunId(unknownId) } returns null
+        coEvery { jobRecorder.findByJobId(unknownId) } returns null
 
         testApplication {
             install(ContentNegotiation) { json() }
-            routing { runHistoryRoutes(runRecorder) }
+            routing { jobHistoryRoutes(jobRecorder) }
 
-            val response = client.get("/api/v1/risk/runs/detail/$unknownId")
+            val response = client.get("/api/v1/risk/jobs/detail/$unknownId")
 
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
 
     test("supports limit and offset query parameters") {
-        coEvery { runRecorder.findByPortfolioId("port-1", 5, 10) } returns emptyList()
+        coEvery { jobRecorder.findByPortfolioId("port-1", 5, 10) } returns emptyList()
 
         testApplication {
             install(ContentNegotiation) { json() }
-            routing { runHistoryRoutes(runRecorder) }
+            routing { jobHistoryRoutes(jobRecorder) }
 
-            val response = client.get("/api/v1/risk/runs/port-1?limit=5&offset=10")
+            val response = client.get("/api/v1/risk/jobs/port-1?limit=5&offset=10")
 
             response.status shouldBe HttpStatusCode.OK
-            coVerify { runRecorder.findByPortfolioId("port-1", 5, 10) }
+            coVerify { jobRecorder.findByPortfolioId("port-1", 5, 10) }
         }
     }
 })

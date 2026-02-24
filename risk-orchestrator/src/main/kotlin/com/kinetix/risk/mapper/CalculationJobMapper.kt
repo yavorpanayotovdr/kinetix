@@ -1,13 +1,13 @@
 package com.kinetix.risk.mapper
 
-import com.kinetix.risk.model.CalculationRun
-import com.kinetix.risk.model.PipelineStep
-import com.kinetix.risk.routes.dtos.CalculationRunDetailResponse
-import com.kinetix.risk.routes.dtos.CalculationRunSummaryResponse
-import com.kinetix.risk.routes.dtos.PipelineStepResponse
+import com.kinetix.risk.model.CalculationJob
+import com.kinetix.risk.model.JobStep
+import com.kinetix.risk.routes.dtos.CalculationJobDetailResponse
+import com.kinetix.risk.routes.dtos.CalculationJobSummaryResponse
+import com.kinetix.risk.routes.dtos.JobStepResponse
 
-fun CalculationRun.toSummaryResponse(): CalculationRunSummaryResponse = CalculationRunSummaryResponse(
-    runId = runId.toString(),
+fun CalculationJob.toSummaryResponse(): CalculationJobSummaryResponse = CalculationJobSummaryResponse(
+    jobId = jobId.toString(),
     portfolioId = portfolioId,
     triggerType = triggerType.name,
     status = status.name,
@@ -19,8 +19,8 @@ fun CalculationRun.toSummaryResponse(): CalculationRunSummaryResponse = Calculat
     expectedShortfall = expectedShortfall,
 )
 
-fun CalculationRun.toDetailResponse(): CalculationRunDetailResponse = CalculationRunDetailResponse(
-    runId = runId.toString(),
+fun CalculationJob.toDetailResponse(): CalculationJobDetailResponse = CalculationJobDetailResponse(
+    jobId = jobId.toString(),
     portfolioId = portfolioId,
     triggerType = triggerType.name,
     status = status.name,
@@ -35,7 +35,7 @@ fun CalculationRun.toDetailResponse(): CalculationRunDetailResponse = Calculatio
     error = error,
 )
 
-private fun PipelineStep.toResponse(): PipelineStepResponse = PipelineStepResponse(
+private fun JobStep.toResponse(): JobStepResponse = JobStepResponse(
     name = name.name,
     status = status.name,
     startedAt = startedAt.toString(),

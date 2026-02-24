@@ -18,7 +18,7 @@ class VaRCalculationService(
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
     private val dependenciesDiscoverer: DependenciesDiscoverer? = null,
     private val marketDataFetcher: MarketDataFetcher? = null,
-    private val runRecorder: CalculationRunRecorder = NoOpCalculationRunRecorder(),
+    private val jobRecorder: CalculationJobRecorder = NoOpCalculationJobRecorder(),
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -26,10 +26,10 @@ class VaRCalculationService(
         request: VaRCalculationRequest,
         triggerType: TriggerType = TriggerType.ON_DEMAND,
     ): VaRResult? {
-        val runId = UUID.randomUUID()
-        val runStartedAt = Instant.now()
-        val steps = mutableListOf<PipelineStep>()
-        var runError: String? = null
+        val jobId = UUID.randomUUID()
+        val jobStartedAt = Instant.now()
+        val steps = mutableListOf<JobStep>()
+        var jobError: String? = null
 
         try {
             // Step 1: Fetch positions
@@ -37,8 +37,8 @@ class VaRCalculationService(
             val positions = positionProvider.getPositions(request.portfolioId)
             val fetchPosDuration = java.time.Duration.between(fetchPosStart, Instant.now()).toMillis()
             steps.add(
-                PipelineStep(
-                    name = PipelineStepName.FETCH_POSITIONS,
+                JobStep(
+                    name = JobStepName.FETCH_POSITIONS,
                     status = RunStatus.COMPLETED,
                     startedAt = fetchPosStart,
                     completedAt = Instant.now(),
@@ -85,8 +85,8 @@ class VaRCalculationService(
             val discoverDuration = java.time.Duration.between(discoverStart, Instant.now()).toMillis()
             val dataTypes = dependencies.mapNotNull { it.dataType }.distinct().joinToString(",")
             steps.add(
-                PipelineStep(
-                    name = PipelineStepName.DISCOVER_DEPENDENCIES,
+                JobStep(
+                    name = JobStepName.DISCOVER_DEPENDENCIES,
                     status = RunStatus.COMPLETED,
                     startedAt = discoverStart,
                     completedAt = Instant.now(),
@@ -122,8 +122,8 @@ class VaRCalculationService(
             }
             val fetchMdDuration = java.time.Duration.between(fetchMdStart, Instant.now()).toMillis()
             steps.add(
-                PipelineStep(
-                    name = PipelineStepName.FETCH_MARKET_DATA,
+                JobStep(
+                    name = JobStepName.FETCH_MARKET_DATA,
                     status = RunStatus.COMPLETED,
                     startedAt = fetchMdStart,
                     completedAt = Instant.now(),
@@ -150,8 +150,8 @@ class VaRCalculationService(
 
             val calcDuration = java.time.Duration.between(calcStart, Instant.now()).toMillis()
             steps.add(
-                PipelineStep(
-                    name = PipelineStepName.CALCULATE_VAR,
+                JobStep(
+                    name = JobStepName.CALCULATE_VAR,
                     status = RunStatus.COMPLETED,
                     startedAt = calcStart,
                     completedAt = Instant.now(),
@@ -168,8 +168,8 @@ class VaRCalculationService(
             resultPublisher.publish(result)
             val publishDuration = java.time.Duration.between(publishStart, Instant.now()).toMillis()
             steps.add(
-                PipelineStep(
-                    name = PipelineStepName.PUBLISH_RESULT,
+                JobStep(
+                    name = JobStepName.PUBLISH_RESULT,
                     status = RunStatus.COMPLETED,
                     startedAt = publishStart,
                     completedAt = Instant.now(),
@@ -183,50 +183,50 @@ class VaRCalculationService(
                 request.portfolioId.value, result.varValue, result.expectedShortfall,
             )
 
-            val runCompletedAt = Instant.now()
-            val run = CalculationRun(
-                runId = runId,
+            val jobCompletedAt = Instant.now()
+            val job = CalculationJob(
+                jobId = jobId,
                 portfolioId = request.portfolioId.value,
                 triggerType = triggerType,
                 status = RunStatus.COMPLETED,
-                startedAt = runStartedAt,
-                completedAt = runCompletedAt,
-                durationMs = java.time.Duration.between(runStartedAt, runCompletedAt).toMillis(),
+                startedAt = jobStartedAt,
+                completedAt = jobCompletedAt,
+                durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
                 varValue = result.varValue,
                 expectedShortfall = result.expectedShortfall,
                 steps = steps,
             )
-            saveRunSafely(run)
+            saveJobSafely(job)
 
             return result
         } catch (e: Exception) {
-            runError = e.message ?: e.javaClass.simpleName
-            val runCompletedAt = Instant.now()
-            val run = CalculationRun(
-                runId = runId,
+            jobError = e.message ?: e.javaClass.simpleName
+            val jobCompletedAt = Instant.now()
+            val job = CalculationJob(
+                jobId = jobId,
                 portfolioId = request.portfolioId.value,
                 triggerType = triggerType,
                 status = RunStatus.FAILED,
-                startedAt = runStartedAt,
-                completedAt = runCompletedAt,
-                durationMs = java.time.Duration.between(runStartedAt, runCompletedAt).toMillis(),
+                startedAt = jobStartedAt,
+                completedAt = jobCompletedAt,
+                durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
                 steps = steps,
-                error = runError,
+                error = jobError,
             )
-            saveRunSafely(run)
+            saveJobSafely(job)
             throw e
         }
     }
 
-    private suspend fun saveRunSafely(run: CalculationRun) {
+    private suspend fun saveJobSafely(job: CalculationJob) {
         try {
-            runRecorder.save(run)
+            jobRecorder.save(job)
         } catch (e: Exception) {
-            logger.warn("Failed to record calculation run {}", run.runId, e)
+            logger.warn("Failed to record calculation job {}", job.jobId, e)
         }
     }
 }
