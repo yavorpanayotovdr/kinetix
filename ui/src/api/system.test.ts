@@ -20,6 +20,10 @@ describe('system API', () => {
       'price-service': { status: 'UP' },
       'risk-orchestrator': { status: 'UP' },
       'notification-service': { status: 'UP' },
+      'rates-service': { status: 'UP' },
+      'reference-data-service': { status: 'UP' },
+      'volatility-service': { status: 'UP' },
+      'correlation-service': { status: 'UP' },
     },
   }
 
@@ -58,6 +62,10 @@ describe('system API', () => {
           'price-service': { status: 'UP' },
           'risk-orchestrator': { status: 'UP' },
           'notification-service': { status: 'UP' },
+          'rates-service': { status: 'UP' },
+          'reference-data-service': { status: 'UP' },
+          'volatility-service': { status: 'UP' },
+          'correlation-service': { status: 'UP' },
         },
       }
 

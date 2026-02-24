@@ -11,6 +11,10 @@ const allUpHealth: SystemHealthResponse = {
     'price-service': { status: 'UP' },
     'risk-orchestrator': { status: 'UP' },
     'notification-service': { status: 'UP' },
+    'rates-service': { status: 'UP' },
+    'reference-data-service': { status: 'UP' },
+    'volatility-service': { status: 'UP' },
+    'correlation-service': { status: 'UP' },
   },
 }
 
@@ -22,6 +26,10 @@ const degradedHealth: SystemHealthResponse = {
     'price-service': { status: 'UP' },
     'risk-orchestrator': { status: 'DOWN' },
     'notification-service': { status: 'UP' },
+    'rates-service': { status: 'UP' },
+    'reference-data-service': { status: 'UP' },
+    'volatility-service': { status: 'UP' },
+    'correlation-service': { status: 'UP' },
   },
 }
 
@@ -70,6 +78,10 @@ describe('SystemDashboard', () => {
     expect(screen.getByTestId('service-card-price-service')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-risk-orchestrator')).toBeInTheDocument()
     expect(screen.getByTestId('service-card-notification-service')).toBeInTheDocument()
+    expect(screen.getByTestId('service-card-rates-service')).toBeInTheDocument()
+    expect(screen.getByTestId('service-card-reference-data-service')).toBeInTheDocument()
+    expect(screen.getByTestId('service-card-volatility-service')).toBeInTheDocument()
+    expect(screen.getByTestId('service-card-correlation-service')).toBeInTheDocument()
   })
 
   it('shows green dots and UP text for healthy services', () => {
@@ -177,6 +189,10 @@ describe('SystemDashboard', () => {
     expect(screen.getAllByText('Prices').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Risk Orchestrator')).toBeInTheDocument()
     expect(screen.getByText('Notifications')).toBeInTheDocument()
+    expect(screen.getByText('Rates')).toBeInTheDocument()
+    expect(screen.getByText('Reference Data')).toBeInTheDocument()
+    expect(screen.getByText('Volatility')).toBeInTheDocument()
+    expect(screen.getByText('Correlation')).toBeInTheDocument()
   })
 
   it('calls onRefresh when refresh button is clicked', () => {

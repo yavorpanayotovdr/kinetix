@@ -161,6 +161,10 @@ fun Application.devModule() {
     val priceUrl = servicesConfig.property("price.url").getString()
     val riskUrl = servicesConfig.property("risk.url").getString()
     val notificationUrl = servicesConfig.property("notification.url").getString()
+    val ratesUrl = servicesConfig.property("rates.url").getString()
+    val referenceDataUrl = servicesConfig.property("referenceData.url").getString()
+    val volatilityUrl = servicesConfig.property("volatility.url").getString()
+    val correlationUrl = servicesConfig.property("correlation.url").getString()
 
     val jsonConfig = Json { ignoreUnknownKeys = true }
     val httpClient = HttpClient(CIO) {
@@ -184,6 +188,10 @@ fun Application.devModule() {
                 "price-service" to priceUrl,
                 "risk-orchestrator" to riskUrl,
                 "notification-service" to notificationUrl,
+                "rates-service" to ratesUrl,
+                "reference-data-service" to referenceDataUrl,
+                "volatility-service" to volatilityUrl,
+                "correlation-service" to correlationUrl,
             )
             val results = coroutineScope {
                 serviceUrls.map { (name, url) ->

@@ -15,6 +15,10 @@ const SERVICE_LABELS: Record<string, string> = {
   'price-service': 'Prices',
   'risk-orchestrator': 'Risk Orchestrator',
   'notification-service': 'Notifications',
+  'rates-service': 'Rates',
+  'reference-data-service': 'Reference Data',
+  'volatility-service': 'Volatility',
+  'correlation-service': 'Correlation',
 }
 
 const OBSERVABILITY_LINKS = [
