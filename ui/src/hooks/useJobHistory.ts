@@ -61,7 +61,9 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     try {
       const detail = await fetchValuationJobDetail(jobId)
-      setExpandedJobs((prev) => ({ ...prev, [jobId]: detail }))
+      if (detail) {
+        setExpandedJobs((prev) => ({ ...prev, [jobId]: detail }))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

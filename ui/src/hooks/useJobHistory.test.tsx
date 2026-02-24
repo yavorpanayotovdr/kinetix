@@ -221,6 +221,28 @@ describe('useJobHistory', () => {
     expect(result.current.expandedJobs).toEqual({})
   })
 
+  it('does not store null in expandedJobs when job detail returns 404', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobDetail.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.runs).toHaveLength(1)
+    })
+
+    await act(async () => {
+      result.current.toggleJob('job-1')
+    })
+
+    await waitFor(() => {
+      expect(result.current.loadingJobIds.size).toBe(0)
+    })
+
+    expect(result.current.expandedJobs['job-1']).toBeUndefined()
+    expect(result.current.expandedJobs).toEqual({})
+  })
+
   it('resets jobs and expanded state when portfolioId becomes null', async () => {
     mockFetchJobs.mockResolvedValue([jobSummary])
 
