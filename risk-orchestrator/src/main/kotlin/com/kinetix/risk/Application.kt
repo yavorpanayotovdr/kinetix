@@ -10,6 +10,7 @@ import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpPriceServiceClient
+import com.kinetix.risk.client.HttpRatesServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.kafka.NoOpRiskResultPublisher
 import com.kinetix.risk.routes.riskRoutes
@@ -98,8 +99,11 @@ fun Application.moduleWithRoutes() {
         install(ClientContentNegotiation) { json() }
     }
     val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
+    val ratesServiceBaseUrl = environment.config
+        .propertyOrNull("ratesService.baseUrl")?.getString() ?: "http://localhost:8084"
+    val ratesServiceClient = HttpRatesServiceClient(priceHttpClient, ratesServiceBaseUrl)
     val dependenciesDiscoverer = DependenciesDiscoverer(riskEngineClient)
-    val marketDataFetcher = MarketDataFetcher(priceServiceClient)
+    val marketDataFetcher = MarketDataFetcher(priceServiceClient, ratesServiceClient)
 
     val resultPublisher = NoOpRiskResultPublisher()
     val varCalculationService = VaRCalculationService(

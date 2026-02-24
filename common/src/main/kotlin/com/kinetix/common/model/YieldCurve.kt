@@ -9,8 +9,11 @@ data class YieldCurve(
     val currency: Currency,
     val asOf: Instant,
     val tenors: List<Tenor>,
+    val curveId: String = currency.currencyCode,
+    val source: RateSource = RateSource.INTERNAL,
 ) {
     init {
+        require(curveId.isNotBlank()) { "curveId must not be blank" }
         require(tenors.isNotEmpty()) { "YieldCurve must have at least one tenor" }
         require(tenors == tenors.sorted()) {
             "YieldCurve tenors must be sorted by maturity (days)"

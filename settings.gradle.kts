@@ -20,6 +20,7 @@ include(
     "gateway",
     "position-service",
     "price-service",
+    "rates-service",
     "risk-orchestrator",
     "regulatory-service",
     "notification-service",

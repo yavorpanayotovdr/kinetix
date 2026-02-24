@@ -23,6 +23,7 @@ data class ConnectionPoolConfig(
             "price-service" -> ConnectionPoolConfig(maxPoolSize = 20, minIdle = 5)
             "notification-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
             "regulatory-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+            "rates-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
             else -> ConnectionPoolConfig()
         }
     }

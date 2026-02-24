@@ -2,6 +2,9 @@ package com.kinetix.risk.service
 
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.client.PriceServiceClient
+import com.kinetix.risk.client.RatesServiceClient
+import com.kinetix.risk.model.CurveMarketData
+import com.kinetix.risk.model.CurvePointValue
 import com.kinetix.risk.model.DiscoveredDependency
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.ScalarMarketData
@@ -10,9 +13,11 @@ import com.kinetix.risk.model.TimeSeriesPoint
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.Currency
 
 class MarketDataFetcher(
     private val priceServiceClient: PriceServiceClient,
+    private val ratesServiceClient: RatesServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
@@ -70,6 +75,49 @@ class MarketDataFetcher(
                     },
                 )
             } else null
+        }
+
+        "YIELD_CURVE" -> {
+            val curveId = parameters["curveId"] ?: instrumentId
+            val yieldCurve = ratesServiceClient?.getLatestYieldCurve(curveId)
+            yieldCurve?.let {
+                CurveMarketData(
+                    dataType = "YIELD_CURVE",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    points = it.tenors.map { tenor ->
+                        CurvePointValue(tenor = tenor.label, value = tenor.rate.toDouble())
+                    },
+                )
+            }
+        }
+
+        "RISK_FREE_RATE" -> {
+            val currency = parameters["currency"] ?: "USD"
+            val tenor = parameters["tenor"] ?: "3M"
+            val riskFreeRate = ratesServiceClient?.getLatestRiskFreeRate(Currency.getInstance(currency), tenor)
+            riskFreeRate?.let {
+                ScalarMarketData(
+                    dataType = "RISK_FREE_RATE",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    value = it.rate,
+                )
+            }
+        }
+
+        "FORWARD_CURVE" -> {
+            val forwardCurve = ratesServiceClient?.getLatestForwardCurve(InstrumentId(instrumentId))
+            forwardCurve?.let {
+                CurveMarketData(
+                    dataType = "FORWARD_CURVE",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    points = it.points.map { point ->
+                        CurvePointValue(tenor = point.tenor, value = point.value)
+                    },
+                )
+            }
         }
 
         else -> {

@@ -2,9 +2,12 @@ package com.kinetix.risk.mapper
 
 import com.google.protobuf.Timestamp
 import com.kinetix.proto.risk.MarketDataType
+import com.kinetix.risk.model.CurveMarketData
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
+import com.kinetix.proto.risk.Curve as ProtoCurve
+import com.kinetix.proto.risk.CurvePoint as ProtoCurvePoint
 import com.kinetix.proto.risk.MarketDataValue as ProtoMarketDataValue
 import com.kinetix.proto.risk.TimeSeries as ProtoTimeSeries
 import com.kinetix.proto.risk.TimeSeriesPoint as ProtoTimeSeriesPoint
@@ -34,6 +37,16 @@ fun MarketDataValue.toProto(): ProtoMarketDataValue {
                 points.map { pt ->
                     ProtoTimeSeriesPoint.newBuilder()
                         .setTimestamp(Timestamp.newBuilder().setSeconds(pt.timestamp.epochSecond))
+                        .setValue(pt.value)
+                        .build()
+                }
+            )
+        )
+        is CurveMarketData -> builder.setCurve(
+            ProtoCurve.newBuilder().addAllPoints(
+                points.map { pt ->
+                    ProtoCurvePoint.newBuilder()
+                        .setTenor(pt.tenor)
                         .setValue(pt.value)
                         .build()
                 }
