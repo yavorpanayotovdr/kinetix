@@ -167,9 +167,9 @@ describe('PipelineTimeline', () => {
 
     expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
     expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
-    expect(screen.getByText('AAPL — SPOT_PRICE')).toBeInTheDocument()
+    expect(screen.getByText('SPOT_PRICE — AAPL')).toBeInTheDocument()
     expect(screen.getByTestId('dependency-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
-    expect(screen.getByText('USD_SOFR — YIELD_CURVE')).toBeInTheDocument()
+    expect(screen.getByText('YIELD_CURVE — USD_SOFR')).toBeInTheDocument()
   })
 
   it('expands dependency to show JSON', () => {

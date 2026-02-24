@@ -149,7 +149,7 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
                           className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
                         >
                           {isDepOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                          <span>{dep.instrumentId} — {dep.dataType}</span>
+                          <span>{dep.dataType} — {dep.instrumentId}</span>
                         </button>
                         {isDepOpen && (
                           <pre
