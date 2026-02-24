@@ -167,6 +167,148 @@ describe('JobHistory', () => {
     expect(screen.getByTestId('job-detail-row-job-1')).toBeInTheDocument()
   })
 
+  it('shows a search input when jobs are present', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('job-history-search')).toBeInTheDocument()
+  })
+
+  it('filters jobs by status', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'TRADE_EVENT',
+          status: 'FAILED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: null,
+          expectedShortfall: null,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'FAILED' } })
+
+    expect(screen.getByTestId('job-row-job-2')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-job-1')).not.toBeInTheDocument()
+  })
+
+  it('filters jobs by trigger type', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'TRADE_EVENT',
+          status: 'FAILED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: null,
+          expectedShortfall: null,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'trade' } })
+
+    expect(screen.getByTestId('job-row-job-2')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-job-1')).not.toBeInTheDocument()
+  })
+
+  it('updates badge count to reflect filtered results', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'job-2',
+          portfolioId: 'port-1',
+          triggerType: 'TRADE_EVENT',
+          status: 'FAILED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: null,
+          expectedShortfall: null,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByText('2')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'COMPLETED' } })
+
+    expect(screen.getByText('1')).toBeInTheDocument()
+  })
+
   it('calls closeJob when close detail button is clicked', () => {
     const closeJob = vi.fn()
     mockUseJobHistory.mockReturnValue({

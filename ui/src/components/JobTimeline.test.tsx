@@ -244,6 +244,16 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
     })
 
+    it('filters items within matching steps to only those that match', () => {
+      render(<JobTimeline steps={steps} search="AAPL" />)
+
+      expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-TSLA')).not.toBeInTheDocument()
+
+      expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.queryByTestId('dependency-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
+    })
+
     it('shows no-results message when nothing matches', () => {
       render(<JobTimeline steps={steps} search="NONEXISTENT" />)
 

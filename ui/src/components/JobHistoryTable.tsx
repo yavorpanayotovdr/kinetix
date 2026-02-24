@@ -99,7 +99,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                                   type="text"
                                   value={searchTerms[run.jobId] ?? ''}
                                   onChange={(e) => setSearchTerms((prev) => ({ ...prev, [run.jobId]: e.target.value }))}
-                                  placeholder="Search steps…"
+                                  placeholder="Search…"
                                   className="pl-7 pr-2 py-1 text-xs rounded border border-slate-200 bg-white focus:outline-none focus:border-primary-300 w-48"
                                   onClick={(e) => e.stopPropagation()}
                                 />

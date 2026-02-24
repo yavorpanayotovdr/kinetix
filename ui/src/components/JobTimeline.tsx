@@ -175,11 +175,12 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               const positions = parsePositions(step.details)
               const dependencies = parseDependencies(step.details)
               const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0)
-              const filteredPositions = positions && filter
-                ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, filter))
+              const activeFilter = filter || (isSearchActive ? search : '')
+              const filteredPositions = positions && activeFilter
+                ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, activeFilter))
                 : positions
-              const filteredDependencies = dependencies && filter
-                ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, string>, filter))
+              const filteredDependencies = dependencies && activeFilter
+                ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, string>, activeFilter))
                 : dependencies
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">

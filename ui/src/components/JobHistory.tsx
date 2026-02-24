@@ -1,19 +1,35 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, History } from 'lucide-react'
+import { ChevronDown, ChevronRight, History, Search, RefreshCw } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { JobHistoryTable } from './JobHistoryTable'
 import { Card, Badge, Spinner, Button } from './ui'
-import { RefreshCw } from 'lucide-react'
+import type { ValuationJobSummaryDto } from '../types'
 
 interface JobHistoryProps {
   portfolioId: string | null
 }
 
+function jobMatchesSearch(run: ValuationJobSummaryDto, term: string): boolean {
+  const lower = term.toLowerCase()
+  const fields = [
+    run.triggerType,
+    run.status,
+    run.calculationType,
+    run.varValue?.toString(),
+    run.expectedShortfall?.toString(),
+    run.durationMs?.toString(),
+  ]
+  return fields.some((f) => f?.toLowerCase().includes(lower))
+}
+
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
+  const [search, setSearch] = useState('')
   const { runs, expandedJobs, loadingJobIds, loading, error, toggleJob, closeJob, refresh } = useJobHistory(
     expanded ? portfolioId : null,
   )
+
+  const filteredRuns = search.trim() ? runs.filter((r) => jobMatchesSearch(r, search)) : runs
 
   return (
     <Card data-testid="job-history">
@@ -25,8 +41,8 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
         {expanded ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
         <History className="h-4 w-4 text-slate-500" />
         <span className="text-sm font-semibold text-slate-700">Valuation Jobs</span>
-        {expanded && runs.length > 0 && (
-          <Badge variant="neutral">{runs.length}</Badge>
+        {expanded && filteredRuns.length > 0 && (
+          <Badge variant="neutral">{filteredRuns.length}</Badge>
         )}
       </button>
 
@@ -45,7 +61,21 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
 
           {!error && !(loading && runs.length === 0) && (
             <>
-              <div className="flex justify-end mb-2">
+              <div className="flex items-center justify-between mb-2">
+                {runs.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                    <input
+                      data-testid="job-history-search"
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search…"
+                      className="pl-7 pr-2 py-1 text-xs rounded border border-slate-200 bg-white focus:outline-none focus:border-primary-300 w-48"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                )}
                 <Button
                   data-testid="job-history-refresh"
                   variant="secondary"
@@ -60,7 +90,7 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
                 </Button>
               </div>
               <JobHistoryTable
-                runs={runs}
+                runs={filteredRuns}
                 expandedJobs={expandedJobs}
                 loadingJobIds={loadingJobIds}
                 onSelectJob={toggleJob}
