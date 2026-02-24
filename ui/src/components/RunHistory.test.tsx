@@ -10,7 +10,9 @@ const mockUseRunHistory = vi.mocked(useRunHistory)
 
 const defaultHookResult = {
   runs: [],
+  selectedRunId: null as string | null,
   selectedRun: null,
+  detailLoading: false,
   loading: false,
   error: null,
   selectRun: vi.fn(),
@@ -128,6 +130,7 @@ describe('RunHistory', () => {
           expectedShortfall: 6250.0,
         },
       ],
+      selectedRunId: 'run-1',
       selectedRun: {
         runId: 'run-1',
         portfolioId: 'port-1',
@@ -180,6 +183,7 @@ describe('RunHistory', () => {
           expectedShortfall: null,
         },
       ],
+      selectedRunId: 'run-1',
       selectedRun: {
         runId: 'run-1',
         portfolioId: 'port-1',

@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import type { CalculationRunSummaryDto, CalculationRunDetailDto } from '../types'
-import { Badge } from './ui'
+import { Badge, Spinner } from './ui'
 import { PipelineTimeline } from './PipelineTimeline'
 import { formatRelativeTime } from '../utils/format'
 
@@ -8,6 +8,7 @@ interface RunHistoryTableProps {
   runs: CalculationRunSummaryDto[]
   selectedRunId: string | null
   selectedRun: CalculationRunDetailDto | null
+  detailLoading: boolean
   onSelectRun: (runId: string) => void
   onClearSelection: () => void
 }
@@ -25,7 +26,7 @@ const TRIGGER_VARIANT: Record<string, 'info' | 'neutral' | 'warning'> = {
   PRICE_EVENT: 'warning',
 }
 
-export function RunHistoryTable({ runs, selectedRunId, selectedRun, onSelectRun, onClearSelection }: RunHistoryTableProps) {
+export function RunHistoryTable({ runs, selectedRunId, selectedRun, detailLoading, onSelectRun, onClearSelection }: RunHistoryTableProps) {
   if (runs.length === 0) {
     return (
       <div data-testid="run-history-empty" className="text-sm text-slate-400 py-4 text-center">
@@ -76,7 +77,7 @@ export function RunHistoryTable({ runs, selectedRunId, selectedRun, onSelectRun,
                     : '-'}
                 </td>
               </tr>
-              {selectedRun?.runId === run.runId && (
+              {selectedRunId === run.runId && (
                 <tr data-testid="run-detail-row">
                   <td colSpan={6} className="p-0">
                     <div data-testid="run-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
@@ -93,9 +94,19 @@ export function RunHistoryTable({ runs, selectedRunId, selectedRun, onSelectRun,
                           Close
                         </button>
                       </div>
-                      <PipelineTimeline steps={selectedRun.steps} />
-                      {selectedRun.error && (
-                        <p className="mt-2 text-xs text-red-600">Error: {selectedRun.error}</p>
+                      {detailLoading && (
+                        <div data-testid="detail-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2">
+                          <Spinner size="sm" />
+                          Loading pipeline details...
+                        </div>
+                      )}
+                      {selectedRun && !detailLoading && (
+                        <>
+                          <PipelineTimeline steps={selectedRun.steps} />
+                          {selectedRun.error && (
+                            <p className="mt-2 text-xs text-red-600">Error: {selectedRun.error}</p>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>

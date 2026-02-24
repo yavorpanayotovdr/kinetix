@@ -11,7 +11,7 @@ interface RunHistoryProps {
 
 export function RunHistory({ portfolioId }: RunHistoryProps) {
   const [expanded, setExpanded] = useState(true)
-  const { runs, selectedRun, loading, error, selectRun, clearSelection, refresh } = useRunHistory(
+  const { runs, selectedRunId, selectedRun, detailLoading, loading, error, selectRun, clearSelection, refresh } = useRunHistory(
     expanded ? portfolioId : null,
   )
 
@@ -43,7 +43,7 @@ export function RunHistory({ portfolioId }: RunHistoryProps) {
             <p data-testid="run-history-error" className="text-sm text-red-600 py-2">{error}</p>
           )}
 
-          {!loading && !error && (
+          {!error && !(loading && runs.length === 0) && (
             <>
               <div className="flex justify-end mb-2">
                 <Button
@@ -61,8 +61,9 @@ export function RunHistory({ portfolioId }: RunHistoryProps) {
               </div>
               <RunHistoryTable
                 runs={runs}
-                selectedRunId={selectedRun?.runId ?? null}
+                selectedRunId={selectedRunId}
                 selectedRun={selectedRun}
+                detailLoading={detailLoading}
                 onSelectRun={selectRun}
                 onClearSelection={clearSelection}
               />

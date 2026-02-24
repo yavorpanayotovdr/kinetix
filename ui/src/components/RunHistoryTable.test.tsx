@@ -59,6 +59,7 @@ const selectedRunDetail: CalculationRunDetailDto = {
 const defaultProps = {
   selectedRunId: null as string | null,
   selectedRun: null as CalculationRunDetailDto | null,
+  detailLoading: false,
   onSelectRun: () => {},
   onClearSelection: () => {},
 }
@@ -122,6 +123,7 @@ describe('RunHistoryTable', () => {
         runs={runs}
         selectedRunId="run-1"
         selectedRun={selectedRunDetail}
+        detailLoading={false}
         onSelectRun={() => {}}
         onClearSelection={() => {}}
       />,
@@ -133,6 +135,24 @@ describe('RunHistoryTable', () => {
     expect(screen.getByText('Pipeline Detail')).toBeInTheDocument()
   })
 
+  it('shows loading indicator while detail is fetching', () => {
+    render(
+      <RunHistoryTable
+        runs={runs}
+        selectedRunId="run-1"
+        selectedRun={null}
+        detailLoading={true}
+        onSelectRun={() => {}}
+        onClearSelection={() => {}}
+      />,
+    )
+
+    expect(screen.getByTestId('run-detail-row')).toBeInTheDocument()
+    expect(screen.getByTestId('detail-loading')).toBeInTheDocument()
+    expect(screen.getByText('Loading pipeline details...')).toBeInTheDocument()
+    expect(screen.queryByTestId('pipeline-timeline')).not.toBeInTheDocument()
+  })
+
   it('calls onClearSelection when close button is clicked', () => {
     const onClearSelection = vi.fn()
     render(
@@ -140,6 +160,7 @@ describe('RunHistoryTable', () => {
         runs={runs}
         selectedRunId="run-1"
         selectedRun={selectedRunDetail}
+        detailLoading={false}
         onSelectRun={() => {}}
         onClearSelection={onClearSelection}
       />,

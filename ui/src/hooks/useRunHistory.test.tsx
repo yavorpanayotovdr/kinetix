@@ -52,7 +52,9 @@ describe('useRunHistory', () => {
     const { result } = renderHook(() => useRunHistory(null))
 
     expect(result.current.runs).toEqual([])
+    expect(result.current.selectedRunId).toBeNull()
     expect(result.current.selectedRun).toBeNull()
+    expect(result.current.detailLoading).toBe(false)
     expect(result.current.loading).toBe(false)
     expect(result.current.error).toBeNull()
     expect(mockFetchRuns).not.toHaveBeenCalled()
@@ -83,7 +85,7 @@ describe('useRunHistory', () => {
     expect(result.current.error).toBe('Network error')
   })
 
-  it('selectRun fetches detail and sets selectedRun', async () => {
+  it('selectRun sets selectedRunId immediately and fetches detail without setting loading', async () => {
     mockFetchRuns.mockResolvedValue([runSummary])
     mockFetchDetail.mockResolvedValue(runDetail)
 
@@ -98,10 +100,12 @@ describe('useRunHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.loading).toBe(false)
+      expect(result.current.detailLoading).toBe(false)
     })
 
+    expect(result.current.selectedRunId).toBe('run-1')
     expect(result.current.selectedRun).toEqual(runDetail)
+    expect(result.current.loading).toBe(false)
     expect(mockFetchDetail).toHaveBeenCalledWith('run-1')
   })
 
@@ -127,6 +131,7 @@ describe('useRunHistory', () => {
       result.current.clearSelection()
     })
 
+    expect(result.current.selectedRunId).toBeNull()
     expect(result.current.selectedRun).toBeNull()
   })
 

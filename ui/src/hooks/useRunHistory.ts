@@ -4,7 +4,9 @@ import type { CalculationRunSummaryDto, CalculationRunDetailDto } from '../types
 
 export interface UseRunHistoryResult {
   runs: CalculationRunSummaryDto[]
+  selectedRunId: string | null
   selectedRun: CalculationRunDetailDto | null
+  detailLoading: boolean
   loading: boolean
   error: string | null
   selectRun: (runId: string) => void
@@ -14,7 +16,9 @@ export interface UseRunHistoryResult {
 
 export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
   const [runs, setRuns] = useState<CalculationRunSummaryDto[]>([])
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [selectedRun, setSelectedRun] = useState<CalculationRunDetailDto | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,6 +41,7 @@ export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
   useEffect(() => {
     if (!portfolioId) {
       setRuns([])
+      setSelectedRunId(null)
       setSelectedRun(null)
       return
     }
@@ -44,20 +49,23 @@ export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
   }, [portfolioId, load])
 
   const selectRun = useCallback(async (runId: string) => {
-    setLoading(true)
-    setError(null)
+    setSelectedRunId(runId)
+    setSelectedRun(null)
+    setDetailLoading(true)
 
     try {
       const detail = await fetchCalculationRunDetail(runId)
       setSelectedRun(detail)
     } catch (err) {
+      setSelectedRunId(null)
       setError(err instanceof Error ? err.message : String(err))
     } finally {
-      setLoading(false)
+      setDetailLoading(false)
     }
   }, [])
 
   const clearSelection = useCallback(() => {
+    setSelectedRunId(null)
     setSelectedRun(null)
   }, [])
 
@@ -65,5 +73,5 @@ export function useRunHistory(portfolioId: string | null): UseRunHistoryResult {
     load()
   }, [load])
 
-  return { runs, selectedRun, loading, error, selectRun, clearSelection, refresh }
+  return { runs, selectedRunId, selectedRun, detailLoading, loading, error, selectRun, clearSelection, refresh }
 }
