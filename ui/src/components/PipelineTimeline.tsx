@@ -24,11 +24,31 @@ function StatusDotInline({ status }: { status: string }) {
   return <span data-testid={`step-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
 }
 
+interface PositionItem {
+  instrumentId: string
+  [key: string]: string
+}
+
 export function PipelineTimeline({ steps }: PipelineTimelineProps) {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  const [expandedPositions, setExpandedPositions] = useState<Record<string, boolean>>({})
 
   const toggle = (index: number) => {
     setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  const togglePosition = (key: string) => {
+    setExpandedPositions((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const parsePositions = (details: Record<string, string>): PositionItem[] | null => {
+    const raw = details['positions']
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as PositionItem[]
+    } catch {
+      return null
+    }
   }
 
   return (
@@ -61,15 +81,44 @@ export function PipelineTimeline({ steps }: PipelineTimelineProps) {
             {step.error && (
               <p className="ml-5 text-xs text-red-600 mt-0.5">{step.error}</p>
             )}
-            {isOpen && hasDetails && (
-              <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
-                {Object.entries(step.details).map(([key, value]) => (
-                  <div key={key}>
-                    <span className="font-medium">{key}:</span> {value}
-                  </div>
-                ))}
-              </div>
-            )}
+            {isOpen && hasDetails && (() => {
+              const positions = parsePositions(step.details)
+              return (
+                <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
+                  {Object.entries(step.details)
+                    .filter(([key]) => key !== 'positions')
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-medium">{key}:</span> {value}
+                      </div>
+                    ))}
+                  {positions && positions.map((pos, j) => {
+                    const posKey = `${i}-${pos.instrumentId}`
+                    const isPosOpen = expandedPositions[posKey] ?? false
+                    return (
+                      <div key={j} className="mt-1">
+                        <button
+                          data-testid={`position-${pos.instrumentId}`}
+                          onClick={() => togglePosition(posKey)}
+                          className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                        >
+                          {isPosOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          <span>{pos.instrumentId}</span>
+                        </button>
+                        {isPosOpen && (
+                          <pre
+                            data-testid={`position-json-${pos.instrumentId}`}
+                            className="ml-4 mt-0.5 p-2 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                          >
+                            {JSON.stringify(pos, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
         )
       })}

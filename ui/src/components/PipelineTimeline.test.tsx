@@ -10,7 +10,13 @@ const steps: PipelineStepDto[] = [
     startedAt: '2025-01-15T10:00:00Z',
     completedAt: '2025-01-15T10:00:00.020Z',
     durationMs: 20,
-    details: { positionCount: '5' },
+    details: {
+      positionCount: '5',
+      positions: JSON.stringify([
+        { instrumentId: 'AAPL', assetClass: 'EQUITY', quantity: '100', averageCost: '150.00 USD', marketPrice: '170.00 USD', marketValue: '17000.00 USD', unrealizedPnl: '2000.00 USD' },
+        { instrumentId: 'TSLA', assetClass: 'EQUITY', quantity: '50', averageCost: '200.00 USD', marketPrice: '250.00 USD', marketValue: '12500.00 USD', unrealizedPnl: '2500.00 USD' },
+      ]),
+    },
     error: null,
   },
   {
@@ -108,6 +114,39 @@ describe('PipelineTimeline', () => {
 
     expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
     expect(screen.getByText('positionCount:')).toBeInTheDocument()
+  })
+
+  it('renders expandable positions in FETCH_POSITIONS details', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+    expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
+    expect(screen.getByText('positionCount:')).toBeInTheDocument()
+    expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
+    expect(screen.getByTestId('position-TSLA')).toBeInTheDocument()
+    expect(screen.queryByText(/"instrumentId"/)).not.toBeInTheDocument()
+  })
+
+  it('expands position to show JSON', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+    fireEvent.click(screen.getByTestId('position-AAPL'))
+
+    const jsonBlock = screen.getByTestId('position-json-AAPL')
+    expect(jsonBlock).toBeInTheDocument()
+    expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
+    expect(jsonBlock.textContent).toContain('"quantity": "100"')
+    expect(jsonBlock.textContent).toContain('"marketValue": "17000.00 USD"')
+  })
+
+  it('does not render positions key as a regular detail', () => {
+    render(<PipelineTimeline steps={steps} />)
+
+    fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+    expect(screen.queryByText('positions:')).not.toBeInTheDocument()
   })
 
   it('renders empty list without errors', () => {

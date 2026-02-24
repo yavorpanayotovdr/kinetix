@@ -9,6 +9,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.*
 import java.math.BigDecimal
@@ -198,6 +200,12 @@ class VaRCalculationServiceTest : FunSpec({
         run.steps[4].name shouldBe PipelineStepName.PUBLISH_RESULT
 
         run.steps[0].details["positionCount"] shouldBe 1
+
+        val positionsJson = run.steps[0].details["positions"]
+        positionsJson.shouldBeInstanceOf<String>()
+        positionsJson shouldContain "AAPL"
+        positionsJson shouldContain "EQUITY"
+        positionsJson shouldContain "100"
     }
 
     test("records a failed run when risk engine throws") {

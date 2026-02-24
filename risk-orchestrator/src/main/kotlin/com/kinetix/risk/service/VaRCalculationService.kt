@@ -5,6 +5,7 @@ import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
+import kotlinx.serialization.json.Json
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -42,7 +43,20 @@ class VaRCalculationService(
                     startedAt = fetchPosStart,
                     completedAt = Instant.now(),
                     durationMs = fetchPosDuration,
-                    details = mapOf("positionCount" to positions.size),
+                    details = mapOf(
+                        "positionCount" to positions.size,
+                        "positions" to Json.encodeToString(positions.map { pos ->
+                            buildMap {
+                                put("instrumentId", pos.instrumentId.value)
+                                put("assetClass", pos.assetClass.name)
+                                put("quantity", pos.quantity.toPlainString())
+                                put("averageCost", "${pos.averageCost.amount} ${pos.averageCost.currency}")
+                                put("marketPrice", "${pos.marketPrice.amount} ${pos.marketPrice.currency}")
+                                put("marketValue", "${pos.marketValue.amount} ${pos.marketValue.currency}")
+                                put("unrealizedPnl", "${pos.unrealizedPnl.amount} ${pos.unrealizedPnl.currency}")
+                            }
+                        }),
+                    ),
                 )
             )
 
