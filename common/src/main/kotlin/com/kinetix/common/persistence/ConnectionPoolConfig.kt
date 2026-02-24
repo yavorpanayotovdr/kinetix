@@ -26,6 +26,7 @@ data class ConnectionPoolConfig(
             "rates-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
             "reference-data-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
             "volatility-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
+            "correlation-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
             else -> ConnectionPoolConfig()
         }
     }

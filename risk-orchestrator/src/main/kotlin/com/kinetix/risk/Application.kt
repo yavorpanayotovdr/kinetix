@@ -12,6 +12,7 @@ import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.HttpRatesServiceClient
 import com.kinetix.risk.client.HttpReferenceDataServiceClient
+import com.kinetix.risk.client.HttpCorrelationServiceClient
 import com.kinetix.risk.client.HttpVolatilityServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.kafka.NoOpRiskResultPublisher
@@ -110,9 +111,13 @@ fun Application.moduleWithRoutes() {
     val volatilityServiceBaseUrl = environment.config
         .propertyOrNull("volatilityService.baseUrl")?.getString() ?: "http://localhost:8086"
     val volatilityServiceClient = HttpVolatilityServiceClient(priceHttpClient, volatilityServiceBaseUrl)
+    val correlationServiceBaseUrl = environment.config
+        .propertyOrNull("correlationService.baseUrl")?.getString() ?: "http://localhost:8087"
+    val correlationServiceClient = HttpCorrelationServiceClient(priceHttpClient, correlationServiceBaseUrl)
     val dependenciesDiscoverer = DependenciesDiscoverer(riskEngineClient)
     val marketDataFetcher = MarketDataFetcher(
-        priceServiceClient, ratesServiceClient, referenceDataServiceClient, volatilityServiceClient,
+        priceServiceClient, ratesServiceClient, referenceDataServiceClient,
+        volatilityServiceClient, correlationServiceClient,
     )
 
     val resultPublisher = NoOpRiskResultPublisher()

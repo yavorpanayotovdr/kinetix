@@ -5,6 +5,7 @@ import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.VolatilityServiceClient
+import com.kinetix.risk.client.CorrelationServiceClient
 import com.kinetix.risk.model.CurveMarketData
 import com.kinetix.risk.model.CurvePointValue
 import com.kinetix.risk.model.DiscoveredDependency
@@ -23,6 +24,7 @@ class MarketDataFetcher(
     private val ratesServiceClient: RatesServiceClient? = null,
     private val referenceDataServiceClient: ReferenceDataServiceClient? = null,
     private val volatilityServiceClient: VolatilityServiceClient? = null,
+    private val correlationServiceClient: CorrelationServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
@@ -167,6 +169,27 @@ class MarketDataFetcher(
                     columns = strikes.map { s -> s.toString() },
                     values = values,
                 )
+            }
+        }
+
+        "CORRELATION_MATRIX" -> {
+            val labels = parameters["labels"]?.split(",") ?: emptyList()
+            val windowDays = parameters["windowDays"]?.toIntOrNull() ?: 252
+            if (labels.isEmpty()) {
+                logger.debug("No labels provided for CORRELATION_MATRIX, skipping")
+                null
+            } else {
+                val matrix = correlationServiceClient?.getCorrelationMatrix(labels, windowDays)
+                matrix?.let {
+                    MatrixMarketData(
+                        dataType = "CORRELATION_MATRIX",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        rows = it.labels,
+                        columns = it.labels,
+                        values = it.values,
+                    )
+                }
             }
         }
 
