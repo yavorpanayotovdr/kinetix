@@ -8,6 +8,7 @@ data class VolSurface(
     val instrumentId: InstrumentId,
     val asOf: Instant,
     val points: List<VolPoint>,
+    val source: VolatilitySource = VolatilitySource.INTERNAL,
 ) {
     init {
         require(points.isNotEmpty()) { "VolSurface must have at least one point" }

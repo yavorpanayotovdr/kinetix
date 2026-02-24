@@ -4,10 +4,12 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.VolatilityServiceClient
 import com.kinetix.risk.model.CurveMarketData
 import com.kinetix.risk.model.CurvePointValue
 import com.kinetix.risk.model.DiscoveredDependency
 import com.kinetix.risk.model.MarketDataValue
+import com.kinetix.risk.model.MatrixMarketData
 import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.TimeSeriesPoint
@@ -20,6 +22,7 @@ class MarketDataFetcher(
     private val priceServiceClient: PriceServiceClient,
     private val ratesServiceClient: RatesServiceClient? = null,
     private val referenceDataServiceClient: ReferenceDataServiceClient? = null,
+    private val volatilityServiceClient: VolatilityServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
@@ -142,6 +145,27 @@ class MarketDataFetcher(
                     instrumentId = instrumentId,
                     assetClass = assetClass,
                     value = it.spread,
+                )
+            }
+        }
+
+        "VOLATILITY_SURFACE" -> {
+            val surface = volatilityServiceClient?.getLatestSurface(InstrumentId(instrumentId))
+            surface?.let {
+                val strikes = it.strikes.map { s -> s.toDouble() }
+                val maturities = it.maturities.map { m -> m.toString() }
+                val values = maturities.flatMap { mat ->
+                    strikes.map { strike ->
+                        it.volAt(strike.toBigDecimal(), mat.toInt()).toDouble()
+                    }
+                }
+                MatrixMarketData(
+                    dataType = "VOLATILITY_SURFACE",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    rows = maturities,
+                    columns = strikes.map { s -> s.toString() },
+                    values = values,
                 )
             }
         }

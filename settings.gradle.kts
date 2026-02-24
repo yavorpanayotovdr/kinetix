@@ -26,5 +26,6 @@ include(
     "notification-service",
     "audit-service",
     "reference-data-service",
+    "volatility-service",
     "acceptance-tests",
 )
