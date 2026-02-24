@@ -30,7 +30,7 @@ echo "    Keycloak ready."
 # ── Phase 2: Kafka topics ───────────────────────────────────────────────────
 
 echo "==> Creating Kafka topics..."
-topics=("trades.lifecycle" "price.updates" "risk.results")
+topics=("trades.lifecycle" "price.updates" "risk.results" "rates.yield-curves" "rates.risk-free" "rates.forwards" "reference-data.dividends" "reference-data.credit-spreads" "volatility.surfaces" "correlation.matrices")
 for topic in "${topics[@]}"; do
   docker exec kinetix-kafka /opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server localhost:9092 \
@@ -69,6 +69,10 @@ start_gradle_service risk-orchestrator    8083
 start_gradle_service audit-service        8084
 start_gradle_service regulatory-service   8085
 start_gradle_service notification-service 8086
+start_gradle_service rates-service        8088
+start_gradle_service reference-data-service 8089
+start_gradle_service volatility-service   8090
+start_gradle_service correlation-service  8091
 
 # Python risk engine
 echo "==> Starting risk-engine..."
@@ -113,6 +117,10 @@ printf "  %-22s %s\n" "Risk Orchestrator"    "http://localhost:8083"
 printf "  %-22s %s\n" "Audit Service"        "http://localhost:8084"
 printf "  %-22s %s\n" "Regulatory Service"   "http://localhost:8085"
 printf "  %-22s %s\n" "Notification Service" "http://localhost:8086"
+printf "  %-22s %s\n" "Rates Service"        "http://localhost:8088"
+printf "  %-22s %s\n" "Reference Data Svc"   "http://localhost:8089"
+printf "  %-22s %s\n" "Volatility Service"   "http://localhost:8090"
+printf "  %-22s %s\n" "Correlation Service"  "http://localhost:8091"
 printf "  %-22s %s\n" "Risk Engine (gRPC)"   "localhost:50051"
 printf "  %-22s %s\n" "UI"                   "http://localhost:5173"
 printf "  %-22s %s\n" "Grafana"              "http://localhost:3000"

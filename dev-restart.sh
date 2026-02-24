@@ -14,7 +14,8 @@ usage() {
   echo "Services:"
   echo "  gateway  position-service  price-service  risk-orchestrator"
   echo "  audit-service  regulatory-service  notification-service"
-  echo "  risk-engine  ui"
+  echo "  rates-service  reference-data-service  volatility-service"
+  echo "  correlation-service  risk-engine  ui"
   echo ""
   echo "Examples:"
   echo "  ./dev-restart.sh                    # restart all application services"
@@ -35,8 +36,8 @@ fi
 # ── Service definitions ──────────────────────────────────────────────────────
 
 # service:port pairs for Gradle services
-GRADLE_SERVICES="gateway:8080 position-service:8081 price-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086"
-ALL_SERVICES="gateway position-service price-service risk-orchestrator audit-service regulatory-service notification-service risk-engine ui"
+GRADLE_SERVICES="gateway:8080 position-service:8081 price-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086 rates-service:8088 reference-data-service:8089 volatility-service:8090 correlation-service:8091"
+ALL_SERVICES="gateway position-service price-service risk-orchestrator audit-service regulatory-service notification-service rates-service reference-data-service volatility-service correlation-service risk-engine ui"
 
 port_for_service() {
   local svc="$1"
