@@ -3,6 +3,7 @@ package com.kinetix.risk.service
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
+import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.model.CurveMarketData
 import com.kinetix.risk.model.CurvePointValue
 import com.kinetix.risk.model.DiscoveredDependency
@@ -18,6 +19,7 @@ import java.util.Currency
 class MarketDataFetcher(
     private val priceServiceClient: PriceServiceClient,
     private val ratesServiceClient: RatesServiceClient? = null,
+    private val referenceDataServiceClient: ReferenceDataServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
@@ -120,8 +122,32 @@ class MarketDataFetcher(
             }
         }
 
+        "DIVIDEND_YIELD" -> {
+            val dividendYield = referenceDataServiceClient?.getLatestDividendYield(InstrumentId(instrumentId))
+            dividendYield?.let {
+                ScalarMarketData(
+                    dataType = "DIVIDEND_YIELD",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    value = it.yield,
+                )
+            }
+        }
+
+        "CREDIT_SPREAD" -> {
+            val creditSpread = referenceDataServiceClient?.getLatestCreditSpread(InstrumentId(instrumentId))
+            creditSpread?.let {
+                ScalarMarketData(
+                    dataType = "CREDIT_SPREAD",
+                    instrumentId = instrumentId,
+                    assetClass = assetClass,
+                    value = it.spread,
+                )
+            }
+        }
+
         else -> {
-            logger.debug("Cannot fetch {} from price-service, skipping", dataType)
+            logger.debug("Cannot fetch {} for {}, skipping", dataType, instrumentId)
             null
         }
     }
