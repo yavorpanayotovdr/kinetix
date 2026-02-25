@@ -194,6 +194,24 @@ describe('SystemDashboard', () => {
     expect(screen.getByText('Correlations')).toBeInTheDocument()
   })
 
+  it('gateway card has a Grafana icon linking to the gateway dashboard', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const link = screen.getByTestId('service-grafana-link-gateway')
+    expect(link).toHaveAttribute(
+      'href',
+      'http://localhost:3000/d/kinetix-gateway',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
   it('price-service card has a Grafana icon linking to the prices dashboard', () => {
     render(
       <SystemDashboard

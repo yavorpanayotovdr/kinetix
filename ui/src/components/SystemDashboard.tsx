@@ -48,6 +48,7 @@ const SERVICE_ICONS: Record<string, LucideIcon> = {
 }
 
 const SERVICE_DASHBOARD_URLS: Record<string, string> = {
+  gateway: 'http://localhost:3000/d/kinetix-gateway',
   'price-service': 'http://localhost:3000/d/kinetix-prices',
 }
 
