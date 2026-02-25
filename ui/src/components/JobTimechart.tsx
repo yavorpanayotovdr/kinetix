@@ -101,6 +101,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
   )
 
   const handleClosePinned = useCallback(() => setPinnedTooltip(null), [])
+  const handlePin = useCallback(() => setPinnedTooltip(tooltip), [tooltip])
 
   const { brush, handlers } = useBrushSelection({ onBrushEnd: handleBrushEnd, onClick: handleBarClick })
 
@@ -292,6 +293,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
         rangeDays={rangeDays}
         pinned={pinnedTooltip !== null}
         onClose={handleClosePinned}
+        onPin={handlePin}
       />
     </div>
   )

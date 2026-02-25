@@ -21,35 +21,47 @@ function makeManyJobIds(count: number): string[] {
 
 describe('ChartTooltip', () => {
   describe('hover mode', () => {
-    it('renders nothing when not visible', () => {
+    it('always renders the container even when not visible', () => {
       const { container } = render(
-        <ChartTooltip bucket={makeBucket()} visible={false} rangeDays={1} pinned={false} onClose={vi.fn()} />,
+        <ChartTooltip bucket={makeBucket()} visible={false} rangeDays={1} pinned={false} onClose={vi.fn()} onPin={vi.fn()} />,
       )
-      expect(container.innerHTML).toBe('')
+      const wrapper = container.firstElementChild as HTMLElement
+      expect(wrapper).not.toBeNull()
+      expect(wrapper.className).toContain('h-28')
     })
 
     it('shows truncated job IDs in hover mode', () => {
       render(
-        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={false} onClose={vi.fn()} />,
+        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={false} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.getByText('job-aaa-')).toBeInTheDocument()
       expect(screen.getByText('job-bbb-')).toBeInTheDocument()
     })
 
-    it('shows static "and N more" text in hover mode', () => {
+    it('shows clickable "and N more" button in hover mode', () => {
       const bucket = makeBucket({ jobIds: makeManyJobIds(8) })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={false} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={false} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.getByText('and 3 more')).toBeInTheDocument()
-      expect(screen.getByText('and 3 more').tagName).not.toBe('BUTTON')
+      expect(screen.getByText('and 3 more').tagName).toBe('BUTTON')
+    })
+
+    it('calls onPin and expands when "and more" is clicked in hover mode', () => {
+      const onPin = vi.fn()
+      const bucket = makeBucket({ jobIds: makeManyJobIds(8) })
+      render(
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={false} onClose={vi.fn()} onPin={onPin} />,
+      )
+      fireEvent.click(screen.getByText('and 3 more'))
+      expect(onPin).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('pinned mode', () => {
     it('shows close button when pinned', () => {
       render(
-        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.getByTestId('tooltip-close')).toBeInTheDocument()
     })
@@ -74,7 +86,7 @@ describe('ChartTooltip', () => {
 
     it('shows full job IDs when pinned', () => {
       render(
-        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.getByText('job-aaa-111')).toBeInTheDocument()
       expect(screen.getByText('job-bbb-222')).toBeInTheDocument()
@@ -85,7 +97,7 @@ describe('ChartTooltip', () => {
     it('renders "and N more" as a clickable button when pinned', () => {
       const bucket = makeBucket({ jobIds: makeManyJobIds(8) })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       const more = screen.getByText('and 3 more')
       expect(more.tagName).toBe('BUTTON')
@@ -95,7 +107,7 @@ describe('ChartTooltip', () => {
       const jobIds = makeManyJobIds(8)
       const bucket = makeBucket({ jobIds })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       fireEvent.click(screen.getByText('and 3 more'))
       for (const id of jobIds) {
@@ -108,7 +120,7 @@ describe('ChartTooltip', () => {
     it('shows search input when pinned with more than 5 jobs', () => {
       const bucket = makeBucket({ jobIds: makeManyJobIds(8) })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.getByTestId('tooltip-search')).toBeInTheDocument()
     })
@@ -116,7 +128,7 @@ describe('ChartTooltip', () => {
     it('does not show search input when pinned with 5 or fewer jobs', () => {
       const bucket = makeBucket({ jobIds: makeManyJobIds(3) })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       expect(screen.queryByTestId('tooltip-search')).not.toBeInTheDocument()
     })
@@ -125,7 +137,7 @@ describe('ChartTooltip', () => {
       const jobIds = ['alpha-001', 'alpha-002', 'beta-001', 'beta-002', 'gamma-001', 'gamma-002']
       const bucket = makeBucket({ jobIds })
       render(
-        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
       fireEvent.change(screen.getByTestId('tooltip-search'), { target: { value: 'beta' } })
       expect(screen.getByText('beta-001')).toBeInTheDocument()
@@ -142,7 +154,7 @@ describe('ChartTooltip', () => {
       })
 
       const { rerender } = render(
-        <ChartTooltip bucket={bucket1} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket1} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
 
       // Expand and type a search
@@ -151,7 +163,7 @@ describe('ChartTooltip', () => {
 
       // Change bucket
       rerender(
-        <ChartTooltip bucket={bucket2} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} />,
+        <ChartTooltip bucket={bucket2} visible={true} rangeDays={1} pinned={true} onClose={vi.fn()} onPin={vi.fn()} />,
       )
 
       // Should show "and N more" again (not expanded) and search should be cleared

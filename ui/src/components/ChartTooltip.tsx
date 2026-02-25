@@ -10,11 +10,12 @@ interface ChartTooltipProps {
   rangeDays: number
   pinned: boolean
   onClose: () => void
+  onPin: () => void
 }
 
 const MAX_COLLAPSED = 5
 
-export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose }: ChartTooltipProps) {
+export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose, onPin }: ChartTooltipProps) {
   const [expanded, setExpanded] = useState(false)
   const [search, setSearch] = useState('')
   const [prevBucket, setPrevBucket] = useState<TimeBucket | null>(null)
@@ -43,7 +44,7 @@ export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose }: Ch
   }, [pinned, onClose])
   useClickOutside(tooltipRef, handleClickOutside)
 
-  if (!visible || !bucket) return null
+  if (!visible || !bucket) return <div className="h-28" />
 
   const fromLabel = formatChartTime(bucket.from, rangeDays)
   const toLabel = formatChartTime(bucket.to, rangeDays)
@@ -62,7 +63,7 @@ export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose }: Ch
     <div
       ref={tooltipRef}
       data-testid="chart-tooltip"
-      className="bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2"
+      className="h-28 overflow-hidden bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2"
     >
       {pinned && (
         <button
@@ -114,7 +115,12 @@ export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose }: Ch
                 and {remaining} more
               </button>
             ) : (
-              <div className="text-slate-400">and {remaining} more</div>
+              <button
+                onClick={() => { onPin(); setExpanded(true) }}
+                className="text-slate-400 hover:text-slate-200 cursor-pointer"
+              >
+                and {remaining} more
+              </button>
             )
           )}
         </div>
