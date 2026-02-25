@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { JobStepDto } from '../types'
 import { JobTimeline } from './JobTimeline'
@@ -546,7 +546,7 @@ describe('JobTimeline', () => {
       expect(jsonBlock.textContent).toContain('"dataType": "SPOT_PRICE"')
     })
 
-    it('position copy button copies only position data', () => {
+    it('position copy button copies only position data', async () => {
       const writeText = vi.fn().mockResolvedValue(undefined)
       Object.assign(navigator, { clipboard: { writeText } })
 
@@ -554,14 +554,16 @@ describe('JobTimeline', () => {
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
 
-      fireEvent.click(screen.getByTestId('copy-position-AAPL'))
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('copy-position-AAPL'))
+      })
 
       const copied = JSON.parse(writeText.mock.calls[0][0])
       expect(copied.instrumentId).toBe('AAPL')
       expect(copied).not.toHaveProperty('dependencies')
     })
 
-    it('dependencies copy button copies only dependency array JSON', () => {
+    it('dependencies copy button copies only dependency array JSON', async () => {
       const writeText = vi.fn().mockResolvedValue(undefined)
       Object.assign(navigator, { clipboard: { writeText } })
 
@@ -570,7 +572,9 @@ describe('JobTimeline', () => {
       fireEvent.click(screen.getByTestId('position-AAPL'))
       fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
 
-      fireEvent.click(screen.getByTestId('copy-pos-deps-AAPL'))
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('copy-pos-deps-AAPL'))
+      })
 
       const copied = JSON.parse(writeText.mock.calls[0][0])
       expect(copied).toHaveLength(2)

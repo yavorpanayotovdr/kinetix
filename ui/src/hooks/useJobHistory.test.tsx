@@ -290,6 +290,10 @@ describe('useJobHistory', () => {
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
     expect(result.current.zoomDepth).toBe(0)
   })
 
@@ -311,10 +315,16 @@ describe('useJobHistory', () => {
     expect(result.current.timeRange).toEqual(zoomedRange)
     expect(result.current.zoomDepth).toBe(1)
 
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
     // Zoom again
     const zoomedRange2 = { from: '2025-01-15T10:15:00Z', to: '2025-01-15T10:30:00Z', label: 'Custom' }
     act(() => {
       result.current.zoomIn(zoomedRange2)
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
     })
 
     expect(result.current.timeRange).toEqual(zoomedRange2)
@@ -336,9 +346,13 @@ describe('useJobHistory', () => {
       result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
     })
 
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
     act(() => {
       result.current.zoomIn({ from: '2025-01-15T10:15:00Z', to: '2025-01-15T10:30:00Z', label: 'Custom' })
     })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.zoomDepth).toBe(2)
 
@@ -348,6 +362,8 @@ describe('useJobHistory', () => {
 
     expect(result.current.timeRange).toEqual(originalRange)
     expect(result.current.zoomDepth).toBe(0)
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
   })
 
   it('setTimeRange clears the zoom stack', async () => {
@@ -363,6 +379,8 @@ describe('useJobHistory', () => {
       result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
     })
 
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
     expect(result.current.zoomDepth).toBe(1)
 
     const newRange = { from: '2025-01-14T00:00:00Z', to: '2025-01-15T00:00:00Z', label: 'Last 24h' }
@@ -372,6 +390,8 @@ describe('useJobHistory', () => {
 
     expect(result.current.timeRange).toEqual(newRange)
     expect(result.current.zoomDepth).toBe(0)
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
   })
 
   it('resets jobs and expanded state when portfolioId becomes null', async () => {
@@ -634,9 +654,13 @@ describe('useJobHistory', () => {
       expect(result.current.page).toBe(1)
     })
 
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
     act(() => {
       result.current.setTimeRange({ from: '2025-01-14T00:00:00Z', to: '2025-01-15T00:00:00Z', label: 'Custom' })
     })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.page).toBe(0)
   })
@@ -658,9 +682,13 @@ describe('useJobHistory', () => {
       expect(result.current.page).toBe(1)
     })
 
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
     act(() => {
       result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
     })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.page).toBe(0)
   })
@@ -686,6 +714,8 @@ describe('useJobHistory', () => {
     act(() => {
       result.current.nextPage()
     })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.expandedJobs).toEqual({})
   })
