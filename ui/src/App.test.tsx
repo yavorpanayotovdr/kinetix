@@ -187,7 +187,7 @@ describe('App', () => {
     expect(screen.queryByTestId('var-dashboard')).not.toBeInTheDocument()
   })
 
-  it('clicking Risk tab shows VaR, stress test, and greeks', () => {
+  it('clicking Risk tab shows VaR dashboard and greeks', () => {
     mockUseVaR.mockReturnValue({
       varResult,
       history: [],
@@ -201,6 +201,21 @@ describe('App', () => {
     fireEvent.click(screen.getByTestId('tab-risk'))
 
     expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
+  })
+
+  it('Risk tab does not show stress test panel', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-risk'))
+
+    expect(screen.queryByTestId('stress-test-panel')).not.toBeInTheDocument()
+  })
+
+  it('clicking Scenarios tab shows stress test panel', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-scenarios'))
+
     expect(screen.getByTestId('stress-test-panel')).toBeInTheDocument()
   })
 

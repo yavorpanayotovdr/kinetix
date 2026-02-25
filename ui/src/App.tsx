@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, BarChart3, Shield, Scale, Bell, Server } from 'lucide-react'
+import { Activity, BarChart3, Shield, FlaskConical, Scale, Bell, Server } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { VaRDashboard } from './components/VaRDashboard'
 import { StressTestPanel } from './components/StressTestPanel'
@@ -17,11 +17,12 @@ import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
 
-type Tab = 'positions' | 'risk' | 'regulatory' | 'alerts' | 'system'
+type Tab = 'positions' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'positions', label: 'Positions', icon: BarChart3 },
   { key: 'risk', label: 'Risk', icon: Shield },
+  { key: 'scenarios', label: 'Scenarios', icon: FlaskConical },
   { key: 'regulatory', label: 'Regulatory', icon: Scale },
   { key: 'alerts', label: 'Alerts', icon: Bell },
   { key: 'system', label: 'System', icon: Server },
@@ -120,28 +121,29 @@ function App() {
                       error={varError}
                       onRefresh={refresh}
                     />
-                    <div className="grid grid-cols-2 gap-4">
-                      <StressTestPanel
-                        scenarios={stress.scenarios}
-                        result={stress.result}
-                        loading={stress.loading}
-                        error={stress.error}
-                        selectedScenario={stress.selectedScenario}
-                        onScenarioChange={stress.setSelectedScenario}
-                        onRun={stress.run}
-                      />
-                      <GreeksPanel
-                        greeksResult={greeks.greeksResult}
-                        loading={greeks.loading}
-                        error={greeks.error}
-                        volBump={greeks.volBump}
-                        onVolBumpChange={greeks.setVolBump}
-                      />
-                    </div>
+                    <GreeksPanel
+                      greeksResult={greeks.greeksResult}
+                      loading={greeks.loading}
+                      error={greeks.error}
+                      volBump={greeks.volBump}
+                      onVolBumpChange={greeks.setVolBump}
+                    />
                     <div className="mt-4">
                       <JobHistory portfolioId={portfolioId} />
                     </div>
                   </div>
+                )}
+
+                {activeTab === 'scenarios' && (
+                  <StressTestPanel
+                    scenarios={stress.scenarios}
+                    result={stress.result}
+                    loading={stress.loading}
+                    error={stress.error}
+                    selectedScenario={stress.selectedScenario}
+                    onScenarioChange={stress.setSelectedScenario}
+                    onRun={stress.run}
+                  />
                 )}
 
                 {activeTab === 'regulatory' && (
