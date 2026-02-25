@@ -43,6 +43,10 @@ kube-prometheus-stack:
           metrics_path: "/metrics"
           static_configs:
             - targets: ["kinetix-volatility-service:8090"]
+        - job_name: "correlation-service"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["kinetix-correlation-service:8091"]
         - job_name: "risk-engine"
           metrics_path: "/metrics"
           static_configs:

@@ -56,6 +56,7 @@ const SERVICE_DASHBOARD_URLS: Record<string, string> = {
   'rates-service': 'http://localhost:3000/d/kinetix-rates-service',
   'reference-data-service': 'http://localhost:3000/d/kinetix-reference-data-service',
   'volatility-service': 'http://localhost:3000/d/kinetix-volatility-service',
+  'correlation-service': 'http://localhost:3000/d/kinetix-correlation-service',
 }
 
 const OBSERVABILITY_LINKS = [

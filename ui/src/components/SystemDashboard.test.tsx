@@ -338,6 +338,24 @@ describe('SystemDashboard', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
+  it('correlation-service card has a Grafana icon linking to the correlation service dashboard', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const link = screen.getByTestId('service-grafana-link-correlation-service')
+    expect(link).toHaveAttribute(
+      'href',
+      'http://localhost:3000/d/kinetix-correlation-service',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
   it('does not include Prices in observability links', () => {
     render(
       <SystemDashboard
