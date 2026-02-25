@@ -56,6 +56,8 @@ function fromDatetimeLocal(value: string): string {
 
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   const [showCustom, setShowCustom] = useState(false)
+  const [customFrom, setCustomFrom] = useState(() => toDatetimeLocal(value.from))
+  const [customTo, setCustomTo] = useState(() => toDatetimeLocal(value.to))
 
   const handlePreset = (preset: Preset) => {
     setShowCustom(false)
@@ -64,7 +66,17 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   }
 
   const handleCustomToggle = () => {
+    if (!showCustom) {
+      setCustomFrom(toDatetimeLocal(value.from))
+      setCustomTo(toDatetimeLocal(value.to))
+    }
     setShowCustom((prev) => !prev)
+  }
+
+  const handleApply = () => {
+    if (customFrom && customTo) {
+      onChange({ from: fromDatetimeLocal(customFrom), to: fromDatetimeLocal(customTo), label: 'Custom' })
+    }
   }
 
   return (
@@ -105,12 +117,8 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
           <input
             data-testid="custom-from"
             type="datetime-local"
-            value={toDatetimeLocal(value.from)}
-            onChange={(e) => {
-              if (e.target.value) {
-                onChange({ from: fromDatetimeLocal(e.target.value), to: value.to, label: 'Custom' })
-              }
-            }}
+            value={customFrom}
+            onChange={(e) => setCustomFrom(e.target.value)}
             className="text-xs border border-slate-200 rounded px-2 py-1"
             onClick={(e) => e.stopPropagation()}
           />
@@ -118,15 +126,22 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
           <input
             data-testid="custom-to"
             type="datetime-local"
-            value={toDatetimeLocal(value.to)}
-            onChange={(e) => {
-              if (e.target.value) {
-                onChange({ from: value.from, to: fromDatetimeLocal(e.target.value), label: 'Custom' })
-              }
-            }}
+            value={customTo}
+            onChange={(e) => setCustomTo(e.target.value)}
             className="text-xs border border-slate-200 rounded px-2 py-1"
             onClick={(e) => e.stopPropagation()}
           />
+          <Button
+            data-testid="custom-apply"
+            variant="primary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleApply()
+            }}
+          >
+            Apply
+          </Button>
         </div>
       )}
     </div>

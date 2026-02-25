@@ -61,16 +61,27 @@ describe('TimeRangeSelector', () => {
     expect(screen.queryByTestId('custom-range-inputs')).not.toBeInTheDocument()
   })
 
-  it('calls onChange with Custom label when custom from input changes', () => {
+  it('does not call onChange until Apply is clicked', () => {
     const onChange = vi.fn()
     render(<TimeRangeSelector value={defaultRange} onChange={onChange} />)
 
     fireEvent.click(screen.getByTestId('time-preset-Custom'))
     fireEvent.change(screen.getByTestId('custom-from'), { target: { value: '2025-01-14T08:00' } })
 
-    expect(onChange).toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('calls onChange with Custom label when Apply is clicked', () => {
+    const onChange = vi.fn()
+    render(<TimeRangeSelector value={defaultRange} onChange={onChange} />)
+
+    fireEvent.click(screen.getByTestId('time-preset-Custom'))
+    fireEvent.change(screen.getByTestId('custom-from'), { target: { value: '2025-01-14T08:00' } })
+    fireEvent.change(screen.getByTestId('custom-to'), { target: { value: '2025-01-15T18:00' } })
+    fireEvent.click(screen.getByTestId('custom-apply'))
+
+    expect(onChange).toHaveBeenCalledTimes(1)
     const arg = onChange.mock.calls[0][0] as TimeRange
     expect(arg.label).toBe('Custom')
-    expect(arg.to).toBe(defaultRange.to)
   })
 })
