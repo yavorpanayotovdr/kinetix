@@ -72,9 +72,11 @@ const jobDetail2 = {
 describe('useJobHistory', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -389,5 +391,52 @@ describe('useJobHistory', () => {
     expect(result.current.runs).toEqual([])
     expect(result.current.expandedJobs).toEqual({})
     expect(result.current.loadingJobIds.size).toBe(0)
+  })
+
+  it('polls every 5 seconds to pick up new jobs and state changes', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+
+    renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(3)
+    })
+  })
+
+  it('stops polling when portfolioId becomes null', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+
+    const { rerender } = renderHook(
+      ({ pid }) => useJobHistory(pid),
+      { initialProps: { pid: 'port-1' as string | null } },
+    )
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+    })
+
+    rerender({ pid: null })
+
+    await act(async () => {
+      vi.advanceTimersByTime(10_000)
+    })
+
+    expect(mockFetchJobs).toHaveBeenCalledTimes(1)
   })
 })

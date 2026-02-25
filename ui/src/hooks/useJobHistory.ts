@@ -25,6 +25,8 @@ export interface UseJobHistoryResult {
   zoomDepth: number
 }
 
+const POLL_INTERVAL = 5_000
+
 export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [runs, setRuns] = useState<ValuationJobSummaryDto[]>([])
   const [expandedJobs, setExpandedJobs] = useState<Record<string, ValuationJobDetailDto>>({})
@@ -58,6 +60,9 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       return
     }
     load()
+
+    const interval = setInterval(load, POLL_INTERVAL)
+    return () => clearInterval(interval)
   }, [portfolioId, load])
 
   const toggleJob = useCallback(async (jobId: string) => {

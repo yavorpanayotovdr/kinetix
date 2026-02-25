@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, History, Search, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, History, Search } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
 import { JobHistoryTable } from './JobHistoryTable'
 import { JobTimechart } from './JobTimechart'
 import { TimeRangeSelector } from './TimeRangeSelector'
-import { Card, Badge, Spinner, Button } from './ui'
+import { Card, Badge, Spinner } from './ui'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 interface JobHistoryProps {
@@ -50,7 +50,7 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth } = useJobHistory(
     expanded ? portfolioId : null,
   )
   const buckets = useTimeBuckets(runs, timeRange)
@@ -99,9 +99,9 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
                   onResetZoom={resetZoom}
                 />
               )}
-              <div className="flex items-center justify-between mb-2">
-                {runs.length > 0 && (
-                  <div className="relative">
+              {runs.length > 0 && (
+                <div className="mb-2">
+                  <div className="relative inline-block">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
                     <input
                       data-testid="job-history-search"
@@ -113,20 +113,8 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
-                )}
-                <Button
-                  data-testid="job-history-refresh"
-                  variant="secondary"
-                  size="sm"
-                  icon={<RefreshCw className="h-3 w-3" />}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    refresh()
-                  }}
-                >
-                  Refresh
-                </Button>
-              </div>
+                </div>
+              )}
               <JobHistoryTable
                 runs={filteredRuns}
                 expandedJobs={expandedJobs}

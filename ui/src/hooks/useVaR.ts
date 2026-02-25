@@ -13,7 +13,7 @@ export interface UseVaRResult {
   history: VaRHistoryEntry[]
   loading: boolean
   error: string | null
-  refresh: () => void
+  refresh: () => Promise<void>
 }
 
 const POLL_INTERVAL = 30_000
