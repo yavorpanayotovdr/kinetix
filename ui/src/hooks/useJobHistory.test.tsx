@@ -101,7 +101,7 @@ describe('useJobHistory', () => {
     expect(result.current.runs).toEqual([jobSummary])
     expect(mockFetchJobs).toHaveBeenCalledWith(
       'port-1',
-      20,
+      200,
       0,
       expect.any(String),
       expect.any(String),
@@ -276,11 +276,100 @@ describe('useJobHistory', () => {
 
     expect(mockFetchJobs).toHaveBeenLastCalledWith(
       'port-1',
-      20,
+      200,
       0,
       '2025-01-15T00:00:00Z',
       '2025-01-15T23:59:59Z',
     )
+  })
+
+  it('exposes zoomDepth of 0 initially', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    expect(result.current.zoomDepth).toBe(0)
+  })
+
+  it('zoomIn pushes current range onto zoom stack and sets new range', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    const zoomedRange = { from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' }
+
+    act(() => {
+      result.current.zoomIn(zoomedRange)
+    })
+
+    expect(result.current.timeRange).toEqual(zoomedRange)
+    expect(result.current.zoomDepth).toBe(1)
+
+    // Zoom again
+    const zoomedRange2 = { from: '2025-01-15T10:15:00Z', to: '2025-01-15T10:30:00Z', label: 'Custom' }
+    act(() => {
+      result.current.zoomIn(zoomedRange2)
+    })
+
+    expect(result.current.timeRange).toEqual(zoomedRange2)
+    expect(result.current.zoomDepth).toBe(2)
+  })
+
+  it('resetZoom restores the original range and clears the stack', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    const originalRange = result.current.timeRange
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+    })
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:15:00Z', to: '2025-01-15T10:30:00Z', label: 'Custom' })
+    })
+
+    expect(result.current.zoomDepth).toBe(2)
+
+    act(() => {
+      result.current.resetZoom()
+    })
+
+    expect(result.current.timeRange).toEqual(originalRange)
+    expect(result.current.zoomDepth).toBe(0)
+  })
+
+  it('setTimeRange clears the zoom stack', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+    })
+
+    expect(result.current.zoomDepth).toBe(1)
+
+    const newRange = { from: '2025-01-14T00:00:00Z', to: '2025-01-15T00:00:00Z', label: 'Last 24h' }
+    act(() => {
+      result.current.setTimeRange(newRange)
+    })
+
+    expect(result.current.timeRange).toEqual(newRange)
+    expect(result.current.zoomDepth).toBe(0)
   })
 
   it('resets jobs and expanded state when portfolioId becomes null', async () => {

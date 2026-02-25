@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, History, Search, RefreshCw } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
+import { useTimeBuckets } from '../hooks/useTimeBuckets'
 import { JobHistoryTable } from './JobHistoryTable'
+import { JobTimechart } from './JobTimechart'
 import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Badge, Spinner, Button } from './ui'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
@@ -47,9 +49,10 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth } = useJobHistory(
     expanded ? portfolioId : null,
   )
+  const buckets = useTimeBuckets(runs, timeRange)
 
   const filteredRuns = search.trim()
     ? runs.filter((r) => jobMatchesSearch(r, search, expandedJobs[r.jobId]))
@@ -86,6 +89,15 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
           {!error && !(loading && runs.length === 0) && (
             <>
               <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+              {runs.length > 0 && (
+                <JobTimechart
+                  buckets={buckets}
+                  timeRange={timeRange}
+                  onZoom={zoomIn}
+                  zoomDepth={zoomDepth}
+                  onResetZoom={resetZoom}
+                />
+              )}
               <div className="flex items-center justify-between mb-2">
                 {runs.length > 0 && (
                   <div className="relative">

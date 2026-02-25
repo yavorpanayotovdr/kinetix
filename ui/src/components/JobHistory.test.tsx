@@ -21,6 +21,9 @@ const defaultHookResult = {
   closeJob: vi.fn(),
   clearSelection: vi.fn(),
   refresh: vi.fn(),
+  zoomIn: vi.fn(),
+  resetZoom: vi.fn(),
+  zoomDepth: 0,
 }
 
 describe('JobHistory', () => {
@@ -113,7 +116,9 @@ describe('JobHistory', () => {
 
     render(<JobHistory portfolioId="port-1" />)
 
-    expect(screen.getByText('1')).toBeInTheDocument()
+    const toggle = screen.getByTestId('job-history-toggle')
+    const badge = toggle.querySelector('.inline-flex.items-center')!
+    expect(badge).toHaveTextContent('1')
   })
 
   it('shows inline job detail when a job is expanded', () => {
@@ -304,11 +309,14 @@ describe('JobHistory', () => {
 
     render(<JobHistory portfolioId="port-1" />)
 
-    expect(screen.getByText('2')).toBeInTheDocument()
+    const toggle = screen.getByTestId('job-history-toggle')
+    const badge = () => toggle.querySelector('.inline-flex.items-center')!
+
+    expect(badge()).toHaveTextContent('2')
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'COMPLETED' } })
 
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(badge()).toHaveTextContent('1')
   })
 
   it('treats spaces as AND — all terms must match', () => {
@@ -484,6 +492,36 @@ describe('JobHistory', () => {
     render(<JobHistory portfolioId="port-1" />)
 
     expect(screen.getByTestId('time-range-selector')).toBeInTheDocument()
+  })
+
+  it('renders timechart when jobs are present', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('job-timechart')).toBeInTheDocument()
+  })
+
+  it('does not render timechart when no jobs', () => {
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.queryByTestId('job-timechart')).not.toBeInTheDocument()
   })
 
   it('calls closeJob when close detail button is clicked', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, pnlColorClass } from './format'
+import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, pnlColorClass } from './format'
 
 describe('formatMoney', () => {
   it('formats USD with dollar sign and commas', () => {
@@ -116,6 +116,24 @@ describe('formatTimestamp', () => {
   it('pads single-digit months, days, hours, minutes, and seconds', () => {
     const date = new Date(2025, 2, 3, 4, 5, 6)
     expect(formatTimestamp(date.toISOString())).toBe('2025-03-03 04:05:06')
+  })
+})
+
+describe('formatChartTime', () => {
+  it('returns HH:mm for ranges up to 1 day', () => {
+    expect(formatChartTime(new Date(2025, 0, 15, 14, 30), 0.5)).toBe('14:30')
+  })
+
+  it('pads hours and minutes', () => {
+    expect(formatChartTime(new Date(2025, 0, 15, 4, 5), 1)).toBe('04:05')
+  })
+
+  it('returns MMM dd for ranges longer than 1 day', () => {
+    expect(formatChartTime(new Date(2025, 0, 15, 14, 30), 7)).toBe('Jan 15')
+  })
+
+  it('pads single-digit days', () => {
+    expect(formatChartTime(new Date(2025, 2, 3, 0, 0), 14)).toBe('Mar 03')
   })
 })
 

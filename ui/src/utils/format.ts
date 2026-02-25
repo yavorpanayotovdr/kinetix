@@ -57,6 +57,15 @@ export function formatTimeOnly(isoString: string): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+export function formatChartTime(date: Date, rangeDays: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  if (rangeDays <= 1) {
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${months[date.getMonth()]} ${pad(date.getDate())}`
+}
+
 export function pnlColorClass(amount: string): string {
   const value = Number(amount)
   if (value > 0) return 'text-green-600'

@@ -20,6 +20,9 @@ export interface UseJobHistoryResult {
   closeJob: (jobId: string) => void
   clearSelection: () => void
   refresh: () => void
+  zoomIn: (range: TimeRange) => void
+  resetZoom: () => void
+  zoomDepth: number
 }
 
 export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
@@ -28,7 +31,8 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [timeRange, setTimeRange] = useState<TimeRange>(defaultTimeRange)
+  const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
+  const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
 
   const load = useCallback(async () => {
     if (!portfolioId) return
@@ -37,7 +41,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setError(null)
 
     try {
-      const result = await fetchValuationJobs(portfolioId, 20, 0, timeRange.from, timeRange.to)
+      const result = await fetchValuationJobs(portfolioId, 200, 0, timeRange.from, timeRange.to)
       setRuns(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -97,9 +101,26 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setLoadingJobIds(new Set())
   }, [])
 
+  const setTimeRange = useCallback((range: TimeRange) => {
+    setZoomStack([])
+    setTimeRangeInternal(range)
+  }, [])
+
+  const zoomIn = useCallback((range: TimeRange) => {
+    setZoomStack((prev) => [...prev, timeRange])
+    setTimeRangeInternal(range)
+  }, [timeRange])
+
+  const resetZoom = useCallback(() => {
+    if (zoomStack.length > 0) {
+      setTimeRangeInternal(zoomStack[0])
+      setZoomStack([])
+    }
+  }, [zoomStack])
+
   const refresh = useCallback(() => {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length }
 }
