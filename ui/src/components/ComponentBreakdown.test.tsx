@@ -1,0 +1,70 @@
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { ComponentBreakdown } from './ComponentBreakdown'
+
+describe('ComponentBreakdown', () => {
+  const breakdown = [
+    { assetClass: 'EQUITY', varContribution: '800000.00', percentageOfTotal: '64.85' },
+    { assetClass: 'FIXED_INCOME', varContribution: '300000.00', percentageOfTotal: '24.30' },
+    { assetClass: 'COMMODITY', varContribution: '134567.89', percentageOfTotal: '10.85' },
+  ]
+
+  it('renders a donut segment for each asset class', () => {
+    render(<ComponentBreakdown breakdown={breakdown} />)
+
+    expect(screen.getByTestId('breakdown-segment-EQUITY')).toBeInTheDocument()
+    expect(screen.getByTestId('breakdown-segment-FIXED_INCOME')).toBeInTheDocument()
+    expect(screen.getByTestId('breakdown-segment-COMMODITY')).toBeInTheDocument()
+  })
+
+  it('renders legend rows with formatted dollar values and percentages', () => {
+    render(<ComponentBreakdown breakdown={breakdown} />)
+
+    expect(screen.getByTestId('breakdown-EQUITY')).toHaveTextContent('Equity')
+    expect(screen.getByTestId('breakdown-EQUITY')).toHaveTextContent('$800,000.00')
+    expect(screen.getByTestId('breakdown-EQUITY')).toHaveTextContent('64.85%')
+
+    expect(screen.getByTestId('breakdown-FIXED_INCOME')).toHaveTextContent('Fixed Income')
+    expect(screen.getByTestId('breakdown-FIXED_INCOME')).toHaveTextContent('$300,000.00')
+    expect(screen.getByTestId('breakdown-FIXED_INCOME')).toHaveTextContent('24.30%')
+
+    expect(screen.getByTestId('breakdown-COMMODITY')).toHaveTextContent('Commodity')
+    expect(screen.getByTestId('breakdown-COMMODITY')).toHaveTextContent('$134,567.89')
+    expect(screen.getByTestId('breakdown-COMMODITY')).toHaveTextContent('10.85%')
+  })
+
+  it('handles empty breakdown array gracefully', () => {
+    render(<ComponentBreakdown breakdown={[]} />)
+
+    expect(screen.getByText('Component Breakdown')).toBeInTheDocument()
+    expect(screen.queryByTestId(/breakdown-segment-/)).not.toBeInTheDocument()
+  })
+
+  it('handles single-item breakdown as a full ring', () => {
+    const single = [{ assetClass: 'FX', varContribution: '500000.00', percentageOfTotal: '100.00' }]
+
+    render(<ComponentBreakdown breakdown={single} />)
+
+    expect(screen.getByTestId('breakdown-segment-FX')).toBeInTheDocument()
+    expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('Fx')
+    expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('$500,000.00')
+    expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('100.00%')
+  })
+
+  it('formats asset class labels from SCREAMING_SNAKE to Title Case', () => {
+    render(<ComponentBreakdown breakdown={breakdown} />)
+
+    expect(screen.getByTestId('breakdown-FIXED_INCOME')).toHaveTextContent('Fixed Income')
+    expect(screen.getByTestId('breakdown-EQUITY')).toHaveTextContent('Equity')
+    expect(screen.getByTestId('breakdown-COMMODITY')).toHaveTextContent('Commodity')
+  })
+
+  it('sorts donut segments by percentage descending', () => {
+    render(<ComponentBreakdown breakdown={breakdown} />)
+
+    const segments = screen.getAllByTestId(/breakdown-segment-/)
+    expect(segments[0]).toHaveAttribute('data-testid', 'breakdown-segment-EQUITY')
+    expect(segments[1]).toHaveAttribute('data-testid', 'breakdown-segment-FIXED_INCOME')
+    expect(segments[2]).toHaveAttribute('data-testid', 'breakdown-segment-COMMODITY')
+  })
+})

@@ -2,6 +2,7 @@ import { RefreshCw } from 'lucide-react'
 import type { VaRResultDto } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRGauge } from './VaRGauge'
+import { ComponentBreakdown } from './ComponentBreakdown'
 import { Card, Button, Spinner } from './ui'
 
 interface VaRDashboardProps {
@@ -10,13 +11,6 @@ interface VaRDashboardProps {
   loading: boolean
   error: string | null
   onRefresh: () => void
-}
-
-const ASSET_CLASS_COLORS: Record<string, string> = {
-  EQUITY: 'bg-blue-500',
-  FIXED_INCOME: 'bg-green-500',
-  COMMODITY: 'bg-amber-500',
-  FX: 'bg-purple-500',
 }
 
 function TrendChart({ history }: { history: VaRHistoryEntry[] }) {
@@ -101,27 +95,7 @@ export function VaRDashboard({ varResult, history, loading, error, onRefresh }: 
         />
 
         <div data-testid="var-breakdown" className="flex flex-col justify-center">
-          <h3 className="text-sm font-semibold text-slate-700 mb-2">Component Breakdown</h3>
-          <div className="flex h-4 rounded overflow-hidden mb-2">
-            {varResult.componentBreakdown.map((comp) => (
-              <div
-                key={comp.assetClass}
-                data-testid={`breakdown-${comp.assetClass}`}
-                className={`${ASSET_CLASS_COLORS[comp.assetClass] || 'bg-gray-400'}`}
-                style={{ width: `${comp.percentageOfTotal}%` }}
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {varResult.componentBreakdown.map((comp) => (
-              <span key={comp.assetClass} className="flex items-center gap-1">
-                <span
-                  className={`inline-block w-2 h-2 rounded ${ASSET_CLASS_COLORS[comp.assetClass] || 'bg-gray-400'}`}
-                />
-                {comp.assetClass} ({comp.percentageOfTotal}%)
-              </span>
-            ))}
-          </div>
+          <ComponentBreakdown breakdown={varResult.componentBreakdown} />
         </div>
 
         <div className="flex flex-col justify-center">
