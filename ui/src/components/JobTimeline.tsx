@@ -270,17 +270,30 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                             </div>
                             {posDeps && posDeps.length > 0 && (
                               <div>
-                                <button
-                                  data-testid={`pos-deps-toggle-${pos.instrumentId}`}
-                                  onClick={() => toggleItem(posDepsKey)}
-                                  className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
-                                >
-                                  {isPosDepsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                  <span>Dependencies ({posDeps.length})</span>
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    data-testid={`pos-deps-toggle-${pos.instrumentId}`}
+                                    onClick={() => toggleItem(posDepsKey)}
+                                    className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                                  >
+                                    {isPosDepsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                    <span>Dependencies ({posDeps.length})</span>
+                                  </button>
+                                  {isPosDepsOpen && (
+                                    <button
+                                      data-testid={`copy-pos-deps-${pos.instrumentId}`}
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(JSON.stringify(posDeps, null, 2))
+                                      }}
+                                      className="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+                                      title="Copy JSON"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
                                 {isPosDepsOpen && (
-                                  <div className="relative ml-4 mt-0.5 space-y-1">
-                                    <CopyButton text={JSON.stringify(posDeps, null, 2)} testId={`copy-pos-deps-${pos.instrumentId}`} />
+                                  <div className="ml-4 mt-0.5 space-y-1">
                                     {posDeps.map((dep, k) => {
                                       const posDepKey = `${stepIndex}-posdep-${pos.instrumentId}-${dep.dataType}`
                                       const isPosDepOpen = expandedItems[posDepKey] ?? false
