@@ -2,6 +2,7 @@ package com.kinetix.price
 
 import com.kinetix.price.cache.RedisPriceCache
 import com.kinetix.price.kafka.KafkaPricePublisher
+import com.kinetix.price.metrics.PriceStalenessTracker
 import com.kinetix.price.persistence.DatabaseConfig
 import com.kinetix.price.persistence.DatabaseFactory
 import com.kinetix.price.persistence.ExposedPriceRepository
@@ -30,8 +31,9 @@ import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
-fun Application.module() {
-    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+fun Application.module(
+    appMicrometerRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+) {
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
     routing {
@@ -70,6 +72,8 @@ fun Application.module(repository: PriceRepository, ingestionService: PriceInges
 private data class ErrorBody(val error: String, val message: String)
 
 fun Application.moduleWithRoutes() {
+    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+
     val dbConfig = environment.config.config("database")
     val db = DatabaseFactory.init(
         DatabaseConfig(
@@ -97,9 +101,28 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val publisher = KafkaPricePublisher(kafkaProducer)
 
-    val ingestionService = PriceIngestionService(repository, cache, publisher)
+    val stalenessTracker = PriceStalenessTracker(appMicrometerRegistry)
+    val ingestionService = PriceIngestionService(repository, cache, publisher, stalenessTracker)
 
-    module(repository, ingestionService)
+    module(appMicrometerRegistry)
+    install(StatusPages) {
+        exception<IllegalArgumentException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorBody("bad_request", cause.message ?: "Invalid request"),
+            )
+        }
+        exception<Throwable> { call, cause ->
+            call.application.log.error("Unhandled exception", cause)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ErrorBody("internal_error", "An unexpected error occurred"),
+            )
+        }
+    }
+    routing {
+        priceRoutes(repository, ingestionService)
+    }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {

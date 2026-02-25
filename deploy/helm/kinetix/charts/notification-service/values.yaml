@@ -11,6 +11,12 @@ service:
 env:
   PORT: "8086"
   SEED_DATA: "false"
+  OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://kinetix-opentelemetry-collector:4317"
+  OTEL_SERVICE_NAME: "notification-service"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "none"
+  OTEL_TRACES_EXPORTER: "none"
 
 resources:
   requests:

@@ -13,6 +13,12 @@ env:
   DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_risk"
   RISK_ENGINE_HOST: "kinetix-risk-engine"
   RISK_ENGINE_PORT: "50051"
+  OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://kinetix-opentelemetry-collector:4317"
+  OTEL_SERVICE_NAME: "risk-orchestrator"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "none"
+  OTEL_TRACES_EXPORTER: "none"
 
 resources:
   requests:
