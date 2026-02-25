@@ -19,10 +19,23 @@ function StatusDotInline({ status }: { status: string }) {
   const color =
     status === 'COMPLETED'
       ? 'bg-green-500'
-      : status === 'FAILED'
-        ? 'bg-red-500'
-        : 'bg-slate-300'
+      : status === 'PARTIAL'
+        ? 'bg-amber-500'
+        : status === 'FAILED'
+          ? 'bg-red-500'
+          : 'bg-slate-300'
   return <span data-testid={`step-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
+}
+
+function effectiveStepStatus(step: JobStepDto): string {
+  if (step.status !== 'COMPLETED') return step.status
+  const raw = step.details['marketDataItems']
+  if (!raw) return step.status
+  try {
+    const items = JSON.parse(raw) as { status: string }[]
+    if (items.some((i) => i.status === 'MISSING')) return 'PARTIAL'
+  } catch { /* ignore */ }
+  return step.status
 }
 
 function CopyButton({ text, testId }: { text: string; testId: string }) {
@@ -172,7 +185,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               onClick={hasDetails ? () => toggle(stepIndex) : undefined}
               className={`flex items-center gap-2${hasDetails ? ' cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded' : ''}`}
             >
-              <StatusDotInline status={step.status} />
+              <StatusDotInline status={effectiveStepStatus(step)} />
               {hasDetails && (
                 isOpen ? <ChevronDown className="h-3 w-3 text-slate-400" /> : <ChevronRight className="h-3 w-3 text-slate-400" />
               )}
@@ -274,7 +287,8 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                   {filteredMarketDataItems && filteredMarketDataItems.map((item, j) => {
                     const mdKey = `${stepIndex}-md-${item.instrumentId}-${item.dataType}`
                     const isMdOpen = expandedItems[mdKey] ?? false
-                    const dotColor = item.status === 'FETCHED' ? 'bg-green-500' : 'bg-red-500'
+                    const isFetched = item.status === 'FETCHED'
+                    const jsonBg = isFetched ? 'bg-slate-50' : 'bg-red-50'
                     return (
                       <div key={j} className="mt-1">
                         <button
@@ -283,7 +297,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                           className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
                         >
                           {isMdOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                          <span data-testid={`market-data-dot-${item.status}`} className={`inline-block h-2 w-2 rounded-full ${dotColor} shrink-0`} />
+                          {!isFetched && <span data-testid={`market-data-dot-${item.status}`} className="inline-block h-2 w-2 rounded-full bg-red-500 shrink-0" />}
                           <span>{item.dataType} — {item.instrumentId}</span>
                         </button>
                         {isMdOpen && (
@@ -291,7 +305,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                             <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
                             <pre
                               data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
-                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                              className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
                             >
                               {JSON.stringify(item, null, 2)}
                             </pre>

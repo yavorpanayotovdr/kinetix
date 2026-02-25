@@ -108,6 +108,29 @@ describe('JobTimeline', () => {
     expect(screen.getByTestId('step-dot-COMPLETED')).toBeInTheDocument()
   })
 
+  it('shows amber status dot when a completed step has missing market data items', () => {
+    render(<JobTimeline steps={[steps[2]]} />)
+
+    expect(screen.getByTestId('step-dot-PARTIAL')).toBeInTheDocument()
+  })
+
+  it('shows green status dot when all market data items are fetched', () => {
+    const allFetchedStep: JobStepDto = {
+      ...steps[2],
+      details: {
+        requested: '2',
+        fetched: '2',
+        marketDataItems: JSON.stringify([
+          { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY', status: 'FETCHED', value: '170.5' },
+          { instrumentId: 'USD_SOFR', dataType: 'YIELD_CURVE', assetClass: 'RATES', status: 'FETCHED', points: '6' },
+        ]),
+      },
+    }
+    render(<JobTimeline steps={[allFetchedStep]} />)
+
+    expect(screen.getByTestId('step-dot-COMPLETED')).toBeInTheDocument()
+  })
+
   it('shows red status dot for failed steps', () => {
     const failedStep: JobStepDto = {
       ...steps[0],
@@ -386,15 +409,12 @@ describe('JobTimeline', () => {
       expect(screen.getByText('HISTORICAL_PRICES — AAPL')).toBeInTheDocument()
     })
 
-    it('shows green dot for FETCHED items and red dot for MISSING items', () => {
+    it('shows red dot only for MISSING items, no dot for FETCHED items', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
-      const fetchedDots = screen.getAllByTestId('market-data-dot-FETCHED')
-      const missingDots = screen.getAllByTestId('market-data-dot-MISSING')
-
-      expect(fetchedDots).toHaveLength(2)
-      expect(missingDots).toHaveLength(1)
+      expect(screen.queryByTestId('market-data-dot-FETCHED')).not.toBeInTheDocument()
+      expect(screen.getAllByTestId('market-data-dot-MISSING')).toHaveLength(1)
     })
 
     it('expands market data item to show JSON', () => {
@@ -407,6 +427,19 @@ describe('JobTimeline', () => {
       expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
       expect(jsonBlock.textContent).toContain('"dataType": "SPOT_PRICE"')
       expect(jsonBlock.textContent).toContain('"value": "170.5"')
+    })
+
+    it('uses neutral background for FETCHED items and red-tinted background for MISSING items', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+      fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
+      fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
+
+      const fetchedJson = screen.getByTestId('market-data-json-AAPL-SPOT_PRICE')
+      expect(fetchedJson.className).toContain('bg-slate-50')
+
+      const missingJson = screen.getByTestId('market-data-json-AAPL-HISTORICAL_PRICES')
+      expect(missingJson.className).toContain('bg-red-50')
     })
 
     it('does not render marketDataItems key as a regular detail', () => {
