@@ -79,7 +79,25 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
     [timeRange, onZoom, plotWidth],
   )
 
-  const { brush, handlers } = useBrushSelection({ onBrushEnd: handleBrushEnd })
+  const handleClick = useCallback(
+    (x: number) => {
+      if (buckets.length === 0) return
+
+      const bw = plotWidth / buckets.length
+      const index = Math.floor((x - PADDING.left) / bw)
+      if (index < 0 || index >= buckets.length) return
+
+      const bucket = buckets[index]
+      onZoom({
+        from: bucket.from.toISOString(),
+        to: bucket.to.toISOString(),
+        label: 'Custom',
+      })
+    },
+    [buckets, plotWidth, onZoom],
+  )
+
+  const { brush, handlers } = useBrushSelection({ onBrushEnd: handleBrushEnd, onClick: handleClick })
 
   const barWidth = buckets.length > 0 ? plotWidth / buckets.length : 0
 
@@ -158,7 +176,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
       <svg
         width="100%"
         height={CHART_HEIGHT}
-        className="select-none"
+        className="select-none cursor-pointer"
         onMouseDown={handlers.onMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handlers.onMouseUp}
