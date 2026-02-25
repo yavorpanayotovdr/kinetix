@@ -8,10 +8,11 @@ export interface BrushState {
 
 interface UseBrushSelectionOptions {
   onBrushEnd: (startX: number, endX: number) => void
+  onClick?: (x: number) => void
   minDragPx?: number
 }
 
-export function useBrushSelection({ onBrushEnd, minDragPx = 5 }: UseBrushSelectionOptions) {
+export function useBrushSelection({ onBrushEnd, onClick, minDragPx = 5 }: UseBrushSelectionOptions) {
   const [brush, setBrush] = useState<BrushState>({ active: false, startX: 0, currentX: 0 })
   const dragging = useRef(false)
   const origin = useRef(0)
@@ -41,10 +42,12 @@ export function useBrushSelection({ onBrushEnd, minDragPx = 5 }: UseBrushSelecti
       const right = Math.max(prev.startX, prev.currentX)
       if (right - left >= minDragPx) {
         onBrushEnd(left, right)
+      } else if (onClick) {
+        onClick(origin.current)
       }
       return { active: false, startX: 0, currentX: 0 }
     })
-  }, [onBrushEnd, minDragPx])
+  }, [onBrushEnd, onClick, minDragPx])
 
   const onMouseLeave = useCallback(() => {
     if (dragging.current) {
