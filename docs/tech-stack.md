@@ -23,22 +23,34 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
         │  Position    │ │    Price     │ │ Risk Orchestrator │
         │ Svc :8081    │ │  Svc :8082   │ │    Svc :8083      │
         └──────┬───────┘ └──────┬───────┘ └────────┬──────────┘
-               │                │                  │ gRPC
-               │                │           ┌──────▼───────┐
-               │                │           │ Risk Engine  │
-               │                │           │ Python :50051│
-               │                │           └──────────────┘
-               │                │
-        ┌──────▼────────────────▼──────────────────┐
-        │             Apache Kafka :9092            │
-        │  trades.lifecycle │ price.updates          │
-        │              risk.results                 │
-        └──┬────────────────────────────────────┬──┘
-           │                                    │
-    ┌──────▼───────┐                     ┌──────▼───────┐
-    │ Audit Svc    │                     │ Notification │
-    │   :8084      │                     │  Svc :8086   │
-    └──────────────┘                     └──────────────┘
+               │                │                  │╲
+               │                │            gRPC  │ ╲ HTTP
+               │                │           ┌──────▼──┐╲
+               │                │           │  Risk   │ ╲
+               │                │           │  Engine │  ╲
+               │                │           │  :50051 │   ╲
+               │                │           └─────────┘    ╲
+               │                │    ┌──────────────────────▼──────┐
+               │                │    │    Market Data Services      │
+               │                │    │                              │
+               │                │    │  Rates Svc        :8088     │
+               │                │    │  Ref Data Svc     :8089     │
+               │                │    │  Volatility Svc   :8090     │
+               │                │    │  Correlation Svc  :8091     │
+               │                │    └──────────────┬──────────────┘
+               │                │                   │
+        ┌──────▼────────────────▼───────────────────▼──┐
+        │              Apache Kafka :9092               │
+        │  trades.lifecycle  │  price.updates           │
+        │  risk.results      │  rates.*                 │
+        │  reference-data.*  │  volatility.surfaces     │
+        │  correlation.matrices                         │
+        └──┬────────────────────────────────────────┬──┘
+           │                                        │
+    ┌──────▼───────┐                         ┌──────▼───────┐
+    │ Audit Svc    │                         │ Notification │
+    │   :8084      │                         │  Svc :8086   │
+    └──────────────┘                         └──────────────┘
 
     ┌──────────────┐
     │ Regulatory   │
@@ -75,6 +87,10 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
 | Audit Service | 8084 | Kotlin | Immutable audit log from Kafka trade events |
 | Regulatory Service | 8085 | Kotlin | FRTB regulatory reporting |
 | Notification Service | 8086 | Kotlin | Risk alerts and anomaly notifications |
+| Rates Service | 8088 | Kotlin | Yield curves, risk-free rates, forward curves |
+| Reference Data Service | 8089 | Kotlin | Dividend yields, credit spreads |
+| Volatility Service | 8090 | Kotlin | Volatility surfaces for options pricing |
+| Correlation Service | 8091 | Kotlin | Correlation matrices for portfolio risk |
 | Risk Engine | 50051 (gRPC), 9091 (metrics) | Python | VaR, Monte Carlo, Greeks, ML models |
 | UI | 5173 (dev) | TypeScript | React trading dashboard |
 
@@ -111,12 +127,15 @@ settings.gradle.kts
 ├── gateway
 ├── position-service
 ├── price-service
+├── rates-service
 ├── risk-orchestrator
 ├── regulatory-service
 ├── notification-service
 ├── audit-service
-├── acceptance-tests
-└── load-tests
+├── reference-data-service
+├── volatility-service
+├── correlation-service
+└── acceptance-tests
 ```
 
 ---
@@ -164,6 +183,10 @@ A single PostgreSQL instance (TimescaleDB image) hosts per-service databases.
 | kinetix_risk | Risk Orchestrator | — |
 | kinetix_notification | Notification Service | — |
 | kinetix_regulatory | Regulatory Service | — |
+| kinetix_rates | Rates Service | yield_curves, yield_curve_points, risk_free_rates, forward_curves, forward_curve_points |
+| kinetix_reference_data | Reference Data Service | dividend_yields, credit_spreads |
+| kinetix_volatility | Volatility Service | volatility_surfaces, volatility_surface_data |
+| kinetix_correlation | Correlation Service | correlation_matrices |
 
 ### ORM and Database Libraries
 
@@ -187,6 +210,13 @@ Runs in KRaft mode (no ZooKeeper). All topics have 3 partitions and replication 
 | `trades.lifecycle` | Position Service | Audit Service, Risk Orchestrator | Trade events (booked, amended, cancelled) |
 | `price.updates` | Price Service | Position Service, Risk Orchestrator | Price updates |
 | `risk.results` | Risk Orchestrator | Notification Service | VaR and risk calculation results |
+| `rates.yield-curves` | Rates Service | Risk Orchestrator | Yield curve snapshots |
+| `rates.risk-free` | Rates Service | Risk Orchestrator | Risk-free rate updates |
+| `rates.forwards` | Rates Service | Risk Orchestrator | Forward curve snapshots |
+| `reference-data.dividends` | Reference Data Service | Risk Orchestrator | Dividend yield updates |
+| `reference-data.credit-spreads` | Reference Data Service | Risk Orchestrator | Credit spread updates |
+| `volatility.surfaces` | Volatility Service | Risk Orchestrator | Volatility surface snapshots |
+| `correlation.matrices` | Correlation Service | Risk Orchestrator | Correlation matrix updates |
 
 ---
 
@@ -197,6 +227,10 @@ Runs in KRaft mode (no ZooKeeper). All topics have 3 partitions and replication 
 | Client | Version | Service | Use Case |
 |--------|---------|---------|----------|
 | Lettuce | 6.5.3.RELEASE | Price Service | Cache latest prices for fast lookup |
+| Lettuce | 6.5.3.RELEASE | Rates Service | Cache latest yield curves and rates |
+| Lettuce | 6.5.3.RELEASE | Reference Data Service | Cache latest dividends and credit spreads |
+| Lettuce | 6.5.3.RELEASE | Volatility Service | Cache latest volatility surfaces |
+| Lettuce | 6.5.3.RELEASE | Correlation Service | Cache latest correlation matrices |
 
 ---
 
@@ -437,6 +471,10 @@ kinetix/
 ├── gateway/                      # API gateway (Ktor)
 ├── position-service/             # Trade booking and positions
 ├── price-service/                # Price ingestion and caching
+├── rates-service/                # Yield curves, risk-free rates, forwards
+├── reference-data-service/       # Dividend yields, credit spreads
+├── volatility-service/           # Volatility surfaces
+├── correlation-service/          # Correlation matrices
 ├── risk-orchestrator/            # Risk calculation coordinator
 ├── audit-service/                # Immutable audit log
 ├── regulatory-service/           # FRTB regulatory reporting
@@ -466,7 +504,9 @@ kinetix/
 ├── docs/                         # Documentation
 │   ├── adr/                      # Architecture Decision Records
 │   ├── plan.md                   # Project roadmap
-│   └── tech-stack.md             # This file
+│   ├── tech-stack.md             # This file
+│   ├── risk-calculation.md       # Risk calculation architecture
+│   └── market-data-services-plan.md  # Market data services design
 ├── gradle/libs.versions.toml     # Version catalog
 └── settings.gradle.kts           # Gradle project includes
 ```

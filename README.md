@@ -5,29 +5,43 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 ## Architecture
 
 ```
-                         ┌──────────┐
-                         │    UI    │ :5173
-                         └────┬─────┘
-                              │
-                         ┌────┴─────┐
-                         │ Gateway  │ :8080
-                         └────┬─────┘
-              ┌───────────────┼───────────────┐
-              │               │               │
-     ┌────────┴──┐   ┌───────┴───┐   ┌───────┴────────┐
-     │ Position   │   │ Price     │   │ Risk           │
-     │ Service    │   │ Service   │   │ Orchestrator   │
-     │ :8081      │   │ :8082     │   │ :8083          │
-     └─────┬──────┘   └─────┬────┘   └───┬────────┬───┘
-           │               │             │        │ gRPC
-           │         ┌─────┴────┐        │   ┌────┴─────┐
-           │         │  Redis   │        │   │  Risk    │
-           │         │  :6379   │        │   │  Engine  │
-           │         └──────────┘        │   │  :50051  │
-           │                             │   └──────────┘
-     ┌─────┴─────────────────────────────┴──┐
-     │              Kafka :9092              │
-     └───┬──────────┬──────────────┬────────┘
+                          ┌──────────┐
+                          │    UI    │ :5173
+                          └────┬─────┘
+                               │
+                          ┌────┴─────┐
+                          │ Gateway  │ :8080
+                          └────┬─────┘
+              ┌────────────────┼────────────────┐
+              │                │                 │
+     ┌────────┴───┐   ┌───────┴───┐   ┌────────┴────────┐
+     │ Position    │   │ Price     │   │ Risk            │
+     │ Service     │   │ Service   │   │ Orchestrator    │
+     │ :8081       │   │ :8082     │   │ :8083           │
+     └─────┬───────┘   └─────┬────┘   └──┬─────────┬────┘
+           │                 │            │         │ gRPC
+           │          ┌──────┴────┐       │    ┌────┴─────┐
+           │          │  Redis    │       │    │  Risk    │
+           │          │  :6379    │       │    │  Engine  │
+           │          └───────────┘       │    │  :50051  │
+           │                              │    └──────────┘
+           │    ┌─────────────────────────┘
+           │    │  ┌─────────────────────────────────────┐
+           │    │  │       Market Data Services           │
+           │    │  │                                      │
+           │    │  │  ┌──────────┐  ┌───────────────────┐ │
+           │    │  │  │ Rates    │  │ Reference Data    │ │
+           │    │  │  │ :8088    │  │ :8089             │ │
+           │    │  │  └──────────┘  └───────────────────┘ │
+           │    │  │  ┌──────────┐  ┌───────────────────┐ │
+           │    │  │  │Volatility│  │ Correlation       │ │
+           │    │  │  │ :8090    │  │ :8091             │ │
+           │    │  │  └──────────┘  └───────────────────┘ │
+           │    │  └─────────────────────────────────────┘
+           │    │
+     ┌─────┴────┴────────────────────────────────┐
+     │              Kafka :9092                   │
+     └───┬──────────┬──────────────┬─────────────┘
          │          │              │
   ┌──────┴───┐ ┌───┴──────────┐ ┌┴────────────┐
   │ Audit    │ │ Regulatory   │ │ Notification │
@@ -71,6 +85,10 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 | Audit Service | 8084 | Immutable audit log from Kafka trade events |
 | Regulatory Service | 8085 | FRTB regulatory reporting |
 | Notification Service | 8086 | Risk breach alerts and anomaly notifications |
+| Rates Service | 8088 | Yield curves, risk-free rates, forward curves |
+| Reference Data Service | 8089 | Dividend yields, credit spreads |
+| Volatility Service | 8090 | Volatility surfaces for options pricing |
+| Correlation Service | 8091 | Correlation matrices for portfolio risk |
 | Risk Engine | 50051 | VaR, Monte Carlo, Greeks, ML models (Python/gRPC) |
 | UI | 5173 | React trading and risk dashboard |
 
@@ -169,6 +187,7 @@ See the [project wiki](../../wiki) for detailed documentation including architec
 Key docs in the repo:
 
 - [`docs/tech-stack.md`](docs/tech-stack.md) - Comprehensive technical reference
+- [`docs/risk-calculation.md`](docs/risk-calculation.md) - Risk calculation architecture and data flow
 - [`docs/plan.md`](docs/plan.md) - Development roadmap and increments
 - [`docs/adr/`](docs/adr/) - Architecture Decision Records
 
@@ -179,6 +198,10 @@ kinetix/
 ├── gateway/               Ktor API gateway
 ├── position-service/      Trade booking and positions
 ├── price-service/         Price ingestion pipeline
+├── rates-service/         Yield curves and risk-free rates
+├── reference-data-service/ Dividend yields and credit spreads
+├── volatility-service/    Volatility surfaces
+├── correlation-service/   Correlation matrices
 ├── risk-orchestrator/     Risk calculation coordinator
 ├── audit-service/         Immutable audit trail
 ├── regulatory-service/    FRTB regulatory reporting

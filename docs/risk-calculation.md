@@ -5,7 +5,26 @@
 Kinetix is a polyglot microservices platform with the risk calculation spread across several services:
 
 ```
-Position Service (Kotlin) -> Risk Orchestrator (Kotlin) -> Risk Engine (Python) -> Gateway (Kotlin) -> UI (React)
+                     ┌──────────────────┐
+                     │ Position Service │
+                     └────────┬─────────┘
+                              │
+┌──────────────┐     ┌───────▼────────┐     ┌─────────────┐
+│ Price Service├────►│                │     │ Risk Engine  │
+└──────────────┘     │     Risk      │gRPC │  (Python)    │
+┌──────────────┐     │  Orchestrator ├────►│  VaR/Greeks  │
+│ Rates Service├────►│               │     │  ML models   │
+└──────────────┘     │               │     └──────┬───────┘
+┌──────────────┐     │               │            │
+│ Ref Data Svc ├────►│               │◄───────────┘
+└──────────────┘     │               │
+┌──────────────┐     │               │     ┌─────────────┐
+│Volatility Svc├────►│               ├────►│   Gateway   │──► UI
+└──────────────┘     │               │     └─────────────┘
+┌──────────────┐     │               │
+│Correlation   ├────►│               │
+│ Service      │     └───────────────┘
+└──────────────┘
 ```
 
 ## VaR Calculation — Three Methods
@@ -34,19 +53,39 @@ The Python **Risk Engine** (`risk-engine/src/kinetix_risk/`) supports three VaR 
 | Input | Source |
 |-------|--------|
 | **Positions** | Position Service (PostgreSQL) — aggregated by asset class |
-| **Volatilities** | Hardcoded defaults (Equity 20%, Fixed Income 6%, FX 10%, Commodity 25%, Derivative 30%) with optional LSTM model overrides |
-| **Correlations** | 5x5 positive-definite matrix (e.g., Equity-Fixed Income = -0.20 for diversification) |
-| **Market Prices** | Market Data Service -> Redis cache (simulated feed with +/-2% daily moves) |
+| **Market Prices** | Price Service → Redis cache (simulated feed with +/-2% daily moves) |
+| **Yield Curves** | Rates Service — term structure by currency |
+| **Risk-Free Rates** | Rates Service — per currency and tenor |
+| **Forward Curves** | Rates Service — per instrument for FX and commodities |
+| **Dividend Yields** | Reference Data Service — per equity instrument |
+| **Credit Spreads** | Reference Data Service — per fixed income instrument |
+| **Volatilities** | Volatility Service — full surfaces by strike and expiry; falls back to hardcoded defaults (Equity 20%, FI 6%, FX 10%, Commodity 25%, Derivative 30%) |
+| **Correlations** | Correlation Service — computed matrices by window; falls back to hardcoded 5x5 positive-definite matrix |
 
 ## Data Flow
 
 1. **Risk Orchestrator** fetches positions from Position Service
-2. Positions are sent via gRPC to the Python Risk Engine
-3. Risk Engine aggregates positions by asset class, applies volatilities + correlations
-4. Dispatches to the selected VaR calculator (parametric/historical/MC)
-5. Returns VaR, Expected Shortfall, and component breakdown
-6. Results are cached in-memory by the orchestrator (`LatestVaRCache`)
-7. Gateway exposes REST endpoints; UI polls every 30 seconds
+2. Orchestrator discovers market data dependencies per asset class (see table below)
+3. **MarketDataFetcher** fetches from the appropriate services (Price, Rates, Reference Data, Volatility, Correlation)
+4. Positions + market data are sent via gRPC to the Python Risk Engine
+5. Risk Engine aggregates positions by asset class, applies volatilities + correlations
+6. Dispatches to the selected VaR calculator (parametric/historical/MC)
+7. Returns VaR, Expected Shortfall, and component breakdown
+8. Results are cached in-memory by the orchestrator (`LatestVaRCache`)
+9. Gateway exposes REST endpoints; UI polls every 30 seconds
+
+## Market Data by Asset Class
+
+The orchestrator's dependency registry declares what market data each asset class needs for VaR calculation. Required data must be available for calculation to proceed; optional data improves accuracy when present.
+
+| Asset Class | Required | Optional | Primary Services |
+|-------------|----------|----------|------------------|
+| EQUITY | SPOT_PRICE, HISTORICAL_PRICES | — | Price Service |
+| FIXED_INCOME | YIELD_CURVE, CREDIT_SPREAD | — | Rates Service, Reference Data Service |
+| FX | SPOT_PRICE | FORWARD_CURVE | Price Service, Rates Service |
+| COMMODITY | SPOT_PRICE | FORWARD_CURVE | Price Service, Rates Service |
+| DERIVATIVE | SPOT_PRICE, VOLATILITY_SURFACE, RISK_FREE_RATE | DIVIDEND_YIELD | Price Service, Volatility Service, Rates Service, Reference Data Service |
+| Portfolio-level | CORRELATION_MATRIX (if 2+ asset classes) | — | Correlation Service |
 
 ## Beyond VaR
 
@@ -106,6 +145,8 @@ Rho   = (VaR(sigma_rates+1bp) - VaR(sigma)) / 0.0001
 | COMMODITY | 25% |
 | DERIVATIVE | 30% |
 
+> When the Volatility Service is available, it provides full volatility surfaces per instrument, replacing these flat defaults.
+
 ## Correlation Matrix
 
 - Equity-Derivative: 0.70 (high positive)
@@ -114,3 +155,5 @@ Rho   = (VaR(sigma_rates+1bp) - VaR(sigma)) / 0.0001
 - Equity-FX: 0.30
 - Commodity-Derivative: 0.35
 - Fixed Income-FX: -0.10
+
+> When the Correlation Service is available, it computes dynamic correlation matrices from historical returns, replacing these static defaults.
