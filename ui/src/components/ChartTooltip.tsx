@@ -27,6 +27,16 @@ export function ChartTooltip({ bucket, x, y, visible, rangeDays }: ChartTooltipP
         <span className="text-red-400">Failed: {bucket.failed}</span>
         <span className="text-indigo-400">Running: {bucket.running}</span>
       </div>
+      {bucket.jobIds.length > 0 && (
+        <div className="mt-1 border-t border-slate-600 pt-1">
+          {bucket.jobIds.slice(0, 5).map((id) => (
+            <div key={id} className="font-mono text-slate-300">{id.slice(0, 8)}</div>
+          ))}
+          {bucket.jobIds.length > 5 && (
+            <div className="text-slate-400">and {bucket.jobIds.length - 5} more</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

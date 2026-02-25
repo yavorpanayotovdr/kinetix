@@ -261,6 +261,28 @@ describe('JobHistoryTable', () => {
     expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
   })
 
+  it('displays truncated job ID in each row', () => {
+    const uuidRuns = [
+      {
+        ...runs[0],
+        jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      },
+      {
+        ...runs[1],
+        jobId: 'deadbeef-cafe-babe-face-123456789abc',
+      },
+    ]
+    render(<JobHistoryTable runs={uuidRuns} {...defaultProps} />)
+
+    const cell1 = screen.getByTestId('job-id-a1b2c3d4-e5f6-7890-abcd-ef1234567890')
+    expect(cell1).toHaveTextContent('a1b2c3d4')
+    expect(cell1).toHaveAttribute('title', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890')
+
+    const cell2 = screen.getByTestId('job-id-deadbeef-cafe-babe-face-123456789abc')
+    expect(cell2).toHaveTextContent('deadbeef')
+    expect(cell2).toHaveAttribute('title', 'deadbeef-cafe-babe-face-123456789abc')
+  })
+
   it('renders multiple detail panels when multiple jobs are expanded', () => {
     render(
       <JobHistoryTable

@@ -17,6 +17,7 @@ function buildSearchableText(
   detail: ValuationJobDetailDto | undefined,
 ): string {
   const parts = [
+    run.jobId,
     run.triggerType,
     run.status,
     run.calculationType,

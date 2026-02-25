@@ -42,6 +42,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+            <th className="py-2 pr-3">Job ID</th>
             <th className="py-2 pr-3">Time</th>
             <th className="py-2 pr-3">Trigger</th>
             <th className="py-2 pr-3">Status</th>
@@ -79,6 +80,13 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                     isExpanded || isLoading ? 'bg-primary-50' : ''
                   }`}
                 >
+                  <td
+                    data-testid={`job-id-${run.jobId}`}
+                    title={run.jobId}
+                    className="py-2 pr-3 font-mono text-slate-500"
+                  >
+                    {run.jobId.slice(0, 8)}
+                  </td>
                   <td className="py-2 pr-3 text-slate-600">{formatTimeOnly(run.startedAt)}</td>
                   <td className="py-2 pr-3">
                     <Badge variant={TRIGGER_VARIANT[run.triggerType] ?? 'neutral'}>{run.triggerType}</Badge>
@@ -100,7 +108,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                 </tr>
                 {(isExpanded || isLoading) && (
                   <tr data-testid={`job-detail-row-${run.jobId}`}>
-                    <td colSpan={6} className="p-0">
+                    <td colSpan={7} className="p-0">
                       <div data-testid="job-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-700">Job Details</h4>

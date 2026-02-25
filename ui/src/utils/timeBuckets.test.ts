@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { bucketJobs } from './timeBuckets'
 import type { ValuationJobSummaryDto } from '../types'
 
-function makeJob(startedAt: string, status: string): ValuationJobSummaryDto {
+let jobCounter = 0
+
+function makeJob(startedAt: string, status: string, jobId?: string): ValuationJobSummaryDto {
   return {
-    jobId: `job-${Math.random()}`,
+    jobId: jobId ?? `job-${++jobCounter}`,
     portfolioId: 'port-1',
     triggerType: 'ON_DEMAND',
     status,
@@ -107,6 +109,19 @@ describe('bucketJobs', () => {
 
     const total = result.reduce((sum, b) => sum + b.completed + b.failed + b.running, 0)
     expect(total).toBe(0)
+  })
+
+  it('collects jobIds into each bucket', () => {
+    const jobs = [
+      makeJob('2025-01-15T10:01:00Z', 'COMPLETED', 'aaa-111'),
+      makeJob('2025-01-15T10:02:00Z', 'FAILED', 'bbb-222'),
+      makeJob('2025-01-15T10:06:00Z', 'COMPLETED', 'ccc-333'),
+    ]
+    const result = bucketJobs(jobs, '2025-01-15T10:00:00Z', '2025-01-15T11:00:00Z')
+
+    expect(result[0].jobIds).toEqual(['aaa-111', 'bbb-222'])
+    expect(result[1].jobIds).toEqual(['ccc-333'])
+    expect(result[2].jobIds).toEqual([])
   })
 
   it('sets correct from/to on each bucket', () => {

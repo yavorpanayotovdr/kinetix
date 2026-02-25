@@ -6,6 +6,7 @@ export interface TimeBucket {
   completed: number
   failed: number
   running: number
+  jobIds: string[]
 }
 
 const MINUTE = 60 * 1000
@@ -38,6 +39,7 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
     completed: 0,
     failed: 0,
     running: 0,
+    jobIds: [],
   }))
 
   for (const job of jobs) {
@@ -46,6 +48,7 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
 
     const index = Math.min(Math.floor((jobMs - fromMs) / size), count - 1)
     const bucket = buckets[index]
+    bucket.jobIds.push(job.jobId)
 
     switch (job.status) {
       case 'COMPLETED':

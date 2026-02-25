@@ -524,6 +524,45 @@ describe('JobHistory', () => {
     expect(screen.queryByTestId('job-timechart')).not.toBeInTheDocument()
   })
 
+  it('filters jobs by jobId', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+        {
+          jobId: 'deadbeef-cafe-babe-face-123456789abc',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:00:00.200Z',
+          durationMs: 200,
+          calculationType: 'PARAMETRIC',
+          varValue: 3000.0,
+          expectedShortfall: 4000.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'a1b2c3d4' } })
+
+    expect(screen.getByTestId('job-row-a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-row-deadbeef-cafe-babe-face-123456789abc')).not.toBeInTheDocument()
+  })
+
   it('calls closeJob when close detail button is clicked', () => {
     const closeJob = vi.fn()
     mockUseJobHistory.mockReturnValue({
