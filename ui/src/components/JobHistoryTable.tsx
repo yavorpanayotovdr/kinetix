@@ -46,7 +46,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
             <th className="py-2 pr-3">Trigger</th>
             <th className="py-2 pr-3">Status</th>
             <th className="py-2 pr-3">Duration</th>
-            <th className="py-2 pr-3" title="Value at Risk">VaR</th>
+            <th className="py-2 pr-3" title="VaR (Value at Risk) estimates the maximum potential loss over a given time period at a specific confidence level. For example, a 95% VaR of $5,000 means there is a 95% chance that losses will not exceed $5,000.">VaR</th>
             <th className="py-2" title="ES (Expected Shortfall) estimates the average loss in the worst-case scenarios beyond the VaR (Value at Risk) threshold. For example, if VaR at 95% confidence is $5,000, the ES tells you the average loss you'd expect in that worst 5% of cases.">ES</th>
           </tr>
         </thead>
