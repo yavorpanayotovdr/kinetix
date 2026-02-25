@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto, TimeRange } from '../types'
 
@@ -6,6 +6,26 @@ function defaultTimeRange(): TimeRange {
   const now = new Date()
   const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   return { from: from.toISOString(), to: now.toISOString(), label: 'Last 24h' }
+}
+
+const SLIDING_DURATIONS: Record<string, number> = {
+  'Last 1h': 60 * 60 * 1000,
+  'Last 24h': 24 * 60 * 60 * 1000,
+  'Last 7d': 7 * 24 * 60 * 60 * 1000,
+}
+
+function resolveQueryRange(range: TimeRange): { from: string; to: string } {
+  const duration = SLIDING_DURATIONS[range.label]
+  if (duration) {
+    const now = new Date()
+    return { from: new Date(now.getTime() - duration).toISOString(), to: now.toISOString() }
+  }
+  if (range.label === 'Today') {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return { from: start.toISOString(), to: now.toISOString() }
+  }
+  return { from: range.from, to: range.to }
 }
 
 export interface UseJobHistoryResult {
@@ -35,6 +55,10 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
+  const [fetchVersion, setFetchVersion] = useState(0)
+
+  const timeRangeRef = useRef(timeRange)
+  timeRangeRef.current = timeRange
 
   const load = useCallback(async () => {
     if (!portfolioId) return
@@ -43,14 +67,19 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setError(null)
 
     try {
-      const result = await fetchValuationJobs(portfolioId, 200, 0, timeRange.from, timeRange.to)
+      const { from, to } = resolveQueryRange(timeRangeRef.current)
+      const result = await fetchValuationJobs(portfolioId, 200, 0, from, to)
       setRuns(result)
+      setTimeRangeInternal((prev) => {
+        if (prev.from === from && prev.to === to) return prev
+        return { ...prev, from, to }
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, timeRange])
+  }, [portfolioId])
 
   useEffect(() => {
     if (!portfolioId) {
@@ -63,7 +92,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     const interval = setInterval(load, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, load])
+  }, [portfolioId, load, fetchVersion])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {
@@ -109,17 +138,20 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const setTimeRange = useCallback((range: TimeRange) => {
     setZoomStack([])
     setTimeRangeInternal(range)
+    setFetchVersion((v) => v + 1)
   }, [])
 
   const zoomIn = useCallback((range: TimeRange) => {
     setZoomStack((prev) => [...prev, timeRange])
     setTimeRangeInternal(range)
+    setFetchVersion((v) => v + 1)
   }, [timeRange])
 
   const resetZoom = useCallback(() => {
     if (zoomStack.length > 0) {
       setTimeRangeInternal(zoomStack[0])
       setZoomStack([])
+      setFetchVersion((v) => v + 1)
     }
   }, [zoomStack])
 

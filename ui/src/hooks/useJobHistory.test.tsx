@@ -265,7 +265,7 @@ describe('useJobHistory', () => {
     const newRange = {
       from: '2025-01-15T00:00:00Z',
       to: '2025-01-15T23:59:59Z',
-      label: 'Today',
+      label: 'Custom',
     }
 
     act(() => {
@@ -417,6 +417,65 @@ describe('useJobHistory', () => {
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(3)
     })
+  })
+
+  it('slides time window forward for relative presets on each poll', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+    })
+
+    const firstTo = mockFetchJobs.mock.calls[0][4]
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+    })
+
+    const secondTo = mockFetchJobs.mock.calls[1][4]
+
+    expect(new Date(secondTo).getTime()).toBeGreaterThan(new Date(firstTo).getTime())
+  })
+
+  it('does not slide time window for Custom ranges', async () => {
+    mockFetchJobs.mockResolvedValue([])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+    })
+
+    act(() => {
+      result.current.setTimeRange({
+        from: '2025-01-15T00:00:00Z',
+        to: '2025-01-15T12:00:00Z',
+        label: 'Custom',
+      })
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(3)
+    })
+
+    expect(mockFetchJobs.mock.calls[1][3]).toBe('2025-01-15T00:00:00Z')
+    expect(mockFetchJobs.mock.calls[1][4]).toBe('2025-01-15T12:00:00Z')
+    expect(mockFetchJobs.mock.calls[2][3]).toBe('2025-01-15T00:00:00Z')
+    expect(mockFetchJobs.mock.calls[2][4]).toBe('2025-01-15T12:00:00Z')
   })
 
   it('stops polling when portfolioId becomes null', async () => {
