@@ -134,6 +134,9 @@ function setupDefaults() {
     closeJob: vi.fn(),
     clearSelection: vi.fn(),
     refresh: vi.fn(),
+    zoomIn: vi.fn(),
+    resetZoom: vi.fn(),
+    zoomDepth: 0,
   })
 }
 
