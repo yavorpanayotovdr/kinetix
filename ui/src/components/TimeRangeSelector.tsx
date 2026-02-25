@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from './ui'
+import { formatTimeOnly } from '../utils/format'
 import type { TimeRange } from '../types'
 
 interface TimeRangeSelectorProps {
@@ -50,8 +51,10 @@ function toDatetimeLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function fromDatetimeLocal(value: string): string {
-  return new Date(value).toISOString()
+function fromDatetimeLocal(value: string): string | null {
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return null
+  return d.toISOString()
 }
 
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
@@ -74,9 +77,11 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   }
 
   const handleApply = () => {
-    if (customFrom && customTo) {
-      onChange({ from: fromDatetimeLocal(customFrom), to: fromDatetimeLocal(customTo), label: 'Custom' })
-    }
+    if (!customFrom || !customTo) return
+    const from = fromDatetimeLocal(customFrom)
+    const to = fromDatetimeLocal(customTo)
+    if (!from || !to) return
+    onChange({ from, to, label: 'Custom' })
   }
 
   return (
@@ -108,7 +113,9 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
           Custom
         </Button>
         <span className="text-xs text-slate-500 ml-2" data-testid="time-range-label">
-          {value.label}
+          {value.label === 'Custom'
+            ? `Custom: ${formatTimeOnly(value.from)} – ${formatTimeOnly(value.to)}`
+            : value.label}
         </span>
       </div>
       {showCustom && (

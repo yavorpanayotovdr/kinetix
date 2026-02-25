@@ -26,6 +26,19 @@ describe('TimeRangeSelector', () => {
     expect(screen.getByTestId('time-range-label')).toHaveTextContent('Last 24h')
   })
 
+  it('displays from/to times when label is Custom', () => {
+    const customRange: TimeRange = {
+      from: '2025-01-15T09:30:00.000Z',
+      to: '2025-01-15T14:00:00.000Z',
+      label: 'Custom',
+    }
+    render(<TimeRangeSelector value={customRange} onChange={() => {}} />)
+
+    const label = screen.getByTestId('time-range-label').textContent!
+    expect(label).toContain('Custom:')
+    expect(label).toMatch(/\d{2}:\d{2}:\d{2}/)
+  })
+
   it('calls onChange with computed range when a preset is clicked', () => {
     const onChange = vi.fn()
     render(<TimeRangeSelector value={defaultRange} onChange={onChange} />)
@@ -71,7 +84,7 @@ describe('TimeRangeSelector', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('calls onChange with Custom label when Apply is clicked', () => {
+  it('calls onChange with Custom label and correct ISO from/to when Apply is clicked', () => {
     const onChange = vi.fn()
     render(<TimeRangeSelector value={defaultRange} onChange={onChange} />)
 
@@ -83,5 +96,26 @@ describe('TimeRangeSelector', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
     const arg = onChange.mock.calls[0][0] as TimeRange
     expect(arg.label).toBe('Custom')
+
+    // Verify from/to are valid ISO-8601 strings matching the entered datetime-local values
+    const expectedFrom = new Date('2025-01-14T08:00').toISOString()
+    const expectedTo = new Date('2025-01-15T18:00').toISOString()
+    expect(arg.from).toBe(expectedFrom)
+    expect(arg.to).toBe(expectedTo)
+  })
+
+  it('produces from/to that end with Z suffix (UTC) when Apply is clicked', () => {
+    const onChange = vi.fn()
+    render(<TimeRangeSelector value={defaultRange} onChange={onChange} />)
+
+    fireEvent.click(screen.getByTestId('time-preset-Custom'))
+    fireEvent.change(screen.getByTestId('custom-from'), { target: { value: '2025-01-15T10:00' } })
+    fireEvent.change(screen.getByTestId('custom-to'), { target: { value: '2025-01-15T10:00' } })
+    fireEvent.click(screen.getByTestId('custom-apply'))
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    const arg = onChange.mock.calls[0][0] as TimeRange
+    expect(arg.from).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/)
+    expect(arg.to).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/)
   })
 })

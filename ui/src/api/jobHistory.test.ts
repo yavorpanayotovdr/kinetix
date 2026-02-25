@@ -86,6 +86,27 @@ describe('jobHistory API', () => {
       )
     })
 
+    it('passes from and to produced by fromDatetimeLocal conversion (custom range flow)', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      })
+
+      // This mimics what TimeRangeSelector.handleApply does:
+      // new Date(datetimeLocalValue).toISOString()
+      const from = new Date('2025-01-15T10:00').toISOString()
+      const to = new Date('2025-01-15T14:00').toISOString()
+
+      await fetchValuationJobs('port-1', 20, 0, from, to)
+
+      const calledUrl = mockFetch.mock.lastCall?.[0] as string
+      expect(calledUrl).toContain('from=')
+      expect(calledUrl).toContain('to=')
+      expect(calledUrl).toMatch(/from=\d{4}-\d{2}-\d{2}T\d{2}%3A\d{2}%3A\d{2}/)
+      expect(calledUrl).toMatch(/to=\d{4}-\d{2}-\d{2}T\d{2}%3A\d{2}%3A\d{2}/)
+    })
+
     it('throws on 500', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
