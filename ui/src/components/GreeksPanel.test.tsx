@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { GreeksResultDto } from '../types'
 import { GreeksPanel } from './GreeksPanel'
@@ -14,33 +14,60 @@ const greeksResult: GreeksResultDto = {
   calculatedAt: '2025-01-15T10:00:00Z',
 }
 
+function renderPanel(overrides: Partial<Parameters<typeof GreeksPanel>[0]> = {}) {
+  return render(
+    <GreeksPanel
+      greeksResult={greeksResult}
+      loading={false}
+      error={null}
+      volBump={0}
+      onVolBumpChange={() => {}}
+      {...overrides}
+    />,
+  )
+}
+
 describe('GreeksPanel', () => {
-  it('renders greeks heatmap with asset class rows', () => {
-    render(
-      <GreeksPanel
-        greeksResult={greeksResult}
-        loading={false}
-        error={null}
-        volBump={0}
-        onVolBumpChange={() => {}}
-      />,
-    )
+  it('is collapsed by default and hides content', () => {
+    renderPanel()
+
+    expect(screen.getByTestId('greeks-panel')).toBeInTheDocument()
+    expect(screen.queryByTestId('greeks-heatmap')).not.toBeInTheDocument()
+  })
+
+  it('expands when the toggle is clicked', () => {
+    renderPanel()
+
+    fireEvent.click(screen.getByTestId('greeks-toggle'))
+
+    expect(screen.getByTestId('greeks-heatmap')).toBeInTheDocument()
+    expect(screen.getByTestId('greeks-summary')).toBeInTheDocument()
+    expect(screen.getByTestId('greeks-whatif')).toBeInTheDocument()
+  })
+
+  it('collapses again on a second click', () => {
+    renderPanel()
+
+    fireEvent.click(screen.getByTestId('greeks-toggle'))
+    fireEvent.click(screen.getByTestId('greeks-toggle'))
+
+    expect(screen.queryByTestId('greeks-heatmap')).not.toBeInTheDocument()
+  })
+
+  it('renders greeks heatmap with asset class rows when expanded', () => {
+    renderPanel()
+
+    fireEvent.click(screen.getByTestId('greeks-toggle'))
 
     expect(screen.getByTestId('greeks-heatmap')).toBeInTheDocument()
     expect(screen.getByTestId('greeks-row-EQUITY')).toBeInTheDocument()
     expect(screen.getByTestId('greeks-row-COMMODITY')).toBeInTheDocument()
   })
 
-  it('renders theta and rho summary', () => {
-    render(
-      <GreeksPanel
-        greeksResult={greeksResult}
-        loading={false}
-        error={null}
-        volBump={0}
-        onVolBumpChange={() => {}}
-      />,
-    )
+  it('renders theta and rho summary when expanded', () => {
+    renderPanel()
+
+    fireEvent.click(screen.getByTestId('greeks-toggle'))
 
     const summary = screen.getByTestId('greeks-summary')
     expect(summary).toBeInTheDocument()
@@ -49,29 +76,13 @@ describe('GreeksPanel', () => {
   })
 
   it('shows loading state', () => {
-    render(
-      <GreeksPanel
-        greeksResult={null}
-        loading={true}
-        error={null}
-        volBump={0}
-        onVolBumpChange={() => {}}
-      />,
-    )
+    renderPanel({ greeksResult: null, loading: true })
 
     expect(screen.getByTestId('greeks-loading')).toBeInTheDocument()
   })
 
   it('shows error state', () => {
-    render(
-      <GreeksPanel
-        greeksResult={null}
-        loading={false}
-        error="Failed to calculate Greeks"
-        volBump={0}
-        onVolBumpChange={() => {}}
-      />,
-    )
+    renderPanel({ greeksResult: null, error: 'Failed to calculate Greeks' })
 
     expect(screen.getByTestId('greeks-error')).toBeInTheDocument()
     expect(screen.getByTestId('greeks-error')).toHaveTextContent('Failed to calculate Greeks')
