@@ -47,6 +47,10 @@ const SERVICE_ICONS: Record<string, LucideIcon> = {
   'correlation-service': GitMerge,
 }
 
+const SERVICE_DASHBOARD_URLS: Record<string, string> = {
+  'price-service': 'http://localhost:3000/d/kinetix-prices',
+}
+
 const OBSERVABILITY_LINKS = [
   {
     name: 'System Health',
@@ -57,11 +61,6 @@ const OBSERVABILITY_LINKS = [
     name: 'Risk Overview',
     url: 'http://localhost:3000/d/kinetix-risk-overview',
     description: 'VaR gauge, ES, component breakdown',
-  },
-  {
-    name: 'Prices',
-    url: 'http://localhost:3000/d/kinetix-prices',
-    description: 'Feed rate, latency, staleness',
   },
   {
     name: 'Service Logs',
@@ -136,6 +135,7 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
             {Object.entries(services).map(([key, svc]) => {
               const up = svc.status === 'UP'
               const Icon = SERVICE_ICONS[key]
+              const dashboardUrl = SERVICE_DASHBOARD_URLS[key]
               return (
                 <Card key={key} data-testid={`service-card-${key}`}>
                   <div className="flex items-center gap-2">
@@ -148,6 +148,19 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
                     <span className="font-medium">
                       {SERVICE_LABELS[key] ?? key}
                     </span>
+                    {dashboardUrl && (
+                      <a
+                        href={dashboardUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`service-grafana-link-${key}`}
+                        title="Open Grafana dashboard"
+                        className="ml-auto text-slate-400 hover:text-orange-500 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <img src="/grafana.svg" alt="Grafana" className="h-4 w-4" />
+                      </a>
+                    )}
                   </div>
                   <p
                     data-testid={`service-status-text-${key}`}

@@ -185,14 +185,44 @@ describe('SystemDashboard', () => {
 
     expect(screen.getByText('Gateway')).toBeInTheDocument()
     expect(screen.getByText('Position Service')).toBeInTheDocument()
-    // "Prices" appears in both service card and observability link
-    expect(screen.getAllByText('Prices').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Prices')).toBeInTheDocument()
     expect(screen.getByText('Risk Orchestrator')).toBeInTheDocument()
     expect(screen.getByText('Notifications')).toBeInTheDocument()
     expect(screen.getByText('Rates')).toBeInTheDocument()
     expect(screen.getByText('Reference Data')).toBeInTheDocument()
     expect(screen.getByText('Volatility')).toBeInTheDocument()
     expect(screen.getByText('Correlations')).toBeInTheDocument()
+  })
+
+  it('price-service card has a Grafana icon linking to the prices dashboard', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const link = screen.getByTestId('service-grafana-link-price-service')
+    expect(link).toHaveAttribute(
+      'href',
+      'http://localhost:3000/d/kinetix-prices',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
+  it('does not include Prices in observability links', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    expect(screen.queryByTestId('obs-link-prices')).not.toBeInTheDocument()
   })
 
   it('calls onRefresh when refresh button is clicked', () => {
