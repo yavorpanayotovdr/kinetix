@@ -43,36 +43,40 @@ done
 
 # ── Phase 3: Application services ───────────────────────────────────────────
 
+export KINETIX_DEV_MODE=true
 export OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 export OTEL_LOGS_EXPORTER=otlp
 export OTEL_METRICS_EXPORTER=none   # keep Micrometer/Prometheus scrape
 export OTEL_TRACES_EXPORTER=none    # not enabled yet
 
-# Stop existing Gradle daemons so new ones inherit the OTEL_* env vars
-"$ROOT_DIR/gradlew" --stop >/dev/null 2>&1 || true
+# Build all Kotlin services in a single Gradle invocation
+echo "==> Building all Kotlin services..."
+"$ROOT_DIR/gradlew" -p "$ROOT_DIR" \
+  :gateway:installDist \
+  :position-service:installDist \
+  :price-service:installDist \
+  :risk-orchestrator:installDist \
+  :audit-service:installDist \
+  :regulatory-service:installDist \
+  :notification-service:installDist \
+  :rates-service:installDist \
+  :reference-data-service:installDist \
+  :volatility-service:installDist \
+  :correlation-service:installDist
 
-start_gradle_service() {
-  local module="$1"
-  local port="$2"
+# Launch Kotlin services via installDist binaries (no Gradle daemon overhead)
+KOTLIN_SERVICES="gateway:8080 position-service:8081 price-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086 rates-service:8088 reference-data-service:8089 volatility-service:8090 correlation-service:8091"
+
+for entry in $KOTLIN_SERVICES; do
+  module="${entry%%:*}"
+  port="${entry##*:}"
   echo "==> Starting $module on port $port..."
-  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${module}:run" --args="-port=$port" \
+  OTEL_SERVICE_NAME="$module" \
+    "$ROOT_DIR/$module/build/install/$module/bin/$module" -port="$port" \
     > "$LOG_DIR/${module}.log" 2>&1 &
   echo "$! $module" >> "$PID_FILE"
-}
-
-# Kotlin services (dependency order)
-start_gradle_service gateway              8080
-start_gradle_service position-service     8081
-start_gradle_service price-service        8082
-start_gradle_service risk-orchestrator    8083
-start_gradle_service audit-service        8084
-start_gradle_service regulatory-service   8085
-start_gradle_service notification-service 8086
-start_gradle_service rates-service        8088
-start_gradle_service reference-data-service 8089
-start_gradle_service volatility-service   8090
-start_gradle_service correlation-service  8091
+done
 
 # Python risk engine
 echo "==> Starting risk-engine..."
@@ -85,13 +89,13 @@ echo "==> Waiting for gateway to be healthy..."
 retries=0
 until curl -sf http://localhost:8080/api/v1/system/health >/dev/null 2>&1; do
   retries=$((retries + 1))
-  if [[ $retries -ge 60 ]]; then
+  if [[ $retries -ge 120 ]]; then
     echo "    WARNING: Gateway not healthy after 60s, starting UI anyway"
     break
   fi
-  sleep 1
+  sleep 0.5
 done
-if [[ $retries -lt 60 ]]; then
+if [[ $retries -lt 120 ]]; then
   echo "    Gateway healthy"
 fi
 

@@ -14,6 +14,15 @@ dependencies {
     "testImplementation"(libs.findLibrary("ktor-server-test-host").get())
 }
 
+application {
+    applicationDefaultJvmArgs = listOf(
+        "-Xmx512m",
+        "-XX:+UseG1GC",
+        "-XX:+TieredCompilation",
+    )
+}
+
 tasks.named<JavaExec>("run") {
     environment("OTEL_SERVICE_NAME", project.name)
+    environment("KINETIX_DEV_MODE", System.getenv("KINETIX_DEV_MODE") ?: "false")
 }

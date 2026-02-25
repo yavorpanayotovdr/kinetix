@@ -35,7 +35,7 @@ fi
 
 # ── Service definitions ──────────────────────────────────────────────────────
 
-# service:port pairs for Gradle services
+# service:port pairs for Kotlin services
 GRADLE_SERVICES="gateway:8080 position-service:8081 price-service:8082 risk-orchestrator:8083 audit-service:8084 regulatory-service:8085 notification-service:8086 rates-service:8088 reference-data-service:8089 volatility-service:8090 correlation-service:8091"
 ALL_SERVICES="gateway position-service price-service risk-orchestrator audit-service regulatory-service notification-service rates-service reference-data-service volatility-service correlation-service risk-engine ui"
 
@@ -95,11 +95,47 @@ done < "$PID_FILE"
 # Write back the PIDs we didn't stop
 printf "%s" "$REMAINING_PIDS" > "$PID_FILE"
 
-# Brief pause for ports to be released
-sleep 1
+# ── Wait for ports to be released ────────────────────────────────────────────
 
-# ── Restart selected services ────────────────────────────────────────────────
+wait_for_port_free() {
+  local port="$1"
+  local max_wait=50  # 50 * 100ms = 5s
+  local i=0
+  while lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1; do
+    i=$((i + 1))
+    if [[ $i -ge $max_wait ]]; then
+      echo "    WARNING: Port $port still in use after 5s"
+      return 0
+    fi
+    sleep 0.1
+  done
+}
 
+for target in "${TARGETS[@]}"; do
+  port=$(port_for_service "$target" 2>/dev/null || true)
+  if [[ -n "$port" ]]; then
+    wait_for_port_free "$port"
+  fi
+done
+
+# ── Build targeted Kotlin services ───────────────────────────────────────────
+
+INSTALL_TASKS=()
+for target in "${TARGETS[@]}"; do
+  port=$(port_for_service "$target" 2>/dev/null || true)
+  if [[ -n "$port" ]]; then
+    INSTALL_TASKS+=(":${target}:installDist")
+  fi
+done
+
+if [[ ${#INSTALL_TASKS[@]} -gt 0 ]]; then
+  echo "==> Building services: ${INSTALL_TASKS[*]}"
+  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" "${INSTALL_TASKS[@]}"
+fi
+
+# ── Launch services ──────────────────────────────────────────────────────────
+
+export KINETIX_DEV_MODE=true
 export OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 export OTEL_LOGS_EXPORTER=otlp
@@ -111,11 +147,12 @@ mkdir -p "$LOG_DIR"
 start_ui=false
 
 for target in "${TARGETS[@]}"; do
-  # Gradle services
+  # Kotlin services — launch via installDist binary
   port=$(port_for_service "$target" 2>/dev/null || true)
   if [[ -n "$port" ]]; then
     echo "==> Starting $target on port $port..."
-    "$ROOT_DIR/gradlew" -p "$ROOT_DIR" ":${target}:run" --args="-port=$port" \
+    OTEL_SERVICE_NAME="$target" \
+      "$ROOT_DIR/$target/build/install/$target/bin/$target" -port="$port" \
       > "$LOG_DIR/${target}.log" 2>&1 &
     echo "$! $target" >> "$PID_FILE"
     continue
@@ -144,13 +181,13 @@ if [[ "$start_ui" == true ]]; then
   retries=0
   until curl -sf http://localhost:8080/api/v1/system/health >/dev/null 2>&1; do
     retries=$((retries + 1))
-    if [[ $retries -ge 60 ]]; then
+    if [[ $retries -ge 120 ]]; then
       echo "    WARNING: Gateway not healthy after 60s, starting UI anyway"
       break
     fi
-    sleep 1
+    sleep 0.5
   done
-  if [[ $retries -lt 60 ]]; then
+  if [[ $retries -lt 120 ]]; then
     echo "    Gateway healthy"
   fi
 

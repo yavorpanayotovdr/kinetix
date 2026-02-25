@@ -17,18 +17,23 @@ data class ConnectionPoolConfig(
     }
 
     companion object {
-        fun forService(serviceName: String): ConnectionPoolConfig = when (serviceName) {
-            "position-service" -> ConnectionPoolConfig(maxPoolSize = 15, minIdle = 3)
-            "audit-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            "price-service" -> ConnectionPoolConfig(maxPoolSize = 20, minIdle = 5)
-            "notification-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            "regulatory-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            "rates-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
-            "reference-data-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            "volatility-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
-            "correlation-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            "risk-orchestrator" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
-            else -> ConnectionPoolConfig()
+        private val devModeDefault: Boolean = System.getenv("KINETIX_DEV_MODE")?.toBoolean() ?: false
+
+        fun forService(serviceName: String, devMode: Boolean = devModeDefault): ConnectionPoolConfig {
+            val base = when (serviceName) {
+                "position-service" -> ConnectionPoolConfig(maxPoolSize = 15, minIdle = 3)
+                "audit-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                "price-service" -> ConnectionPoolConfig(maxPoolSize = 20, minIdle = 5)
+                "notification-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                "regulatory-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                "rates-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
+                "reference-data-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                "volatility-service" -> ConnectionPoolConfig(maxPoolSize = 10, minIdle = 3)
+                "correlation-service" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                "risk-orchestrator" -> ConnectionPoolConfig(maxPoolSize = 8, minIdle = 2)
+                else -> ConnectionPoolConfig()
+            }
+            return if (devMode) base.copy(minIdle = 0, connectionTimeoutMs = 5_000) else base
         }
     }
 }

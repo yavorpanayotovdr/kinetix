@@ -56,4 +56,31 @@ class ConnectionPoolConfigTest : FunSpec({
         val defaultConfig = ConnectionPoolConfig.forService("unknown-service")
         defaultConfig.maxPoolSize shouldBe 10
     }
+
+    test("dev mode sets minIdle to 0 and reduces connection timeout") {
+        val config = ConnectionPoolConfig.forService("position-service", devMode = true)
+        config.minIdle shouldBe 0
+        config.connectionTimeoutMs shouldBe 5_000
+    }
+
+    test("dev mode preserves service-specific maxPoolSize") {
+        val priceConfig = ConnectionPoolConfig.forService("price-service", devMode = true)
+        priceConfig.maxPoolSize shouldBe 20
+
+        val posConfig = ConnectionPoolConfig.forService("position-service", devMode = true)
+        posConfig.maxPoolSize shouldBe 15
+    }
+
+    test("dev mode applies to default config") {
+        val config = ConnectionPoolConfig.forService("unknown-service", devMode = true)
+        config.minIdle shouldBe 0
+        config.connectionTimeoutMs shouldBe 5_000
+        config.maxPoolSize shouldBe 10
+    }
+
+    test("non-dev mode preserves original config") {
+        val config = ConnectionPoolConfig.forService("position-service", devMode = false)
+        config.minIdle shouldBe 3
+        config.connectionTimeoutMs shouldBe 30_000
+    }
 })
