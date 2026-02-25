@@ -24,6 +24,10 @@ const defaultHookResult = {
   zoomIn: vi.fn(),
   resetZoom: vi.fn(),
   zoomDepth: 0,
+  page: 0,
+  hasNextPage: false,
+  nextPage: vi.fn(),
+  prevPage: vi.fn(),
 }
 
 describe('JobHistory', () => {
@@ -561,6 +565,154 @@ describe('JobHistory', () => {
 
     expect(screen.getByTestId('job-row-a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBeInTheDocument()
     expect(screen.queryByTestId('job-row-deadbeef-cafe-babe-face-123456789abc')).not.toBeInTheDocument()
+  })
+
+  it('shows pagination controls when jobs are present', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      hasNextPage: true,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('pagination-bar')).toBeInTheDocument()
+    expect(screen.getByText('Page 1')).toBeInTheDocument()
+  })
+
+  it('disables previous button on first page', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 0,
+      hasNextPage: true,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('pagination-prev')).toBeDisabled()
+  })
+
+  it('disables next button when no more pages', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 1,
+      hasNextPage: false,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('pagination-next')).toBeDisabled()
+    expect(screen.getByTestId('pagination-prev')).not.toBeDisabled()
+  })
+
+  it('calls nextPage and prevPage when buttons are clicked', () => {
+    const nextPage = vi.fn()
+    const prevPage = vi.fn()
+
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 1,
+      hasNextPage: true,
+      nextPage,
+      prevPage,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.click(screen.getByTestId('pagination-next'))
+    expect(nextPage).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByTestId('pagination-prev'))
+    expect(prevPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not show pagination controls when no jobs', () => {
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.queryByTestId('pagination-bar')).not.toBeInTheDocument()
+  })
+
+  it('shows page number in badge when on page > 0', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 2,
+      hasNextPage: true,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const toggle = screen.getByTestId('job-history-toggle')
+    const badge = toggle.querySelector('.inline-flex.items-center')!
+    expect(badge).toHaveTextContent('Page 3')
   })
 
   it('calls closeJob when close detail button is clicked', () => {

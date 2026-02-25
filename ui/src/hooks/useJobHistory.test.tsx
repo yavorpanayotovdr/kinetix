@@ -103,7 +103,7 @@ describe('useJobHistory', () => {
     expect(result.current.runs).toEqual([jobSummary])
     expect(mockFetchJobs).toHaveBeenCalledWith(
       'port-1',
-      200,
+      21,
       0,
       expect.any(String),
       expect.any(String),
@@ -278,7 +278,7 @@ describe('useJobHistory', () => {
 
     expect(mockFetchJobs).toHaveBeenLastCalledWith(
       'port-1',
-      200,
+      21,
       0,
       '2025-01-15T00:00:00Z',
       '2025-01-15T23:59:59Z',
@@ -476,6 +476,218 @@ describe('useJobHistory', () => {
     expect(mockFetchJobs.mock.calls[1][4]).toBe('2025-01-15T12:00:00Z')
     expect(mockFetchJobs.mock.calls[2][3]).toBe('2025-01-15T00:00:00Z')
     expect(mockFetchJobs.mock.calls[2][4]).toBe('2025-01-15T12:00:00Z')
+  })
+
+  it('fetches with limit=21 and offset=0 initially', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+
+    renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+    })
+
+    expect(mockFetchJobs).toHaveBeenCalledWith(
+      'port-1',
+      21,
+      0,
+      expect.any(String),
+      expect.any(String),
+    )
+  })
+
+  it('nextPage increments page and re-fetches with offset=20', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    mockFetchJobs.mockClear()
+    mockFetchJobs.mockResolvedValue([{ ...jobSummary, jobId: 'job-page2' }])
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledWith(
+        'port-1',
+        21,
+        20,
+        expect.any(String),
+        expect.any(String),
+      )
+    })
+
+    expect(result.current.page).toBe(1)
+  })
+
+  it('prevPage decrements page', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(1)
+    })
+
+    mockFetchJobs.mockClear()
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    act(() => {
+      result.current.prevPage()
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledWith(
+        'port-1',
+        21,
+        0,
+        expect.any(String),
+        expect.any(String),
+      )
+    })
+
+    expect(result.current.page).toBe(0)
+  })
+
+  it('prevPage is a no-op when page is 0', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    const callCount = mockFetchJobs.mock.calls.length
+
+    act(() => {
+      result.current.prevPage()
+    })
+
+    expect(result.current.page).toBe(0)
+    expect(mockFetchJobs).toHaveBeenCalledTimes(callCount)
+  })
+
+  it('hasNextPage is true when API returns 21 items, false when fewer', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.hasNextPage).toBe(true)
+
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.hasNextPage).toBe(false)
+  })
+
+  it('only exposes 20 items in runs even when 21 are fetched', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.runs).toHaveLength(20)
+  })
+
+  it('resets page to 0 when time range changes', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(1)
+    })
+
+    act(() => {
+      result.current.setTimeRange({ from: '2025-01-14T00:00:00Z', to: '2025-01-15T00:00:00Z', label: 'Custom' })
+    })
+
+    expect(result.current.page).toBe(0)
+  })
+
+  it('resets page to 0 when zoomIn is called', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(1)
+    })
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+    })
+
+    expect(result.current.page).toBe(0)
+  })
+
+  it('nextPage and prevPage clear expanded jobs', async () => {
+    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobDetail.mockResolvedValue(jobDetail)
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.toggleJob('job-0')
+    })
+
+    await waitFor(() => {
+      expect(result.current.expandedJobs['job-0']).toBeDefined()
+    })
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    expect(result.current.expandedJobs).toEqual({})
   })
 
   it('stops polling when portfolioId becomes null', async () => {
