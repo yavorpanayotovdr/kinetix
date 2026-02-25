@@ -329,4 +329,63 @@ class VaRCalculationServiceTest : FunSpec({
         parsed[1].jsonObject["dataType"]!!.jsonPrimitive.content shouldBe "HISTORICAL_PRICES"
         parsed[1].jsonObject["parameters"]!!.jsonPrimitive.content shouldContain "lookback=252"
     }
+
+    test("captures market data items with fetch status in step details") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        val dependencies = listOf(
+            DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
+            DiscoveredDependency("YIELD_CURVE", "USD_SOFR", "RATES"),
+        )
+        val marketData = listOf<MarketDataValue>(
+            ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.5),
+        )
+
+        val discoverer = mockk<DependenciesDiscoverer>()
+        val fetcher = mockk<MarketDataFetcher>()
+        coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
+        coEvery { fetcher.fetch(dependencies) } returns marketData
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions, marketData) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        val serviceWithFetcher = VaRCalculationService(
+            positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+            dependenciesDiscoverer = discoverer,
+            marketDataFetcher = fetcher,
+            jobRecorder = jobRecorder,
+        )
+
+        serviceWithFetcher.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
+
+        val mdStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_MARKET_DATA }
+        mdStep.details["requested"] shouldBe 2
+        mdStep.details["fetched"] shouldBe 1
+
+        val itemsJson = mdStep.details["marketDataItems"]
+        itemsJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(itemsJson).jsonArray
+        parsed shouldHaveSize 2
+
+        val spotItem = parsed[0].jsonObject
+        spotItem["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+        spotItem["dataType"]!!.jsonPrimitive.content shouldBe "SPOT_PRICE"
+        spotItem["status"]!!.jsonPrimitive.content shouldBe "FETCHED"
+        spotItem["value"]!!.jsonPrimitive.content shouldBe "170.5"
+
+        val curveItem = parsed[1].jsonObject
+        curveItem["instrumentId"]!!.jsonPrimitive.content shouldBe "USD_SOFR"
+        curveItem["dataType"]!!.jsonPrimitive.content shouldBe "YIELD_CURVE"
+        curveItem["status"]!!.jsonPrimitive.content shouldBe "MISSING"
+    }
 })

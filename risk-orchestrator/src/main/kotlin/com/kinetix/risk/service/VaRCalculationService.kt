@@ -131,6 +131,19 @@ class VaRCalculationService(
                     details = mapOf(
                         "requested" to dependencies.size,
                         "fetched" to marketData.size,
+                        "marketDataItems" to Json.encodeToString(dependencies.map { dep ->
+                            val fetched = marketData.find { it.dataType == dep.dataType && it.instrumentId == dep.instrumentId }
+                            buildMap {
+                                put("instrumentId", dep.instrumentId)
+                                put("dataType", dep.dataType)
+                                put("assetClass", dep.assetClass)
+                                put("status", if (fetched != null) "FETCHED" else "MISSING")
+                                if (fetched is ScalarMarketData) put("value", fetched.value.toString())
+                                if (fetched is CurveMarketData) put("points", fetched.points.size.toString())
+                                if (fetched is TimeSeriesMarketData) put("points", fetched.points.size.toString())
+                                if (fetched is MatrixMarketData) put("rows", fetched.rows.size.toString())
+                            }
+                        }),
                     ),
                 )
             )

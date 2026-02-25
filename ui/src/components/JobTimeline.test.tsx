@@ -41,7 +41,15 @@ const steps: JobStepDto[] = [
     startedAt: '2025-01-15T10:00:00.050Z',
     completedAt: '2025-01-15T10:00:00.080Z',
     durationMs: 30,
-    details: { requested: '3', fetched: '2' },
+    details: {
+      requested: '3',
+      fetched: '2',
+      marketDataItems: JSON.stringify([
+        { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY', status: 'FETCHED', value: '170.5' },
+        { instrumentId: 'USD_SOFR', dataType: 'YIELD_CURVE', assetClass: 'RATES', status: 'FETCHED', points: '6' },
+        { instrumentId: 'AAPL', dataType: 'HISTORICAL_PRICES', assetClass: 'EQUITY', status: 'MISSING' },
+      ]),
+    },
     error: null,
   },
   {
@@ -211,7 +219,7 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-FETCH_MARKET_DATA')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
       expect(screen.queryByTestId('job-step-PUBLISH_RESULT')).not.toBeInTheDocument()
     })
@@ -242,6 +250,7 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
     })
 
     it('filters items within matching steps to only those that match', () => {
@@ -252,6 +261,10 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
       expect(screen.queryByTestId('dependency-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
+
+      expect(screen.getByTestId('market-data-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
     })
 
     it('treats spaces as AND for step filtering', () => {
@@ -259,6 +272,7 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
     })
 
@@ -349,6 +363,96 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
       expect(screen.queryByTestId('position-TSLA')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('market data items in FETCH_MARKET_DATA', () => {
+    it('renders expandable market data items', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('market-data-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.getByTestId('market-data-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
+      expect(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
+    })
+
+    it('displays label as dataType — instrumentId', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      expect(screen.getByText('SPOT_PRICE — AAPL')).toBeInTheDocument()
+      expect(screen.getByText('YIELD_CURVE — USD_SOFR')).toBeInTheDocument()
+      expect(screen.getByText('HISTORICAL_PRICES — AAPL')).toBeInTheDocument()
+    })
+
+    it('shows green dot for FETCHED items and red dot for MISSING items', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      const fetchedDots = screen.getAllByTestId('market-data-dot-FETCHED')
+      const missingDots = screen.getAllByTestId('market-data-dot-MISSING')
+
+      expect(fetchedDots).toHaveLength(2)
+      expect(missingDots).toHaveLength(1)
+    })
+
+    it('expands market data item to show JSON', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+      fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
+
+      const jsonBlock = screen.getByTestId('market-data-json-AAPL-SPOT_PRICE')
+      expect(jsonBlock).toBeInTheDocument()
+      expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
+      expect(jsonBlock.textContent).toContain('"dataType": "SPOT_PRICE"')
+      expect(jsonBlock.textContent).toContain('"value": "170.5"')
+    })
+
+    it('does not render marketDataItems key as a regular detail', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      expect(screen.queryByText('marketDataItems:')).not.toBeInTheDocument()
+    })
+
+    it('shows a filter input when market data step is expanded', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      expect(screen.getByTestId('filter-FETCH_MARKET_DATA')).toBeInTheDocument()
+    })
+
+    it('filters market data items by instrument ID', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'USD_SOFR' } })
+
+      expect(screen.getByTestId('market-data-USD_SOFR-YIELD_CURVE')).toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-AAPL-HISTORICAL_PRICES')).not.toBeInTheDocument()
+    })
+
+    it('filters market data items by data type', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'SPOT' } })
+
+      expect(screen.getByTestId('market-data-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
+    })
+
+    it('filters market data items by status', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
+
+      fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'MISSING' } })
+
+      expect(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('market-data-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
     })
   })
 })

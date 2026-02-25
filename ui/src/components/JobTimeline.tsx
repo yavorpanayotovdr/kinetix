@@ -58,6 +58,13 @@ interface DependencyItem {
   [key: string]: string
 }
 
+interface MarketDataItem {
+  instrumentId: string
+  dataType: string
+  status: string
+  [key: string]: string
+}
+
 function stepMatchesSearch(step: JobStepDto, term: string): boolean {
   const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
   const parts = [STEP_LABELS[step.name] ?? step.name, ...Object.values(step.details)]
@@ -127,6 +134,16 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
     }
   }
 
+  const parseMarketDataItems = (details: Record<string, string>): MarketDataItem[] | null => {
+    const raw = details['marketDataItems']
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as MarketDataItem[]
+    } catch {
+      return null
+    }
+  }
+
   const filteredSteps = isSearchActive
     ? steps.filter((step) => stepMatchesSearch(step, search))
     : steps
@@ -172,7 +189,8 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
             {isOpen && hasDetails && (() => {
               const positions = parsePositions(step.details)
               const dependencies = parseDependencies(step.details)
-              const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0)
+              const marketDataItems = parseMarketDataItems(step.details)
+              const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0)
               const activeFilter = filter || (isSearchActive ? search : '')
               const filteredPositions = positions && activeFilter
                 ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, activeFilter))
@@ -180,10 +198,13 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               const filteredDependencies = dependencies && activeFilter
                 ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, string>, activeFilter))
                 : dependencies
+              const filteredMarketDataItems = marketDataItems && activeFilter
+                ? marketDataItems.filter((m) => itemMatchesFilter(m as unknown as Record<string, string>, activeFilter))
+                : marketDataItems
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {Object.entries(step.details)
-                    .filter(([key]) => key !== 'positions' && key !== 'dependencies')
+                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems')
                     .map(([key, value]) => (
                       <div key={key}>
                         <span className="font-medium">{key}:</span> {value}
@@ -244,6 +265,35 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                               className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                             >
                               {JSON.stringify(dep, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {filteredMarketDataItems && filteredMarketDataItems.map((item, j) => {
+                    const mdKey = `${stepIndex}-md-${item.instrumentId}-${item.dataType}`
+                    const isMdOpen = expandedItems[mdKey] ?? false
+                    const dotColor = item.status === 'FETCHED' ? 'bg-green-500' : 'bg-red-500'
+                    return (
+                      <div key={j} className="mt-1">
+                        <button
+                          data-testid={`market-data-${item.instrumentId}-${item.dataType}`}
+                          onClick={() => toggleItem(mdKey)}
+                          className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                        >
+                          {isMdOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          <span data-testid={`market-data-dot-${item.status}`} className={`inline-block h-2 w-2 rounded-full ${dotColor} shrink-0`} />
+                          <span>{item.dataType} — {item.instrumentId}</span>
+                        </button>
+                        {isMdOpen && (
+                          <div className="relative ml-4 mt-0.5">
+                            <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
+                            <pre
+                              data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
+                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                            >
+                              {JSON.stringify(item, null, 2)}
                             </pre>
                           </div>
                         )}
