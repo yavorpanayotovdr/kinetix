@@ -9,7 +9,7 @@ usage() {
   echo "Usage: ./dev-restart.sh [service ...]"
   echo ""
   echo "Restart one or more application services (or all if none specified)."
-  echo "Infrastructure (Postgres, Kafka, Redis, etc.) is NOT restarted."
+  echo "Infrastructure is auto-started if not already healthy."
   echo ""
   echo "Services:"
   echo "  gateway  position-service  price-service  risk-orchestrator"
@@ -32,6 +32,50 @@ if [[ ! -f "$PID_FILE" ]]; then
   echo "ERROR: $PID_FILE not found. Is the dev stack running? Start it with ./dev-up.sh"
   exit 1
 fi
+
+# ── Infrastructure pre-flight check ─────────────────────────────────────────
+
+ensure_infra() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker daemon is not running. Please start Docker and try again."
+    exit 1
+  fi
+
+  local infra_ok=true
+  for container in kinetix-postgres kinetix-kafka kinetix-redis; do
+    if ! docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null | grep -qx healthy; then
+      infra_ok=false
+      break
+    fi
+  done
+
+  if [[ "$infra_ok" == false ]]; then
+    echo "==> Infrastructure not ready, starting containers..."
+
+    docker compose -f "$ROOT_DIR/infra/docker-compose.infra.yml" up -d --wait
+    echo "    Postgres, Kafka, Redis ready."
+
+    docker compose -f "$ROOT_DIR/infra/docker-compose.observability.yml" up -d --wait
+    echo "    Prometheus, Grafana, Loki, Tempo, OTel Collector ready."
+
+    docker compose -f "$ROOT_DIR/infra/docker-compose.auth.yml" up -d --wait
+    echo "    Keycloak ready."
+
+    echo "==> Ensuring Kafka topics exist..."
+    local topics=("trades.lifecycle" "price.updates" "risk.results" "rates.yield-curves" "rates.risk-free" "rates.forwards" "reference-data.dividends" "reference-data.credit-spreads" "volatility.surfaces" "correlation.matrices")
+    for topic in "${topics[@]}"; do
+      docker exec kinetix-kafka /opt/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --create --if-not-exists \
+        --topic "$topic" \
+        --partitions 3 \
+        --replication-factor 1 >/dev/null 2>&1
+    done
+    echo "    Kafka topics ready."
+  fi
+}
+
+ensure_infra
 
 # ── Service definitions ──────────────────────────────────────────────────────
 
