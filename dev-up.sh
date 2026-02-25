@@ -27,6 +27,10 @@ echo "==> Starting auth stack..."
 docker compose -f "$ROOT_DIR/infra/docker-compose.auth.yml" up -d --wait
 echo "    Keycloak ready."
 
+echo "==> Ensuring databases exist..."
+docker exec kinetix-postgres psql -U kinetix -f /docker-entrypoint-initdb.d/01-create-databases.sql 2>/dev/null
+echo "    Databases ready."
+
 # ── Phase 2: Kafka topics ───────────────────────────────────────────────────
 
 echo "==> Creating Kafka topics..."

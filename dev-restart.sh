@@ -55,6 +55,10 @@ ensure_infra() {
     docker compose -f "$ROOT_DIR/infra/docker-compose.infra.yml" up -d --wait
     echo "    Postgres, Kafka, Redis ready."
 
+    echo "==> Ensuring databases exist..."
+    docker exec kinetix-postgres psql -U kinetix -f /docker-entrypoint-initdb.d/01-create-databases.sql 2>/dev/null
+    echo "    Databases ready."
+
     docker compose -f "$ROOT_DIR/infra/docker-compose.observability.yml" up -d --wait
     echo "    Prometheus, Grafana, Loki, Tempo, OTel Collector ready."
 
