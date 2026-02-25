@@ -248,6 +248,24 @@ describe('SystemDashboard', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
+  it('notification-service card has a Grafana icon linking to the notification service dashboard', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const link = screen.getByTestId('service-grafana-link-notification-service')
+    expect(link).toHaveAttribute(
+      'href',
+      'http://localhost:3000/d/kinetix-notification-service',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
   it('price-service card has a Grafana icon linking to the prices dashboard', () => {
     render(
       <SystemDashboard

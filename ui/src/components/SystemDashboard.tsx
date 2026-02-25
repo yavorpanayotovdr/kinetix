@@ -52,6 +52,7 @@ const SERVICE_DASHBOARD_URLS: Record<string, string> = {
   'position-service': 'http://localhost:3000/d/kinetix-position-service',
   'price-service': 'http://localhost:3000/d/kinetix-prices',
   'risk-orchestrator': 'http://localhost:3000/d/kinetix-risk-orchestrator',
+  'notification-service': 'http://localhost:3000/d/kinetix-notification-service',
 }
 
 const OBSERVABILITY_LINKS = [
