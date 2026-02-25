@@ -147,6 +147,16 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
     }
   }
 
+  const parseDependenciesByPosition = (details: Record<string, string>): Record<string, DependencyItem[]> | null => {
+    const raw = details['dependenciesByPosition']
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as Record<string, DependencyItem[]>
+    } catch {
+      return null
+    }
+  }
+
   const parseMarketDataItems = (details: Record<string, string>): MarketDataItem[] | null => {
     const raw = details['marketDataItems']
     if (!raw) return null
@@ -201,6 +211,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
             )}
             {isOpen && hasDetails && (() => {
               const positions = parsePositions(step.details)
+              const depsByPosition = parseDependenciesByPosition(step.details)
               const dependencies = parseDependencies(step.details)
               const marketDataItems = parseMarketDataItems(step.details)
               const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0)
@@ -217,7 +228,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {Object.entries(step.details)
-                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems')
+                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition')
                     .map(([key, value]) => (
                       <div key={key}>
                         <span className="font-medium">{key}:</span> {value}
@@ -233,6 +244,9 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                   {filteredPositions && filteredPositions.map((pos, j) => {
                     const posKey = `${stepIndex}-${pos.instrumentId}`
                     const isPosOpen = expandedItems[posKey] ?? false
+                    const posDeps = depsByPosition?.[pos.instrumentId]
+                    const posDepsKey = `${stepIndex}-posdeps-${pos.instrumentId}`
+                    const isPosDepsOpen = expandedItems[posDepsKey] ?? false
                     return (
                       <div key={j} className="mt-1">
                         <button
@@ -244,14 +258,60 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                           <span>{pos.instrumentId}</span>
                         </button>
                         {isPosOpen && (
-                          <div className="relative ml-4 mt-0.5">
-                            <CopyButton text={JSON.stringify(pos, null, 2)} testId={`copy-position-${pos.instrumentId}`} />
-                            <pre
-                              data-testid={`position-json-${pos.instrumentId}`}
-                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
-                            >
-                              {JSON.stringify(pos, null, 2)}
-                            </pre>
+                          <div className="ml-4 mt-0.5 space-y-1">
+                            <div className="relative">
+                              <CopyButton text={JSON.stringify(pos, null, 2)} testId={`copy-position-${pos.instrumentId}`} />
+                              <pre
+                                data-testid={`position-json-${pos.instrumentId}`}
+                                className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                              >
+                                {JSON.stringify(pos, null, 2)}
+                              </pre>
+                            </div>
+                            {posDeps && posDeps.length > 0 && (
+                              <div>
+                                <button
+                                  data-testid={`pos-deps-toggle-${pos.instrumentId}`}
+                                  onClick={() => toggleItem(posDepsKey)}
+                                  className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                                >
+                                  {isPosDepsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                  <span>Dependencies ({posDeps.length})</span>
+                                </button>
+                                {isPosDepsOpen && (
+                                  <div className="relative ml-4 mt-0.5 space-y-1">
+                                    <CopyButton text={JSON.stringify(posDeps, null, 2)} testId={`copy-pos-deps-${pos.instrumentId}`} />
+                                    {posDeps.map((dep, k) => {
+                                      const posDepKey = `${stepIndex}-posdep-${pos.instrumentId}-${dep.dataType}`
+                                      const isPosDepOpen = expandedItems[posDepKey] ?? false
+                                      return (
+                                        <div key={k}>
+                                          <button
+                                            data-testid={`pos-dep-${pos.instrumentId}-${dep.dataType}`}
+                                            onClick={() => toggleItem(posDepKey)}
+                                            className="flex items-center gap-1 text-slate-500 hover:text-slate-700"
+                                          >
+                                            {isPosDepOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                            <span>{dep.dataType}</span>
+                                          </button>
+                                          {isPosDepOpen && (
+                                            <div className="relative ml-4 mt-0.5">
+                                              <CopyButton text={JSON.stringify(dep, null, 2)} testId={`copy-pos-dep-${pos.instrumentId}-${dep.dataType}`} />
+                                              <pre
+                                                data-testid={`pos-dep-json-${pos.instrumentId}-${dep.dataType}`}
+                                                className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                                              >
+                                                {JSON.stringify(dep, null, 2)}
+                                              </pre>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

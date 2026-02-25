@@ -221,4 +221,6 @@ jobs:
           pattern: '*-test-xml*'
           path: test-results/
       - name: Test summary
-        run: python3 scripts/test-summary.py test-results/ --format markdown >> $GITHUB_STEP_SUMMARY
+        run: |
+          python3 scripts/test-summary.py test-results/ --format text
+          python3 scripts/test-summary.py test-results/ --format markdown >> "$GITHUB_STEP_SUMMARY"

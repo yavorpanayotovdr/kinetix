@@ -388,4 +388,78 @@ class VaRCalculationServiceTest : FunSpec({
         curveItem["dataType"]!!.jsonPrimitive.content shouldBe "YIELD_CURVE"
         curveItem["status"]!!.jsonPrimitive.content shouldBe "MISSING"
     }
+
+    test("FETCH_POSITIONS step contains dependenciesByPosition when dependencies are discovered") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", assetClass = AssetClass.EQUITY),
+            position(instrumentId = "UST10Y", assetClass = AssetClass.FIXED_INCOME),
+        )
+        val expectedResult = varResult()
+        val dependencies = listOf(
+            DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
+            DiscoveredDependency("YIELD_CURVE", "", "FIXED_INCOME"),
+            DiscoveredDependency("CORRELATION_MATRIX", "", ""),
+        )
+
+        val discoverer = mockk<DependenciesDiscoverer>()
+        coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions, any()) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        val serviceWithDiscoverer = VaRCalculationService(
+            positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+            dependenciesDiscoverer = discoverer,
+            jobRecorder = jobRecorder,
+        )
+
+        serviceWithDiscoverer.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
+
+        val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
+        val groupedJson = fetchPosStep.details["dependenciesByPosition"]
+        groupedJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(groupedJson).jsonObject
+        parsed.keys shouldBe setOf("AAPL", "UST10Y")
+
+        val aaplDeps = parsed["AAPL"]!!.jsonArray
+        aaplDeps shouldHaveSize 2
+        aaplDeps.map { it.jsonObject["dataType"]!!.jsonPrimitive.content }.toSet() shouldBe setOf("SPOT_PRICE", "CORRELATION_MATRIX")
+
+        val ustDeps = parsed["UST10Y"]!!.jsonArray
+        ustDeps shouldHaveSize 2
+        ustDeps.map { it.jsonObject["dataType"]!!.jsonPrimitive.content }.toSet() shouldBe setOf("YIELD_CURVE", "CORRELATION_MATRIX")
+    }
+
+    test("dependenciesByPosition absent when no dependencies are discovered") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(jobSlot)) }
+
+        val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
+        fetchPosStep.details.containsKey("dependenciesByPosition") shouldBe false
+    }
 })

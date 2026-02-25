@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { JobStepDto } from '../types'
 import { JobTimeline } from './JobTimeline'
 
@@ -486,6 +486,124 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
       expect(screen.queryByTestId('market-data-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
       expect(screen.queryByTestId('market-data-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('per-position dependencies in FETCH_POSITIONS', () => {
+    const dependenciesByPosition = {
+      AAPL: [
+        { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY' },
+        { instrumentId: '', dataType: 'CORRELATION_MATRIX', assetClass: '' },
+      ],
+      TSLA: [
+        { instrumentId: 'TSLA', dataType: 'SPOT_PRICE', assetClass: 'EQUITY' },
+        { instrumentId: '', dataType: 'CORRELATION_MATRIX', assetClass: '' },
+      ],
+    }
+
+    const stepsWithPosDeps: JobStepDto[] = [
+      {
+        ...steps[0],
+        details: {
+          ...steps[0].details,
+          dependenciesByPosition: JSON.stringify(dependenciesByPosition),
+        },
+      },
+      steps[1],
+      steps[2],
+      steps[3],
+      steps[4],
+    ]
+
+    it('shows dependencies toggle within expanded position when dependenciesByPosition is present', () => {
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+
+      expect(screen.getByTestId('pos-deps-toggle-AAPL')).toBeInTheDocument()
+      expect(screen.getByText('Dependencies (2)')).toBeInTheDocument()
+    })
+
+    it('expanding dependencies section shows individual dependency items', () => {
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+      fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
+
+      expect(screen.getByTestId('pos-dep-AAPL-SPOT_PRICE')).toBeInTheDocument()
+      expect(screen.getByTestId('pos-dep-AAPL-CORRELATION_MATRIX')).toBeInTheDocument()
+    })
+
+    it('expanding a dependency item shows its JSON', () => {
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+      fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
+      fireEvent.click(screen.getByTestId('pos-dep-AAPL-SPOT_PRICE'))
+
+      const jsonBlock = screen.getByTestId('pos-dep-json-AAPL-SPOT_PRICE')
+      expect(jsonBlock).toBeInTheDocument()
+      expect(jsonBlock.textContent).toContain('"dataType": "SPOT_PRICE"')
+    })
+
+    it('position copy button copies only position data', () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+
+      fireEvent.click(screen.getByTestId('copy-position-AAPL'))
+
+      const copied = JSON.parse(writeText.mock.calls[0][0])
+      expect(copied.instrumentId).toBe('AAPL')
+      expect(copied).not.toHaveProperty('dependencies')
+    })
+
+    it('dependencies copy button copies only dependency array JSON', () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+      fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
+
+      fireEvent.click(screen.getByTestId('copy-pos-deps-AAPL'))
+
+      const copied = JSON.parse(writeText.mock.calls[0][0])
+      expect(copied).toHaveLength(2)
+      expect(copied[0].dataType).toBe('SPOT_PRICE')
+      expect(copied[1].dataType).toBe('CORRELATION_MATRIX')
+    })
+
+    it('shared dependencies appear under all positions', () => {
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+      fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
+      expect(screen.getByTestId('pos-dep-AAPL-CORRELATION_MATRIX')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('position-TSLA'))
+      fireEvent.click(screen.getByTestId('pos-deps-toggle-TSLA'))
+      expect(screen.getByTestId('pos-dep-TSLA-CORRELATION_MATRIX')).toBeInTheDocument()
+    })
+
+    it('does not show dependencies section when dependenciesByPosition is absent', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+      fireEvent.click(screen.getByTestId('position-AAPL'))
+
+      expect(screen.queryByTestId('pos-deps-toggle-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('does not render dependenciesByPosition as a plain detail key-value', () => {
+      render(<JobTimeline steps={stepsWithPosDeps} />)
+      fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
+
+      expect(screen.queryByText('dependenciesByPosition:')).not.toBeInTheDocument()
     })
   })
 })

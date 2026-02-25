@@ -19,6 +19,7 @@ class VaRCalculationService(
     private val dependenciesDiscoverer: DependenciesDiscoverer? = null,
     private val marketDataFetcher: MarketDataFetcher? = null,
     private val jobRecorder: ValuationJobRecorder = NoOpValuationJobRecorder(),
+    private val positionDependencyGrouper: PositionDependencyGrouper = PositionDependencyGrouper(),
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -107,6 +108,25 @@ class VaRCalculationService(
                     ),
                 )
             )
+
+            if (dependencies.isNotEmpty()) {
+                val grouped = positionDependencyGrouper.group(positions, dependencies)
+                if (grouped.isNotEmpty()) {
+                    val groupedJson = Json.encodeToString(grouped.mapValues { (_, deps) ->
+                        deps.map { dep ->
+                            buildMap {
+                                put("instrumentId", dep.instrumentId)
+                                put("dataType", dep.dataType)
+                                put("assetClass", dep.assetClass)
+                                if (dep.parameters.isNotEmpty()) {
+                                    put("parameters", dep.parameters.entries.joinToString(", ") { "${it.key}=${it.value}" })
+                                }
+                            }
+                        }
+                    })
+                    steps[0] = steps[0].copy(details = steps[0].details + ("dependenciesByPosition" to groupedJson))
+                }
+            }
 
             // Step 3: Fetch market data
             val fetchMdStart = Instant.now()
