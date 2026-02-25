@@ -3,6 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.risk.mapper.toDetailResponse
 import com.kinetix.risk.mapper.toSummaryResponse
 import com.kinetix.risk.service.ValuationJobRecorder
+import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -12,7 +13,29 @@ import java.util.UUID
 
 fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
 
-    get("/api/v1/risk/jobs/{portfolioId}") {
+    get("/api/v1/risk/jobs/{portfolioId}", {
+        summary = "List valuation jobs for a portfolio"
+        tags = listOf("Job History")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<Int>("limit") {
+                description = "Max results, default 20"
+                required = false
+            }
+            queryParameter<Int>("offset") {
+                description = "Offset for pagination"
+                required = false
+            }
+            queryParameter<String>("from") {
+                description = "Start timestamp (ISO-8601)"
+                required = false
+            }
+            queryParameter<String>("to") {
+                description = "End timestamp (ISO-8601)"
+                required = false
+            }
+        }
+    }) {
         val portfolioId = call.requirePathParam("portfolioId")
         val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
         val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
@@ -35,7 +58,13 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
         call.respond(jobs.map { it.toSummaryResponse() })
     }
 
-    get("/api/v1/risk/jobs/detail/{jobId}") {
+    get("/api/v1/risk/jobs/detail/{jobId}", {
+        summary = "Get valuation job details"
+        tags = listOf("Job History")
+        request {
+            pathParameter<String>("jobId") { description = "Job identifier" }
+        }
+    }) {
         val jobIdStr = call.requirePathParam("jobId")
         val jobId = try {
             UUID.fromString(jobIdStr)

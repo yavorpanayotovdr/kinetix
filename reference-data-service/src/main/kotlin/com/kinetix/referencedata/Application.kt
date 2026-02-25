@@ -11,6 +11,9 @@ import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.routes.referenceDataRoutes
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -25,6 +28,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -41,6 +45,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Reference Data Service API"
+            version = "1.0.0"
+            description = "Manages dividend yields and credit spreads"
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -48,6 +59,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

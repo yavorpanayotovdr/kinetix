@@ -7,6 +7,8 @@ import com.kinetix.common.model.PriceSource
 import com.kinetix.price.persistence.PriceRepository
 import com.kinetix.price.routes.dtos.IngestPriceRequest
 import com.kinetix.price.service.PriceIngestionService
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -46,7 +48,16 @@ private fun PricePoint.toResponse() = PricePointResponse(
 fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngestionService) {
     route("/api/v1/prices/{instrumentId}") {
 
-        get("/latest") {
+        get("/latest", {
+            summary = "Get latest price for an instrument"
+            tags = listOf("Prices")
+            request {
+                pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+            }
+            response {
+                code(HttpStatusCode.OK) { body<PricePointResponse>() }
+            }
+        }) {
             val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
             val point = repository.findLatest(instrumentId)
             if (point != null) {
@@ -56,7 +67,18 @@ fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngest
             }
         }
 
-        get("/history") {
+        get("/history", {
+            summary = "Get price history for an instrument"
+            tags = listOf("Prices")
+            request {
+                pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
+                queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+            }
+            response {
+                code(HttpStatusCode.OK) { body<List<PricePointResponse>>() }
+            }
+        }) {
             val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
             val from = call.queryParameters["from"]
                 ?: throw IllegalArgumentException("Missing required query parameter: from")
@@ -68,7 +90,16 @@ fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngest
     }
 
     route("/api/v1/prices") {
-        post("/ingest") {
+        post("/ingest", {
+            summary = "Ingest a new price"
+            tags = listOf("Prices")
+            request {
+                body<IngestPriceRequest>()
+            }
+            response {
+                code(HttpStatusCode.Created) { body<PricePointResponse>() }
+            }
+        }) {
             val request = call.receive<IngestPriceRequest>()
             val point = PricePoint(
                 instrumentId = InstrumentId(request.instrumentId),

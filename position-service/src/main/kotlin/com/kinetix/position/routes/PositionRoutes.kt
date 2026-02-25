@@ -6,6 +6,8 @@ import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.GetPositionsQuery
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.TradeBookingService
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -112,20 +114,46 @@ fun Route.positionRoutes(
 ) {
     route("/api/v1/portfolios") {
 
-        get {
+        get({
+            summary = "List all portfolios"
+            tags = listOf("Portfolios")
+            response {
+                code(HttpStatusCode.OK) { body<List<PortfolioSummaryResponse>>() }
+            }
+        }) {
             val portfolioIds = positionRepository.findDistinctPortfolioIds()
             call.respond(portfolioIds.map { PortfolioSummaryResponse(it.value) })
         }
 
         route("/{portfolioId}") {
 
-            get("/positions") {
+            get("/positions", {
+                summary = "Get positions for a portfolio"
+                tags = listOf("Positions")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<List<PositionResponse>>() }
+                }
+            }) {
                 val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
                 call.respond(positions.map { it.toResponse() })
             }
 
-            post("/trades") {
+            post("/trades", {
+                summary = "Book a trade"
+                tags = listOf("Trades")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    body<BookTradeRequest>()
+                }
+                response {
+                    code(HttpStatusCode.Created) { body<BookTradeResponse>() }
+                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                }
+            }) {
                 val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val request = call.receive<BookTradeRequest>()
                 val qty = BigDecimal(request.quantity)

@@ -4,6 +4,7 @@ import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.DependenciesRequest
 import com.kinetix.gateway.dto.toParams
 import com.kinetix.gateway.dto.toResponse
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -11,7 +12,13 @@ import io.ktor.server.routing.*
 
 fun Route.dependenciesRoutes(client: RiskServiceClient) {
     route("/api/v1/risk/dependencies/{portfolioId}") {
-        post {
+        post({
+            summary = "Discover market data dependencies"
+            tags = listOf("Dependencies")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<DependenciesRequest>()
             val params = request.toParams(portfolioId)

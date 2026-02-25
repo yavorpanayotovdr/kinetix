@@ -10,6 +10,9 @@ import com.kinetix.price.persistence.PriceRepository
 import com.kinetix.price.routes.priceRoutes
 import com.kinetix.price.seed.DevDataSeeder
 import com.kinetix.price.service.PriceIngestionService
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -36,6 +39,13 @@ fun Application.module(
 ) {
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Price Service API"
+            version = "1.0.0"
+            description = "Manages instrument prices, price history and ingestion"
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -43,6 +53,8 @@ fun Application.module(
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

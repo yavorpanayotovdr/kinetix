@@ -8,6 +8,8 @@ val libs = versionCatalogs.named("libs")
 
 dependencies {
     "implementation"(libs.findBundle("ktor-server").get())
+    "implementation"(libs.findLibrary("ktor-openapi").get())
+    "implementation"(libs.findLibrary("ktor-swagger-ui").get())
     "implementation"(libs.findLibrary("logback-classic").get())
     "implementation"(libs.findBundle("opentelemetry-logging").get())
 

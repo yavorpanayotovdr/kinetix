@@ -8,6 +8,9 @@ import com.kinetix.audit.persistence.DatabaseFactory
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.audit.routes.auditRoutes
 import com.kinetix.audit.seed.DevDataSeeder
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -36,6 +39,13 @@ fun Application.module() {
             ignoreUnknownKeys = true
         })
     }
+    install(OpenApi) {
+        info {
+            title = "Audit Service API"
+            version = "1.0.0"
+            description = "Records and queries audit events"
+        }
+    }
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -58,6 +68,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

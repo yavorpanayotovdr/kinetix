@@ -17,6 +17,12 @@ import com.kinetix.notification.persistence.DatabaseFactory
 import com.kinetix.notification.persistence.ExposedAlertEventRepository
 import com.kinetix.notification.persistence.ExposedAlertRuleRepository
 import com.kinetix.notification.seed.DevDataSeeder
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.delete
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -43,6 +49,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Notification Service API"
+            version = "1.0.0"
+            description = "Manages alert rules and notification delivery"
+        }
+    }
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -64,6 +77,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 
@@ -176,12 +191,24 @@ data class AlertEventResponse(
 
 fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliveryService) {
     route("/api/v1/notifications") {
-        get("/rules") {
+        get("/rules", {
+            summary = "List alert rules"
+            tags = listOf("Alert Rules")
+        }) {
             val rules = rulesEngine.listRules().map { it.toResponse() }
             call.respond(rules)
         }
 
-        post("/rules") {
+        post("/rules", {
+            summary = "Create an alert rule"
+            tags = listOf("Alert Rules")
+            request {
+                body<CreateAlertRuleRequest>()
+            }
+            response {
+                code(HttpStatusCode.Created) { body<AlertRuleResponse>() }
+            }
+        }) {
             val request = call.receive<CreateAlertRuleRequest>()
             require(request.name.isNotBlank()) { "Rule name must not be blank" }
             require(request.channels.isNotEmpty()) { "At least one delivery channel is required" }
@@ -198,7 +225,13 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
             call.respond(HttpStatusCode.Created, rule.toResponse())
         }
 
-        delete("/rules/{ruleId}") {
+        delete("/rules/{ruleId}", {
+            summary = "Delete an alert rule"
+            tags = listOf("Alert Rules")
+            request {
+                pathParameter<String>("ruleId")
+            }
+        }) {
             val ruleId = call.parameters["ruleId"]
                 ?: throw IllegalArgumentException("Missing required path parameter: ruleId")
             val exists = rulesEngine.listRules().any { it.id == ruleId }
@@ -210,7 +243,16 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
             }
         }
 
-        get("/alerts") {
+        get("/alerts", {
+            summary = "List recent alerts"
+            tags = listOf("Alerts")
+            request {
+                queryParameter<Int>("limit") {
+                    description = "Maximum number of alerts to return"
+                    required = false
+                }
+            }
+        }) {
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 50
             val alerts = inAppDelivery.getRecentAlerts(limit).map { it.toEventResponse() }
             call.respond(alerts)

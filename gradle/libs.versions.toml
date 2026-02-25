@@ -19,6 +19,7 @@ micrometer = "1.14.4"
 opentelemetry = "1.46.0"
 opentelemetry-instrumentation = "2.12.0-alpha"
 redis-lettuce = "6.5.3.RELEASE"
+ktor-openapi-tools = "5.6.0"
 
 # Testing
 kotest = "5.9.1"
@@ -93,6 +94,10 @@ opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporte
 opentelemetry-sdk-autoconfigure = { module = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure", version.ref = "opentelemetry" }
 opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 opentelemetry-sdk-testing = { module = "io.opentelemetry:opentelemetry-sdk-testing", version.ref = "opentelemetry" }
+
+# OpenAPI / Swagger UI
+ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "ktor-openapi-tools" }
+ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "ktor-openapi-tools" }
 
 # Redis
 redis-lettuce = { module = "io.lettuce:lettuce-core", version.ref = "redis-lettuce" }

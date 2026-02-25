@@ -20,6 +20,8 @@ import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.ReportFormat
 import com.kinetix.proto.risk.StressTestRequest
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -36,7 +38,14 @@ fun Route.riskRoutes(
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
-        post {
+        post({
+            summary = "Calculate VaR for a portfolio"
+            tags = listOf("VaR")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                body<VaRCalculationRequestBody>()
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
             val request = VaRCalculationRequest(
@@ -55,7 +64,13 @@ fun Route.riskRoutes(
             }
         }
 
-        get {
+        get({
+            summary = "Get latest cached VaR result"
+            tags = listOf("VaR")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val cached = varCache.get(portfolioId)
             if (cached != null) {
@@ -68,7 +83,14 @@ fun Route.riskRoutes(
 
     // Stress test routes
     route("/api/v1/risk/stress/{portfolioId}") {
-        post {
+        post({
+            summary = "Run stress test for a portfolio"
+            tags = listOf("Stress Tests")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                body<StressTestRequestBody>()
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<StressTestRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
@@ -110,14 +132,24 @@ fun Route.riskRoutes(
         }
     }
 
-    get("/api/v1/risk/stress/scenarios") {
+    get("/api/v1/risk/stress/scenarios", {
+        summary = "List available stress test scenarios"
+        tags = listOf("Stress Tests")
+    }) {
         val response = stressTestStub.listScenarios(ListScenariosRequest.getDefaultInstance())
         call.respond(response.scenarioNamesList)
     }
 
     // Greeks routes
     route("/api/v1/risk/greeks/{portfolioId}") {
-        post {
+        post({
+            summary = "Calculate Greeks for a portfolio"
+            tags = listOf("Greeks")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                body<VaRCalculationRequestBody>()
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
@@ -154,7 +186,13 @@ fun Route.riskRoutes(
 
     // FRTB routes
     route("/api/v1/regulatory/frtb/{portfolioId}") {
-        post {
+        post({
+            summary = "Calculate FRTB for a portfolio"
+            tags = listOf("Regulatory")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
 
@@ -192,7 +230,14 @@ fun Route.riskRoutes(
 
     // Report routes
     route("/api/v1/regulatory/report/{portfolioId}") {
-        post {
+        post({
+            summary = "Generate regulatory report"
+            tags = listOf("Regulatory")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                body<GenerateReportRequestBody>()
+            }
+        }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<GenerateReportRequestBody>()
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
@@ -222,7 +267,14 @@ fun Route.riskRoutes(
     // Market data dependencies routes
     if (riskEngineClient != null) {
         route("/api/v1/risk/dependencies/{portfolioId}") {
-            post {
+            post({
+                summary = "Discover market data dependencies"
+                tags = listOf("Dependencies")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    body<DependenciesRequestBody>()
+                }
+            }) {
                 val portfolioId = call.requirePathParam("portfolioId")
                 val body = call.receive<DependenciesRequestBody>()
                 val positions = positionProvider.getPositions(PortfolioId(portfolioId))

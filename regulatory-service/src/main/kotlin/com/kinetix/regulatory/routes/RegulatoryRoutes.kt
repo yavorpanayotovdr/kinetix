@@ -7,6 +7,8 @@ import com.kinetix.regulatory.dto.RiskClassChargeDto
 import com.kinetix.regulatory.model.FrtbCalculationRecord
 import com.kinetix.regulatory.model.RiskClassCharge
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -18,7 +20,13 @@ fun Route.regulatoryRoutes(
     client: RiskOrchestratorClient,
 ) {
     route("/api/v1/regulatory/frtb/{portfolioId}") {
-        post("/calculate") {
+        post("/calculate", {
+            summary = "Calculate FRTB for a portfolio"
+            tags = listOf("FRTB")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
             val portfolioId = call.parameters["portfolioId"]
                 ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 
@@ -52,7 +60,21 @@ fun Route.regulatoryRoutes(
             call.respond(HttpStatusCode.Created, record.toResponse())
         }
 
-        get("/history") {
+        get("/history", {
+            summary = "Get FRTB calculation history"
+            tags = listOf("FRTB")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                queryParameter<String>("limit") {
+                    description = "Maximum number of results"
+                    required = false
+                }
+                queryParameter<String>("offset") {
+                    description = "Number of results to skip"
+                    required = false
+                }
+            }
+        }) {
             val portfolioId = call.parameters["portfolioId"]
                 ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
@@ -69,7 +91,13 @@ fun Route.regulatoryRoutes(
             )
         }
 
-        get("/latest") {
+        get("/latest", {
+            summary = "Get latest FRTB calculation"
+            tags = listOf("FRTB")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
             val portfolioId = call.parameters["portfolioId"]
                 ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 

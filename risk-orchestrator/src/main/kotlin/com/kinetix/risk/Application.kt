@@ -36,6 +36,9 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.serialization.kotlinx.json.*
 import java.io.File
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -63,6 +66,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Risk Orchestrator API"
+            version = "1.0.0"
+            description = "Orchestrates VaR calculations, stress tests, Greeks and regulatory reporting"
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -70,6 +80,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

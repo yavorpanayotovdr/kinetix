@@ -29,6 +29,9 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -62,6 +65,13 @@ fun Application.module() {
         })
     }
     install(WebSockets)
+    install(OpenApi) {
+        info {
+            title = "Gateway API"
+            version = "1.0.0"
+            description = "API gateway aggregating all Kinetix services"
+        }
+    }
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -84,6 +94,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

@@ -14,9 +14,9 @@ import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.time.Instant
 import java.time.LocalDate
@@ -28,7 +28,13 @@ fun Route.referenceDataRoutes(
 ) {
     route("/api/v1/reference-data") {
         route("/dividends/{instrumentId}") {
-            get("/latest") {
+            get("/latest", {
+                summary = "Get latest dividend yield"
+                tags = listOf("Dividends")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                }
+            }) {
                 val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
                 val dividendYield = dividendYieldRepository.findLatest(instrumentId)
                 if (dividendYield != null) {
@@ -39,7 +45,13 @@ fun Route.referenceDataRoutes(
             }
         }
 
-        post("/dividends") {
+        post("/dividends", {
+            summary = "Ingest a dividend yield"
+            tags = listOf("Dividends")
+            request {
+                body<IngestDividendYieldRequest>()
+            }
+        }) {
             val request = call.receive<IngestDividendYieldRequest>()
             val dividendYield = DividendYield(
                 instrumentId = InstrumentId(request.instrumentId),
@@ -53,7 +65,13 @@ fun Route.referenceDataRoutes(
         }
 
         route("/credit-spreads/{instrumentId}") {
-            get("/latest") {
+            get("/latest", {
+                summary = "Get latest credit spread"
+                tags = listOf("Credit Spreads")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                }
+            }) {
                 val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
                 val creditSpread = creditSpreadRepository.findLatest(instrumentId)
                 if (creditSpread != null) {
@@ -64,7 +82,13 @@ fun Route.referenceDataRoutes(
             }
         }
 
-        post("/credit-spreads") {
+        post("/credit-spreads", {
+            summary = "Ingest a credit spread"
+            tags = listOf("Credit Spreads")
+            request {
+                body<IngestCreditSpreadRequest>()
+            }
+        }) {
             val request = call.receive<IngestCreditSpreadRequest>()
             val creditSpread = CreditSpread(
                 instrumentId = InstrumentId(request.instrumentId),

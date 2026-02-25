@@ -10,8 +10,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.server.routing.route
 import java.time.Instant
 
@@ -20,7 +20,14 @@ fun Route.correlationRoutes(
     ingestionService: CorrelationIngestionService,
 ) {
     route("/api/v1/correlations") {
-        get("/latest") {
+        get("/latest", {
+            summary = "Get latest correlation matrix"
+            tags = listOf("Correlations")
+            request {
+                queryParameter<String>("labels") { description = "Comma-separated instrument labels" }
+                queryParameter<Int>("window") { description = "Window size in days" }
+            }
+        }) {
             val labels = call.requireQueryParam("labels").split(",")
             val windowDays = call.requireQueryParam("window").toInt()
             val matrix = correlationMatrixRepository.findLatest(labels, windowDays)
@@ -31,7 +38,13 @@ fun Route.correlationRoutes(
             }
         }
 
-        post("/ingest") {
+        post("/ingest", {
+            summary = "Ingest a correlation matrix"
+            tags = listOf("Correlations")
+            request {
+                body<IngestCorrelationMatrixRequest>()
+            }
+        }) {
             val request = call.receive<IngestCorrelationMatrixRequest>()
             val matrix = CorrelationMatrix(
                 labels = request.labels,

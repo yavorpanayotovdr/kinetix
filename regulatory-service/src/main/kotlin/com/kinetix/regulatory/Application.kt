@@ -11,6 +11,9 @@ import com.kinetix.regulatory.seed.DevDataSeeder
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -30,6 +33,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Regulatory Service API"
+            version = "1.0.0"
+            description = "Manages FRTB calculations and regulatory compliance"
+        }
+    }
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -51,6 +61,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

@@ -23,6 +23,7 @@ class ModuleWithRoutesTest : FunSpec({
                     "database.username" to DatabaseTestSetup.postgres.username,
                     "database.password" to DatabaseTestSetup.postgres.password,
                     "kafka.bootstrapServers" to "localhost:9092",
+                    "seed.enabled" to "false",
                 )
             }
             application { moduleWithRoutes() }
@@ -40,6 +41,7 @@ class ModuleWithRoutesTest : FunSpec({
                     "database.username" to DatabaseTestSetup.postgres.username,
                     "database.password" to DatabaseTestSetup.postgres.password,
                     "kafka.bootstrapServers" to "localhost:9092",
+                    "seed.enabled" to "false",
                 )
             }
             application { moduleWithRoutes() }

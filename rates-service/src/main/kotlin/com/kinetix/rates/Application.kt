@@ -13,6 +13,9 @@ import com.kinetix.rates.persistence.RiskFreeRateRepository
 import com.kinetix.rates.persistence.YieldCurveRepository
 import com.kinetix.rates.routes.ratesRoutes
 import com.kinetix.rates.service.RateIngestionService
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -27,6 +30,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -43,6 +47,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Rates Service API"
+            version = "1.0.0"
+            description = "Manages yield curves, risk-free rates and forward curves"
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -50,6 +61,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 

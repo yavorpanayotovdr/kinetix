@@ -12,9 +12,9 @@ import com.kinetix.volatility.service.VolatilityIngestionService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.math.BigDecimal
 import java.time.Instant
@@ -25,7 +25,13 @@ fun Route.volatilityRoutes(
 ) {
     route("/api/v1/volatility") {
         route("/{instrumentId}/surface") {
-            get("/latest") {
+            get("/latest", {
+                summary = "Get latest volatility surface"
+                tags = listOf("Volatility")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                }
+            }) {
                 val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
                 val surface = volSurfaceRepository.findLatest(instrumentId)
                 if (surface != null) {
@@ -35,7 +41,15 @@ fun Route.volatilityRoutes(
                 }
             }
 
-            get("/history") {
+            get("/history", {
+                summary = "Get volatility surface history"
+                tags = listOf("Volatility")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
+                    queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+                }
+            }) {
                 val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
                 val from = Instant.parse(
                     call.request.queryParameters["from"]
@@ -50,7 +64,13 @@ fun Route.volatilityRoutes(
             }
         }
 
-        post("/surfaces") {
+        post("/surfaces", {
+            summary = "Ingest a volatility surface"
+            tags = listOf("Volatility")
+            request {
+                body<IngestVolSurfaceRequest>()
+            }
+        }) {
             val request = call.receive<IngestVolSurfaceRequest>()
             val surface = VolSurface(
                 instrumentId = InstrumentId(request.instrumentId),

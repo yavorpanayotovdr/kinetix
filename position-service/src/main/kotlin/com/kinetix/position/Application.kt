@@ -12,6 +12,9 @@ import com.kinetix.position.service.ExposedTransactionalRunner
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -39,6 +42,13 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(OpenApi) {
+        info {
+            title = "Position Service API"
+            version = "1.0.0"
+            description = "Manages portfolios, positions and trade booking"
+        }
+    }
     routing {
         get("/health") {
             call.respondText("""{"status":"UP"}""", ContentType.Application.Json)
@@ -46,6 +56,8 @@ fun Application.module() {
         get("/metrics") {
             call.respondText(appMicrometerRegistry.scrape())
         }
+        route("openapi.json") { openApi() }
+        route("swagger") { swaggerUI("/openapi.json") }
     }
 }
 
