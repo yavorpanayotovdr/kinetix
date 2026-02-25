@@ -302,6 +302,24 @@ describe('SystemDashboard', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
+  it('reference-data-service card has a Grafana icon linking to the reference data service dashboard', () => {
+    render(
+      <SystemDashboard
+        health={allUpHealth}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const link = screen.getByTestId('service-grafana-link-reference-data-service')
+    expect(link).toHaveAttribute(
+      'href',
+      'http://localhost:3000/d/kinetix-reference-data-service',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
   it('does not include Prices in observability links', () => {
     render(
       <SystemDashboard
