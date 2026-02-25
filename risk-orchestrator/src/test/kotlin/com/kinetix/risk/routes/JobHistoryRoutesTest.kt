@@ -55,12 +55,13 @@ class JobHistoryRoutesTest : FunSpec({
         clearMocks(jobRecorder)
     }
 
-    test("lists valuation jobs for a portfolio") {
+    test("lists valuation jobs for a portfolio wrapped in paginated response") {
         val jobs = listOf(
             completedJob(jobId = JOB_ID),
             completedJob(jobId = JOB_ID_2, startedAt = Instant.parse("2025-01-15T09:00:00Z")),
         )
         coEvery { jobRecorder.findByPortfolioId("port-1", 20, 0) } returns jobs
+        coEvery { jobRecorder.countByPortfolioId("port-1") } returns 2L
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -70,6 +71,8 @@ class JobHistoryRoutesTest : FunSpec({
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
+            body shouldContain "\"items\""
+            body shouldContain "\"totalCount\":2"
             body shouldContain JOB_ID.toString()
             body shouldContain JOB_ID_2.toString()
             body shouldContain "ON_DEMAND"
@@ -112,6 +115,7 @@ class JobHistoryRoutesTest : FunSpec({
 
     test("supports limit and offset query parameters") {
         coEvery { jobRecorder.findByPortfolioId("port-1", 5, 10) } returns emptyList()
+        coEvery { jobRecorder.countByPortfolioId("port-1") } returns 0L
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -128,6 +132,7 @@ class JobHistoryRoutesTest : FunSpec({
         val from = Instant.parse("2025-01-15T09:00:00Z")
         val to = Instant.parse("2025-01-15T11:00:00Z")
         coEvery { jobRecorder.findByPortfolioId("port-1", 20, 0, from, to) } returns listOf(completedJob())
+        coEvery { jobRecorder.countByPortfolioId("port-1", from, to) } returns 1L
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -137,6 +142,7 @@ class JobHistoryRoutesTest : FunSpec({
 
             response.status shouldBe HttpStatusCode.OK
             coVerify { jobRecorder.findByPortfolioId("port-1", 20, 0, from, to) }
+            coVerify { jobRecorder.countByPortfolioId("port-1", from, to) }
         }
     }
 

@@ -6,7 +6,7 @@ export async function fetchValuationJobs(
   offset: number = 0,
   from?: string,
   to?: string,
-): Promise<ValuationJobSummaryDto[]> {
+): Promise<{ items: ValuationJobSummaryDto[]; totalCount: number }> {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),

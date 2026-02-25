@@ -11,6 +11,20 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.time.Instant
 import java.util.UUID
 
+private fun startedJob(
+    portfolioId: String = "port-1",
+    triggerType: TriggerType = TriggerType.ON_DEMAND,
+    startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
+) = ValuationJob(
+    jobId = UUID.randomUUID(),
+    portfolioId = portfolioId,
+    triggerType = triggerType,
+    status = RunStatus.STARTED,
+    startedAt = startedAt,
+    calculationType = "PARAMETRIC",
+    confidenceLevel = "CL_95",
+)
+
 private fun completedJob(
     portfolioId: String = "port-1",
     triggerType: TriggerType = TriggerType.ON_DEMAND,
@@ -162,6 +176,68 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         // no filter returns all
         val all = recorder.findByPortfolioId("port-1")
         all shouldHaveSize 3
+    }
+
+    test("updates a STARTED job to COMPLETED with all fields") {
+        val job = startedJob()
+        recorder.save(job)
+
+        val found = recorder.findByJobId(job.jobId)
+        found.shouldNotBeNull()
+        found.status shouldBe RunStatus.STARTED
+        found.completedAt.shouldBeNull()
+        found.varValue.shouldBeNull()
+
+        val completedAt = job.startedAt.plusMillis(200)
+        val updatedJob = job.copy(
+            status = RunStatus.COMPLETED,
+            completedAt = completedAt,
+            durationMs = 200,
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            steps = listOf(
+                JobStep(
+                    name = JobStepName.FETCH_POSITIONS,
+                    status = RunStatus.COMPLETED,
+                    startedAt = job.startedAt,
+                    completedAt = job.startedAt.plusMillis(20),
+                    durationMs = 20,
+                    details = mapOf("positionCount" to 5),
+                ),
+            ),
+        )
+        recorder.update(updatedJob)
+
+        val updated = recorder.findByJobId(job.jobId)
+        updated.shouldNotBeNull()
+        updated.status shouldBe RunStatus.COMPLETED
+        updated.completedAt shouldBe completedAt
+        updated.durationMs shouldBe 200
+        updated.varValue shouldBe 5000.0
+        updated.expectedShortfall shouldBe 6250.0
+        updated.steps shouldHaveSize 1
+        updated.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
+        updated.error shouldBe null
+    }
+
+    test("updates a STARTED job to FAILED with error") {
+        val job = startedJob()
+        recorder.save(job)
+
+        val completedAt = job.startedAt.plusMillis(50)
+        val failedJob = job.copy(
+            status = RunStatus.FAILED,
+            completedAt = completedAt,
+            durationMs = 50,
+            error = "Engine down",
+        )
+        recorder.update(failedJob)
+
+        val updated = recorder.findByJobId(job.jobId)
+        updated.shouldNotBeNull()
+        updated.status shouldBe RunStatus.FAILED
+        updated.error shouldBe "Engine down"
+        updated.durationMs shouldBe 50
     }
 
     test("respects limit and offset") {

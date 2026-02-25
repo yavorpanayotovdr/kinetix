@@ -25,9 +25,12 @@ const defaultHookResult = {
   resetZoom: vi.fn(),
   zoomDepth: 0,
   page: 0,
+  totalPages: 1,
   hasNextPage: false,
   nextPage: vi.fn(),
   prevPage: vi.fn(),
+  firstPage: vi.fn(),
+  lastPage: vi.fn(),
 }
 
 describe('JobHistory', () => {
@@ -584,16 +587,17 @@ describe('JobHistory', () => {
           expectedShortfall: 6250.0,
         },
       ],
+      totalPages: 3,
       hasNextPage: true,
     })
 
     render(<JobHistory portfolioId="port-1" />)
 
     expect(screen.getByTestId('pagination-bar')).toBeInTheDocument()
-    expect(screen.getByText('Page 1')).toBeInTheDocument()
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
   })
 
-  it('disables previous button on first page', () => {
+  it('disables previous and first buttons on first page', () => {
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -611,15 +615,17 @@ describe('JobHistory', () => {
         },
       ],
       page: 0,
+      totalPages: 3,
       hasNextPage: true,
     })
 
     render(<JobHistory portfolioId="port-1" />)
 
+    expect(screen.getByTestId('pagination-first')).toBeDisabled()
     expect(screen.getByTestId('pagination-prev')).toBeDisabled()
   })
 
-  it('disables next button when no more pages', () => {
+  it('disables next and last buttons when no more pages', () => {
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -637,18 +643,23 @@ describe('JobHistory', () => {
         },
       ],
       page: 1,
+      totalPages: 2,
       hasNextPage: false,
     })
 
     render(<JobHistory portfolioId="port-1" />)
 
     expect(screen.getByTestId('pagination-next')).toBeDisabled()
+    expect(screen.getByTestId('pagination-last')).toBeDisabled()
     expect(screen.getByTestId('pagination-prev')).not.toBeDisabled()
+    expect(screen.getByTestId('pagination-first')).not.toBeDisabled()
   })
 
-  it('calls nextPage and prevPage when buttons are clicked', () => {
+  it('calls all pagination handlers when buttons are clicked', () => {
     const nextPage = vi.fn()
     const prevPage = vi.fn()
+    const firstPageFn = vi.fn()
+    const lastPageFn = vi.fn()
 
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
@@ -667,9 +678,12 @@ describe('JobHistory', () => {
         },
       ],
       page: 1,
+      totalPages: 3,
       hasNextPage: true,
       nextPage,
       prevPage,
+      firstPage: firstPageFn,
+      lastPage: lastPageFn,
     })
 
     render(<JobHistory portfolioId="port-1" />)
@@ -679,6 +693,12 @@ describe('JobHistory', () => {
 
     fireEvent.click(screen.getByTestId('pagination-prev'))
     expect(prevPage).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByTestId('pagination-first'))
+    expect(firstPageFn).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByTestId('pagination-last'))
+    expect(lastPageFn).toHaveBeenCalledTimes(1)
   })
 
   it('does not show pagination controls when no jobs', () => {
@@ -687,7 +707,7 @@ describe('JobHistory', () => {
     expect(screen.queryByTestId('pagination-bar')).not.toBeInTheDocument()
   })
 
-  it('shows page number in badge when on page > 0', () => {
+  it('shows page info in badge when totalPages > 1', () => {
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -705,6 +725,7 @@ describe('JobHistory', () => {
         },
       ],
       page: 2,
+      totalPages: 5,
       hasNextPage: true,
     })
 
@@ -712,7 +733,7 @@ describe('JobHistory', () => {
 
     const toggle = screen.getByTestId('job-history-toggle')
     const badge = toggle.querySelector('.inline-flex.items-center')!
-    expect(badge).toHaveTextContent('Page 3')
+    expect(badge).toHaveTextContent('Page 3 of 5')
   })
 
   it('calls closeJob when close detail button is clicked', () => {

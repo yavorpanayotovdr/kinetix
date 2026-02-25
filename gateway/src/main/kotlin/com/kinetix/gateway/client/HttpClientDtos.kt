@@ -281,6 +281,12 @@ data class ValuationJobDetailClientDto(
     val error: String? = null,
 )
 
+@Serializable
+data class PaginatedJobsClientDto(
+    val items: List<ValuationJobSummaryClientDto>,
+    val totalCount: Long,
+)
+
 // --- Domain mappers ---
 
 fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))

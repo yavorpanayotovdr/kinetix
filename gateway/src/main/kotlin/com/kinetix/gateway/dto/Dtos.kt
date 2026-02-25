@@ -561,6 +561,12 @@ data class ValuationJobDetailResponse(
     val error: String? = null,
 )
 
+@Serializable
+data class PaginatedJobsResponse(
+    val items: List<ValuationJobSummaryResponse>,
+    val totalCount: Long,
+)
+
 // --- Job History mappers ---
 
 fun JobStepItem.toDto(): JobStepDto = JobStepDto(

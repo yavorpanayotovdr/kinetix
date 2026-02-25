@@ -1,6 +1,7 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.dto.PaginatedJobsResponse
 import com.kinetix.gateway.dto.toResponse
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.*
@@ -52,8 +53,8 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             return@get
         }
 
-        val jobs = client.listValuationJobs(portfolioId, limit, offset, from, to)
-        call.respond(jobs.map { it.toResponse() })
+        val (jobs, totalCount) = client.listValuationJobs(portfolioId, limit, offset, from, to)
+        call.respond(PaginatedJobsResponse(jobs.map { it.toResponse() }, totalCount))
     }
 
     get("/api/v1/risk/jobs/detail/{jobId}", {

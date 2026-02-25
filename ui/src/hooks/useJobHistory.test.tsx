@@ -92,7 +92,7 @@ describe('useJobHistory', () => {
   })
 
   it('fetches jobs on mount when portfolioId is provided', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -103,7 +103,7 @@ describe('useJobHistory', () => {
     expect(result.current.runs).toEqual([jobSummary])
     expect(mockFetchJobs).toHaveBeenCalledWith(
       'port-1',
-      21,
+      20,
       0,
       expect.any(String),
       expect.any(String),
@@ -123,7 +123,7 @@ describe('useJobHistory', () => {
   })
 
   it('toggleJob expands a job and stores its detail in expandedJobs', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
     const { result } = renderHook(() => useJobHistory('port-1'))
@@ -146,7 +146,7 @@ describe('useJobHistory', () => {
   })
 
   it('toggleJob collapses an already expanded job', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
     const { result } = renderHook(() => useJobHistory('port-1'))
@@ -172,7 +172,7 @@ describe('useJobHistory', () => {
   })
 
   it('keeps first job open when selecting a second job', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary, jobSummary2])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary, jobSummary2], totalCount: 2 })
     mockFetchJobDetail
       .mockResolvedValueOnce(jobDetail)
       .mockResolvedValueOnce(jobDetail2)
@@ -205,7 +205,7 @@ describe('useJobHistory', () => {
   })
 
   it('clearSelection empties expandedJobs', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
     const { result } = renderHook(() => useJobHistory('port-1'))
@@ -230,7 +230,7 @@ describe('useJobHistory', () => {
   })
 
   it('does not store null in expandedJobs when job detail returns 404', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(null)
 
     const { result } = renderHook(() => useJobHistory('port-1'))
@@ -252,7 +252,7 @@ describe('useJobHistory', () => {
   })
 
   it('re-fetches when time range changes', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -278,7 +278,7 @@ describe('useJobHistory', () => {
 
     expect(mockFetchJobs).toHaveBeenLastCalledWith(
       'port-1',
-      21,
+      20,
       0,
       '2025-01-15T00:00:00Z',
       '2025-01-15T23:59:59Z',
@@ -286,7 +286,7 @@ describe('useJobHistory', () => {
   })
 
   it('exposes zoomDepth of 0 initially', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -298,7 +298,7 @@ describe('useJobHistory', () => {
   })
 
   it('zoomIn pushes current range onto zoom stack and sets new range', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -332,7 +332,7 @@ describe('useJobHistory', () => {
   })
 
   it('resetZoom restores the original range and clears the stack', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -367,7 +367,7 @@ describe('useJobHistory', () => {
   })
 
   it('setTimeRange clears the zoom stack', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -395,7 +395,7 @@ describe('useJobHistory', () => {
   })
 
   it('resets jobs and expanded state when portfolioId becomes null', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { result, rerender } = renderHook(
       ({ pid }) => useJobHistory(pid),
@@ -414,7 +414,7 @@ describe('useJobHistory', () => {
   })
 
   it('polls every 5 seconds to pick up new jobs and state changes', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     renderHook(() => useJobHistory('port-1'))
 
@@ -440,7 +440,7 @@ describe('useJobHistory', () => {
   })
 
   it('slides time window forward for relative presets on each poll', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     renderHook(() => useJobHistory('port-1'))
 
@@ -464,7 +464,7 @@ describe('useJobHistory', () => {
   })
 
   it('does not slide time window for Custom ranges', async () => {
-    mockFetchJobs.mockResolvedValue([])
+    mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -498,8 +498,8 @@ describe('useJobHistory', () => {
     expect(mockFetchJobs.mock.calls[2][4]).toBe('2025-01-15T12:00:00Z')
   })
 
-  it('fetches with limit=21 and offset=0 initially', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+  it('fetches with limit=20 and offset=0 initially', async () => {
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     renderHook(() => useJobHistory('port-1'))
 
@@ -509,7 +509,7 @@ describe('useJobHistory', () => {
 
     expect(mockFetchJobs).toHaveBeenCalledWith(
       'port-1',
-      21,
+      20,
       0,
       expect.any(String),
       expect.any(String),
@@ -517,7 +517,7 @@ describe('useJobHistory', () => {
   })
 
   it('nextPage increments page and re-fetches with offset=20', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -526,7 +526,7 @@ describe('useJobHistory', () => {
     })
 
     mockFetchJobs.mockClear()
-    mockFetchJobs.mockResolvedValue([{ ...jobSummary, jobId: 'job-page2' }])
+    mockFetchJobs.mockResolvedValue({ items: [{ ...jobSummary, jobId: 'job-page2' }], totalCount: 40 })
 
     act(() => {
       result.current.nextPage()
@@ -535,7 +535,7 @@ describe('useJobHistory', () => {
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
         'port-1',
-        21,
+        20,
         20,
         expect.any(String),
         expect.any(String),
@@ -546,7 +546,7 @@ describe('useJobHistory', () => {
   })
 
   it('prevPage decrements page', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -563,7 +563,7 @@ describe('useJobHistory', () => {
     })
 
     mockFetchJobs.mockClear()
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
     act(() => {
       result.current.prevPage()
@@ -572,7 +572,7 @@ describe('useJobHistory', () => {
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
         'port-1',
-        21,
+        20,
         0,
         expect.any(String),
         expect.any(String),
@@ -583,7 +583,7 @@ describe('useJobHistory', () => {
   })
 
   it('prevPage is a no-op when page is 0', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -601,8 +601,8 @@ describe('useJobHistory', () => {
     expect(mockFetchJobs).toHaveBeenCalledTimes(callCount)
   })
 
-  it('hasNextPage is true when API returns 21 items, false when fewer', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+  it('hasNextPage is true when totalCount exceeds current page, false on last page', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 30 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -612,7 +612,7 @@ describe('useJobHistory', () => {
 
     expect(result.current.hasNextPage).toBe(true)
 
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 30 })
 
     act(() => {
       result.current.nextPage()
@@ -625,8 +625,8 @@ describe('useJobHistory', () => {
     expect(result.current.hasNextPage).toBe(false)
   })
 
-  it('only exposes 20 items in runs even when 21 are fetched', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+  it('exposes totalPages computed from totalCount', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 45 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -634,11 +634,12 @@ describe('useJobHistory', () => {
       expect(result.current.loading).toBe(false)
     })
 
+    expect(result.current.totalPages).toBe(3)
     expect(result.current.runs).toHaveLength(20)
   })
 
   it('resets page to 0 when time range changes', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -666,7 +667,7 @@ describe('useJobHistory', () => {
   })
 
   it('resets page to 0 when zoomIn is called', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
     const { result } = renderHook(() => useJobHistory('port-1'))
 
@@ -694,7 +695,7 @@ describe('useJobHistory', () => {
   })
 
   it('nextPage and prevPage clear expanded jobs', async () => {
-    mockFetchJobs.mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })))
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
     const { result } = renderHook(() => useJobHistory('port-1'))
@@ -720,8 +721,66 @@ describe('useJobHistory', () => {
     expect(result.current.expandedJobs).toEqual({})
   })
 
+  it('firstPage resets to page 0', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 60 })
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(1)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => {
+      result.current.nextPage()
+    })
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(2)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => {
+      result.current.firstPage()
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.page).toBe(0)
+  })
+
+  it('lastPage jumps to the final page', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 60 })
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.totalPages).toBe(3)
+
+    act(() => {
+      result.current.lastPage()
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.page).toBe(2)
+  })
+
   it('stops polling when portfolioId becomes null', async () => {
-    mockFetchJobs.mockResolvedValue([jobSummary])
+    mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { rerender } = renderHook(
       ({ pid }) => useJobHistory(pid),

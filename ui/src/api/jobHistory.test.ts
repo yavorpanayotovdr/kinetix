@@ -43,16 +43,17 @@ describe('jobHistory API', () => {
   }
 
   describe('fetchValuationJobs', () => {
-    it('returns parsed JSON on 200', async () => {
+    it('returns parsed paginated JSON on 200', async () => {
+      const paginatedResponse = { items: [jobSummary], totalCount: 1 }
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([jobSummary]),
+        json: () => Promise.resolve(paginatedResponse),
       })
 
       const result = await fetchValuationJobs('port-1')
 
-      expect(result).toEqual([jobSummary])
+      expect(result).toEqual(paginatedResponse)
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/v1/risk/jobs/port-1?limit=20&offset=0',
       )
@@ -62,7 +63,7 @@ describe('jobHistory API', () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([]),
+        json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
       await fetchValuationJobs('port-1', 5, 10)
@@ -76,7 +77,7 @@ describe('jobHistory API', () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([]),
+        json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
       await fetchValuationJobs('port-1', 20, 0, '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
@@ -90,7 +91,7 @@ describe('jobHistory API', () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve([]),
+        json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
       // This mimics what TimeRangeSelector.handleApply does:

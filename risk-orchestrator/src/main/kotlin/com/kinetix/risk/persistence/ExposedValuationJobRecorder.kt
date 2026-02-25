@@ -30,6 +30,20 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         }
     }
 
+    override suspend fun update(job: ValuationJob): Unit = newSuspendedTransaction(db = db) {
+        ValuationJobsTable.update({ ValuationJobsTable.jobId eq job.jobId }) {
+            it[status] = job.status.name
+            it[completedAt] = job.completedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
+            it[durationMs] = job.durationMs
+            it[calculationType] = job.calculationType
+            it[confidenceLevel] = job.confidenceLevel
+            it[varValue] = job.varValue
+            it[expectedShortfall] = job.expectedShortfall
+            it[steps] = job.steps.map { step -> step.toJson() }
+            it[error] = job.error
+        }
+    }
+
     override suspend fun findByPortfolioId(
         portfolioId: String,
         limit: Int,
@@ -53,6 +67,26 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .limit(limit)
             .offset(offset.toLong())
             .map { it.toValuationJob() }
+    }
+
+    override suspend fun countByPortfolioId(
+        portfolioId: String,
+        from: Instant?,
+        to: Instant?,
+    ): Long = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
+            .selectAll()
+            .where {
+                var condition = ValuationJobsTable.portfolioId eq portfolioId
+                if (from != null) {
+                    condition = condition and (ValuationJobsTable.startedAt greaterEq OffsetDateTime.ofInstant(from, ZoneOffset.UTC))
+                }
+                if (to != null) {
+                    condition = condition and (ValuationJobsTable.startedAt lessEq OffsetDateTime.ofInstant(to, ZoneOffset.UTC))
+                }
+                condition
+            }
+            .count()
     }
 
     override suspend fun findByJobId(jobId: UUID): ValuationJob? = newSuspendedTransaction(db = db) {

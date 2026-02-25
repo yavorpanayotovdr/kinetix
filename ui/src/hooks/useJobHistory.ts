@@ -44,9 +44,12 @@ export interface UseJobHistoryResult {
   resetZoom: () => void
   zoomDepth: number
   page: number
+  totalPages: number
   hasNextPage: boolean
   nextPage: () => void
   prevPage: () => void
+  firstPage: () => void
+  lastPage: () => void
 }
 
 const POLL_INTERVAL = 5_000
@@ -62,7 +65,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const [fetchVersion, setFetchVersion] = useState(0)
   const [page, setPage] = useState(0)
-  const [hasNextPage, setHasNextPage] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
 
   const timeRangeRef = useRef(timeRange)
   timeRangeRef.current = timeRange
@@ -78,9 +81,9 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     try {
       const { from, to } = resolveQueryRange(timeRangeRef.current)
-      const result = await fetchValuationJobs(portfolioId, PAGE_SIZE + 1, pageRef.current * PAGE_SIZE, from, to)
-      setHasNextPage(result.length > PAGE_SIZE)
-      setRuns(result.slice(0, PAGE_SIZE))
+      const { items, totalCount: count } = await fetchValuationJobs(portfolioId, PAGE_SIZE, pageRef.current * PAGE_SIZE, from, to)
+      setTotalCount(count)
+      setRuns(items)
       setTimeRangeInternal((prev) => {
         if (prev.from === from && prev.to === to) return prev
         return { ...prev, from, to }
@@ -168,6 +171,9 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
   }, [zoomStack])
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const hasNextPage = (page + 1) * PAGE_SIZE < totalCount
+
   const nextPage = useCallback(() => {
     if (!hasNextPage) return
     setExpandedJobs({})
@@ -182,9 +188,23 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setPage((p) => p - 1)
   }, [page])
 
+  const firstPage = useCallback(() => {
+    if (page === 0) return
+    setExpandedJobs({})
+    setLoadingJobIds(new Set())
+    setPage(0)
+  }, [page])
+
+  const lastPage = useCallback(() => {
+    if (!hasNextPage) return
+    setExpandedJobs({})
+    setLoadingJobIds(new Set())
+    setPage(totalPages - 1)
+  }, [hasNextPage, totalPages])
+
   const refresh = useCallback(() => {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, hasNextPage, nextPage, prevPage }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage }
 }

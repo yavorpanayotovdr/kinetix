@@ -2,6 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.risk.mapper.toDetailResponse
 import com.kinetix.risk.mapper.toSummaryResponse
+import com.kinetix.risk.routes.dtos.PaginatedJobsResponse
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.*
@@ -55,7 +56,8 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
         }
 
         val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to)
-        call.respond(jobs.map { it.toSummaryResponse() })
+        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to)
+        call.respond(PaginatedJobsResponse(jobs.map { it.toSummaryResponse() }, totalCount))
     }
 
     get("/api/v1/risk/jobs/detail/{jobId}", {

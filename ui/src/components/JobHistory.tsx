@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, History, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
 import { JobHistoryTable } from './JobHistoryTable'
@@ -50,7 +50,7 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth, page, hasNextPage, nextPage, prevPage } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage } = useJobHistory(
     expanded ? portfolioId : null,
   )
   const buckets = useTimeBuckets(runs, timeRange)
@@ -70,7 +70,7 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
         <History className="h-4 w-4 text-slate-500" />
         <span className="text-sm font-semibold text-slate-700">Valuation Jobs</span>
         {expanded && filteredRuns.length > 0 && (
-          <Badge variant="neutral">{page > 0 ? `Page ${page + 1}` : filteredRuns.length}</Badge>
+          <Badge variant="neutral">{totalPages > 1 ? `Page ${page + 1} of ${totalPages}` : filteredRuns.length}</Badge>
         )}
       </button>
 
@@ -123,25 +123,41 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
                 onCloseJob={closeJob}
               />
               {filteredRuns.length > 0 && (
-                <div data-testid="pagination-bar" className="flex items-center justify-center gap-3 mt-2 py-2">
+                <div data-testid="pagination-bar" className="flex items-center justify-center gap-2 mt-2 py-2">
+                  <button
+                    data-testid="pagination-first"
+                    onClick={firstPage}
+                    disabled={page === 0}
+                    className="inline-flex items-center px-1.5 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronsLeft className="h-3 w-3" />
+                  </button>
                   <button
                     data-testid="pagination-prev"
                     onClick={prevPage}
                     disabled={page === 0}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-1.5 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
-                    Previous
                   </button>
-                  <span className="text-xs text-slate-500">Page {page + 1}</span>
+                  <span data-testid="pagination-info" className="text-xs text-slate-500 mx-1">
+                    {totalPages > 1 ? `Page ${page + 1} of ${totalPages}` : `Page ${page + 1}`}
+                  </span>
                   <button
                     data-testid="pagination-next"
                     onClick={nextPage}
                     disabled={!hasNextPage}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-1.5 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Next
                     <ChevronRight className="h-3 w-3" />
+                  </button>
+                  <button
+                    data-testid="pagination-last"
+                    onClick={lastPage}
+                    disabled={!hasNextPage}
+                    className="inline-flex items-center px-1.5 py-1 text-xs font-medium rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronsRight className="h-3 w-3" />
                   </button>
                 </div>
               )}

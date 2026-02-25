@@ -32,6 +32,18 @@ class VaRCalculationService(
         val steps = mutableListOf<JobStep>()
         var jobError: String? = null
 
+        saveJobSafely(
+            ValuationJob(
+                jobId = jobId,
+                portfolioId = request.portfolioId.value,
+                triggerType = triggerType,
+                status = RunStatus.STARTED,
+                startedAt = jobStartedAt,
+                calculationType = request.calculationType.name,
+                confidenceLevel = request.confidenceLevel.name,
+            )
+        )
+
         try {
             // Step 1: Fetch positions
             val fetchPosStart = Instant.now()
@@ -231,7 +243,7 @@ class VaRCalculationService(
                 expectedShortfall = result.expectedShortfall,
                 steps = steps,
             )
-            saveJobSafely(job)
+            updateJobSafely(job)
 
             return result
         } catch (e: Exception) {
@@ -250,7 +262,7 @@ class VaRCalculationService(
                 steps = steps,
                 error = jobError,
             )
-            saveJobSafely(job)
+            updateJobSafely(job)
             throw e
         }
     }
@@ -260,6 +272,14 @@ class VaRCalculationService(
             jobRecorder.save(job)
         } catch (e: Exception) {
             logger.warn("Failed to record valuation job {}", job.jobId, e)
+        }
+    }
+
+    private suspend fun updateJobSafely(job: ValuationJob) {
+        try {
+            jobRecorder.update(job)
+        } catch (e: Exception) {
+            logger.warn("Failed to update valuation job {}", job.jobId, e)
         }
     }
 }

@@ -70,6 +70,7 @@ class VaRCalculationServiceTest : FunSpec({
     beforeEach {
         clearMocks(positionProvider, riskEngineClient, resultPublisher, jobRecorder)
         coEvery { jobRecorder.save(any()) } just Runs
+        coEvery { jobRecorder.update(any()) } just Runs
     }
 
     test("fetches positions, calls risk engine, and publishes result") {
@@ -165,7 +166,7 @@ class VaRCalculationServiceTest : FunSpec({
         result!!.componentBreakdown.size shouldBe 3
     }
 
-    test("records a completed valuation job with all job steps") {
+    test("saves a STARTED skeleton job at the beginning of calculation") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -181,10 +182,43 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        val saveSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(saveSlot)) }
 
-        val job = jobSlot.captured
+        val startedJob = saveSlot.captured
+        startedJob.portfolioId shouldBe "port-1"
+        startedJob.status shouldBe RunStatus.STARTED
+        startedJob.triggerType shouldBe TriggerType.ON_DEMAND
+        startedJob.calculationType shouldBe "PARAMETRIC"
+        startedJob.confidenceLevel shouldBe "CL_95"
+        startedJob.completedAt shouldBe null
+        startedJob.durationMs shouldBe null
+        startedJob.varValue shouldBe null
+        startedJob.expectedShortfall shouldBe null
+        startedJob.steps shouldHaveSize 0
+        startedJob.error shouldBe null
+    }
+
+    test("updates the job to COMPLETED with all job steps after calculation") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val updateSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(updateSlot)) }
+
+        val job = updateSlot.captured
         job.portfolioId shouldBe "port-1"
         job.status shouldBe RunStatus.COMPLETED
         job.triggerType shouldBe TriggerType.ON_DEMAND
@@ -212,7 +246,7 @@ class VaRCalculationServiceTest : FunSpec({
         positionsJson shouldContain "100"
     }
 
-    test("records a failed job when risk engine throws") {
+    test("updates the job to FAILED when risk engine throws") {
         val positions = listOf(position())
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
@@ -230,15 +264,17 @@ class VaRCalculationServiceTest : FunSpec({
             // expected
         }
 
-        val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        val saveSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(saveSlot)) }
+        saveSlot.captured.status shouldBe RunStatus.STARTED
 
-        val job = jobSlot.captured
-        job.status shouldBe RunStatus.FAILED
-        job.error shouldBe "Engine down"
+        val updateSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(updateSlot)) }
+        updateSlot.captured.status shouldBe RunStatus.FAILED
+        updateSlot.captured.error shouldBe "Engine down"
     }
 
-    test("does not fail the calculation if job recorder throws") {
+    test("does not fail the calculation if job recorder save throws") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -246,6 +282,26 @@ class VaRCalculationServiceTest : FunSpec({
         coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { jobRecorder.save(any()) } throws RuntimeException("DB connection failed")
+
+        val result = service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result shouldBe expectedResult
+    }
+
+    test("does not fail the calculation if job recorder update throws") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+        coEvery { jobRecorder.update(any()) } throws RuntimeException("DB connection failed")
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
@@ -275,10 +331,13 @@ class VaRCalculationServiceTest : FunSpec({
             triggerType = TriggerType.TRADE_EVENT,
         )
 
-        val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        val saveSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.save(capture(saveSlot)) }
+        saveSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
 
-        jobSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
+        val updateSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(updateSlot)) }
+        updateSlot.captured.triggerType shouldBe TriggerType.TRADE_EVENT
     }
 
     test("captures discovered dependencies in step details") {
@@ -310,7 +369,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val discoverStep = jobSlot.captured.steps.first { it.name == JobStepName.DISCOVER_DEPENDENCIES }
         discoverStep.details["dependencyCount"] shouldBe 2
@@ -365,7 +424,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val mdStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_MARKET_DATA }
         mdStep.details["requested"] shouldBe 2
@@ -422,7 +481,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
         val groupedJson = fetchPosStep.details["dependenciesByPosition"]
@@ -457,7 +516,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         val jobSlot = slot<ValuationJob>()
-        coVerify { jobRecorder.save(capture(jobSlot)) }
+        coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
         fetchPosStep.details.containsKey("dependenciesByPosition") shouldBe false
