@@ -28,8 +28,8 @@ const STATUS_COLORS = {
 export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoom }: JobTimechartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
-  const [tooltip, setTooltip] = useState<{ bucket: TimeBucket; x: number; y: number } | null>(null)
-  const [pinnedTooltip, setPinnedTooltip] = useState<{ bucket: TimeBucket; x: number; y: number } | null>(null)
+  const [tooltip, setTooltip] = useState<{ bucket: TimeBucket } | null>(null)
+  const [pinnedTooltip, setPinnedTooltip] = useState<{ bucket: TimeBucket } | null>(null)
 
   useEffect(() => {
     const el = containerRef.current
@@ -94,11 +94,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
         const bucket = buckets[index]
         const total = bucket.completed + bucket.failed + bucket.running
         if (total === 0) return
-        setPinnedTooltip({
-          bucket,
-          x: Math.min(clickX + 12, rect.width - 200),
-          y: 8,
-        })
+        setPinnedTooltip({ bucket })
       }
     },
     [buckets],
@@ -154,11 +150,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
       const index = Math.floor((mouseX - PADDING.left) / bw)
 
       if (index >= 0 && index < buckets.length) {
-        setTooltip({
-          bucket: buckets[index],
-          x: Math.min(mouseX + 12, rect.width - 200),
-          y: 8,
-        })
+        setTooltip({ bucket: buckets[index] })
       } else {
         setTooltip(null)
       }
@@ -186,16 +178,6 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
           Reset zoom
         </button>
       )}
-
-      <ChartTooltip
-        bucket={(pinnedTooltip ?? tooltip)?.bucket ?? null}
-        x={(pinnedTooltip ?? tooltip)?.x ?? 0}
-        y={(pinnedTooltip ?? tooltip)?.y ?? 0}
-        visible={pinnedTooltip !== null || tooltip !== null}
-        rangeDays={rangeDays}
-        pinned={pinnedTooltip !== null}
-        onClose={handleClosePinned}
-      />
 
       <svg
         width="100%"
@@ -303,6 +285,14 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
           />
         )}
       </svg>
+
+      <ChartTooltip
+        bucket={(pinnedTooltip ?? tooltip)?.bucket ?? null}
+        visible={pinnedTooltip !== null || tooltip !== null}
+        rangeDays={rangeDays}
+        pinned={pinnedTooltip !== null}
+        onClose={handleClosePinned}
+      />
     </div>
   )
 }

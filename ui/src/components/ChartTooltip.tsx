@@ -6,8 +6,6 @@ import { useClickOutside } from '../hooks/useClickOutside'
 
 interface ChartTooltipProps {
   bucket: TimeBucket | null
-  x: number
-  y: number
   visible: boolean
   rangeDays: number
   pinned: boolean
@@ -16,7 +14,7 @@ interface ChartTooltipProps {
 
 const MAX_COLLAPSED = 5
 
-export function ChartTooltip({ bucket, x, y, visible, rangeDays, pinned, onClose }: ChartTooltipProps) {
+export function ChartTooltip({ bucket, visible, rangeDays, pinned, onClose }: ChartTooltipProps) {
   const [expanded, setExpanded] = useState(false)
   const [search, setSearch] = useState('')
   const [prevBucket, setPrevBucket] = useState<TimeBucket | null>(null)
@@ -64,8 +62,7 @@ export function ChartTooltip({ bucket, x, y, visible, rangeDays, pinned, onClose
     <div
       ref={tooltipRef}
       data-testid="chart-tooltip"
-      className={`absolute bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2 z-10 ${pinned ? 'pointer-events-auto' : 'pointer-events-none'}`}
-      style={{ left: x, top: y }}
+      className="bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2"
     >
       {pinned && (
         <button

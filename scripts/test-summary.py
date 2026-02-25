@@ -19,11 +19,17 @@ from pathlib import Path
 #   component is derived from the path segment before /build/ for Gradle,
 #   or a fixed name for pytest/vitest.
 PATTERNS = [
+    # Gradle / local layout
     ("**/build/test-results/test/**/*.xml", "unit"),
     ("**/build/test-results/integrationTest/**/*.xml", "integration"),
     ("**/build/test-results/acceptanceTest/**/*.xml", "acceptance"),
     ("**/risk-engine/**/pytest.xml", "unit"),
     ("**/ui/**/junit.xml", "unit"),
+    # CI artifact layout (download-artifact@v4 strips leading directory structure)
+    ("**/integration-test-xml-*/*.xml", "integration"),
+    ("**/acceptance-test-xml/*.xml", "acceptance"),
+    ("**/python-test-xml/pytest.xml", "unit"),
+    ("**/ui-test-xml/junit.xml", "unit"),
 ]
 
 TEST_TYPES = ["unit", "integration", "acceptance"]
@@ -33,8 +39,12 @@ COLUMN_WIDTH = 12
 def discover_xml_files(root: Path) -> list[tuple[str, str, Path]]:
     """Return a list of (component, test_type, xml_path) tuples."""
     results = []
+    seen: set[Path] = set()
     for pattern, test_type in PATTERNS:
         for xml_path in sorted(root.glob(pattern)):
+            if xml_path in seen:
+                continue
+            seen.add(xml_path)
             component = _extract_component(xml_path, root, test_type)
             if component:
                 results.append((component, test_type, xml_path))
@@ -52,13 +62,24 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
             return parts[idx - 1]
         return None
 
-    # pytest: risk-engine/**/pytest.xml
-    if xml_path.name == "pytest.xml" and "risk-engine" in parts:
-        return "risk-engine"
+    # CI artifact: integration-test-xml-<module>/...
+    for part in parts:
+        if part.startswith("integration-test-xml-"):
+            return part.removeprefix("integration-test-xml-")
 
-    # vitest: ui/**/junit.xml
-    if xml_path.name == "junit.xml" and "ui" in parts:
-        return "ui"
+    # CI artifact: acceptance-test-xml/...
+    if "acceptance-test-xml" in parts:
+        return "acceptance-tests"
+
+    # pytest: risk-engine/**/pytest.xml or python-test-xml/pytest.xml
+    if xml_path.name == "pytest.xml":
+        if "risk-engine" in parts or "python-test-xml" in parts:
+            return "risk-engine"
+
+    # vitest: ui/**/junit.xml or ui-test-xml/junit.xml
+    if xml_path.name == "junit.xml":
+        if "ui" in parts or "ui-test-xml" in parts:
+            return "ui"
 
     return None
 

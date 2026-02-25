@@ -159,6 +159,43 @@ class TestFormatMarkdown:
         assert "No test results found" in output
 
 
+class TestDiscoverXmlFilesFromCIArtifacts:
+    """After download-artifact@v4, XML files live under artifact-name dirs
+    with leading directory structure stripped."""
+
+    def test_discovers_integration_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "integration-test-xml-position-service" / "TEST-Some.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("position-service", "integration") in [(r[0], r[1]) for r in results]
+
+    def test_discovers_acceptance_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "acceptance-test-xml" / "TEST-Some.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("acceptance-tests", "acceptance") in [(r[0], r[1]) for r in results]
+
+    def test_discovers_python_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "python-test-xml" / "pytest.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("risk-engine", "unit") in [(r[0], r[1]) for r in results]
+
+    def test_discovers_ui_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "ui-test-xml" / "junit.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("ui", "unit") in [(r[0], r[1]) for r in results]
+
+    def test_no_double_counting_when_both_layouts_present(self, tmp_repo):
+        """If a file matches both Gradle and CI patterns, it should only be counted once."""
+        xml = tmp_repo / "kotlin-unit-test-xml" / "gateway" / "build" / "test-results" / "test" / "TEST-A.xml"
+        _write_xml(xml, tests=5)
+        results = discover_xml_files(tmp_repo)
+        gateway_results = [r for r in results if r[0] == "gateway" and r[1] == "unit"]
+        assert len(gateway_results) == 1
+
+
 class TestParseResultsWithNestedTestsuites:
     """JUnit XML from pytest wraps testsuites inside a <testsuites> root."""
 
