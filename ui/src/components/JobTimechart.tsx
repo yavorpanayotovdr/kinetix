@@ -298,6 +298,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
           visible={tooltip !== null}
           rangeDays={rangeDays}
           barCenterX={tooltip?.barCenterX ?? 0}
+          containerWidth={containerWidth}
         />
       </div>
     </div>

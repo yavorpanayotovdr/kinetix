@@ -1,14 +1,26 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { TimeBucket } from '../utils/timeBuckets'
 import { formatChartTime } from '../utils/format'
+import { clampTooltipLeft } from '../utils/clampTooltipLeft'
 
 interface ChartTooltipProps {
   bucket: TimeBucket | null
   visible: boolean
   rangeDays: number
   barCenterX: number
+  containerWidth: number
 }
 
-export function ChartTooltip({ bucket, visible, rangeDays, barCenterX }: ChartTooltipProps) {
+export function ChartTooltip({ bucket, visible, rangeDays, barCenterX, containerWidth }: ChartTooltipProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [left, setLeft] = useState(barCenterX)
+
+  useLayoutEffect(() => {
+    if (!ref.current) return
+    const tooltipWidth = ref.current.offsetWidth
+    setLeft(clampTooltipLeft(barCenterX, tooltipWidth, containerWidth))
+  }, [barCenterX, containerWidth])
+
   if (!visible || !bucket) return null
 
   const total = bucket.started + bucket.completed + bucket.failed + bucket.running
@@ -19,9 +31,10 @@ export function ChartTooltip({ bucket, visible, rangeDays, barCenterX }: ChartTo
 
   return (
     <div
+      ref={ref}
       data-testid="chart-tooltip"
-      className="absolute top-0 -translate-x-1/2 bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2 pointer-events-none"
-      style={{ left: `${barCenterX}px` }}
+      className="absolute top-0 bg-slate-800 text-white text-xs rounded shadow-lg px-3 py-2 pointer-events-none whitespace-nowrap"
+      style={{ left: `${left}px` }}
     >
       <div className="font-medium mb-1">{fromLabel} – {toLabel}</div>
       <div className="flex gap-3">

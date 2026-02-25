@@ -19,28 +19,28 @@ function makeBucket(overrides: Partial<TimeBucket> = {}): TimeBucket {
 describe('ChartTooltip', () => {
   it('returns null when not visible', () => {
     const { container } = render(
-      <ChartTooltip bucket={makeBucket()} visible={false} rangeDays={1} barCenterX={100} />,
+      <ChartTooltip bucket={makeBucket()} visible={false} rangeDays={1} barCenterX={100} containerWidth={600} />,
     )
     expect(container.firstElementChild).toBeNull()
   })
 
   it('returns null when bucket is null', () => {
     const { container } = render(
-      <ChartTooltip bucket={null} visible={true} rangeDays={1} barCenterX={100} />,
+      <ChartTooltip bucket={null} visible={true} rangeDays={1} barCenterX={100} containerWidth={600} />,
     )
     expect(container.firstElementChild).toBeNull()
   })
 
   it('returns null when bucket has zero jobs', () => {
     const { container } = render(
-      <ChartTooltip bucket={makeBucket({ started: 0, completed: 0, failed: 0, running: 0 })} visible={true} rangeDays={1} barCenterX={100} />,
+      <ChartTooltip bucket={makeBucket({ started: 0, completed: 0, failed: 0, running: 0 })} visible={true} rangeDays={1} barCenterX={100} containerWidth={600} />,
     )
     expect(container.firstElementChild).toBeNull()
   })
 
   it('shows time range and status counts', () => {
     render(
-      <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} barCenterX={100} />,
+      <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} barCenterX={100} containerWidth={600} />,
     )
     expect(screen.getByText(/Started: 1/)).toBeInTheDocument()
     expect(screen.getByText(/Completed: 3/)).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('ChartTooltip', () => {
 
   it('is positioned at barCenterX', () => {
     render(
-      <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} barCenterX={175} />,
+      <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} barCenterX={175} containerWidth={600} />,
     )
     const tooltip = screen.getByTestId('chart-tooltip')
     expect(tooltip.style.left).toBe('175px')
