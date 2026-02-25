@@ -22,6 +22,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--junitxml=reports/pytest.xml"
 
 [build-system]
 requires = ["hatchling"]

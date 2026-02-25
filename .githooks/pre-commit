@@ -1,16 +1,25 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 echo "==> Running UI lint..."
-(cd ui && npm run lint)
+(cd ui && npm run lint) || { echo "==> Lint failed."; exit 1; }
+
+trap 'echo ""; python3 scripts/test-summary.py 2>/dev/null || true' EXIT
+
+test_exit=0
 
 echo "==> Running Gradle unit, integration, and acceptance tests..."
-./gradlew test integrationTest acceptanceTest --quiet
+./gradlew test integrationTest acceptanceTest --quiet || test_exit=$?
 
 echo "==> Running UI tests..."
-(cd ui && npm run test)
+(cd ui && npm run test) || test_exit=$?
 
 echo "==> Running risk-engine tests..."
-(cd risk-engine && uv run pytest -q)
+(cd risk-engine && uv run pytest -q) || test_exit=$?
+
+if [ $test_exit -ne 0 ]; then
+  echo "==> Some tests failed."
+  exit 1
+fi
 
 echo "==> All checks passed."

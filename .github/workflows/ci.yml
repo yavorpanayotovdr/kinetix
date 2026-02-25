@@ -67,6 +67,13 @@ jobs:
           name: kotlin-unit-test-reports
           path: '**/build/reports/tests/test/'
           retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-unit-test-xml
+          path: '**/build/test-results/test/**/*.xml'
+          retention-days: 1
 
   kotlin-integration:
     needs: kotlin-build
@@ -95,6 +102,13 @@ jobs:
           name: integration-test-reports-${{ matrix.module }}
           path: '${{ matrix.module }}/build/reports/tests/integrationTest/'
           retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-xml-${{ matrix.module }}
+          path: '${{ matrix.module }}/build/test-results/integrationTest/**/*.xml'
+          retention-days: 1
 
   acceptance-tests:
     needs: kotlin-integration
@@ -115,6 +129,13 @@ jobs:
           name: acceptance-test-reports
           path: 'acceptance-tests/build/reports/tests/acceptanceTest/'
           retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-xml
+          path: 'acceptance-tests/build/test-results/acceptanceTest/**/*.xml'
+          retention-days: 1
 
   python-build:
     needs: changes
@@ -142,6 +163,13 @@ jobs:
           name: python-test-reports
           path: risk-engine/reports/
           retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-xml
+          path: risk-engine/reports/pytest.xml
+          retention-days: 1
 
   ui-build:
     needs: changes
@@ -172,3 +200,25 @@ jobs:
           name: ui-test-reports
           path: ui/coverage/
           retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-xml
+          path: ui/test-results/junit.xml
+          retention-days: 1
+
+  test-summary:
+    needs: [kotlin-build, kotlin-integration, acceptance-tests, python-build, ui-build]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-test-xml*'
+          path: test-results/
+      - name: Test summary
+        run: python3 scripts/test-summary.py test-results/ --format markdown >> $GITHUB_STEP_SUMMARY
