@@ -428,7 +428,7 @@ describe('useJobHistory', () => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
     })
 
-    const firstTo = mockFetchJobs.mock.calls[0][4]
+    const firstTo = mockFetchJobs.mock.calls[0][4]!
 
     await act(async () => {
       vi.advanceTimersByTime(5_000)
@@ -438,7 +438,7 @@ describe('useJobHistory', () => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(2)
     })
 
-    const secondTo = mockFetchJobs.mock.calls[1][4]
+    const secondTo = mockFetchJobs.mock.calls[1][4]!
 
     expect(new Date(secondTo).getTime()).toBeGreaterThan(new Date(firstTo).getTime())
   })
