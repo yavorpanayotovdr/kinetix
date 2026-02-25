@@ -165,6 +165,6 @@ interface RiskServiceClient {
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
     suspend fun generateReport(portfolioId: String, format: String): ReportResult?
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
-    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0): List<ValuationJobSummaryItem>
+    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null): List<ValuationJobSummaryItem>
     suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
 }

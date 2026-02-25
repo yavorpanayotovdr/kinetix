@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, History, Search, RefreshCw } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { JobHistoryTable } from './JobHistoryTable'
+import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Badge, Spinner, Button } from './ui'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
@@ -46,7 +47,7 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, toggleJob, closeJob, refresh } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh } = useJobHistory(
     expanded ? portfolioId : null,
   )
 
@@ -84,6 +85,7 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
 
           {!error && !(loading && runs.length === 0) && (
             <>
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               <div className="flex items-center justify-between mb-2">
                 {runs.length > 0 && (
                   <div className="relative">

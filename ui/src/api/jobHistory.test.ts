@@ -72,6 +72,20 @@ describe('jobHistory API', () => {
       )
     })
 
+    it('passes from and to query parameters when provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      })
+
+      await fetchValuationJobs('port-1', 20, 0, '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/jobs/port-1?limit=20&offset=0&from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+      )
+    })
+
     it('throws on 500', async () => {
       mockFetch.mockResolvedValue({
         ok: false,

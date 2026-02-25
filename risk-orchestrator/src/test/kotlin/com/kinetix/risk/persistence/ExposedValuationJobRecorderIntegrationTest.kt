@@ -123,6 +123,47 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.findByJobId(UUID.randomUUID()).shouldBeNull()
     }
 
+    test("filters jobs by time range") {
+        val job1 = completedJob(startedAt = Instant.parse("2025-01-15T08:00:00Z"))
+        val job2 = completedJob(startedAt = Instant.parse("2025-01-15T10:00:00Z"))
+        val job3 = completedJob(startedAt = Instant.parse("2025-01-15T12:00:00Z"))
+
+        recorder.save(job1)
+        recorder.save(job2)
+        recorder.save(job3)
+
+        // from only
+        val afterNine = recorder.findByPortfolioId(
+            "port-1",
+            from = Instant.parse("2025-01-15T09:00:00Z"),
+        )
+        afterNine shouldHaveSize 2
+        afterNine[0].jobId shouldBe job3.jobId
+        afterNine[1].jobId shouldBe job2.jobId
+
+        // to only
+        val beforeEleven = recorder.findByPortfolioId(
+            "port-1",
+            to = Instant.parse("2025-01-15T11:00:00Z"),
+        )
+        beforeEleven shouldHaveSize 2
+        beforeEleven[0].jobId shouldBe job2.jobId
+        beforeEleven[1].jobId shouldBe job1.jobId
+
+        // from and to
+        val range = recorder.findByPortfolioId(
+            "port-1",
+            from = Instant.parse("2025-01-15T09:00:00Z"),
+            to = Instant.parse("2025-01-15T11:00:00Z"),
+        )
+        range shouldHaveSize 1
+        range[0].jobId shouldBe job2.jobId
+
+        // no filter returns all
+        val all = recorder.findByPortfolioId("port-1")
+        all shouldHaveSize 3
+    }
+
     test("respects limit and offset") {
         for (i in 0 until 5) {
             recorder.save(completedJob(startedAt = Instant.parse("2025-01-15T${10 + i}:00:00Z")))

@@ -3,6 +3,7 @@ package com.kinetix.gateway.client
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import java.time.Instant
 import io.ktor.http.*
 
 class HttpRiskServiceClient(
@@ -110,11 +111,13 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun listValuationJobs(portfolioId: String, limit: Int, offset: Int): List<ValuationJobSummaryItem> {
+    override suspend fun listValuationJobs(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?): List<ValuationJobSummaryItem> {
         val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId") {
             url {
                 parameters.append("limit", limit.toString())
                 parameters.append("offset", offset.toString())
+                if (from != null) parameters.append("from", from.toString())
+                if (to != null) parameters.append("to", to.toString())
             }
         }
         val dtos: List<ValuationJobSummaryClientDto> = response.body()

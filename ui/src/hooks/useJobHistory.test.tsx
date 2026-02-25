@@ -99,7 +99,13 @@ describe('useJobHistory', () => {
     })
 
     expect(result.current.runs).toEqual([jobSummary])
-    expect(mockFetchJobs).toHaveBeenCalledWith('port-1')
+    expect(mockFetchJobs).toHaveBeenCalledWith(
+      'port-1',
+      20,
+      0,
+      expect.any(String),
+      expect.any(String),
+    )
   })
 
   it('sets error on fetch failure', async () => {
@@ -241,6 +247,40 @@ describe('useJobHistory', () => {
 
     expect(result.current.expandedJobs['job-1']).toBeUndefined()
     expect(result.current.expandedJobs).toEqual({})
+  })
+
+  it('re-fetches when time range changes', async () => {
+    mockFetchJobs.mockResolvedValue([jobSummary])
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+
+    const newRange = {
+      from: '2025-01-15T00:00:00Z',
+      to: '2025-01-15T23:59:59Z',
+      label: 'Today',
+    }
+
+    act(() => {
+      result.current.setTimeRange(newRange)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+    })
+
+    expect(mockFetchJobs).toHaveBeenLastCalledWith(
+      'port-1',
+      20,
+      0,
+      '2025-01-15T00:00:00Z',
+      '2025-01-15T23:59:59Z',
+    )
   })
 
   it('resets jobs and expanded state when portfolioId becomes null', async () => {

@@ -123,4 +123,42 @@ class JobHistoryRoutesTest : FunSpec({
             coVerify { jobRecorder.findByPortfolioId("port-1", 5, 10) }
         }
     }
+
+    test("filters jobs by from and to") {
+        val from = Instant.parse("2025-01-15T09:00:00Z")
+        val to = Instant.parse("2025-01-15T11:00:00Z")
+        coEvery { jobRecorder.findByPortfolioId("port-1", 20, 0, from, to) } returns listOf(completedJob())
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { jobHistoryRoutes(jobRecorder) }
+
+            val response = client.get("/api/v1/risk/jobs/port-1?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z")
+
+            response.status shouldBe HttpStatusCode.OK
+            coVerify { jobRecorder.findByPortfolioId("port-1", 20, 0, from, to) }
+        }
+    }
+
+    test("returns 400 for invalid from timestamp") {
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { jobHistoryRoutes(jobRecorder) }
+
+            val response = client.get("/api/v1/risk/jobs/port-1?from=not-a-timestamp")
+
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
+    test("returns 400 for invalid to timestamp") {
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { jobHistoryRoutes(jobRecorder) }
+
+            val response = client.get("/api/v1/risk/jobs/port-1?to=garbage")
+
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
 })

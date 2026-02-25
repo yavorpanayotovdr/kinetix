@@ -15,6 +15,8 @@ const defaultHookResult = {
   loadingJobIds: new Set<string>(),
   loading: false,
   error: null,
+  timeRange: { from: '2025-01-14T10:00:00Z', to: '2025-01-15T10:00:00Z', label: 'Last 24h' },
+  setTimeRange: vi.fn(),
   toggleJob: vi.fn(),
   closeJob: vi.fn(),
   clearSelection: vi.fn(),
@@ -458,6 +460,30 @@ describe('JobHistory', () => {
 
     expect(screen.getByTestId('job-row-job-1')).toBeInTheDocument()
     expect(screen.queryByTestId('job-row-job-2')).not.toBeInTheDocument()
+  })
+
+  it('renders time range selector when expanded', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.getByTestId('time-range-selector')).toBeInTheDocument()
   })
 
   it('calls closeJob when close detail button is clicked', () => {

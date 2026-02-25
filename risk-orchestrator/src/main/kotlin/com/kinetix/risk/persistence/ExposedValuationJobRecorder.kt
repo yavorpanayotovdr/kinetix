@@ -34,10 +34,21 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         portfolioId: String,
         limit: Int,
         offset: Int,
+        from: Instant?,
+        to: Instant?,
     ): List<ValuationJob> = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
-            .where { ValuationJobsTable.portfolioId eq portfolioId }
+            .where {
+                var condition = ValuationJobsTable.portfolioId eq portfolioId
+                if (from != null) {
+                    condition = condition and (ValuationJobsTable.startedAt greaterEq OffsetDateTime.ofInstant(from, ZoneOffset.UTC))
+                }
+                if (to != null) {
+                    condition = condition and (ValuationJobsTable.startedAt lessEq OffsetDateTime.ofInstant(to, ZoneOffset.UTC))
+                }
+                condition
+            }
             .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
             .limit(limit)
             .offset(offset.toLong())

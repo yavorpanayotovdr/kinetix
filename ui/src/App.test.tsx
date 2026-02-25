@@ -128,6 +128,8 @@ function setupDefaults() {
     loadingJobIds: new Set(),
     loading: false,
     error: null,
+    timeRange: { from: '2025-01-14T10:00:00Z', to: '2025-01-15T10:00:00Z', label: 'Last 24h' },
+    setTimeRange: vi.fn(),
     toggleJob: vi.fn(),
     closeJob: vi.fn(),
     clearSelection: vi.fn(),

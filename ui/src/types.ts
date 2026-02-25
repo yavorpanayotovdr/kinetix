@@ -155,6 +155,12 @@ export interface CreateAlertRuleRequestDto {
   channels: string[]
 }
 
+export interface TimeRange {
+  from: string
+  to: string
+  label: string
+}
+
 export interface JobStepDto {
   name: string
   status: string

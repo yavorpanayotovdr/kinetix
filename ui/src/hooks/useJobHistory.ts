@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
-import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
+import type { ValuationJobSummaryDto, ValuationJobDetailDto, TimeRange } from '../types'
+
+function defaultTimeRange(): TimeRange {
+  const now = new Date()
+  const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  return { from: from.toISOString(), to: now.toISOString(), label: 'Last 24h' }
+}
 
 export interface UseJobHistoryResult {
   runs: ValuationJobSummaryDto[]
@@ -8,6 +14,8 @@ export interface UseJobHistoryResult {
   loadingJobIds: Set<string>
   loading: boolean
   error: string | null
+  timeRange: TimeRange
+  setTimeRange: (range: TimeRange) => void
   toggleJob: (jobId: string) => void
   closeJob: (jobId: string) => void
   clearSelection: () => void
@@ -20,6 +28,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeRange, setTimeRange] = useState<TimeRange>(defaultTimeRange)
 
   const load = useCallback(async () => {
     if (!portfolioId) return
@@ -28,14 +37,14 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setError(null)
 
     try {
-      const result = await fetchValuationJobs(portfolioId)
+      const result = await fetchValuationJobs(portfolioId, 20, 0, timeRange.from, timeRange.to)
       setRuns(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }, [portfolioId])
+  }, [portfolioId, timeRange])
 
   useEffect(() => {
     if (!portfolioId) {
@@ -92,5 +101,5 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, toggleJob, closeJob, clearSelection, refresh }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh }
 }
