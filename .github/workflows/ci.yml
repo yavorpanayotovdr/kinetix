@@ -221,6 +221,19 @@ jobs:
           pattern: '*-test-xml*'
           path: test-results/
       - name: Test summary
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/test-summary.py test-results/ --format text
-          python3 scripts/test-summary.py test-results/ --format markdown >> "$GITHUB_STEP_SUMMARY"
+          SUMMARY=$(python3 scripts/test-summary.py test-results/ --format markdown)
+          echo "$SUMMARY"
+          echo "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+          CONCLUSION=success
+          if echo "$SUMMARY" | grep -q '✗'; then CONCLUSION=failure; fi
+          gh api repos/${{ github.repository }}/check-runs \
+            --method POST \
+            -f name="Test Results" \
+            -f head_sha=${{ github.sha }} \
+            -f status=completed \
+            -f conclusion="$CONCLUSION" \
+            -f "output[title]=Test Summary" \
+            -f "output[summary]=$SUMMARY"
