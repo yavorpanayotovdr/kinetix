@@ -139,6 +139,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                             </button>
                           </div>
                         </div>
+                        <div data-testid="detail-job-id" className="font-mono text-xs text-slate-500 mb-2">{run.jobId}</div>
                         {isLoading && (
                           <div data-testid="detail-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2">
                             <Spinner size="sm" />

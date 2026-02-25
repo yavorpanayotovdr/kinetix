@@ -283,6 +283,29 @@ describe('JobHistoryTable', () => {
     expect(cell2).toHaveAttribute('title', 'deadbeef-cafe-babe-face-123456789abc')
   })
 
+  it('shows full job ID in the detail panel', () => {
+    const uuidRun = {
+      ...runs[0],
+      jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    }
+    const detail: ValuationJobDetailDto = {
+      ...jobDetail,
+      jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    }
+    render(
+      <JobHistoryTable
+        runs={[uuidRun]}
+        expandedJobs={{ 'a1b2c3d4-e5f6-7890-abcd-ef1234567890': detail }}
+        loadingJobIds={new Set()}
+        onSelectJob={() => {}}
+        onCloseJob={() => {}}
+      />,
+    )
+
+    const jobIdEl = screen.getByTestId('detail-job-id')
+    expect(jobIdEl).toHaveTextContent('a1b2c3d4-e5f6-7890-abcd-ef1234567890')
+  })
+
   it('renders multiple detail panels when multiple jobs are expanded', () => {
     render(
       <JobHistoryTable
