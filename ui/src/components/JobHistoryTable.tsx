@@ -49,7 +49,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
             <th className="py-2 pr-3">
               <span className="relative inline-flex items-center gap-1 group">
                 VaR <Info className="h-3 w-3 text-slate-400" />
-                <span className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
                   VaR (Value at Risk) estimates the maximum potential loss over a given time period at a specific confidence level. For example, a 95% VaR of $5,000 means there is a 95% chance that losses will not exceed $5,000.
                 </span>
               </span>
@@ -57,7 +57,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
             <th className="py-2">
               <span className="relative inline-flex items-center gap-1 group">
                 ES <Info className="h-3 w-3 text-slate-400" />
-                <span className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
                   ES (Expected Shortfall) estimates the average loss in the worst-case scenarios beyond the VaR (Value at Risk) threshold. For example, if VaR at 95% confidence is $5,000, the ES tells you the average loss you'd expect in that worst 5% of cases.
                 </span>
               </span>
