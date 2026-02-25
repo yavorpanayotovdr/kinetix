@@ -3,6 +3,7 @@ package com.kinetix.volatility
 import com.kinetix.volatility.cache.RedisVolatilityCache
 import com.kinetix.volatility.kafka.KafkaVolatilityPublisher
 import com.kinetix.volatility.persistence.DatabaseConfig
+import com.kinetix.volatility.seed.DevDataSeeder
 import com.kinetix.volatility.persistence.DatabaseFactory
 import com.kinetix.volatility.persistence.ExposedVolSurfaceRepository
 import com.kinetix.volatility.persistence.VolSurfaceRepository
@@ -15,6 +16,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -107,4 +109,11 @@ fun Application.moduleWithRoutes() {
     val ingestionService = VolatilityIngestionService(volSurfaceRepository, cache, publisher)
 
     module(volSurfaceRepository, ingestionService)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(volSurfaceRepository).seed()
+        }
+    }
 }

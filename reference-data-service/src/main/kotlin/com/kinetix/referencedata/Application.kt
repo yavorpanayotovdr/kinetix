@@ -4,6 +4,7 @@ import com.kinetix.referencedata.cache.RedisReferenceDataCache
 import com.kinetix.referencedata.kafka.KafkaReferenceDataPublisher
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DatabaseConfig
+import com.kinetix.referencedata.seed.DevDataSeeder
 import com.kinetix.referencedata.persistence.DatabaseFactory
 import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
@@ -17,6 +18,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -113,4 +115,11 @@ fun Application.moduleWithRoutes() {
     )
 
     module(dividendYieldRepository, creditSpreadRepository, ingestionService)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(dividendYieldRepository, creditSpreadRepository).seed()
+        }
+    }
 }

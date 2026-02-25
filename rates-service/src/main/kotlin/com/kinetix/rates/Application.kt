@@ -3,6 +3,7 @@ package com.kinetix.rates
 import com.kinetix.rates.cache.RedisRatesCache
 import com.kinetix.rates.kafka.KafkaRatesPublisher
 import com.kinetix.rates.persistence.DatabaseConfig
+import com.kinetix.rates.seed.DevDataSeeder
 import com.kinetix.rates.persistence.DatabaseFactory
 import com.kinetix.rates.persistence.ExposedForwardCurveRepository
 import com.kinetix.rates.persistence.ExposedRiskFreeRateRepository
@@ -19,6 +20,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -117,4 +119,11 @@ fun Application.moduleWithRoutes() {
     )
 
     module(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository, ingestionService)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository).seed()
+        }
+    }
 }

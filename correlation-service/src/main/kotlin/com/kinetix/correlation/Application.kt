@@ -4,6 +4,7 @@ import com.kinetix.correlation.cache.RedisCorrelationCache
 import com.kinetix.correlation.kafka.KafkaCorrelationPublisher
 import com.kinetix.correlation.persistence.CorrelationMatrixRepository
 import com.kinetix.correlation.persistence.DatabaseConfig
+import com.kinetix.correlation.seed.DevDataSeeder
 import com.kinetix.correlation.persistence.DatabaseFactory
 import com.kinetix.correlation.persistence.ExposedCorrelationMatrixRepository
 import com.kinetix.correlation.routes.correlationRoutes
@@ -15,6 +16,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -107,4 +109,11 @@ fun Application.moduleWithRoutes() {
     val ingestionService = CorrelationIngestionService(correlationMatrixRepository, cache, publisher)
 
     module(correlationMatrixRepository, ingestionService)
+
+    val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
+    if (seedEnabled) {
+        launch {
+            DevDataSeeder(correlationMatrixRepository).seed()
+        }
+    }
 }
