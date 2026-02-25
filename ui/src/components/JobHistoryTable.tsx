@@ -3,7 +3,7 @@ import { Info, Search } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { JobTimeline } from './JobTimeline'
-import { formatRelativeTime } from '../utils/format'
+import { formatTimestamp } from '../utils/format'
 
 interface JobHistoryTableProps {
   runs: ValuationJobSummaryDto[]
@@ -79,7 +79,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                     isExpanded || isLoading ? 'bg-primary-50' : ''
                   }`}
                 >
-                  <td className="py-2 pr-3 text-slate-600">{formatRelativeTime(run.startedAt)}</td>
+                  <td className="py-2 pr-3 text-slate-600">{formatTimestamp(run.startedAt)}</td>
                   <td className="py-2 pr-3">
                     <Badge variant={TRIGGER_VARIANT[run.triggerType] ?? 'neutral'}>{run.triggerType}</Badge>
                   </td>

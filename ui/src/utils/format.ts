@@ -45,6 +45,12 @@ export function formatRelativeTime(isoString: string): string {
   return `${days}d ago`
 }
 
+export function formatTimestamp(isoString: string): string {
+  const date = new Date(isoString)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 export function pnlColorClass(amount: string): string {
   const value = Number(amount)
   if (value > 0) return 'text-green-600'
