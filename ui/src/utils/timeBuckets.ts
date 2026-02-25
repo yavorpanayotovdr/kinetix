@@ -3,6 +3,7 @@ import type { ValuationJobSummaryDto } from '../types'
 export interface TimeBucket {
   from: Date
   to: Date
+  started: number
   completed: number
   failed: number
   running: number
@@ -36,6 +37,7 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
   const buckets: TimeBucket[] = Array.from({ length: count }, (_, i) => ({
     from: new Date(fromMs + i * size),
     to: new Date(Math.min(fromMs + (i + 1) * size, toMs)),
+    started: 0,
     completed: 0,
     failed: 0,
     running: 0,
@@ -51,6 +53,9 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
     bucket.jobIds.push(job.jobId)
 
     switch (job.status) {
+      case 'STARTED':
+        bucket.started++
+        break
       case 'COMPLETED':
         bucket.completed++
         break

@@ -23,7 +23,7 @@ describe('bucketJobs', () => {
   it('returns empty buckets when no jobs are provided', () => {
     const result = bucketJobs([], '2025-01-15T10:00:00Z', '2025-01-15T11:00:00Z')
     expect(result).toHaveLength(12)
-    expect(result.every((b) => b.completed === 0 && b.failed === 0 && b.running === 0)).toBe(true)
+    expect(result.every((b) => b.started === 0 && b.completed === 0 && b.failed === 0 && b.running === 0)).toBe(true)
   })
 
   it('returns empty array for invalid range', () => {
@@ -85,6 +85,18 @@ describe('bucketJobs', () => {
     expect(result[0].completed).toBe(2)
     expect(result[0].failed).toBe(1)
     expect(result[0].running).toBe(1)
+  })
+
+  it('counts STARTED jobs in their own bucket field', () => {
+    const jobs = [
+      makeJob('2025-01-15T10:01:00Z', 'STARTED'),
+      makeJob('2025-01-15T10:02:00Z', 'STARTED'),
+      makeJob('2025-01-15T10:03:00Z', 'COMPLETED'),
+    ]
+    const result = bucketJobs(jobs, '2025-01-15T10:00:00Z', '2025-01-15T11:00:00Z')
+
+    expect(result[0].started).toBe(2)
+    expect(result[0].completed).toBe(1)
   })
 
   it('places jobs in correct buckets based on startedAt', () => {

@@ -11,7 +11,7 @@ interface ChartTooltipProps {
 export function ChartTooltip({ bucket, visible, rangeDays, barCenterX }: ChartTooltipProps) {
   if (!visible || !bucket) return null
 
-  const total = bucket.completed + bucket.failed + bucket.running
+  const total = bucket.started + bucket.completed + bucket.failed + bucket.running
   if (total === 0) return null
 
   const fromLabel = formatChartTime(bucket.from, rangeDays)
@@ -25,6 +25,7 @@ export function ChartTooltip({ bucket, visible, rangeDays, barCenterX }: ChartTo
     >
       <div className="font-medium mb-1">{fromLabel} – {toLabel}</div>
       <div className="flex gap-3">
+        <span className="text-amber-400">Started: {bucket.started}</span>
         <span className="text-green-400">Completed: {bucket.completed}</span>
         <span className="text-red-400">Failed: {bucket.failed}</span>
         <span className="text-indigo-400">Running: {bucket.running}</span>

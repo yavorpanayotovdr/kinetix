@@ -20,6 +20,7 @@ const BAR_GAP = 1
 const DEFAULT_WIDTH = 600
 
 const STATUS_COLORS = {
+  started: '#f59e0b',   // amber-500
   completed: '#22c55e', // green-500
   failed: '#ef4444',    // red-500
   running: '#6366f1',   // indigo-500
@@ -53,7 +54,7 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
   const maxCount = useMemo(() => {
     let max = 0
     for (const b of buckets) {
-      const total = b.completed + b.failed + b.running
+      const total = b.started + b.completed + b.failed + b.running
       if (total > max) max = total
     }
     return Math.max(max, 1)
@@ -220,13 +221,14 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
         {buckets.map((bucket, i) => {
           const bw = Math.max(1, barWidth - BAR_GAP)
           const x = PADDING.left + i * barWidth + BAR_GAP / 2
-          const total = bucket.completed + bucket.failed + bucket.running
+          const total = bucket.started + bucket.completed + bucket.failed + bucket.running
 
           if (total === 0) return null
 
           const completedH = (bucket.completed / maxCount) * plotHeight
           const failedH = (bucket.failed / maxCount) * plotHeight
           const runningH = (bucket.running / maxCount) * plotHeight
+          const startedH = (bucket.started / maxCount) * plotHeight
 
           const baseY = PADDING.top + plotHeight
 
@@ -259,6 +261,16 @@ export function JobTimechart({ buckets, timeRange, onZoom, zoomDepth, onResetZoo
                   width={bw}
                   height={runningH}
                   fill={STATUS_COLORS.running}
+                  rx={1}
+                />
+              )}
+              {bucket.started > 0 && (
+                <rect
+                  x={x}
+                  y={baseY - completedH - failedH - runningH - startedH}
+                  width={bw}
+                  height={startedH}
+                  fill={STATUS_COLORS.started}
                   rx={1}
                 />
               )}
