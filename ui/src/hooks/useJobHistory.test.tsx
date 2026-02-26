@@ -779,6 +779,101 @@ describe('useJobHistory', () => {
     expect(result.current.page).toBe(2)
   })
 
+  it('goToPage jumps to specified page and re-fetches', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    mockFetchJobs.mockClear()
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-p2-${i}` })), totalCount: 100 })
+
+    act(() => {
+      result.current.goToPage(2)
+    })
+
+    await waitFor(() => {
+      expect(mockFetchJobs).toHaveBeenCalledWith(
+        'port-1',
+        20,
+        40,
+        expect.any(String),
+        expect.any(String),
+      )
+    })
+
+    expect(result.current.page).toBe(2)
+  })
+
+  it('goToPage clamps to last page when target exceeds totalPages', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.totalPages).toBe(5)
+
+    act(() => {
+      result.current.goToPage(99)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.page).toBe(4)
+  })
+
+  it('goToPage clamps to 0 when target is negative', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.goToPage(-1)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.page).toBe(0)
+  })
+
+  it('goToPage clears expanded jobs', async () => {
+    mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
+    mockFetchJobDetail.mockResolvedValue(jobDetail)
+
+    const { result } = renderHook(() => useJobHistory('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.toggleJob('job-0')
+    })
+
+    await waitFor(() => {
+      expect(result.current.expandedJobs['job-0']).toBeDefined()
+    })
+
+    act(() => {
+      result.current.goToPage(2)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.expandedJobs).toEqual({})
+    expect(result.current.loadingJobIds.size).toBe(0)
+  })
+
   it('stops polling when portfolioId becomes null', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 

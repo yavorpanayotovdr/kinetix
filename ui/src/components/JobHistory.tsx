@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
@@ -50,9 +50,26 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     expanded ? portfolioId : null,
   )
+  const [pageInput, setPageInput] = useState(String(page + 1))
+
+  useEffect(() => {
+    setPageInput(String(page + 1))
+  }, [page])
+
+  const submitPageInput = () => {
+    const parsed = parseInt(pageInput, 10)
+    if (isNaN(parsed)) {
+      setPageInput(String(page + 1))
+      return
+    }
+    const clamped = Math.max(1, Math.min(parsed, totalPages))
+    setPageInput(String(clamped))
+    goToPage(clamped - 1)
+  }
+
   const buckets = useTimeBuckets(runs, timeRange)
 
   const filteredRuns = search.trim()
@@ -140,8 +157,23 @@ export function JobHistory({ portfolioId }: JobHistoryProps) {
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
-                  <span data-testid="pagination-info" className="text-xs text-slate-500 mx-1">
-                    {totalPages > 1 ? `Page ${page + 1} of ${totalPages}` : `Page ${page + 1}`}
+                  <span data-testid="pagination-info" className="text-xs text-slate-500 mx-1 inline-flex items-center gap-1">
+                    {totalPages > 1 ? (
+                      <>
+                        <input
+                          data-testid="pagination-page-input"
+                          type="text"
+                          value={pageInput}
+                          onChange={(e) => setPageInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') submitPageInput() }}
+                          onBlur={submitPageInput}
+                          className="w-8 px-1 py-0.5 text-xs text-center rounded border border-slate-200 bg-white focus:outline-none focus:border-primary-300"
+                        />
+                        <span>of {totalPages}</span>
+                      </>
+                    ) : (
+                      `Page ${page + 1}`
+                    )}
                   </span>
                   <button
                     data-testid="pagination-next"

@@ -31,6 +31,7 @@ const defaultHookResult = {
   prevPage: vi.fn(),
   firstPage: vi.fn(),
   lastPage: vi.fn(),
+  goToPage: vi.fn(),
 }
 
 describe('JobHistory', () => {
@@ -594,7 +595,9 @@ describe('JobHistory', () => {
     render(<JobHistory portfolioId="port-1" />)
 
     expect(screen.getByTestId('pagination-bar')).toBeInTheDocument()
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
+    const input = screen.getByTestId('pagination-page-input') as HTMLInputElement
+    expect(input.value).toBe('1')
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('of 3')
   })
 
   it('disables previous and first buttons on first page', () => {
@@ -734,6 +737,139 @@ describe('JobHistory', () => {
     const toggle = screen.getByTestId('job-history-toggle')
     const badge = toggle.querySelector('.inline-flex.items-center')!
     expect(badge).toHaveTextContent('Page 3 of 5')
+  })
+
+  it('renders page input with current page number', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 0,
+      totalPages: 3,
+      hasNextPage: true,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('pagination-page-input') as HTMLInputElement
+    expect(input.value).toBe('1')
+  })
+
+  it('calls goToPage when user types a page and presses Enter', () => {
+    const goToPage = vi.fn()
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 0,
+      totalPages: 5,
+      hasNextPage: true,
+      goToPage,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('pagination-page-input')
+    fireEvent.change(input, { target: { value: '3' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(goToPage).toHaveBeenCalledWith(2)
+  })
+
+  it('calls goToPage on blur', () => {
+    const goToPage = vi.fn()
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 0,
+      totalPages: 5,
+      hasNextPage: true,
+      goToPage,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('pagination-page-input')
+    fireEvent.change(input, { target: { value: '2' } })
+    fireEvent.blur(input)
+
+    expect(goToPage).toHaveBeenCalledWith(1)
+  })
+
+  it('clamps input to valid range on submit', () => {
+    const goToPage = vi.fn()
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      page: 0,
+      totalPages: 3,
+      hasNextPage: true,
+      goToPage,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('pagination-page-input')
+
+    fireEvent.change(input, { target: { value: '0' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(goToPage).toHaveBeenCalledWith(0)
+
+    goToPage.mockClear()
+
+    fireEvent.change(input, { target: { value: '999' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(goToPage).toHaveBeenCalledWith(2)
   })
 
   it('calls closeJob when close detail button is clicked', () => {

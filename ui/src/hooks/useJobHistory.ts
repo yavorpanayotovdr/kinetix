@@ -50,6 +50,7 @@ export interface UseJobHistoryResult {
   prevPage: () => void
   firstPage: () => void
   lastPage: () => void
+  goToPage: (target: number) => void
 }
 
 const POLL_INTERVAL = 5_000
@@ -202,9 +203,16 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setPage(totalPages - 1)
   }, [hasNextPage, totalPages])
 
+  const goToPage = useCallback((target: number) => {
+    const clamped = Math.max(0, Math.min(target, totalPages - 1))
+    setExpandedJobs({})
+    setLoadingJobIds(new Set())
+    setPage(clamped)
+  }, [totalPages])
+
   const refresh = useCallback(() => {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
 }
