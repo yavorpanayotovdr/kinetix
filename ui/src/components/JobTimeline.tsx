@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Check, Search } from 'lucide-react'
 import type { JobStepDto } from '../types'
+import { formatDuration } from '../utils/format'
 
 interface JobTimelineProps {
   steps: JobStepDto[]
@@ -219,7 +220,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                 {STEP_LABELS[step.name] ?? step.name}
               </span>
               {step.durationMs != null && (
-                <span className="text-xs text-slate-400">{step.durationMs}ms</span>
+                <span className="text-xs text-slate-400">{formatDuration(step.durationMs)}</span>
               )}
             </div>
             {step.error && (

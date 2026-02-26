@@ -112,11 +112,10 @@ describe('JobHistoryTable', () => {
     expect(screen.getByText('TRADE_EVENT')).toBeInTheDocument()
   })
 
-  it('shows duration in milliseconds', () => {
+  it('shows duration formatted as seconds', () => {
     render(<JobHistoryTable runs={runs} {...defaultProps} />)
 
-    expect(screen.getByText('150ms')).toBeInTheDocument()
-    expect(screen.getByText('200ms')).toBeInTheDocument()
+    expect(screen.getByText('0.2s')).toBeInTheDocument()
   })
 
   it('calls onSelectJob when a row is clicked', () => {

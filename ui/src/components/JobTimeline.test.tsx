@@ -101,12 +101,11 @@ describe('JobTimeline', () => {
     expect(screen.getByText('Publish Result')).toBeInTheDocument()
   })
 
-  it('shows duration for each step', () => {
+  it('shows duration formatted as seconds for each step', () => {
     render(<JobTimeline steps={steps} />)
 
-    expect(screen.getAllByText('20ms')).toHaveLength(2)
-    expect(screen.getAllByText('30ms')).toHaveLength(2)
-    expect(screen.getByText('50ms')).toBeInTheDocument()
+    expect(screen.getAllByText('0.0s')).toHaveLength(4)
+    expect(screen.getByText('0.1s')).toBeInTheDocument()
   })
 
   it('shows green status dot for completed steps', () => {

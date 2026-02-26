@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, pnlColorClass } from './format'
+import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, formatDuration, pnlColorClass } from './format'
 
 describe('formatMoney', () => {
   it('formats USD with dollar sign and commas', () => {
@@ -134,6 +134,35 @@ describe('formatChartTime', () => {
 
   it('pads single-digit days', () => {
     expect(formatChartTime(new Date(2025, 2, 3, 0, 0), 14)).toBe('Mar 03')
+  })
+})
+
+describe('formatDuration', () => {
+  it('formats sub-second durations with one decimal place', () => {
+    expect(formatDuration(100)).toBe('0.1s')
+    expect(formatDuration(250)).toBe('0.3s')
+    expect(formatDuration(999)).toBe('1.0s')
+    expect(formatDuration(50)).toBe('0.1s')
+  })
+
+  it('formats durations of exactly one second', () => {
+    expect(formatDuration(1000)).toBe('1s')
+  })
+
+  it('formats durations in whole seconds', () => {
+    expect(formatDuration(8000)).toBe('8s')
+    expect(formatDuration(8500)).toBe('9s')
+    expect(formatDuration(59000)).toBe('59s')
+  })
+
+  it('formats durations of one minute or more', () => {
+    expect(formatDuration(60000)).toBe('1m 0s')
+    expect(formatDuration(154000)).toBe('2m 34s')
+    expect(formatDuration(90000)).toBe('1m 30s')
+  })
+
+  it('formats zero milliseconds', () => {
+    expect(formatDuration(0)).toBe('0.0s')
   })
 })
 

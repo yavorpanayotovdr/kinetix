@@ -66,6 +66,20 @@ export function formatChartTime(date: Date, rangeDays: number): string {
   return `${months[date.getMonth()]} ${pad(date.getDate())}`
 }
 
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    const seconds = ms / 1000
+    return `${seconds.toFixed(1)}s`
+  }
+  const totalSeconds = Math.round(ms / 1000)
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`
+  }
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds % 60
+  return `${minutes}m ${remainingSeconds}s`
+}
+
 export function pnlColorClass(amount: string): string {
   const value = Number(amount)
   if (value > 0) return 'text-green-600'
