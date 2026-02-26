@@ -34,6 +34,10 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
 - Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
 
+## Guardrails
+
+- **Never delete or remove a test** (test file, test function, or test assertion) without my explicit permission. If a test is failing, fix the code under test or fix the test — do not delete it to make the build pass. Always explain the failure and ask before removing any test.
+
 ## Communication Style
 
 - **Always end with a summary.** When a task is done, finish with a single short sentence summarising what was accomplished.

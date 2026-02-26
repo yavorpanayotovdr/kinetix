@@ -27,4 +27,5 @@ application {
 tasks.named<JavaExec>("run") {
     environment("OTEL_SERVICE_NAME", project.name)
     environment("KINETIX_DEV_MODE", System.getenv("KINETIX_DEV_MODE") ?: "false")
+    environment("SIMULATION_DELAYS", System.getenv("KINETIX_DEV_MODE") ?: "false")
 }

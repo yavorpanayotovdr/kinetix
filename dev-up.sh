@@ -48,6 +48,7 @@ done
 # ── Phase 3: Application services ───────────────────────────────────────────
 
 export KINETIX_DEV_MODE=true
+export SIMULATION_DELAYS=true
 export OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 export OTEL_LOGS_EXPORTER=otlp
