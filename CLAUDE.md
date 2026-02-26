@@ -32,3 +32,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
 - **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`.
 - Regular `./gradlew test` excludes both integration and acceptance tests.
+
+## Communication Style
+
+- **Always end with a summary.** When a task is done, finish with a single short sentence summarising what was accomplished.
