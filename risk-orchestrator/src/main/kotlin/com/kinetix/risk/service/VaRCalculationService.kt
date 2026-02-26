@@ -292,6 +292,7 @@ class VaRCalculationService(
 
     private fun computePositionBreakdown(positions: List<com.kinetix.common.model.Position>, result: ValuationResult): String {
         val breakdownByAssetClass = result.componentBreakdown.associateBy { it.assetClass }
+        val greeksByAssetClass = result.greeks?.assetClassGreeks?.associateBy { it.assetClass }
         val marketValueByAssetClass = positions.groupBy { it.assetClass }
             .mapValues { (_, poses) -> poses.fold(BigDecimal.ZERO) { acc, p -> acc + p.marketValue.amount } }
 
@@ -326,6 +327,11 @@ class VaRCalculationService(
                 put("varContribution", varContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
                 put("esContribution", esContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
                 put("percentageOfTotal", percentageOfTotal.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                greeksByAssetClass?.get(pos.assetClass)?.let { greeks ->
+                    put("delta", "%.6f".format(greeks.delta))
+                    put("gamma", "%.6f".format(greeks.gamma))
+                    put("vega", "%.6f".format(greeks.vega))
+                }
             }
         }
         return Json.encodeToString(items)

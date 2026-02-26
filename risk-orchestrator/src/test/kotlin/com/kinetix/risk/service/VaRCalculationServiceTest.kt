@@ -599,4 +599,128 @@ class VaRCalculationServiceTest : FunSpec({
         val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
         fetchPosStep.details.containsKey("dependenciesByPosition") shouldBe false
     }
+
+    test("includes per-position Greeks in CALCULATE_VAR step details when greeks are computed") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", assetClass = AssetClass.EQUITY),
+            position(instrumentId = "UST10Y", assetClass = AssetClass.FIXED_INCOME),
+        )
+        val greeks = GreeksResult(
+            assetClassGreeks = listOf(
+                GreekValues(AssetClass.EQUITY, delta = 0.85, gamma = 0.02, vega = 1500.0),
+                GreekValues(AssetClass.FIXED_INCOME, delta = -0.30, gamma = 0.01, vega = 200.0),
+            ),
+            theta = -45.0,
+            rho = 120.0,
+        )
+        val expectedResult = varResult(
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 3000.0, 60.0),
+                ComponentBreakdown(AssetClass.FIXED_INCOME, 2000.0, 40.0),
+            ),
+        ).copy(greeks = greeks)
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val breakdownJson = calcStep.details["positionBreakdown"]
+        breakdownJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(breakdownJson).jsonArray
+        parsed shouldHaveSize 2
+
+        val equity = parsed.first { it.jsonObject["instrumentId"]!!.jsonPrimitive.content == "AAPL" }.jsonObject
+        equity["delta"]!!.jsonPrimitive.content shouldBe "0.850000"
+        equity["gamma"]!!.jsonPrimitive.content shouldBe "0.020000"
+        equity["vega"]!!.jsonPrimitive.content shouldBe "1500.000000"
+
+        val fi = parsed.first { it.jsonObject["instrumentId"]!!.jsonPrimitive.content == "UST10Y" }.jsonObject
+        fi["delta"]!!.jsonPrimitive.content shouldBe "-0.300000"
+        fi["gamma"]!!.jsonPrimitive.content shouldBe "0.010000"
+        fi["vega"]!!.jsonPrimitive.content shouldBe "200.000000"
+    }
+
+    test("omits Greeks from position breakdown when greeks are null") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val breakdownJson = calcStep.details["positionBreakdown"]
+        breakdownJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(breakdownJson).jsonArray
+        val item = parsed[0].jsonObject
+        item.containsKey("delta") shouldBe false
+        item.containsKey("gamma") shouldBe false
+        item.containsKey("vega") shouldBe false
+    }
+
+    test("adds CALCULATE_GREEKS step when greeks are present in result") {
+        val positions = listOf(position())
+        val greeks = GreeksResult(
+            assetClassGreeks = listOf(
+                GreekValues(AssetClass.EQUITY, delta = 0.85, gamma = 0.02, vega = 1500.0),
+            ),
+            theta = -45.0,
+            rho = 120.0,
+        )
+        val expectedResult = varResult().copy(greeks = greeks)
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val job = jobSlot.captured
+        job.steps shouldHaveSize 6
+        job.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
+        job.steps[1].name shouldBe JobStepName.DISCOVER_DEPENDENCIES
+        job.steps[2].name shouldBe JobStepName.FETCH_MARKET_DATA
+        job.steps[3].name shouldBe JobStepName.CALCULATE_VAR
+        job.steps[4].name shouldBe JobStepName.CALCULATE_GREEKS
+        job.steps[5].name shouldBe JobStepName.PUBLISH_RESULT
+
+        val greeksStep = job.steps[4]
+        greeksStep.details["assetClassCount"] shouldBe 1
+        greeksStep.details["theta"] shouldBe -45.0
+        greeksStep.details["rho"] shouldBe 120.0
+    }
 })

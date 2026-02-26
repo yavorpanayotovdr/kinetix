@@ -62,8 +62,8 @@ const steps: JobStepDto[] = [
       varValue: '5000.0',
       expectedShortfall: '6250.0',
       positionBreakdown: JSON.stringify([
-        { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '17000.00', varContribution: '3000.00', esContribution: '3750.00', percentageOfTotal: '60.00' },
-        { instrumentId: 'TSLA', assetClass: 'EQUITY', marketValue: '12500.00', varContribution: '2000.00', esContribution: '2500.00', percentageOfTotal: '40.00' },
+        { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '17000.00', varContribution: '3000.00', esContribution: '3750.00', percentageOfTotal: '60.00', delta: '0.850000', gamma: '0.020000', vega: '1500.000000' },
+        { instrumentId: 'TSLA', assetClass: 'EQUITY', marketValue: '12500.00', varContribution: '2000.00', esContribution: '2500.00', percentageOfTotal: '40.00', delta: '0.850000', gamma: '0.020000', vega: '1500.000000' },
       ]),
     },
     error: null,
@@ -665,6 +665,40 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
       expect(screen.queryByTestId('var-breakdown-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('includes delta, gamma, vega in position breakdown JSON', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
+
+      const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
+      expect(jsonBlock.textContent).toContain('"delta": "0.850000"')
+      expect(jsonBlock.textContent).toContain('"gamma": "0.020000"')
+      expect(jsonBlock.textContent).toContain('"vega": "1500.000000"')
+    })
+  })
+
+  describe('CALCULATE_GREEKS step', () => {
+    const greeksStep: JobStepDto = {
+      name: 'CALCULATE_GREEKS',
+      status: 'COMPLETED',
+      startedAt: '2025-01-15T10:00:00.130Z',
+      completedAt: '2025-01-15T10:00:00.140Z',
+      durationMs: 10,
+      details: {
+        assetClassCount: '1',
+        theta: '-45.0',
+        rho: '120.0',
+      },
+      error: null,
+    }
+
+    it('displays CALCULATE_GREEKS with human-readable label', () => {
+      render(<JobTimeline steps={[greeksStep]} />)
+
+      expect(screen.getByTestId('job-step-CALCULATE_GREEKS')).toBeInTheDocument()
+      expect(screen.getByText('Calculate Greeks')).toBeInTheDocument()
     })
   })
 })

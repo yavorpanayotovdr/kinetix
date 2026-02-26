@@ -51,7 +51,7 @@ fun Route.riskRoutes(
             val requestedOutputs = body.requestedOutputs
                 ?.mapNotNull { runCatching { ValuationOutput.valueOf(it) }.getOrNull() }
                 ?.toSet()
-                ?: setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL)
+                ?: setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS)
             val request = VaRCalculationRequest(
                 portfolioId = PortfolioId(portfolioId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
