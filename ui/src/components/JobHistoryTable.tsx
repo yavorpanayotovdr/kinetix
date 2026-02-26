@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Info, Search } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
@@ -24,6 +24,20 @@ const TRIGGER_VARIANT: Record<string, 'info' | 'neutral' | 'warning'> = {
   SCHEDULED: 'neutral',
   TRADE_EVENT: 'warning',
   PRICE_EVENT: 'warning',
+}
+
+function ElapsedDuration({ startedAt }: { startedAt: string }) {
+  const [elapsedMs, setElapsedMs] = useState(0)
+
+  useEffect(() => {
+    const startMs = new Date(startedAt).getTime()
+    const tick = () => setElapsedMs(Date.now() - startMs)
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [startedAt])
+
+  return <>{formatDuration(Math.max(0, elapsedMs))}</>
 }
 
 export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob }: JobHistoryTableProps) {
@@ -94,8 +108,10 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                   <td className="py-2 pr-3">
                     <Badge variant={STATUS_VARIANT[run.status] ?? 'neutral'}>{run.status}</Badge>
                   </td>
-                  <td className="py-2 pr-3 text-slate-600">
-                    {run.durationMs != null ? formatDuration(run.durationMs) : '-'}
+                  <td data-testid={`duration-${run.jobId}`} className="py-2 pr-3 text-slate-600">
+                    {run.status === 'RUNNING'
+                      ? <ElapsedDuration startedAt={run.startedAt} />
+                      : run.durationMs != null ? formatDuration(run.durationMs) : '-'}
                   </td>
                   <td className="py-2 pr-3 text-slate-700 font-mono">
                     {run.varValue != null ? run.varValue.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}

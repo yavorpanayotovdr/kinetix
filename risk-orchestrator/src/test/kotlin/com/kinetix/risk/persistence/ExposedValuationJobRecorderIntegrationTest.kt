@@ -19,7 +19,7 @@ private fun startedJob(
     jobId = UUID.randomUUID(),
     portfolioId = portfolioId,
     triggerType = triggerType,
-    status = RunStatus.STARTED,
+    status = RunStatus.RUNNING,
     startedAt = startedAt,
     calculationType = "PARAMETRIC",
     confidenceLevel = "CL_95",
@@ -178,13 +178,13 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         all shouldHaveSize 3
     }
 
-    test("updates a STARTED job to COMPLETED with all fields") {
+    test("updates a RUNNING job to COMPLETED with all fields") {
         val job = startedJob()
         recorder.save(job)
 
         val found = recorder.findByJobId(job.jobId)
         found.shouldNotBeNull()
-        found.status shouldBe RunStatus.STARTED
+        found.status shouldBe RunStatus.RUNNING
         found.completedAt.shouldBeNull()
         found.varValue.shouldBeNull()
 
@@ -220,7 +220,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         updated.error shouldBe null
     }
 
-    test("updates a STARTED job to FAILED with error") {
+    test("updates a RUNNING job to FAILED with error") {
         val job = startedJob()
         recorder.save(job)
 

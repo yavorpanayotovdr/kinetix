@@ -168,7 +168,7 @@ class VaRCalculationServiceTest : FunSpec({
         result!!.componentBreakdown.size shouldBe 3
     }
 
-    test("saves a STARTED skeleton job at the beginning of calculation") {
+    test("saves a RUNNING skeleton job at the beginning of calculation") {
         val positions = listOf(position())
         val expectedResult = varResult()
 
@@ -189,7 +189,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val startedJob = saveSlot.captured
         startedJob.portfolioId shouldBe "port-1"
-        startedJob.status shouldBe RunStatus.STARTED
+        startedJob.status shouldBe RunStatus.RUNNING
         startedJob.triggerType shouldBe TriggerType.ON_DEMAND
         startedJob.calculationType shouldBe "PARAMETRIC"
         startedJob.confidenceLevel shouldBe "CL_95"
@@ -268,7 +268,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val saveSlot = slot<ValuationJob>()
         coVerify { jobRecorder.save(capture(saveSlot)) }
-        saveSlot.captured.status shouldBe RunStatus.STARTED
+        saveSlot.captured.status shouldBe RunStatus.RUNNING
 
         val updateSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(updateSlot)) }

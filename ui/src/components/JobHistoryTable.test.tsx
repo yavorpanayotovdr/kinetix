@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { JobHistoryTable } from './JobHistoryTable'
 
@@ -320,5 +320,73 @@ describe('JobHistoryTable', () => {
     expect(screen.getByTestId('job-detail-row-job-2')).toBeInTheDocument()
     expect(screen.getAllByTestId('job-detail-panel')).toHaveLength(2)
     expect(screen.getAllByText('Job Details')).toHaveLength(2)
+  })
+
+  describe('live elapsed duration for RUNNING jobs', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows a ticking elapsed duration for a RUNNING job', () => {
+      vi.useFakeTimers()
+      const now = new Date('2025-01-15T10:00:03Z')
+      vi.setSystemTime(now)
+
+      const runningJob: ValuationJobSummaryDto = {
+        jobId: 'job-running',
+        portfolioId: 'port-1',
+        triggerType: 'ON_DEMAND',
+        status: 'RUNNING',
+        startedAt: '2025-01-15T10:00:00Z',
+        completedAt: null,
+        durationMs: null,
+        calculationType: 'PARAMETRIC',
+        varValue: null,
+        expectedShortfall: null,
+      }
+
+      render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
+
+      const durationCell = screen.getByTestId('duration-job-running')
+      expect(durationCell).toHaveTextContent('3s')
+
+      act(() => { vi.advanceTimersByTime(1000) })
+      expect(durationCell).toHaveTextContent('4s')
+
+      act(() => { vi.advanceTimersByTime(1000) })
+      expect(durationCell).toHaveTextContent('5s')
+    })
+
+    it('shows static duration for a COMPLETED job', () => {
+      render(<JobHistoryTable runs={[runs[1]]} {...defaultProps} />)
+
+      const durationCell = screen.getByTestId('duration-job-2')
+      expect(durationCell).toHaveTextContent('0.2s')
+    })
+
+    it('cleans up the interval when the component unmounts', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2025-01-15T10:00:05Z'))
+
+      const runningJob: ValuationJobSummaryDto = {
+        jobId: 'job-running',
+        portfolioId: 'port-1',
+        triggerType: 'ON_DEMAND',
+        status: 'RUNNING',
+        startedAt: '2025-01-15T10:00:00Z',
+        completedAt: null,
+        durationMs: null,
+        calculationType: 'PARAMETRIC',
+        varValue: null,
+        expectedShortfall: null,
+      }
+
+      const { unmount } = render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
+
+      unmount()
+
+      // Should not throw after unmount
+      act(() => { vi.advanceTimersByTime(2000) })
+    })
   })
 })

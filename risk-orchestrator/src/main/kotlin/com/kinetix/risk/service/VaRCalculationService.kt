@@ -39,7 +39,7 @@ class VaRCalculationService(
                 jobId = jobId,
                 portfolioId = request.portfolioId.value,
                 triggerType = triggerType,
-                status = RunStatus.STARTED,
+                status = RunStatus.RUNNING,
                 startedAt = jobStartedAt,
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,

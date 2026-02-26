@@ -20,7 +20,6 @@ const BAR_GAP = 1
 const DEFAULT_WIDTH = 600
 
 const STATUS_COLORS = {
-  started: '#f59e0b',   // amber-500
   completed: '#22c55e', // green-500
   failed: '#ef4444',    // red-500
   running: '#6366f1',   // indigo-500
