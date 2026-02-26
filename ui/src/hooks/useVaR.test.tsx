@@ -392,4 +392,207 @@ describe('useVaR', () => {
 
     expect(result.current.zoomDepth).toBe(1)
   })
+
+  describe('preset switching and zoom lifecycle', () => {
+    // Pin clock to a known instant so sliding-window presets resolve deterministically
+    const NOW = new Date('2025-01-15T12:00:00Z')
+
+    function makeResult(calculatedAt: string, value: string): VaRResultDto {
+      return { ...varResult, calculatedAt, varValue: value }
+    }
+
+    // History entries deliberately spread across multiple time windows:
+    //   5 days ago  — within Last 7d only
+    //   6 hours ago — within Last 24h but NOT Last 1h
+    //   2 hours ago — within Last 24h but NOT Last 1h
+    //   30 min ago  — within Last 1h
+    //   15 min ago  — within Last 1h
+    const entries = [
+      makeResult('2025-01-10T12:00:00Z', '100000'),
+      makeResult('2025-01-15T06:00:00Z', '200000'),
+      makeResult('2025-01-15T10:00:00Z', '300000'),
+      makeResult('2025-01-15T11:30:00Z', '400000'),
+      makeResult('2025-01-15T11:45:00Z', '500000'),
+    ]
+
+    async function loadAllEntries() {
+      mockFetchVaR
+        .mockResolvedValueOnce(entries[0])
+        .mockResolvedValueOnce(entries[1])
+        .mockResolvedValueOnce(entries[2])
+        .mockResolvedValueOnce(entries[3])
+        .mockResolvedValueOnce(entries[4])
+
+      const hook = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(hook.result.current.history).toHaveLength(1)
+      })
+
+      for (let i = 2; i <= 5; i++) {
+        await act(async () => {
+          vi.advanceTimersByTime(30_000)
+        })
+        await waitFor(() => {
+          expect(hook.result.current.history).toHaveLength(i)
+        })
+      }
+
+      return hook
+    }
+
+    it('Last 1h default shows only entries within the last hour', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      expect(result.current.history).toHaveLength(5)
+      expect(result.current.timeRange.label).toBe('Last 1h')
+      expect(result.current.filteredHistory).toHaveLength(2)
+      expect(result.current.filteredHistory.map((e) => e.varValue)).toEqual([400000, 500000])
+    })
+
+    it('switching to Last 24h includes entries from 6h and 2h ago', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 24h',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(4)
+      expect(result.current.filteredHistory.map((e) => e.varValue)).toEqual([
+        200000, 300000, 400000, 500000,
+      ])
+    })
+
+    it('switching to Last 7d includes all entries', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 7d',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(5)
+    })
+
+    it('switching back to Last 1h narrows to only recent entries', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      // Widen to Last 7d
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 7d',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(5)
+
+      // Narrow back to Last 1h
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 1h',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(2)
+      expect(result.current.filteredHistory.map((e) => e.varValue)).toEqual([400000, 500000])
+    })
+
+    it('zooming into a narrow Custom range filters to that window only', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      // Start at Last 24h
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 24h',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(4)
+
+      // Zoom into a 1-hour window around 10:00 — only the 10:00 entry
+      act(() => {
+        result.current.zoomIn({
+          from: '2025-01-15T09:30:00Z',
+          to: '2025-01-15T10:30:00Z',
+          label: 'Custom',
+        })
+      })
+
+      expect(result.current.zoomDepth).toBe(1)
+      expect(result.current.filteredHistory).toHaveLength(1)
+      expect(result.current.filteredHistory[0].varValue).toBe(300000)
+    })
+
+    it('resetZoom after zoom restores the previous preset and its filtered entries', async () => {
+      vi.setSystemTime(NOW)
+
+      const { result } = await loadAllEntries()
+
+      // Start at Last 24h (4 entries)
+      act(() => {
+        result.current.setTimeRange({
+          from: new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+          to: NOW.toISOString(),
+          label: 'Last 24h',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(4)
+
+      // Zoom into a narrow window (1 entry)
+      act(() => {
+        result.current.zoomIn({
+          from: '2025-01-15T09:30:00Z',
+          to: '2025-01-15T10:30:00Z',
+          label: 'Custom',
+        })
+      })
+
+      expect(result.current.filteredHistory).toHaveLength(1)
+
+      // Zoom even deeper (0 entries — empty window)
+      act(() => {
+        result.current.zoomIn({
+          from: '2025-01-15T10:05:00Z',
+          to: '2025-01-15T10:10:00Z',
+          label: 'Custom',
+        })
+      })
+
+      expect(result.current.zoomDepth).toBe(2)
+      expect(result.current.filteredHistory).toHaveLength(0)
+
+      // Reset zoom — should pop all the way back to Last 24h
+      act(() => {
+        result.current.resetZoom()
+      })
+
+      expect(result.current.zoomDepth).toBe(0)
+      expect(result.current.timeRange.label).toBe('Last 24h')
+      expect(result.current.filteredHistory).toHaveLength(4)
+    })
+  })
 })
