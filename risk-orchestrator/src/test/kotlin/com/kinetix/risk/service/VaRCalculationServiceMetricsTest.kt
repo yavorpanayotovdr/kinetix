@@ -37,18 +37,20 @@ class VaRCalculationServiceMetricsTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), Currency.getInstance("USD")),
             )
         )
-        val result = VaRResult(
+        val result = ValuationResult(
             portfolioId = PortfolioId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
             expectedShortfall = 6250.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
+            greeks = null,
             calculatedAt = Instant.now(),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns result
+        coEvery { riskEngineClient.valuate(any(), positions) } returns result
         coEvery { resultPublisher.publish(result) } just Runs
 
         service.calculateVaR(
@@ -74,18 +76,20 @@ class VaRCalculationServiceMetricsTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), Currency.getInstance("USD")),
             )
         )
-        val result = VaRResult(
+        val result = ValuationResult(
             portfolioId = PortfolioId("port-1"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
             expectedShortfall = 6250.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
+            greeks = null,
             calculatedAt = Instant.now(),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns result
+        coEvery { riskEngineClient.valuate(any(), positions) } returns result
         coEvery { resultPublisher.publish(result) } just Runs
 
         service.calculateVaR(

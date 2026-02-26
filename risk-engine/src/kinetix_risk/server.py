@@ -11,6 +11,8 @@ from kinetix_risk.converters import (
     proto_confidence_to_domain,
     proto_market_data_to_domain,
     proto_positions_to_domain,
+    proto_valuation_outputs_to_names,
+    valuation_result_to_proto_response,
     var_result_to_proto_response,
 )
 from kinetix_risk.market_data_consumer import consume_market_data
@@ -18,6 +20,7 @@ from kinetix_risk.metrics import risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.valuation import calculate_valuation
 from kinetix_risk.volatility import VolatilityProvider
 from kinetix_risk.dependencies_server import MarketDataDependenciesServicer
 from kinetix_risk.regulatory_server import RegulatoryReportingServicer
@@ -47,6 +50,38 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
         risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_value)
 
         return var_result_to_proto_response(
+            result,
+            portfolio_id=request.portfolio_id.value,
+            calculation_type=request.calculation_type,
+            confidence_level=request.confidence_level,
+        )
+
+    def Valuate(self, request, context):
+        positions = proto_positions_to_domain(request.positions)
+        calc_type = proto_calculation_type_to_domain(request.calculation_type)
+        confidence = proto_confidence_to_domain(request.confidence_level)
+
+        market_data_dicts = proto_market_data_to_domain(request.market_data)
+        bundle = consume_market_data(market_data_dicts)
+
+        requested_outputs = proto_valuation_outputs_to_names(request.requested_outputs)
+
+        result = calculate_valuation(
+            positions=positions,
+            calculation_type=calc_type,
+            confidence_level=confidence,
+            time_horizon_days=request.time_horizon_days or 1,
+            num_simulations=request.num_simulations or 10_000,
+            volatility_provider=bundle.volatility_provider or VolatilityProvider.with_jitter(),
+            correlation_matrix=bundle.correlation_matrix,
+            requested_outputs=requested_outputs,
+            portfolio_id=request.portfolio_id.value,
+        )
+
+        if result.var_result is not None:
+            risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_result.var_value)
+
+        return valuation_result_to_proto_response(
             result,
             portfolio_id=request.portfolio_id.value,
             calculation_type=request.calculation_type,

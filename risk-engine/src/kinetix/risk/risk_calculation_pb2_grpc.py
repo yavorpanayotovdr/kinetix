@@ -44,18 +44,30 @@ class RiskCalculationServiceStub(object):
                 request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.VaRRequest.SerializeToString,
                 response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.VaRResponse.FromString,
                 _registered_method=True)
+        self.Valuate = channel.unary_unary(
+                '/kinetix.risk.RiskCalculationService/Valuate',
+                request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.FromString,
+                _registered_method=True)
 
 
 class RiskCalculationServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def CalculateVaR(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Deprecated: use Valuate instead
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CalculateVaRStream(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Valuate(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,6 +85,11 @@ def add_RiskCalculationServiceServicer_to_server(servicer, server):
                     servicer.CalculateVaRStream,
                     request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.VaRRequest.FromString,
                     response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.VaRResponse.SerializeToString,
+            ),
+            'Valuate': grpc.unary_unary_rpc_method_handler(
+                    servicer.Valuate,
+                    request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -129,6 +146,33 @@ class RiskCalculationService(object):
             '/kinetix.risk.RiskCalculationService/CalculateVaRStream',
             kinetix_dot_risk_dot_risk__calculation__pb2.VaRRequest.SerializeToString,
             kinetix_dot_risk_dot_risk__calculation__pb2.VaRResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Valuate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.RiskCalculationService/Valuate',
+            kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.SerializeToString,
+            kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.FromString,
             options,
             channel_credentials,
             insecure,

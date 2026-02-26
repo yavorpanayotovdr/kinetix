@@ -1,8 +1,11 @@
+import logging
 import time
 
 import grpc
 
 from kinetix.risk import stress_testing_pb2, stress_testing_pb2_grpc
+
+logger = logging.getLogger(__name__)
 from kinetix_risk.converters import (
     greeks_result_to_proto,
     proto_calculation_type_to_domain,
@@ -64,6 +67,10 @@ class StressTestServicer(stress_testing_pb2_grpc.StressTestServiceServicer):
         )
 
     def CalculateGreeks(self, request, context):
+        logger.warning(
+            "CalculateGreeks is deprecated — use RiskCalculationService.Valuate "
+            "with GREEKS in requested_outputs instead"
+        )
         start = time.time()
         try:
             positions = proto_positions_to_domain(request.positions)

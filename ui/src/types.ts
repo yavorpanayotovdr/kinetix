@@ -53,6 +53,8 @@ export interface VaRResultDto {
   expectedShortfall: string
   componentBreakdown: ComponentBreakdownDto[]
   calculatedAt: string
+  greeks?: GreeksResultDto
+  computedOutputs?: string[]
 }
 
 export interface VaRCalculationRequestDto {
@@ -60,6 +62,7 @@ export interface VaRCalculationRequestDto {
   confidenceLevel?: string
   timeHorizonDays?: string
   numSimulations?: string
+  requestedOutputs?: string[]
 }
 
 export interface AssetClassImpactDto {

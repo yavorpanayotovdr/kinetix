@@ -157,6 +157,7 @@ data class VaRCalculationRequest(
     val confidenceLevel: String? = null,
     val timeHorizonDays: String? = null,
     val numSimulations: String? = null,
+    val requestedOutputs: List<String>? = null,
 )
 
 @Serializable
@@ -175,6 +176,8 @@ data class VaRResultResponse(
     val expectedShortfall: String,
     val componentBreakdown: List<ComponentBreakdownDto>,
     val calculatedAt: String,
+    val greeks: GreeksResponse? = null,
+    val computedOutputs: List<String>? = null,
 )
 
 // --- VaR mappers ---
@@ -197,6 +200,7 @@ fun VaRCalculationRequest.toParams(portfolioId: String): VaRCalculationParams {
         confidenceLevel = confLevel,
         timeHorizonDays = timeHorizonDays?.toInt() ?: 1,
         numSimulations = numSimulations?.toInt() ?: 10_000,
+        requestedOutputs = requestedOutputs,
     )
 }
 
@@ -214,6 +218,7 @@ fun VaRResultSummary.toResponse(): VaRResultResponse = VaRResultResponse(
     expectedShortfall = "%.2f".format(expectedShortfall),
     componentBreakdown = componentBreakdown.map { it.toDto() },
     calculatedAt = calculatedAt.toString(),
+    greeks = greeks?.toResponse(),
 )
 
 // --- Stress Test DTOs ---

@@ -7,7 +7,8 @@ import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.VaRCalculationRequest
-import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationOutput
+import com.kinetix.risk.model.ValuationResult
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
@@ -29,14 +30,16 @@ class DelayingRiskEngineClientTest : FunSpec({
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
     )
-    val varResult = VaRResult(
+    val valuationResult = ValuationResult(
         portfolioId = PortfolioId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 50000.0,
         expectedShortfall = 65000.0,
         componentBreakdown = emptyList(),
+        greeks = null,
         calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+        computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
     )
     val dependenciesResponse = DataDependenciesResponse.getDefaultInstance()
 
@@ -58,19 +61,19 @@ class DelayingRiskEngineClientTest : FunSpec({
         elapsed shouldBeGreaterThanOrEqual discoverDelay.first
     }
 
-    test("delegates calculateVaR and returns result") {
-        coEvery { delegate.calculateVaR(request, positions) } returns varResult
+    test("delegates valuate and returns result") {
+        coEvery { delegate.valuate(request, positions) } returns valuationResult
 
-        val result = client.calculateVaR(request, positions)
+        val result = client.valuate(request, positions)
 
-        result shouldBe varResult
+        result shouldBe valuationResult
     }
 
-    test("applies delay to calculateVaR") {
-        coEvery { delegate.calculateVaR(request, positions) } returns varResult
+    test("applies delay to valuate") {
+        coEvery { delegate.valuate(request, positions) } returns valuationResult
 
         val elapsed = measureTimeMillis {
-            client.calculateVaR(request, positions)
+            client.valuate(request, positions)
         }
 
         elapsed shouldBeGreaterThanOrEqual calculateDelay.first

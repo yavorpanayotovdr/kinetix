@@ -51,10 +51,13 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val request = call.receive<VaRCalculationRequest>()
-            val params = request.toParams(portfolioId)
-            val result = client.calculateGreeks(params)
-            if (result != null) {
-                call.respond(result.toResponse())
+            val params = request.toParams(portfolioId).copy(
+                requestedOutputs = listOf("VAR", "EXPECTED_SHORTFALL", "GREEKS")
+            )
+            val result = client.calculateVaR(params)
+            val greeks = result?.greeks
+            if (greeks != null) {
+                call.respond(greeks.toResponse())
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }

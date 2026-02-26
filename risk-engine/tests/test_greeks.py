@@ -76,3 +76,16 @@ class TestGreeksCalculation:
             calculate_greeks(
                 [], CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
             )
+
+    def test_greeks_skips_base_var_when_provided(self):
+        positions = _sample_positions()
+        base_var = 50_000.0
+        result = calculate_greeks(
+            positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
+            portfolio_id="port-1",
+            base_var_value=base_var,
+        )
+        # When base_var_value is provided, Greeks use it instead of computing their own
+        assert isinstance(result, GreeksResult)
+        assert result.delta[AssetClass.EQUITY] != 0
+        assert result.theta != 0.0

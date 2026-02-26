@@ -18,7 +18,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
-        val result = VaRResult(
+        val result = ValuationResult(
             portfolioId = PortfolioId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
@@ -28,7 +28,9 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
                 ComponentBreakdown(AssetClass.EQUITY, 15000.0, 60.0),
                 ComponentBreakdown(AssetClass.FIXED_INCOME, 10000.0, 40.0),
             ),
+            greeks = null,
             calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
         publisher.publish(result)
@@ -63,14 +65,16 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
-        val result = VaRResult(
+        val result = ValuationResult(
             portfolioId = PortfolioId("my-portfolio"),
             calculationType = CalculationType.MONTE_CARLO,
             confidenceLevel = ConfidenceLevel.CL_99,
             varValue = 50000.0,
             expectedShortfall = 62000.0,
             componentBreakdown = emptyList(),
+            greeks = null,
             calculatedAt = Instant.now(),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
         publisher.publish(result)

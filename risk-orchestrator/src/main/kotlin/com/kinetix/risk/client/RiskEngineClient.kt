@@ -5,6 +5,7 @@ import com.kinetix.proto.risk.DataDependenciesResponse
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 
 interface RiskEngineClient {
     suspend fun calculateVaR(
@@ -12,6 +13,11 @@ interface RiskEngineClient {
         positions: List<Position>,
         marketData: List<MarketDataValue> = emptyList(),
     ): VaRResult
+    suspend fun valuate(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<MarketDataValue> = emptyList(),
+    ): ValuationResult
     suspend fun discoverDependencies(
         positions: List<Position>,
         calculationType: String,

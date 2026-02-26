@@ -3,7 +3,7 @@ package com.kinetix.risk.schedule
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.model.VaRCalculationRequest
-import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
@@ -94,7 +94,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
     test("caches VaR results when calculation succeeds") {
         val varService = mockk<VaRCalculationService>()
         val varCache = LatestVaRCache()
-        val mockResult = mockk<VaRResult>()
+        val mockResult = mockk<ValuationResult>()
 
         coEvery { varService.calculateVaR(any(), any()) } returns mockResult
 

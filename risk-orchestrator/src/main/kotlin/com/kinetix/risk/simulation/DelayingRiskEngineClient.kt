@@ -6,6 +6,7 @@ import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 import kotlinx.coroutines.delay
 
 class DelayingRiskEngineClient(
@@ -21,6 +22,15 @@ class DelayingRiskEngineClient(
     ): VaRResult {
         delay(calculateVaRDelayMs.random())
         return delegate.calculateVaR(request, positions, marketData)
+    }
+
+    override suspend fun valuate(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<MarketDataValue>,
+    ): ValuationResult {
+        delay(calculateVaRDelayMs.random())
+        return delegate.valuate(request, positions, marketData)
     }
 
     override suspend fun discoverDependencies(

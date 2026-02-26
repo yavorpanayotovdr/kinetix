@@ -1,6 +1,6 @@
 package com.kinetix.risk.kafka
 
-import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -16,7 +16,7 @@ class KafkaRiskResultPublisher(
 
     private val logger = LoggerFactory.getLogger(KafkaRiskResultPublisher::class.java)
 
-    override suspend fun publish(result: VaRResult) {
+    override suspend fun publish(result: ValuationResult) {
         val event = RiskResultEvent.from(result)
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, result.portfolioId.value, json)

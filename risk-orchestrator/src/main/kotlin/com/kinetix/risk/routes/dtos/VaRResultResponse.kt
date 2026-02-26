@@ -11,4 +11,6 @@ data class VaRResultResponse(
     val expectedShortfall: String,
     val componentBreakdown: List<ComponentBreakdownDto>,
     val calculatedAt: String,
+    val greeks: GreeksResponse? = null,
+    val computedOutputs: List<String>? = null,
 )

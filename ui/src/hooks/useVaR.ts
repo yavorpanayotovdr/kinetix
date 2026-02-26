@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
-import type { VaRResultDto, TimeRange } from '../types'
+import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import { resolveTimeRange } from '../utils/resolveTimeRange'
 
 export interface VaRHistoryEntry {
@@ -11,6 +11,7 @@ export interface VaRHistoryEntry {
 
 export interface UseVaRResult {
   varResult: VaRResultDto | null
+  greeksResult: GreeksResultDto | null
   history: VaRHistoryEntry[]
   filteredHistory: VaRHistoryEntry[]
   loading: boolean
@@ -22,6 +23,8 @@ export interface UseVaRResult {
   zoomIn: (range: TimeRange) => void
   resetZoom: () => void
   zoomDepth: number
+  volBump: number
+  setVolBump: (bump: number) => void
 }
 
 const POLL_INTERVAL = 30_000
@@ -41,6 +44,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
+  const [volBump, setVolBump] = useState(0)
   const initialLoadDone = useRef(false)
 
   const load = useCallback(async () => {
@@ -145,5 +149,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     }
   }, [zoomStack])
 
-  return { varResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length }
+  const greeksResult = varResult?.greeks ?? null
+
+  return { varResult, greeksResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length, volBump, setVolBump }
 }

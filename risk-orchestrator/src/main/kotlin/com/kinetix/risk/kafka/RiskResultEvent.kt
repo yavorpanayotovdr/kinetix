@@ -1,6 +1,6 @@
 package com.kinetix.risk.kafka
 
-import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,12 +14,12 @@ data class RiskResultEvent(
     val calculatedAt: String,
 ) {
     companion object {
-        fun from(result: VaRResult): RiskResultEvent = RiskResultEvent(
+        fun from(result: ValuationResult): RiskResultEvent = RiskResultEvent(
             portfolioId = result.portfolioId.value,
             calculationType = result.calculationType.name,
             confidenceLevel = result.confidenceLevel.name,
-            varValue = result.varValue.toString(),
-            expectedShortfall = result.expectedShortfall.toString(),
+            varValue = (result.varValue ?: 0.0).toString(),
+            expectedShortfall = (result.expectedShortfall ?: 0.0).toString(),
             componentBreakdown = result.componentBreakdown.map {
                 ComponentBreakdownEvent(
                     assetClass = it.assetClass.name,

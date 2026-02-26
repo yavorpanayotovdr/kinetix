@@ -97,7 +97,52 @@ message VaRComponentBreakdown {
   double percentage_of_total = 3;
 }
 
+enum ValuationOutput {
+  VALUATION_OUTPUT_UNSPECIFIED = 0;
+  VAR = 1;
+  EXPECTED_SHORTFALL = 2;
+  GREEKS = 3;
+}
+
+message ValuationRequest {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  int32 time_horizon_days = 4;
+  int32 num_simulations = 5;
+  repeated kinetix.common.Position positions = 6;
+  repeated MarketDataValue market_data = 7;
+  repeated ValuationOutput requested_outputs = 8;
+}
+
+message GreeksSummary {
+  repeated GreekValues asset_class_greeks = 1;
+  double theta = 2;
+  double rho = 3;
+}
+
+message GreekValues {
+  kinetix.common.AssetClass asset_class = 1;
+  double delta = 2;
+  double gamma = 3;
+  double vega = 4;
+}
+
+message ValuationResponse {
+  kinetix.common.PortfolioId portfolio_id = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  double var_value = 4;
+  double expected_shortfall = 5;
+  repeated VaRComponentBreakdown component_breakdown = 6;
+  google.protobuf.Timestamp calculated_at = 7;
+  GreeksSummary greeks = 8;
+  repeated ValuationOutput computed_outputs = 9;
+}
+
 service RiskCalculationService {
+  // Deprecated: use Valuate instead
   rpc CalculateVaR(VaRRequest) returns (VaRResponse);
   rpc CalculateVaRStream(stream VaRRequest) returns (stream VaRResponse);
+  rpc Valuate(ValuationRequest) returns (ValuationResponse);
 }

@@ -23,10 +23,10 @@ import java.time.Instant
 
 private val TEST_INSTANT = Instant.parse("2025-01-15T10:30:00Z")
 
-private fun varResult(
+private fun valuationResult(
     portfolioId: String = "port-1",
     varValue: Double = 5000.0,
-) = VaRResult(
+) = ValuationResult(
     portfolioId = PortfolioId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
@@ -35,16 +35,18 @@ private fun varResult(
     componentBreakdown = listOf(
         ComponentBreakdown(AssetClass.EQUITY, varValue, 100.0),
     ),
+    greeks = null,
     calculatedAt = TEST_INSTANT,
+    computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
 )
 
-/** Mirrors the private toResponse() extension in RiskRoutes. */
-private fun VaRResult.toResponse() = VaRResultResponse(
+/** Mirrors the internal toResponse() extension in RiskMappers. */
+private fun ValuationResult.toResponse() = VaRResultResponse(
     portfolioId = portfolioId.value,
     calculationType = calculationType.name,
     confidenceLevel = confidenceLevel.name,
-    varValue = "%.2f".format(varValue),
-    expectedShortfall = "%.2f".format(expectedShortfall),
+    varValue = "%.2f".format(varValue ?: 0.0),
+    expectedShortfall = "%.2f".format(expectedShortfall ?: 0.0),
     componentBreakdown = componentBreakdown.map {
         ComponentBreakdownDto(
             assetClass = it.assetClass.name,
@@ -65,7 +67,7 @@ class RiskRoutesTest : FunSpec({
     }
 
     test("GET /api/v1/risk/var/{portfolioId} returns cached result") {
-        val result = varResult(portfolioId = "port-1", varValue = 4200.0)
+        val result = valuationResult(portfolioId = "port-1", varValue = 4200.0)
         varCache.put("port-1", result)
 
         testApplication {
@@ -122,7 +124,7 @@ class RiskRoutesTest : FunSpec({
     }
 
     test("POST /api/v1/risk/var/{portfolioId} returns 200 with VaR result when service returns result") {
-        val result = varResult(portfolioId = "port-2", varValue = 7500.0)
+        val result = valuationResult(portfolioId = "port-2", varValue = 7500.0)
         coEvery { varCalculationService.calculateVaR(any(), any()) } returns result
 
         testApplication {

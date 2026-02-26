@@ -40,6 +40,27 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
         )
     }
 
+    override suspend fun valuate(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<com.kinetix.risk.model.MarketDataValue>,
+    ): ValuationResult {
+        delay(31_000)
+        return ValuationResult(
+            portfolioId = request.portfolioId,
+            calculationType = request.calculationType,
+            confidenceLevel = request.confidenceLevel,
+            varValue = 50000.0,
+            expectedShortfall = 62500.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 50000.0, 100.0),
+            ),
+            greeks = null,
+            calculatedAt = Instant.now(),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
+        )
+    }
+
     override suspend fun discoverDependencies(
         positions: List<Position>,
         calculationType: String,

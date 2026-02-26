@@ -45,14 +45,16 @@ private fun varResult(
     componentBreakdown: List<ComponentBreakdown> = listOf(
         ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0),
     ),
-) = VaRResult(
+) = ValuationResult(
     portfolioId = PortfolioId(portfolioId),
     calculationType = calculationType,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
     expectedShortfall = varValue * 1.25,
     componentBreakdown = componentBreakdown,
+    greeks = null,
     calculatedAt = Instant.now(),
+    computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
 )
 
 class VaRCalculationServiceTest : FunSpec({
@@ -78,7 +80,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
@@ -93,7 +95,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         coVerify(ordering = Ordering.ORDERED) {
             positionProvider.getPositions(PortfolioId("port-1"))
-            riskEngineClient.calculateVaR(any(), positions)
+            riskEngineClient.valuate(any(), positions)
             resultPublisher.publish(expectedResult)
         }
     }
@@ -111,7 +113,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         result shouldBe null
 
-        coVerify(exactly = 0) { riskEngineClient.calculateVaR(any(), any()) }
+        coVerify(exactly = 0) { riskEngineClient.valuate(any(), any()) }
         coVerify(exactly = 0) { resultPublisher.publish(any()) }
     }
 
@@ -122,7 +124,7 @@ class VaRCalculationServiceTest : FunSpec({
             val expectedResult = varResult(calculationType = calcType)
 
             coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-            coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+            coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
             coEvery { resultPublisher.publish(any()) } just Runs
 
             val result = serviceNoRecorder.calculateVaR(
@@ -152,7 +154,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
@@ -171,7 +173,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
@@ -204,7 +206,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
@@ -250,7 +252,7 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } throws RuntimeException("Engine down")
+        coEvery { riskEngineClient.valuate(any(), positions) } throws RuntimeException("Engine down")
 
         try {
             service.calculateVaR(
@@ -279,7 +281,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { jobRecorder.save(any()) } throws RuntimeException("DB connection failed")
 
@@ -299,7 +301,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { jobRecorder.update(any()) } throws RuntimeException("DB connection failed")
 
@@ -319,7 +321,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
@@ -351,7 +353,7 @@ class VaRCalculationServiceTest : FunSpec({
         val discoverer = mockk<DependenciesDiscoverer>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions, any()) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val serviceWithDiscoverer = VaRCalculationService(
@@ -405,7 +407,7 @@ class VaRCalculationServiceTest : FunSpec({
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
         coEvery { fetcher.fetch(dependencies) } returns marketData
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions, marketData) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions, marketData) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val serviceWithFetcher = VaRCalculationService(
@@ -463,7 +465,7 @@ class VaRCalculationServiceTest : FunSpec({
         val discoverer = mockk<DependenciesDiscoverer>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions, any()) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val serviceWithDiscoverer = VaRCalculationService(
@@ -504,7 +506,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
@@ -546,7 +548,7 @@ class VaRCalculationServiceTest : FunSpec({
         )
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
@@ -580,7 +582,7 @@ class VaRCalculationServiceTest : FunSpec({
         val expectedResult = varResult()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(

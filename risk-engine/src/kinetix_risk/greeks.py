@@ -40,11 +40,14 @@ def calculate_greeks(
     confidence_level: ConfidenceLevel,
     time_horizon_days: int,
     portfolio_id: str = "",
+    base_var_value: float | None = None,
 ) -> GreeksResult:
     if not positions:
         raise ValueError("Cannot calculate Greeks on empty positions list")
 
-    base_var = _var_value(positions, calculation_type, confidence_level, time_horizon_days)
+    base_var = base_var_value if base_var_value is not None else _var_value(
+        positions, calculation_type, confidence_level, time_horizon_days
+    )
 
     # Find which asset classes are present
     asset_classes_present: set[AssetClass] = set()

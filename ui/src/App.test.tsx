@@ -6,7 +6,6 @@ vi.mock('./hooks/usePositions')
 vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useVaR')
 vi.mock('./hooks/useStressTest')
-vi.mock('./hooks/useGreeks')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useRegulatory')
 vi.mock('./hooks/useSystemHealth')
@@ -17,7 +16,6 @@ import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useVaR } from './hooks/useVaR'
 import { useStressTest } from './hooks/useStressTest'
-import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
@@ -27,7 +25,6 @@ const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseVaR = vi.mocked(useVaR)
 const mockUseStressTest = vi.mocked(useStressTest)
-const mockUseGreeks = vi.mocked(useGreeks)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseRegulatory = vi.mocked(useRegulatory)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
@@ -70,6 +67,7 @@ function setupDefaults() {
   mockUsePriceStream.mockReturnValue({ positions: [position], connected: true })
   mockUseVaR.mockReturnValue({
     varResult: null,
+    greeksResult: null,
     history: [],
     filteredHistory: [],
     loading: false,
@@ -81,6 +79,8 @@ function setupDefaults() {
     zoomIn: vi.fn(),
     resetZoom: vi.fn(),
     zoomDepth: 0,
+    volBump: 0,
+    setVolBump: vi.fn(),
   })
   mockUseStressTest.mockReturnValue({
     scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
@@ -90,13 +90,6 @@ function setupDefaults() {
     loading: false,
     error: null,
     run: vi.fn(),
-  })
-  mockUseGreeks.mockReturnValue({
-    greeksResult: null,
-    loading: false,
-    error: null,
-    volBump: 0,
-    setVolBump: vi.fn(),
   })
   mockUseNotifications.mockReturnValue({
     rules: [],
@@ -208,6 +201,7 @@ describe('App', () => {
   it('clicking Risk tab shows VaR dashboard and greeks', () => {
     mockUseVaR.mockReturnValue({
       varResult,
+      greeksResult: null,
       history: [],
       filteredHistory: [],
       loading: false,
@@ -219,6 +213,8 @@ describe('App', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      volBump: 0,
+      setVolBump: vi.fn(),
     })
 
     render(<App />)

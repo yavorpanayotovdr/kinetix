@@ -46,11 +46,10 @@ private class StubRiskEngineClient : RiskEngineClient {
         AssetClass.DERIVATIVE to 0.30,
     )
 
-    override suspend fun calculateVaR(
+    private fun compute(
         request: VaRCalculationRequest,
         positions: List<Position>,
-        marketData: List<com.kinetix.risk.model.MarketDataValue>,
-    ): VaRResult {
+    ): Pair<Double, List<ComponentBreakdown>> {
         val zScore = when (request.confidenceLevel) {
             ConfidenceLevel.CL_95 -> 1.645
             ConfidenceLevel.CL_99 -> 2.326
@@ -76,7 +75,15 @@ private class StubRiskEngineClient : RiskEngineClient {
                 percentageOfTotal = (varContrib / totalVar) * 100.0,
             )
         }
+        return totalVar to breakdown
+    }
 
+    override suspend fun calculateVaR(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<com.kinetix.risk.model.MarketDataValue>,
+    ): VaRResult {
+        val (totalVar, breakdown) = compute(request, positions)
         return VaRResult(
             portfolioId = request.portfolioId,
             calculationType = request.calculationType,
@@ -85,6 +92,25 @@ private class StubRiskEngineClient : RiskEngineClient {
             expectedShortfall = totalVar * 1.25,
             componentBreakdown = breakdown,
             calculatedAt = Instant.now(),
+        )
+    }
+
+    override suspend fun valuate(
+        request: VaRCalculationRequest,
+        positions: List<Position>,
+        marketData: List<com.kinetix.risk.model.MarketDataValue>,
+    ): ValuationResult {
+        val (totalVar, breakdown) = compute(request, positions)
+        return ValuationResult(
+            portfolioId = request.portfolioId,
+            calculationType = request.calculationType,
+            confidenceLevel = request.confidenceLevel,
+            varValue = totalVar,
+            expectedShortfall = totalVar * 1.25,
+            componentBreakdown = breakdown,
+            greeks = null,
+            calculatedAt = Instant.now(),
+            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
     }
 
@@ -221,8 +247,8 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
 
             then("a valid VaR result is returned with positive values") {
                 result shouldNotBe null
-                result!!.varValue shouldBeGreaterThan 0.0
-                result.expectedShortfall shouldBeGreaterThan result.varValue
+                result!!.varValue!! shouldBeGreaterThan 0.0
+                result.expectedShortfall!! shouldBeGreaterThan result.varValue!!
                 result.portfolioId shouldBe portfolioId
                 result.calculationType shouldBe CalculationType.PARAMETRIC
             }

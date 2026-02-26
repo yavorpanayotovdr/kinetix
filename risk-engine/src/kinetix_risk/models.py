@@ -88,6 +88,13 @@ class GreeksResult:
     rho: float
 
 
+@dataclass(frozen=True)
+class ValuationResult:
+    var_result: VaRResult | None
+    greeks_result: GreeksResult | None
+    computed_outputs: list[str]
+
+
 class FrtbRiskClass(Enum):
     GIRR = "GIRR"
     CSR_NON_SEC = "CSR_NON_SEC"

@@ -12,7 +12,6 @@ import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useVaR } from './hooks/useVaR'
 import { useStressTest } from './hooks/useStressTest'
-import { useGreeks } from './hooks/useGreeks'
 import { useNotifications } from './hooks/useNotifications'
 import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
@@ -33,9 +32,8 @@ function App() {
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
-  const { varResult, filteredHistory, loading: varLoading, refreshing: varRefreshing, error: varError, refresh, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth } = useVaR(portfolioId)
+  const { varResult, greeksResult, loading: varLoading, refreshing: varRefreshing, error: varError, refresh, filteredHistory, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth, volBump, setVolBump } = useVaR(portfolioId)
   const stress = useStressTest(portfolioId)
-  const greeks = useGreeks(portfolioId)
   const notifications = useNotifications()
   const regulatory = useRegulatory(portfolioId)
   const systemHealth = useSystemHealth()
@@ -128,11 +126,11 @@ function App() {
                       zoomDepth={varZoomDepth}
                     />
                     <GreeksPanel
-                      greeksResult={greeks.greeksResult}
-                      loading={greeks.loading}
-                      error={greeks.error}
-                      volBump={greeks.volBump}
-                      onVolBumpChange={greeks.setVolBump}
+                      greeksResult={greeksResult}
+                      loading={varLoading}
+                      error={varError}
+                      volBump={volBump}
+                      onVolBumpChange={setVolBump}
                     />
                     <div className="mt-4">
                       <JobHistory portfolioId={portfolioId} />

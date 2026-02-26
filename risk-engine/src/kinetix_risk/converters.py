@@ -7,6 +7,7 @@ from kinetix.risk import market_data_dependencies_pb2, regulatory_reporting_pb2,
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, FrtbResult, FrtbRiskClass,
     GreeksResult, PositionRisk, StressScenario, StressTestResult, VaRResult,
+    ValuationResult,
 )
 
 _PROTO_ASSET_CLASS_TO_DOMAIN = {
@@ -91,6 +92,90 @@ def var_result_to_proto_response(
     )
 
 
+_VALUATION_OUTPUT_NAME_TO_PROTO = {
+    "VAR": risk_calculation_pb2.VAR,
+    "EXPECTED_SHORTFALL": risk_calculation_pb2.EXPECTED_SHORTFALL,
+    "GREEKS": risk_calculation_pb2.GREEKS,
+}
+
+_PROTO_VALUATION_OUTPUT_TO_NAME = {v: k for k, v in _VALUATION_OUTPUT_NAME_TO_PROTO.items()}
+
+
+def proto_valuation_outputs_to_names(proto_outputs) -> list[str]:
+    return [
+        _PROTO_VALUATION_OUTPUT_TO_NAME.get(o, "UNKNOWN")
+        for o in proto_outputs
+        if o != risk_calculation_pb2.VALUATION_OUTPUT_UNSPECIFIED
+    ]
+
+
+def _greeks_result_to_summary(result: GreeksResult) -> risk_calculation_pb2.GreeksSummary:
+    asset_class_greeks = []
+    for ac in sorted(result.delta.keys(), key=lambda a: a.value):
+        proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[ac]
+        asset_class_greeks.append(risk_calculation_pb2.GreekValues(
+            asset_class=proto_ac,
+            delta=result.delta[ac],
+            gamma=result.gamma[ac],
+            vega=result.vega[ac],
+        ))
+    return risk_calculation_pb2.GreeksSummary(
+        asset_class_greeks=asset_class_greeks,
+        theta=result.theta,
+        rho=result.rho,
+    )
+
+
+def valuation_result_to_proto_response(
+    result: ValuationResult,
+    portfolio_id: str,
+    calculation_type,
+    confidence_level,
+) -> risk_calculation_pb2.ValuationResponse:
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    breakdown = []
+    var_value = 0.0
+    expected_shortfall = 0.0
+
+    if result.var_result is not None:
+        var_value = result.var_result.var_value
+        expected_shortfall = result.var_result.expected_shortfall
+        for cb in result.var_result.component_breakdown:
+            proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[cb.asset_class]
+            breakdown.append(risk_calculation_pb2.VaRComponentBreakdown(
+                asset_class=proto_ac,
+                var_contribution=cb.var_contribution,
+                percentage_of_total=cb.percentage_of_total,
+            ))
+
+    greeks_summary = None
+    if result.greeks_result is not None:
+        greeks_summary = _greeks_result_to_summary(result.greeks_result)
+
+    computed_proto = [
+        _VALUATION_OUTPUT_NAME_TO_PROTO[o]
+        for o in result.computed_outputs
+        if o in _VALUATION_OUTPUT_NAME_TO_PROTO
+    ]
+
+    response = risk_calculation_pb2.ValuationResponse(
+        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        calculation_type=calculation_type,
+        confidence_level=confidence_level,
+        var_value=var_value,
+        expected_shortfall=expected_shortfall,
+        component_breakdown=breakdown,
+        calculated_at=now,
+        computed_outputs=computed_proto,
+    )
+    if greeks_summary is not None:
+        response.greeks.CopyFrom(greeks_summary)
+
+    return response
+
+
 _ASSET_CLASS_NAME_TO_DOMAIN = {ac.value: ac for ac in AssetClass}
 
 
@@ -144,7 +229,7 @@ def greeks_result_to_proto(result: GreeksResult) -> stress_testing_pb2.GreeksRes
     asset_class_greeks = []
     for ac in sorted(result.delta.keys(), key=lambda a: a.value):
         proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[ac]
-        asset_class_greeks.append(stress_testing_pb2.GreekValues(
+        asset_class_greeks.append(stress_testing_pb2.StressGreekValues(
             asset_class=proto_ac,
             delta=result.delta[ac],
             gamma=result.gamma[ac],

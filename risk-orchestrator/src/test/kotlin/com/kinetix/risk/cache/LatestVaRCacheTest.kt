@@ -8,10 +8,10 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Instant
 
-private fun varResult(
+private fun valuationResult(
     portfolioId: String = "port-1",
     varValue: Double = 5000.0,
-) = VaRResult(
+) = ValuationResult(
     portfolioId = PortfolioId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
@@ -20,14 +20,16 @@ private fun varResult(
     componentBreakdown = listOf(
         ComponentBreakdown(AssetClass.EQUITY, varValue, 100.0),
     ),
+    greeks = null,
     calculatedAt = Instant.parse("2025-01-15T10:30:00Z"),
+    computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
 )
 
 class LatestVaRCacheTest : FunSpec({
 
     test("put then get returns the cached result") {
         val cache = LatestVaRCache()
-        val result = varResult(portfolioId = "port-1", varValue = 4200.0)
+        val result = valuationResult(portfolioId = "port-1", varValue = 4200.0)
 
         cache.put("port-1", result)
 
@@ -42,8 +44,8 @@ class LatestVaRCacheTest : FunSpec({
 
     test("put overwrites previous value") {
         val cache = LatestVaRCache()
-        val first = varResult(portfolioId = "port-1", varValue = 1000.0)
-        val second = varResult(portfolioId = "port-1", varValue = 9999.0)
+        val first = valuationResult(portfolioId = "port-1", varValue = 1000.0)
+        val second = valuationResult(portfolioId = "port-1", varValue = 9999.0)
 
         cache.put("port-1", first)
         cache.put("port-1", second)

@@ -74,6 +74,7 @@ data class VaRCalculationRequestDto(
     val confidenceLevel: String? = null,
     val timeHorizonDays: String? = null,
     val numSimulations: String? = null,
+    val requestedOutputs: List<String>? = null,
 )
 
 @Serializable
@@ -92,6 +93,8 @@ data class VaRResultDto(
     val expectedShortfall: String,
     val componentBreakdown: List<ComponentBreakdownDto>,
     val calculatedAt: String,
+    val greeks: GreeksResultDto? = null,
+    val computedOutputs: List<String>? = null,
 )
 
 @Serializable
@@ -339,6 +342,7 @@ fun VaRResultDto.toDomain() = VaRResultSummary(
         )
     },
     calculatedAt = Instant.parse(calculatedAt),
+    greeks = greeks?.toDomain(),
 )
 
 fun StressTestResultDto.toDomain() = StressTestResultSummary(

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchScenarios, runStressTest, fetchGreeks } from './stress'
+import { fetchScenarios, runStressTest } from './stress'
 
 describe('stress API', () => {
   const mockFetch = vi.fn()
@@ -20,16 +20,6 @@ describe('stress API', () => {
     assetClassImpacts: [
       { assetClass: 'EQUITY', baseExposure: '1000000.00', stressedExposure: '600000.00', pnlImpact: '-400000.00' },
     ],
-    calculatedAt: '2025-01-15T10:00:00Z',
-  }
-
-  const greeksResult = {
-    portfolioId: 'port-1',
-    assetClassGreeks: [
-      { assetClass: 'EQUITY', delta: '1234.560000', gamma: '78.900000', vega: '5678.120000' },
-    ],
-    theta: '-123.450000',
-    rho: '456.780000',
     calculatedAt: '2025-01-15T10:00:00Z',
   }
 
@@ -100,49 +90,6 @@ describe('stress API', () => {
 
       await expect(runStressTest('port-1', 'GFC_2008')).rejects.toThrow(
         'Failed to run stress test: 500 Internal Server Error',
-      )
-    })
-  })
-
-  describe('fetchGreeks', () => {
-    it('sends POST and returns result', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(greeksResult),
-      })
-
-      const result = await fetchGreeks('port-1')
-
-      expect(result).toEqual(greeksResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/greeks/port-1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      })
-    })
-
-    it('returns null on 404', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      })
-
-      const result = await fetchGreeks('port-1')
-
-      expect(result).toBeNull()
-    })
-
-    it('throws on 500', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-      })
-
-      await expect(fetchGreeks('port-1')).rejects.toThrow(
-        'Failed to fetch Greeks: 500 Internal Server Error',
       )
     })
   })

@@ -20,6 +20,7 @@ class HttpRiskServiceClient(
                     confidenceLevel = params.confidenceLevel,
                     timeHorizonDays = params.timeHorizonDays.toString(),
                     numSimulations = params.numSimulations.toString(),
+                    requestedOutputs = params.requestedOutputs,
                 )
             )
         }
@@ -61,20 +62,10 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary? {
-        val response = httpClient.post("$baseUrl/api/v1/risk/greeks/${params.portfolioId}") {
-            contentType(ContentType.Application.Json)
-            setBody(
-                VaRCalculationRequestDto(
-                    calculationType = params.calculationType,
-                    confidenceLevel = params.confidenceLevel,
-                    timeHorizonDays = params.timeHorizonDays.toString(),
-                    numSimulations = params.numSimulations.toString(),
-                )
-            )
-        }
-        if (response.status == HttpStatusCode.NotFound) return null
-        val dto: GreeksResultDto = response.body()
-        return dto.toDomain()
+        val result = calculateVaR(
+            params.copy(requestedOutputs = listOf("VAR", "EXPECTED_SHORTFALL", "GREEKS"))
+        )
+        return result?.greeks
     }
 
     override suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary? {

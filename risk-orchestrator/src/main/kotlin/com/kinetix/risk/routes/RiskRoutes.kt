@@ -9,12 +9,12 @@ import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.mapper.*
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
 import com.kinetix.proto.risk.FrtbRequest
 import com.kinetix.proto.risk.GenerateReportRequest
-import com.kinetix.proto.risk.GreeksRequest
 import com.kinetix.proto.risk.ListScenariosRequest
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.ReportFormat
@@ -48,12 +48,17 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
+            val requestedOutputs = body.requestedOutputs
+                ?.mapNotNull { runCatching { ValuationOutput.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL)
             val request = VaRCalculationRequest(
                 portfolioId = PortfolioId(portfolioId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
                 numSimulations = body.numSimulations?.toInt() ?: 10_000,
+                requestedOutputs = requestedOutputs,
             )
             val result = varCalculationService.calculateVaR(request)
             if (result != null) {
@@ -140,7 +145,7 @@ fun Route.riskRoutes(
         call.respond(response.scenarioNamesList)
     }
 
-    // Greeks routes
+    // Greeks routes — convenience wrapper that goes through the full valuation pipeline
     route("/api/v1/risk/greeks/{portfolioId}") {
         post({
             summary = "Calculate Greeks for a portfolio"
@@ -152,35 +157,37 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
-            val positions = positionProvider.getPositions(PortfolioId(portfolioId))
-            val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
-            val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
-
-            val protoRequest = GreeksRequest.newBuilder()
-                .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
-                .setCalculationType(calcType.toProto())
-                .setConfidenceLevel(confLevel.toProto())
-                .setTimeHorizonDays(body.timeHorizonDays?.toInt() ?: 1)
-                .addAllPositions(positions.map { it.toProto() })
-                .build()
-
-            val response = stressTestStub.calculateGreeks(protoRequest)
-            call.respond(
-                GreeksResponse(
-                    portfolioId = response.portfolioId,
-                    assetClassGreeks = response.assetClassGreeksList.map {
-                        GreekValuesDto(
-                            assetClass = (PROTO_ASSET_CLASS_TO_DOMAIN[it.assetClass] ?: AssetClass.EQUITY).name,
-                            delta = "%.6f".format(it.delta),
-                            gamma = "%.6f".format(it.gamma),
-                            vega = "%.6f".format(it.vega),
-                        )
-                    },
-                    theta = "%.6f".format(response.theta),
-                    rho = "%.6f".format(response.rho),
-                    calculatedAt = Instant.ofEpochSecond(response.calculatedAt.seconds, response.calculatedAt.nanos.toLong()).toString(),
-                )
+            val request = VaRCalculationRequest(
+                portfolioId = PortfolioId(portfolioId),
+                calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
+                confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
+                timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
+                numSimulations = body.numSimulations?.toInt() ?: 10_000,
+                requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
             )
+            val result = varCalculationService.calculateVaR(request)
+            if (result?.greeks != null) {
+                varCache.put(portfolioId, result)
+                val greeks = result.greeks
+                call.respond(
+                    GreeksResponse(
+                        portfolioId = portfolioId,
+                        assetClassGreeks = greeks.assetClassGreeks.map {
+                            GreekValuesDto(
+                                assetClass = it.assetClass.name,
+                                delta = "%.6f".format(it.delta),
+                                gamma = "%.6f".format(it.gamma),
+                                vega = "%.6f".format(it.vega),
+                            )
+                        },
+                        theta = "%.6f".format(greeks.theta),
+                        rho = "%.6f".format(greeks.rho),
+                        calculatedAt = result.calculatedAt.toString(),
+                    )
+                )
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
     }
 

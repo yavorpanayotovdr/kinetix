@@ -1,18 +1,20 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.risk.model.VaRResult
+import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
+import com.kinetix.risk.routes.dtos.GreekValuesDto
+import com.kinetix.risk.routes.dtos.GreeksResponse
 import com.kinetix.risk.routes.dtos.VaRResultResponse
 import com.kinetix.proto.risk.FrtbRiskClass
 import com.kinetix.proto.risk.MarketDataType
 
-internal fun VaRResult.toResponse() = VaRResultResponse(
+internal fun ValuationResult.toResponse() = VaRResultResponse(
     portfolioId = portfolioId.value,
     calculationType = calculationType.name,
     confidenceLevel = confidenceLevel.name,
-    varValue = "%.2f".format(varValue),
-    expectedShortfall = "%.2f".format(expectedShortfall),
+    varValue = "%.2f".format(varValue ?: 0.0),
+    expectedShortfall = "%.2f".format(expectedShortfall ?: 0.0),
     componentBreakdown = componentBreakdown.map {
         ComponentBreakdownDto(
             assetClass = it.assetClass.name,
@@ -21,6 +23,23 @@ internal fun VaRResult.toResponse() = VaRResultResponse(
         )
     },
     calculatedAt = calculatedAt.toString(),
+    greeks = greeks?.let { g ->
+        GreeksResponse(
+            portfolioId = portfolioId.value,
+            assetClassGreeks = g.assetClassGreeks.map { gv ->
+                GreekValuesDto(
+                    assetClass = gv.assetClass.name,
+                    delta = "%.6f".format(gv.delta),
+                    gamma = "%.6f".format(gv.gamma),
+                    vega = "%.6f".format(gv.vega),
+                )
+            },
+            theta = "%.6f".format(g.theta),
+            rho = "%.6f".format(g.rho),
+            calculatedAt = calculatedAt.toString(),
+        )
+    },
+    computedOutputs = computedOutputs.map { it.name },
 )
 
 internal val FRTB_RISK_CLASS_NAMES = mapOf(

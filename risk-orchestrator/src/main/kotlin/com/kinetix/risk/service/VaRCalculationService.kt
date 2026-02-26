@@ -28,7 +28,7 @@ class VaRCalculationService(
     suspend fun calculateVaR(
         request: VaRCalculationRequest,
         triggerType: TriggerType = TriggerType.ON_DEMAND,
-    ): VaRResult? {
+    ): ValuationResult? {
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
         val steps = mutableListOf<JobStep>()
@@ -182,12 +182,12 @@ class VaRCalculationService(
                 )
             )
 
-            // Step 4: Calculate VaR
+            // Step 4: Calculate VaR (+ Greeks if requested)
             val calcStart = Instant.now()
             val timer = meterRegistry.timer("var.calculation.duration")
             val sample = io.micrometer.core.instrument.Timer.start(meterRegistry)
 
-            val result = riskEngineClient.calculateVaR(request, positions, marketData)
+            val result = riskEngineClient.valuate(request, positions, marketData)
 
             sample.stop(timer)
             meterRegistry.counter(
@@ -207,12 +207,29 @@ class VaRCalculationService(
                     completedAt = Instant.now(),
                     durationMs = calcDuration,
                     details = mapOf(
-                        "varValue" to result.varValue,
-                        "expectedShortfall" to result.expectedShortfall,
+                        "varValue" to (result.varValue ?: 0.0),
+                        "expectedShortfall" to (result.expectedShortfall ?: 0.0),
                         "positionBreakdown" to positionBreakdown,
                     ),
                 )
             )
+
+            if (result.greeks != null) {
+                steps.add(
+                    JobStep(
+                        name = JobStepName.CALCULATE_GREEKS,
+                        status = RunStatus.COMPLETED,
+                        startedAt = calcStart,
+                        completedAt = Instant.now(),
+                        durationMs = calcDuration,
+                        details = mapOf(
+                            "assetClassCount" to result.greeks.assetClassGreeks.size,
+                            "theta" to result.greeks.theta,
+                            "rho" to result.greeks.rho,
+                        ),
+                    )
+                )
+            }
 
             // Step 5: Publish result
             val publishStart = Instant.now()
@@ -273,10 +290,13 @@ class VaRCalculationService(
         }
     }
 
-    private fun computePositionBreakdown(positions: List<com.kinetix.common.model.Position>, result: VaRResult): String {
+    private fun computePositionBreakdown(positions: List<com.kinetix.common.model.Position>, result: ValuationResult): String {
         val breakdownByAssetClass = result.componentBreakdown.associateBy { it.assetClass }
         val marketValueByAssetClass = positions.groupBy { it.assetClass }
             .mapValues { (_, poses) -> poses.fold(BigDecimal.ZERO) { acc, p -> acc + p.marketValue.amount } }
+
+        val varVal = result.varValue ?: 0.0
+        val esVal = result.expectedShortfall ?: 0.0
 
         val items = positions.map { pos ->
             val breakdown = breakdownByAssetClass[pos.assetClass]
@@ -287,14 +307,14 @@ class VaRCalculationService(
                 BigDecimal.ZERO
             }
             val varContribution = BigDecimal(breakdown?.varContribution ?: 0.0) * weight
-            val varValue = BigDecimal(result.varValue)
+            val varValue = BigDecimal(varVal)
             val percentageOfTotal = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
                 varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(100)
             } else {
                 BigDecimal.ZERO
             }
             val esContribution = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
-                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(result.expectedShortfall)
+                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(esVal)
             } else {
                 BigDecimal.ZERO
             }

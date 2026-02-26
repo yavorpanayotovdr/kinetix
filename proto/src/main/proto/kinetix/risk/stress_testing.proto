@@ -43,6 +43,7 @@ message ListScenariosResponse {
   repeated string scenario_names = 1;
 }
 
+// Deprecated: use ValuationRequest in risk_calculation.proto instead
 message GreeksRequest {
   kinetix.common.PortfolioId portfolio_id = 1;
   RiskCalculationType calculation_type = 2;
@@ -51,16 +52,18 @@ message GreeksRequest {
   repeated kinetix.common.Position positions = 5;
 }
 
-message GreekValues {
+// Deprecated: use GreekValues in risk_calculation.proto instead
+message StressGreekValues {
   kinetix.common.AssetClass asset_class = 1;
   double delta = 2;
   double gamma = 3;
   double vega = 4;
 }
 
+// Deprecated: use ValuationResponse in risk_calculation.proto instead
 message GreeksResponse {
   string portfolio_id = 1;
-  repeated GreekValues asset_class_greeks = 2;
+  repeated StressGreekValues asset_class_greeks = 2;
   double theta = 3;
   double rho = 4;
   google.protobuf.Timestamp calculated_at = 5;
@@ -69,5 +72,6 @@ message GreeksResponse {
 service StressTestService {
   rpc RunStressTest(StressTestRequest) returns (StressTestResponse);
   rpc ListScenarios(ListScenariosRequest) returns (ListScenariosResponse);
+  // Deprecated: use RiskCalculationService.Valuate with GREEKS output instead
   rpc CalculateGreeks(GreeksRequest) returns (GreeksResponse);
 }

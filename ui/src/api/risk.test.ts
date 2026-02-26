@@ -91,7 +91,7 @@ describe('risk API', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: '{}',
+        body: JSON.stringify({ requestedOutputs: ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS'] }),
       })
     })
 
@@ -113,6 +113,7 @@ describe('risk API', () => {
         body: JSON.stringify({
           calculationType: 'MONTE_CARLO',
           confidenceLevel: 'CL_99',
+          requestedOutputs: ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS'],
         }),
       })
     })

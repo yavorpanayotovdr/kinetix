@@ -8,4 +8,5 @@ data class VaRCalculationRequestBody(
     val confidenceLevel: String? = null,
     val timeHorizonDays: String? = null,
     val numSimulations: String? = null,
+    val requestedOutputs: List<String>? = null,
 )

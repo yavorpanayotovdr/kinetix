@@ -8,6 +8,7 @@ data class VaRCalculationParams(
     val confidenceLevel: String,
     val timeHorizonDays: Int,
     val numSimulations: Int,
+    val requestedOutputs: List<String>? = null,
 )
 
 data class ComponentBreakdownItem(
@@ -24,6 +25,7 @@ data class VaRResultSummary(
     val expectedShortfall: Double,
     val componentBreakdown: List<ComponentBreakdownItem>,
     val calculatedAt: Instant,
+    val greeks: GreeksResultSummary? = null,
 )
 
 data class StressTestParams(

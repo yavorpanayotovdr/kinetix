@@ -4,9 +4,10 @@ import com.kinetix.common.model.*
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub
 import com.kinetix.proto.risk.RiskCalculationType
 import com.kinetix.proto.risk.VaRComponentBreakdown
-import com.kinetix.proto.risk.VaRResponse
+import com.kinetix.proto.risk.ValuationResponse
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.google.protobuf.Timestamp
 import io.kotest.core.spec.style.FunSpec
@@ -18,6 +19,7 @@ import java.math.BigDecimal
 import java.util.Currency
 import com.kinetix.proto.common.AssetClass as ProtoAssetClass
 import com.kinetix.proto.risk.ConfidenceLevel as ProtoConfidenceLevel
+import com.kinetix.proto.risk.ValuationOutput as ProtoValuationOutput
 
 private val USD = Currency.getInstance("USD")
 
@@ -45,7 +47,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             numSimulations = 10_000,
         )
 
-        val protoResponse = VaRResponse.newBuilder()
+        val protoResponse = ValuationResponse.newBuilder()
             .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
@@ -58,11 +60,13 @@ class GrpcRiskEngineClientTest : FunSpec({
                     .setPercentageOfTotal(100.0)
             )
             .setCalculatedAt(Timestamp.newBuilder().setSeconds(1700000000))
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .addComputedOutputs(ProtoValuationOutput.EXPECTED_SHORTFALL)
             .build()
 
-        coEvery { stub.calculateVaR(any(), any()) } returns protoResponse
+        coEvery { stub.valuate(any(), any()) } returns protoResponse
 
-        val result = client.calculateVaR(request, positions)
+        val result = client.valuate(request, positions)
 
         result.portfolioId shouldBe PortfolioId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
@@ -71,9 +75,11 @@ class GrpcRiskEngineClientTest : FunSpec({
         result.expectedShortfall shouldBe 6200.0
         result.componentBreakdown shouldHaveSize 1
         result.componentBreakdown[0].assetClass shouldBe AssetClass.EQUITY
+        result.greeks shouldBe null
+        result.computedOutputs shouldBe setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL)
 
         coVerify {
-            stub.calculateVaR(match { req ->
+            stub.valuate(match { req ->
                 req.portfolioId.value == "port-1" &&
                     req.calculationType == RiskCalculationType.PARAMETRIC &&
                     req.confidenceLevel == ProtoConfidenceLevel.CL_95 &&
@@ -109,23 +115,25 @@ class GrpcRiskEngineClientTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_99,
         )
 
-        val protoResponse = VaRResponse.newBuilder()
+        val protoResponse = ValuationResponse.newBuilder()
             .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.HISTORICAL)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_99)
             .setVarValue(12000.0)
             .setExpectedShortfall(15000.0)
             .setCalculatedAt(Timestamp.newBuilder().setSeconds(1700000000))
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .addComputedOutputs(ProtoValuationOutput.EXPECTED_SHORTFALL)
             .build()
 
-        coEvery { stub.calculateVaR(any(), any()) } returns protoResponse
+        coEvery { stub.valuate(any(), any()) } returns protoResponse
 
-        val result = client.calculateVaR(request, positions)
+        val result = client.valuate(request, positions)
 
         result.varValue shouldBe 12000.0
 
         coVerify {
-            stub.calculateVaR(match { req -> req.positionsCount == 2 }, any())
+            stub.valuate(match { req -> req.positionsCount == 2 }, any())
         }
     }
 })

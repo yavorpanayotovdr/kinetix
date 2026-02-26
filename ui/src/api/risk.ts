@@ -21,12 +21,16 @@ export async function triggerVaRCalculation(
   portfolioId: string,
   request: VaRCalculationRequestDto = {},
 ): Promise<VaRResultDto | null> {
+  const body = {
+    ...request,
+    requestedOutputs: request.requestedOutputs ?? ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS'],
+  }
   const response = await fetch(
     `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
+      body: JSON.stringify(body),
     },
   )
   if (response.status === 404) {
