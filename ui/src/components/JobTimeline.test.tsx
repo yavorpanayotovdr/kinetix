@@ -678,27 +678,4 @@ describe('JobTimeline', () => {
       expect(jsonBlock.textContent).toContain('"vega": "1500.000000"')
     })
   })
-
-  describe('CALCULATE_GREEKS step', () => {
-    const greeksStep: JobStepDto = {
-      name: 'CALCULATE_GREEKS',
-      status: 'COMPLETED',
-      startedAt: '2025-01-15T10:00:00.130Z',
-      completedAt: '2025-01-15T10:00:00.140Z',
-      durationMs: 10,
-      details: {
-        assetClassCount: '1',
-        theta: '-45.0',
-        rho: '120.0',
-      },
-      error: null,
-    }
-
-    it('displays CALCULATE_GREEKS with human-readable label', () => {
-      render(<JobTimeline steps={[greeksStep]} />)
-
-      expect(screen.getByTestId('job-step-CALCULATE_GREEKS')).toBeInTheDocument()
-      expect(screen.getByText('Calculate Greeks')).toBeInTheDocument()
-    })
-  })
 })

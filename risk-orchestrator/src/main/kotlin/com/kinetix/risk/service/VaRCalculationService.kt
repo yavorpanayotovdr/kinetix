@@ -199,6 +199,17 @@ class VaRCalculationService(
 
             val positionBreakdown = computePositionBreakdown(positions, result)
 
+            val calcDetails = buildMap<String, Any> {
+                put("varValue", result.varValue ?: 0.0)
+                put("expectedShortfall", result.expectedShortfall ?: 0.0)
+                put("positionBreakdown", positionBreakdown)
+                result.greeks?.let { greeks ->
+                    put("greeksAssetClassCount", greeks.assetClassGreeks.size)
+                    put("theta", greeks.theta)
+                    put("rho", greeks.rho)
+                }
+            }
+
             steps.add(
                 JobStep(
                     name = JobStepName.CALCULATE_VAR,
@@ -206,30 +217,9 @@ class VaRCalculationService(
                     startedAt = calcStart,
                     completedAt = Instant.now(),
                     durationMs = calcDuration,
-                    details = mapOf(
-                        "varValue" to (result.varValue ?: 0.0),
-                        "expectedShortfall" to (result.expectedShortfall ?: 0.0),
-                        "positionBreakdown" to positionBreakdown,
-                    ),
+                    details = calcDetails,
                 )
             )
-
-            if (result.greeks != null) {
-                steps.add(
-                    JobStep(
-                        name = JobStepName.CALCULATE_GREEKS,
-                        status = RunStatus.COMPLETED,
-                        startedAt = calcStart,
-                        completedAt = Instant.now(),
-                        durationMs = calcDuration,
-                        details = mapOf(
-                            "assetClassCount" to result.greeks.assetClassGreeks.size,
-                            "theta" to result.greeks.theta,
-                            "rho" to result.greeks.rho,
-                        ),
-                    )
-                )
-            }
 
             // Step 5: Publish result
             val publishStart = Instant.now()

@@ -683,7 +683,7 @@ class VaRCalculationServiceTest : FunSpec({
         item.containsKey("vega") shouldBe false
     }
 
-    test("adds CALCULATE_GREEKS step when greeks are present in result") {
+    test("includes Greeks summary in CALCULATE_VAR step when greeks are present") {
         val positions = listOf(position())
         val greeks = GreeksResult(
             assetClassGreeks = listOf(
@@ -710,17 +710,12 @@ class VaRCalculationServiceTest : FunSpec({
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val job = jobSlot.captured
-        job.steps shouldHaveSize 6
-        job.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
-        job.steps[1].name shouldBe JobStepName.DISCOVER_DEPENDENCIES
-        job.steps[2].name shouldBe JobStepName.FETCH_MARKET_DATA
+        job.steps shouldHaveSize 5
         job.steps[3].name shouldBe JobStepName.CALCULATE_VAR
-        job.steps[4].name shouldBe JobStepName.CALCULATE_GREEKS
-        job.steps[5].name shouldBe JobStepName.PUBLISH_RESULT
 
-        val greeksStep = job.steps[4]
-        greeksStep.details["assetClassCount"] shouldBe 1
-        greeksStep.details["theta"] shouldBe -45.0
-        greeksStep.details["rho"] shouldBe 120.0
+        val calcStep = job.steps[3]
+        calcStep.details["greeksAssetClassCount"] shouldBe 1
+        calcStep.details["theta"] shouldBe -45.0
+        calcStep.details["rho"] shouldBe 120.0
     }
 })

@@ -109,9 +109,8 @@ Each risk calculation is tracked as a **Valuation Job** — a pipeline of discre
 1. **FETCH_POSITIONS** — Load portfolio positions
 2. **DISCOVER_DEPENDENCIES** — Determine required market data per asset class
 3. **FETCH_MARKET_DATA** — Retrieve data from Price, Rates, Volatility, Correlation services
-4. **CALCULATE_VAR** — Run the selected VaR method
-5. **CALCULATE_GREEKS** — Compute Greeks (if requested)
-6. **PUBLISH_RESULT** — Publish to Kafka `risk.results`
+4. **CALCULATE_VAR** — Run the selected VaR method and compute Greeks (if requested)
+5. **PUBLISH_RESULT** — Publish to Kafka `risk.results`
 
 The UI displays job history with a zoomable timechart, search, pagination, and step-by-step pipeline visualization showing duration, status, and market data details per phase.
 

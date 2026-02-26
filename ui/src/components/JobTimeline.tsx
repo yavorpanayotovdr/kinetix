@@ -13,7 +13,6 @@ const STEP_LABELS: Record<string, string> = {
   DISCOVER_DEPENDENCIES: 'Discover Dependencies',
   FETCH_MARKET_DATA: 'Fetch Market Data',
   CALCULATE_VAR: 'Calculate VaR',
-  CALCULATE_GREEKS: 'Calculate Greeks',
   PUBLISH_RESULT: 'Publish Result',
 }
 
