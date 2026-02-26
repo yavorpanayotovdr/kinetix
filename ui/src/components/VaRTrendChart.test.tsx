@@ -146,18 +146,49 @@ describe('VaRTrendChart', () => {
     expect(observeCalls).toBeGreaterThan(0)
   })
 
-  describe('zoom interaction', () => {
-    const timeRange: TimeRange = {
-      from: '2025-01-15T09:00:00Z',
-      to: '2025-01-15T13:00:00Z',
+  it('X-axis labels reflect the selected time range, not just the data extent', () => {
+    // All data is within 2 hours, but the Custom timeRange covers 7 days
+    const weekRange: TimeRange = {
+      from: '2025-01-08T12:00:00Z',
+      to: '2025-01-15T12:00:00Z',
       label: 'Custom',
     }
 
+    const { rerender } = render(
+      <VaRTrendChart history={history} timeRange={weekRange} />,
+    )
+
+    const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+    const weekLabels = Array.from(svg.querySelectorAll('text[text-anchor="middle"]')).map(
+      (el) => el.textContent,
+    )
+
+    // 7-day range uses "Mon DD" format (from formatChartTime)
+    expect(weekLabels.some((l) => l?.includes('Jan'))).toBe(true)
+
+    // Switch to a 1-hour Custom range — labels should change to "HH:MM" format
+    const hourRange: TimeRange = {
+      from: '2025-01-15T11:00:00Z',
+      to: '2025-01-15T12:00:00Z',
+      label: 'Custom',
+    }
+
+    rerender(<VaRTrendChart history={history} timeRange={hourRange} />)
+
+    const hourLabels = Array.from(svg.querySelectorAll('text[text-anchor="middle"]')).map(
+      (el) => el.textContent,
+    )
+
+    // 1-hour range uses "HH:MM" format — should NOT contain "Jan"
+    expect(hourLabels.some((l) => l?.includes('Jan'))).toBe(false)
+    expect(hourLabels.some((l) => /^\d{2}:\d{2}$/.test(l ?? ''))).toBe(true)
+  })
+
+  describe('zoom interaction', () => {
     it('renders reset zoom button when zoomDepth > 0', () => {
       render(
         <VaRTrendChart
           history={history}
-          timeRange={timeRange}
           onZoom={vi.fn()}
           zoomDepth={1}
           onResetZoom={vi.fn()}
@@ -172,7 +203,6 @@ describe('VaRTrendChart', () => {
       render(
         <VaRTrendChart
           history={history}
-          timeRange={timeRange}
           onZoom={vi.fn()}
           zoomDepth={0}
           onResetZoom={vi.fn()}
@@ -188,7 +218,6 @@ describe('VaRTrendChart', () => {
       render(
         <VaRTrendChart
           history={history}
-          timeRange={timeRange}
           onZoom={vi.fn()}
           zoomDepth={2}
           onResetZoom={onResetZoom}
@@ -205,7 +234,6 @@ describe('VaRTrendChart', () => {
       render(
         <VaRTrendChart
           history={history}
-          timeRange={timeRange}
           onZoom={onZoom}
           zoomDepth={0}
           onResetZoom={vi.fn()}
@@ -229,7 +257,6 @@ describe('VaRTrendChart', () => {
       render(
         <VaRTrendChart
           history={history}
-          timeRange={timeRange}
           onZoom={vi.fn()}
           zoomDepth={0}
           onResetZoom={vi.fn()}

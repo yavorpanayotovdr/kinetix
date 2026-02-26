@@ -6,6 +6,7 @@ import { formatTimeOnly, formatChartTime } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { clampTooltipLeft } from '../utils/clampTooltipLeft'
 import { useBrushSelection } from '../hooks/useBrushSelection'
+import { resolveTimeRange } from '../utils/resolveTimeRange'
 
 interface VaRTrendChartProps {
   history: VaRHistoryEntry[]
@@ -76,30 +77,6 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const plotWidth = containerWidth - PADDING.left - PADDING.right
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
 
-  const handleBrushEnd = useCallback(
-    (startX: number, endX: number) => {
-      if (!timeRange || !onZoom) return
-
-      const fromMs = new Date(timeRange.from).getTime()
-      const toMs = new Date(timeRange.to).getTime()
-
-      const leftPct = (startX - PADDING.left) / plotWidth
-      const rightPct = (endX - PADDING.left) / plotWidth
-
-      const zoomFrom = new Date(fromMs + leftPct * (toMs - fromMs))
-      const zoomTo = new Date(fromMs + rightPct * (toMs - fromMs))
-
-      onZoom({
-        from: zoomFrom.toISOString(),
-        to: zoomTo.toISOString(),
-        label: 'Custom',
-      })
-    },
-    [timeRange, onZoom, plotWidth],
-  )
-
-  const { brush, handlers: brushHandlers } = useBrushSelection({ onBrushEnd: handleBrushEnd })
-
   const { min, max } = useMemo(() => {
     const values = history.map((e) => e.varValue)
     const minVal = Math.min(...values)
@@ -111,17 +88,31 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
 
   const gridLines = useMemo(() => computeNiceGridLines(min, max, 4), [min, max])
 
+  // Resolve the time range fresh (sliding presets use Date.now()) so X-axis
+  // labels and data positions reflect the selected period, not stale timestamps.
+  // history is included as a dep so the extent re-resolves on every poll cycle.
   const timeExtent = useMemo(() => {
-    if (!timeRange) return null
-    const fromMs = new Date(timeRange.from).getTime()
-    const toMs = new Date(timeRange.to).getTime()
-    return toMs > fromMs ? { fromMs, toMs, durationMs: toMs - fromMs } : null
-  }, [timeRange])
+    if (timeRange) {
+      const { from, to } = resolveTimeRange(timeRange)
+      const fromMs = new Date(from).getTime()
+      const toMs = new Date(to).getTime()
+      if (toMs > fromMs) return { fromMs, toMs, durationMs: toMs - fromMs }
+    }
+    // Fallback: derive extent from data timestamps
+    if (history.length >= 2) {
+      const times = history.map((e) => new Date(e.calculatedAt).getTime())
+      const fromMs = Math.min(...times)
+      const toMs = Math.max(...times)
+      if (toMs > fromMs) return { fromMs, toMs, durationMs: toMs - fromMs }
+    }
+    return null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRange, history])
 
   const toX = useCallback(
     (timestampMs: number) => {
       if (timeExtent) {
-        const pct = (timestampMs - timeExtent.fromMs) / timeExtent.durationMs
+        const pct = Math.max(0, Math.min(1, (timestampMs - timeExtent.fromMs) / timeExtent.durationMs))
         return PADDING.left + pct * plotWidth
       }
       return 0
@@ -129,51 +120,50 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
     [timeExtent, plotWidth],
   )
 
+  const handleBrushEnd = useCallback(
+    (startX: number, endX: number) => {
+      if (!timeExtent || !onZoom) return
+
+      const leftPct = (startX - PADDING.left) / plotWidth
+      const rightPct = (endX - PADDING.left) / plotWidth
+
+      const zoomFrom = new Date(timeExtent.fromMs + leftPct * timeExtent.durationMs)
+      const zoomTo = new Date(timeExtent.fromMs + rightPct * timeExtent.durationMs)
+
+      onZoom({
+        from: zoomFrom.toISOString(),
+        to: zoomTo.toISOString(),
+        label: 'Custom',
+      })
+    },
+    [timeExtent, onZoom, plotWidth],
+  )
+
+  const { brush, handlers: brushHandlers } = useBrushSelection({ onBrushEnd: handleBrushEnd })
+
   const xLabels = useMemo(() => {
-    if (history.length < 2) return []
+    if (history.length < 2 || !timeExtent) return []
 
-    if (timeExtent) {
-      const count = 6
-      const rangeDays = timeExtent.durationMs / (24 * 60 * 60 * 1000)
-      const labels: { x: number; text: string }[] = []
-      for (let i = 0; i <= count; i++) {
-        const t = timeExtent.fromMs + (i / count) * timeExtent.durationMs
-        labels.push({
-          x: PADDING.left + (i / count) * plotWidth,
-          text: formatChartTime(new Date(t), rangeDays),
-        })
-      }
-      return labels
-    }
-
-    // Fallback: index-based (no timeRange)
-    const count = Math.min(6, history.length)
-    const step = Math.max(1, Math.floor((history.length - 1) / (count - 1)))
+    const count = 6
+    const rangeDays = timeExtent.durationMs / (24 * 60 * 60 * 1000)
     const labels: { x: number; text: string }[] = []
-
-    for (let i = 0; i < history.length; i += step) {
-      const x = PADDING.left + (i / (history.length - 1)) * plotWidth
-      labels.push({ x, text: formatTimeOnly(history[i].calculatedAt) })
-    }
-
-    const lastIdx = history.length - 1
-    if (labels.length > 0 && labels[labels.length - 1].x < PADDING.left + plotWidth - 20) {
+    for (let i = 0; i <= count; i++) {
+      const t = timeExtent.fromMs + (i / count) * timeExtent.durationMs
       labels.push({
-        x: PADDING.left + plotWidth,
-        text: formatTimeOnly(history[lastIdx].calculatedAt),
+        x: PADDING.left + (i / count) * plotWidth,
+        text: formatChartTime(new Date(t), rangeDays),
       })
     }
-
     return labels
   }, [history, plotWidth, timeExtent])
 
   const points = useMemo(() => {
     if (history.length < 2) return []
     const range = max - min || 1
-    return history.map((entry, i) => ({
+    return history.map((entry) => ({
       x: timeExtent
         ? toX(new Date(entry.calculatedAt).getTime())
-        : PADDING.left + (i / (history.length - 1)) * plotWidth,
+        : PADDING.left + plotWidth / 2,
       y: PADDING.top + (1 - (entry.varValue - min) / range) * plotHeight,
     }))
   }, [history, plotWidth, plotHeight, min, max, timeExtent, toX])
