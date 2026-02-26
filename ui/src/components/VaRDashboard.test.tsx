@@ -164,7 +164,7 @@ describe('VaRDashboard', () => {
     expect(trend.querySelector('svg')).toBeInTheDocument()
   })
 
-  it('shows collecting data message with fewer than 2 points', () => {
+  it('renders a single-point dot with exactly 1 data point', () => {
     render(
       <VaRDashboard
         varResult={varResult}
@@ -178,7 +178,8 @@ describe('VaRDashboard', () => {
     )
 
     const trend = screen.getByTestId('var-trend-chart')
-    expect(trend).toHaveTextContent('Collecting data...')
+    expect(trend).not.toHaveTextContent('Collecting data...')
+    expect(trend.querySelector('[data-testid="single-point-dot"]')).toBeInTheDocument()
   })
 
   it('uses a 2-column grid with full-width trend chart below', () => {

@@ -39,18 +39,24 @@ const history: VaRHistoryEntry[] = [
 ]
 
 describe('VaRTrendChart', () => {
-  it('renders empty state when fewer than 2 data points', () => {
-    render(<VaRTrendChart history={[history[0]]} />)
-
-    const panel = screen.getByTestId('var-trend-chart')
-    expect(panel).toBeInTheDocument()
-    expect(panel).toHaveTextContent('Collecting data...')
-  })
-
   it('renders empty state for zero data points', () => {
     render(<VaRTrendChart history={[]} />)
 
     expect(screen.getByTestId('var-trend-chart')).toHaveTextContent('Collecting data...')
+  })
+
+  it('renders a single data point as a dot instead of showing collecting message', () => {
+    render(<VaRTrendChart history={[history[0]]} />)
+
+    const panel = screen.getByTestId('var-trend-chart')
+    expect(panel).not.toHaveTextContent('Collecting data...')
+
+    const svg = panel.querySelector('svg')
+    expect(svg).toBeInTheDocument()
+
+    const dot = svg!.querySelector('circle[data-testid="single-point-dot"]')
+    expect(dot).toBeInTheDocument()
+    expect(dot).toHaveAttribute('fill', '#6366f1')
   })
 
   it('renders the chart panel with header', () => {

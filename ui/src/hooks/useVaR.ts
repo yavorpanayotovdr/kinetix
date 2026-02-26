@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
+import { fetchValuationJobs } from '../api/jobHistory'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import { resolveTimeRange } from '../utils/resolveTimeRange'
 
@@ -46,15 +47,39 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const [volBump, setVolBump] = useState(0)
   const initialLoadDone = useRef(false)
+  const timeRangeRef = useRef(timeRange)
+  timeRangeRef.current = timeRange
 
   const load = useCallback(async () => {
     if (!portfolioId) return
 
-    if (!initialLoadDone.current) {
+    const isFirstLoad = !initialLoadDone.current
+    if (isFirstLoad) {
       setLoading(true)
     }
 
     try {
+      if (isFirstLoad) {
+        try {
+          const { from, to } = resolveTimeRange(timeRangeRef.current)
+          const { items } = await fetchValuationJobs(portfolioId, MAX_HISTORY, 0, from, to)
+          const historical = items
+            .filter((job) => job.status === 'COMPLETED' && job.varValue != null && job.completedAt != null)
+            .map((job) => ({
+              varValue: job.varValue!,
+              expectedShortfall: job.expectedShortfall ?? 0,
+              calculatedAt: job.completedAt!,
+            }))
+            .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
+
+          if (historical.length > 0) {
+            setHistory(historical)
+          }
+        } catch {
+          // Job history fetch failed — continue with polling only
+        }
+      }
+
       const result = await fetchVaR(portfolioId)
       setVarResult(result)
       setError(null)

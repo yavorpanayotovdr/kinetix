@@ -67,4 +67,20 @@ describe('ComponentBreakdown', () => {
     expect(segments[1]).toHaveAttribute('data-testid', 'breakdown-segment-FIXED_INCOME')
     expect(segments[2]).toHaveAttribute('data-testid', 'breakdown-segment-COMMODITY')
   })
+
+  it('fills available width with justify-between and full-width flex', () => {
+    const { container } = render(<ComponentBreakdown breakdown={breakdown} />)
+
+    const flexContainer = container.querySelector('.flex.items-center.gap-8')!
+    expect(flexContainer.className).toContain('justify-between')
+    expect(flexContainer.className).toContain('w-full')
+  })
+
+  it('renders donut at 130x130', () => {
+    render(<ComponentBreakdown breakdown={breakdown} />)
+
+    const svg = document.querySelector('svg')!
+    expect(svg).toHaveAttribute('width', '130')
+    expect(svg).toHaveAttribute('height', '130')
+  })
 })

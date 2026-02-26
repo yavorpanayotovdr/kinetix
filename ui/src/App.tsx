@@ -1,19 +1,14 @@
 import { useState } from 'react'
 import { Activity, BarChart3, Shield, FlaskConical, Scale, Bell, Server } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
-import { VaRDashboard } from './components/VaRDashboard'
-import { StressTestPanel } from './components/StressTestPanel'
-import { GreeksPanel } from './components/GreeksPanel'
-import { JobHistory } from './components/JobHistory'
 import { NotificationCenter } from './components/NotificationCenter'
-import { RegulatoryDashboard } from './components/RegulatoryDashboard'
 import { SystemDashboard } from './components/SystemDashboard'
+import { RiskTab } from './components/RiskTab'
+import { ScenariosTab } from './components/ScenariosTab'
+import { RegulatoryTab } from './components/RegulatoryTab'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
-import { useVaR } from './hooks/useVaR'
-import { useStressTest } from './hooks/useStressTest'
 import { useNotifications } from './hooks/useNotifications'
-import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
 
 type Tab = 'positions' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
@@ -32,10 +27,7 @@ function App() {
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
-  const { varResult, greeksResult, loading: varLoading, refreshing: varRefreshing, error: varError, refresh, filteredHistory, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth, volBump, setVolBump } = useVaR(portfolioId)
-  const stress = useStressTest(portfolioId)
   const notifications = useNotifications()
-  const regulatory = useRegulatory(portfolioId)
   const systemHealth = useSystemHealth()
 
   return (
@@ -111,54 +103,15 @@ function App() {
                 )}
 
                 {activeTab === 'risk' && (
-                  <div>
-                    <VaRDashboard
-                      varResult={varResult}
-                      filteredHistory={filteredHistory}
-                      loading={varLoading}
-                      refreshing={varRefreshing}
-                      error={varError}
-                      onRefresh={refresh}
-                      timeRange={varTimeRange}
-                      setTimeRange={setVarTimeRange}
-                      zoomIn={varZoomIn}
-                      resetZoom={varResetZoom}
-                      zoomDepth={varZoomDepth}
-                    />
-                    <GreeksPanel
-                      greeksResult={greeksResult}
-                      loading={varLoading}
-                      error={varError}
-                      volBump={volBump}
-                      onVolBumpChange={setVolBump}
-                    />
-                    <div className="mt-4">
-                      <JobHistory portfolioId={portfolioId} />
-                    </div>
-                  </div>
+                  <RiskTab portfolioId={portfolioId} />
                 )}
 
                 {activeTab === 'scenarios' && (
-                  <StressTestPanel
-                    scenarios={stress.scenarios}
-                    result={stress.result}
-                    loading={stress.loading}
-                    error={stress.error}
-                    selectedScenario={stress.selectedScenario}
-                    onScenarioChange={stress.setSelectedScenario}
-                    onRun={stress.run}
-                  />
+                  <ScenariosTab portfolioId={portfolioId} />
                 )}
 
                 {activeTab === 'regulatory' && (
-                  <RegulatoryDashboard
-                    result={regulatory.result}
-                    loading={regulatory.loading}
-                    error={regulatory.error}
-                    onCalculate={regulatory.calculate}
-                    onDownloadCsv={regulatory.downloadCsv}
-                    onDownloadXbrl={regulatory.downloadXbrl}
-                  />
+                  <RegulatoryTab portfolioId={portfolioId} />
                 )}
 
                 {activeTab === 'alerts' && (

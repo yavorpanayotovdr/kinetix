@@ -1,34 +1,31 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PositionDto, VaRResultDto } from './types'
+import type { PositionDto } from './types'
 
 vi.mock('./hooks/usePositions')
 vi.mock('./hooks/usePriceStream')
-vi.mock('./hooks/useVaR')
-vi.mock('./hooks/useStressTest')
 vi.mock('./hooks/useNotifications')
-vi.mock('./hooks/useRegulatory')
 vi.mock('./hooks/useSystemHealth')
-vi.mock('./hooks/useJobHistory')
+vi.mock('./components/RiskTab', () => ({
+  RiskTab: () => <div data-testid="risk-tab-wrapper" />,
+}))
+vi.mock('./components/ScenariosTab', () => ({
+  ScenariosTab: () => <div data-testid="scenarios-tab-wrapper" />,
+}))
+vi.mock('./components/RegulatoryTab', () => ({
+  RegulatoryTab: () => <div data-testid="regulatory-tab-wrapper" />,
+}))
 
 import App from './App'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
-import { useVaR } from './hooks/useVaR'
-import { useStressTest } from './hooks/useStressTest'
 import { useNotifications } from './hooks/useNotifications'
-import { useRegulatory } from './hooks/useRegulatory'
 import { useSystemHealth } from './hooks/useSystemHealth'
-import { useJobHistory } from './hooks/useJobHistory'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
-const mockUseVaR = vi.mocked(useVaR)
-const mockUseStressTest = vi.mocked(useStressTest)
 const mockUseNotifications = vi.mocked(useNotifications)
-const mockUseRegulatory = vi.mocked(useRegulatory)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
-const mockUseJobHistory = vi.mocked(useJobHistory)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -39,18 +36,6 @@ const position: PositionDto = {
   marketPrice: { amount: '155.00', currency: 'USD' },
   marketValue: { amount: '15500.00', currency: 'USD' },
   unrealizedPnl: { amount: '500.00', currency: 'USD' },
-}
-
-const varResult: VaRResultDto = {
-  portfolioId: 'port-1',
-  calculationType: 'HISTORICAL',
-  confidenceLevel: 'CL_95',
-  varValue: '1234567.89',
-  expectedShortfall: '1567890.12',
-  componentBreakdown: [
-    { assetClass: 'EQUITY', varContribution: '800000.00', percentageOfTotal: '64.85' },
-  ],
-  calculatedAt: '2025-01-15T10:30:00Z',
 }
 
 const selectPortfolio = vi.fn()
@@ -65,32 +50,6 @@ function setupDefaults() {
     error: null,
   })
   mockUsePriceStream.mockReturnValue({ positions: [position], connected: true })
-  mockUseVaR.mockReturnValue({
-    varResult: null,
-    greeksResult: null,
-    history: [],
-    filteredHistory: [],
-    loading: false,
-    error: null,
-    refresh: vi.fn(),
-    refreshing: false,
-    timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
-    setTimeRange: vi.fn(),
-    zoomIn: vi.fn(),
-    resetZoom: vi.fn(),
-    zoomDepth: 0,
-    volBump: 0,
-    setVolBump: vi.fn(),
-  })
-  mockUseStressTest.mockReturnValue({
-    scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
-    selectedScenario: 'MARKET_CRASH',
-    setSelectedScenario: vi.fn(),
-    result: null,
-    loading: false,
-    error: null,
-    run: vi.fn(),
-  })
   mockUseNotifications.mockReturnValue({
     rules: [],
     alerts: [],
@@ -98,14 +57,6 @@ function setupDefaults() {
     error: null,
     createRule: vi.fn(),
     deleteRule: vi.fn(),
-  })
-  mockUseRegulatory.mockReturnValue({
-    result: null,
-    loading: false,
-    error: null,
-    calculate: vi.fn(),
-    downloadCsv: vi.fn(),
-    downloadXbrl: vi.fn(),
   })
   mockUseSystemHealth.mockReturnValue({
     health: {
@@ -121,30 +72,6 @@ function setupDefaults() {
     loading: false,
     error: null,
     refresh: vi.fn(),
-  })
-  mockUseJobHistory.mockReturnValue({
-    runs: [],
-    expandedJobs: {},
-    loadingJobIds: new Set(),
-    loading: false,
-    error: null,
-    timeRange: { from: '2025-01-14T10:00:00Z', to: '2025-01-15T10:00:00Z', label: 'Last 24h' },
-    setTimeRange: vi.fn(),
-    toggleJob: vi.fn(),
-    closeJob: vi.fn(),
-    clearSelection: vi.fn(),
-    refresh: vi.fn(),
-    zoomIn: vi.fn(),
-    resetZoom: vi.fn(),
-    zoomDepth: 0,
-    page: 1,
-    totalPages: 1,
-    hasNextPage: false,
-    nextPage: vi.fn(),
-    prevPage: vi.fn(),
-    firstPage: vi.fn(),
-    lastPage: vi.fn(),
-    goToPage: vi.fn(),
   })
 }
 
@@ -195,33 +122,15 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
-    expect(screen.queryByTestId('var-dashboard')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('risk-tab-wrapper')).not.toBeInTheDocument()
   })
 
-  it('clicking Risk tab shows VaR dashboard and greeks', () => {
-    mockUseVaR.mockReturnValue({
-      varResult,
-      greeksResult: null,
-      history: [],
-      filteredHistory: [],
-      loading: false,
-      error: null,
-      refresh: vi.fn(),
-      refreshing: false,
-      timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
-      setTimeRange: vi.fn(),
-      zoomIn: vi.fn(),
-      resetZoom: vi.fn(),
-      zoomDepth: 0,
-      volBump: 0,
-      setVolBump: vi.fn(),
-    })
-
+  it('clicking Risk tab renders the RiskTab wrapper', () => {
     render(<App />)
 
     fireEvent.click(screen.getByTestId('tab-risk'))
 
-    expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
+    expect(screen.getByTestId('risk-tab-wrapper')).toBeInTheDocument()
   })
 
   it('Risk tab does not show stress test panel', () => {
@@ -229,23 +138,23 @@ describe('App', () => {
 
     fireEvent.click(screen.getByTestId('tab-risk'))
 
-    expect(screen.queryByTestId('stress-test-panel')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('scenarios-tab-wrapper')).not.toBeInTheDocument()
   })
 
-  it('clicking Scenarios tab shows stress test panel', () => {
+  it('clicking Scenarios tab renders the ScenariosTab wrapper', () => {
     render(<App />)
 
     fireEvent.click(screen.getByTestId('tab-scenarios'))
 
-    expect(screen.getByTestId('stress-test-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('scenarios-tab-wrapper')).toBeInTheDocument()
   })
 
-  it('clicking Regulatory tab shows regulatory dashboard', () => {
+  it('clicking Regulatory tab renders the RegulatoryTab wrapper', () => {
     render(<App />)
 
     fireEvent.click(screen.getByTestId('tab-regulatory'))
 
-    expect(screen.getByTestId('regulatory-dashboard')).toBeInTheDocument()
+    expect(screen.getByTestId('regulatory-tab-wrapper')).toBeInTheDocument()
   })
 
   it('clicking Alerts tab shows notification center', () => {
@@ -356,14 +265,6 @@ describe('App', () => {
     expect(screen.queryByText('Loading positions...')).not.toBeInTheDocument()
   })
 
-  it('shows JobHistory in the risk tab', () => {
-    render(<App />)
-
-    fireEvent.click(screen.getByTestId('tab-risk'))
-
-    expect(screen.getByTestId('job-history')).toBeInTheDocument()
-  })
-
   it('System tab renders even when positions have an error', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
@@ -380,5 +281,23 @@ describe('App', () => {
 
     expect(screen.getByTestId('system-dashboard')).toBeInTheDocument()
     expect(screen.queryByText('Network error')).not.toBeInTheDocument()
+  })
+
+  it('does not render RiskTab wrapper on initial positions tab', () => {
+    render(<App />)
+
+    expect(screen.queryByTestId('risk-tab-wrapper')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('scenarios-tab-wrapper')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('regulatory-tab-wrapper')).not.toBeInTheDocument()
+  })
+
+  it('unmounts RiskTab when switching away from Risk tab', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-risk'))
+    expect(screen.getByTestId('risk-tab-wrapper')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('tab-positions'))
+    expect(screen.queryByTestId('risk-tab-wrapper')).not.toBeInTheDocument()
   })
 })
