@@ -29,6 +29,7 @@ import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.simulation.*
 import io.grpc.ManagedChannelBuilder
 import io.grpc.TlsChannelCredentials
 import io.ktor.client.HttpClient
@@ -143,10 +144,44 @@ fun Application.moduleWithRoutes() {
     val correlationServiceBaseUrl = environment.config
         .propertyOrNull("correlationService.baseUrl")?.getString() ?: "http://localhost:8091"
     val correlationServiceClient = HttpCorrelationServiceClient(priceHttpClient, correlationServiceBaseUrl)
-    val dependenciesDiscoverer = DependenciesDiscoverer(riskEngineClient)
+
+    val simulationDelays = SimulationDelays.from(environment.config)
+    if (simulationDelays != null) {
+        log.info("Simulation delays ENABLED: $simulationDelays")
+    }
+
+    val effectivePositionProvider = simulationDelays?.let {
+        DelayingPositionProvider(positionProvider, it.fetchPositionsMs)
+    } ?: positionProvider
+
+    val effectiveRiskEngineClient = simulationDelays?.let {
+        DelayingRiskEngineClient(riskEngineClient, it.discoverDependenciesMs, it.calculateVaRMs)
+    } ?: riskEngineClient
+
+    val effectivePriceServiceClient = simulationDelays?.let {
+        DelayingPriceServiceClient(priceServiceClient, it.fetchMarketDataPerCallMs)
+    } ?: priceServiceClient
+
+    val effectiveRatesServiceClient = simulationDelays?.let {
+        DelayingRatesServiceClient(ratesServiceClient, it.fetchMarketDataPerCallMs)
+    } ?: ratesServiceClient
+
+    val effectiveReferenceDataServiceClient = simulationDelays?.let {
+        DelayingReferenceDataServiceClient(referenceDataServiceClient, it.fetchMarketDataPerCallMs)
+    } ?: referenceDataServiceClient
+
+    val effectiveVolatilityServiceClient = simulationDelays?.let {
+        DelayingVolatilityServiceClient(volatilityServiceClient, it.fetchMarketDataPerCallMs)
+    } ?: volatilityServiceClient
+
+    val effectiveCorrelationServiceClient = simulationDelays?.let {
+        DelayingCorrelationServiceClient(correlationServiceClient, it.fetchMarketDataPerCallMs)
+    } ?: correlationServiceClient
+
+    val dependenciesDiscoverer = DependenciesDiscoverer(effectiveRiskEngineClient)
     val marketDataFetcher = MarketDataFetcher(
-        priceServiceClient, ratesServiceClient, referenceDataServiceClient,
-        volatilityServiceClient, correlationServiceClient,
+        effectivePriceServiceClient, effectiveRatesServiceClient, effectiveReferenceDataServiceClient,
+        effectiveVolatilityServiceClient, effectiveCorrelationServiceClient,
     )
 
     val riskDbConfig = environment.config.config("riskDatabase")
@@ -172,7 +207,7 @@ fun Application.moduleWithRoutes() {
     val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
 
     val varCalculationService = VaRCalculationService(
-        positionProvider, riskEngineClient, resultPublisher,
+        effectivePositionProvider, effectiveRiskEngineClient, resultPublisher,
         dependenciesDiscoverer = dependenciesDiscoverer,
         marketDataFetcher = marketDataFetcher,
         jobRecorder = jobRecorder,
@@ -201,7 +236,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        riskRoutes(varCalculationService, varCache, positionProvider, stressTestStub, regulatoryStub, riskEngineClient)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient)
         jobHistoryRoutes(jobRecorder)
     }
 
