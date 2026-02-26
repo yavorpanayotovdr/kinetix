@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.gateway.contract
 
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.*
@@ -16,7 +16,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
 
-class GatewayPositionContractIntegrationTest : BehaviorSpec({
+class GatewayPositionContractTest : BehaviorSpec({
 
     val positionClient = mockk<PositionServiceClient>()
 

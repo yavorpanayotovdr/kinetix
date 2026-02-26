@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.gateway.contract
 
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.PriceServiceClient
@@ -15,7 +15,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
 
-class GatewayPriceContractIntegrationTest : BehaviorSpec({
+class GatewayPriceContractTest : BehaviorSpec({
 
     val priceClient = mockk<PriceServiceClient>()
 

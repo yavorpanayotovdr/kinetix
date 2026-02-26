@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.risk
 
 import com.kinetix.common.model.AssetClass
 import io.kotest.core.spec.style.BehaviorSpec
@@ -161,7 +161,7 @@ private class StubGreeksCalculator {
     }
 }
 
-class StressTestAcceptanceTest : BehaviorSpec({
+class StressTestCalculationTest : BehaviorSpec({
 
     given("a portfolio with equity and commodity positions") {
         val exposures = mapOf(

@@ -133,7 +133,7 @@ Default users: admin/admin, trader1/trader1, risk_mgr/risk_mgr, compliance1/comp
 - Node.js 22 with npm
 - `./gradlew test` -- unit tests only
 - `./gradlew integrationTest` -- integration tests (Testcontainers)
-- `./gradlew acceptanceTest` -- end-to-end acceptance tests
+- `./gradlew end2EndTest` -- end-to-end tests
 - `cd risk-engine && uv run pytest` -- Python tests
 - `cd ui && npm run test` -- UI tests (Vitest)
 - `./gradlew :load-tests:gatlingRun` -- load tests

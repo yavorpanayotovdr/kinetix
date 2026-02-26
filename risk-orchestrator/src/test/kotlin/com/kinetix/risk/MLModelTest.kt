@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.risk
 
 import com.kinetix.common.model.AssetClass
 import io.kotest.core.spec.style.BehaviorSpec
@@ -97,7 +97,7 @@ private class StubAnomalyDetector {
     }
 }
 
-class MLModelAcceptanceTest : BehaviorSpec({
+class MLModelTest : BehaviorSpec({
 
     given("a trained volatility prediction model for EQUITY") {
         val predictor = StubVolatilityPredictor()

@@ -1,12 +1,7 @@
-package com.kinetix.acceptance
+package com.kinetix.gateway.contract
 
 import com.kinetix.gateway.client.*
 import com.kinetix.gateway.module
-import com.kinetix.notification.delivery.InAppDeliveryService
-import com.kinetix.notification.engine.RulesEngine
-import com.kinetix.notification.module as notificationModule
-import com.kinetix.notification.persistence.InMemoryAlertEventRepository
-import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -16,7 +11,7 @@ import io.ktor.server.testing.*
 import io.mockk.*
 import kotlinx.serialization.json.*
 
-class ErrorResponseConsistencyIntegrationTest : BehaviorSpec({
+class GatewayErrorResponseContractTest : BehaviorSpec({
 
     given("gateway error responses") {
 
@@ -43,29 +38,6 @@ class ErrorResponseConsistencyIntegrationTest : BehaviorSpec({
                 testApplication {
                     application { module(priceClient) }
                     val response = client.get("/api/v1/prices/AAPL/history")
-                    response.status shouldBe HttpStatusCode.BadRequest
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-                    body.containsKey("error") shouldBe true
-                    body.containsKey("message") shouldBe true
-                }
-            }
-        }
-    }
-
-    given("notification-service error responses") {
-
-        `when`("POST /api/v1/notifications/rules with invalid type") {
-            then("returns 400 with { error, message } shape") {
-                testApplication {
-                    application {
-                        val rulesEngine = RulesEngine(InMemoryAlertRuleRepository())
-                        val inAppDelivery = InAppDeliveryService(InMemoryAlertEventRepository())
-                        notificationModule(rulesEngine, inAppDelivery)
-                    }
-                    val response = client.post("/api/v1/notifications/rules") {
-                        contentType(ContentType.Application.Json)
-                        setBody("""{"name":"Test","type":"INVALID_TYPE","threshold":1000.0,"operator":"GREATER_THAN","severity":"INFO","channels":["IN_APP"]}""")
-                    }
                     response.status shouldBe HttpStatusCode.BadRequest
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
                     body.containsKey("error") shouldBe true

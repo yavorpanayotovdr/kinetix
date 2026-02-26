@@ -96,7 +96,7 @@ private class StubRiskEngineClient : RiskEngineClient {
 }
 
 @Suppress("DEPRECATION")
-class VaRCalculationAcceptanceTest : BehaviorSpec({
+class VaRCalculationEnd2EndTest : BehaviorSpec({
 
     // --- Infrastructure ---
 

@@ -140,7 +140,7 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 ### Kotlin (unit tests)
 
 ```bash
-./gradlew build -x integrationTest -x acceptanceTest
+./gradlew build -x integrationTest -x end2EndTest
 ```
 
 ### Kotlin (integration tests)
@@ -152,10 +152,10 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 ./gradlew :audit-service:integrationTest
 ```
 
-### Kotlin (acceptance tests)
+### Kotlin (end-to-end tests)
 
 ```bash
-./gradlew :acceptance-tests:acceptanceTest
+./gradlew :acceptance-tests:end2EndTest
 ```
 
 ### Python (risk engine)

@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.notification
 
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
@@ -14,7 +14,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 
-class NotificationAlertingAcceptanceTest : BehaviorSpec({
+class NotificationAlertingTest : BehaviorSpec({
 
     given("a portfolio with VaR breach alert rule configured") {
         val rulesEngine = RulesEngine(InMemoryAlertRuleRepository())

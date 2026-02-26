@@ -8,8 +8,8 @@ trap 'echo ""; python3 scripts/test-summary.py 2>/dev/null || true' EXIT
 
 test_exit=0
 
-echo "==> Running Gradle unit, integration, and acceptance tests..."
-./gradlew test integrationTest acceptanceTest --quiet || test_exit=$?
+echo "==> Running Gradle unit, integration, and end-to-end tests..."
+./gradlew test integrationTest end2EndTest --quiet || test_exit=$?
 
 echo "==> Running UI tests..."
 (cd ui && npm run test) || test_exit=$?

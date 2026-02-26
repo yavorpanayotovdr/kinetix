@@ -5,7 +5,7 @@ Usage:
     python3 scripts/test-summary.py [ROOT_DIR] [--format text|markdown]
 
 Discovers JUnit XML files produced by Gradle, pytest, and Vitest, then prints
-a per-component breakdown by test type (unit / integration / acceptance).
+a per-component breakdown by test type (unit / integration / e2e).
 """
 from __future__ import annotations
 
@@ -22,17 +22,17 @@ PATTERNS = [
     # Gradle / local layout
     ("**/build/test-results/test/**/*.xml", "unit"),
     ("**/build/test-results/integrationTest/**/*.xml", "integration"),
-    ("**/build/test-results/acceptanceTest/**/*.xml", "acceptance"),
+    ("**/build/test-results/end2EndTest/**/*.xml", "e2e"),
     ("**/risk-engine/**/pytest.xml", "unit"),
     ("**/ui/**/junit.xml", "unit"),
     # CI artifact layout (download-artifact@v4 strips leading directory structure)
     ("**/integration-test-xml-*/*.xml", "integration"),
-    ("**/acceptance-test-xml/*.xml", "acceptance"),
+    ("**/e2e-test-xml/*.xml", "e2e"),
     ("**/python-test-xml/pytest.xml", "unit"),
     ("**/ui-test-xml/junit.xml", "unit"),
 ]
 
-TEST_TYPES = ["unit", "integration", "acceptance"]
+TEST_TYPES = ["unit", "integration", "e2e"]
 COLUMN_WIDTH = 12
 
 
@@ -67,8 +67,8 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
         if part.startswith("integration-test-xml-"):
             return part.removeprefix("integration-test-xml-")
 
-    # CI artifact: acceptance-test-xml/...
-    if "acceptance-test-xml" in parts:
+    # CI artifact: e2e-test-xml/...
+    if "e2e-test-xml" in parts:
         return "acceptance-tests"
 
     # pytest: risk-engine/**/pytest.xml or python-test-xml/pytest.xml
@@ -187,8 +187,8 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
     lines = []
     lines.append("## Test Summary")
     lines.append("")
-    lines.append("| Component | Unit | Integration | Acceptance | Total |")
-    lines.append("|-----------|-----:|------------:|-----------:|------:|")
+    lines.append("| Component | Unit | Integration | E2E | Total |")
+    lines.append("|-----------|-----:|------------:|----:|------:|")
 
     grand = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
 

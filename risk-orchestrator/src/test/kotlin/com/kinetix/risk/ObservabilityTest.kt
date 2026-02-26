@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.risk
 
 import com.kinetix.common.model.*
 import com.kinetix.risk.client.RiskEngineClient
@@ -62,7 +62,7 @@ private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
     }
 }
 
-class ObservabilityAcceptanceTest : BehaviorSpec({
+class ObservabilityTest : BehaviorSpec({
 
     given("a risk orchestrator with metrics enabled") {
         val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)

@@ -30,8 +30,8 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Python tests** use pytest.
 - **UI tests** use Vitest.
 - **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
-- **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`.
-- Regular `./gradlew test` excludes both integration and acceptance tests.
+- **End-to-end tests** are named `*End2EndTest` and run via `./gradlew end2EndTest`.
+- Regular `./gradlew test` excludes both integration and end-to-end tests.
 
 ## Communication Style
 

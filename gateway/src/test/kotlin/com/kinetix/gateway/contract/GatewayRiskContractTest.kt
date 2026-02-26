@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.gateway.contract
 
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.*
@@ -14,7 +14,7 @@ import io.mockk.*
 import kotlinx.serialization.json.*
 import java.time.Instant
 
-class GatewayRiskContractIntegrationTest : BehaviorSpec({
+class GatewayRiskContractTest : BehaviorSpec({
 
     val riskClient = mockk<RiskServiceClient>()
 

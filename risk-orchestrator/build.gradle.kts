@@ -26,4 +26,5 @@ dependencies {
     testImplementation(libs.testcontainers.kafka)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.micrometer.prometheus)
 }

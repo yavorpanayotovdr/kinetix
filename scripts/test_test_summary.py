@@ -48,10 +48,10 @@ class TestDiscoverXmlFiles:
         assert ("position-service", "integration") in [(r[0], r[1]) for r in results]
 
     def test_discovers_kotlin_acceptance_tests(self, tmp_repo):
-        xml = tmp_repo / "acceptance-tests" / "build" / "test-results" / "acceptanceTest" / "TEST-Some.xml"
+        xml = tmp_repo / "acceptance-tests" / "build" / "test-results" / "end2EndTest" / "TEST-Some.xml"
         _write_xml(xml)
         results = discover_xml_files(tmp_repo)
-        assert ("acceptance-tests", "acceptance") in [(r[0], r[1]) for r in results]
+        assert ("acceptance-tests", "e2e") in [(r[0], r[1]) for r in results]
 
     def test_discovers_risk_engine_pytest(self, tmp_repo):
         xml = tmp_repo / "risk-engine" / "reports" / "pytest.xml"
@@ -170,10 +170,10 @@ class TestDiscoverXmlFilesFromCIArtifacts:
         assert ("position-service", "integration") in [(r[0], r[1]) for r in results]
 
     def test_discovers_acceptance_tests_from_ci_artifact(self, tmp_repo):
-        xml = tmp_repo / "acceptance-test-xml" / "TEST-Some.xml"
+        xml = tmp_repo / "e2e-test-xml" / "TEST-Some.xml"
         _write_xml(xml)
         results = discover_xml_files(tmp_repo)
-        assert ("acceptance-tests", "acceptance") in [(r[0], r[1]) for r in results]
+        assert ("acceptance-tests", "e2e") in [(r[0], r[1]) for r in results]
 
     def test_discovers_python_tests_from_ci_artifact(self, tmp_repo):
         xml = tmp_repo / "python-test-xml" / "pytest.xml"

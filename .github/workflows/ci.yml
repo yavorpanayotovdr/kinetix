@@ -63,7 +63,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile and unit test
-        run: ./gradlew build -x integrationTest -x acceptanceTest
+        run: ./gradlew build -x integrationTest -x end2EndTest
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,7 +119,7 @@ jobs:
           path: '${{ matrix.module }}/build/test-results/integrationTest/**/*.xml'
           retention-days: 1
 
-  acceptance-tests:
+  end-to-end-tests:
     needs: kotlin-integration
     runs-on: ubuntu-latest
     steps:
@@ -129,21 +129,21 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: Acceptance tests
-        run: ./gradlew :acceptance-tests:acceptanceTest
+      - name: End-to-end tests
+        run: ./gradlew :acceptance-tests:end2EndTest
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: acceptance-test-reports
-          path: 'acceptance-tests/build/reports/tests/acceptanceTest/'
+          name: e2e-test-reports
+          path: 'acceptance-tests/build/reports/tests/end2EndTest/'
           retention-days: 14
       - name: Upload test XML
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: acceptance-test-xml
-          path: 'acceptance-tests/build/test-results/acceptanceTest/**/*.xml'
+          name: e2e-test-xml
+          path: 'acceptance-tests/build/test-results/end2EndTest/**/*.xml'
           retention-days: 1
 
   python-build:
@@ -218,7 +218,7 @@ jobs:
           retention-days: 1
 
   test-summary:
-    needs: [kotlin-build, kotlin-integration, acceptance-tests, python-build, ui-build]
+    needs: [kotlin-build, kotlin-integration, end-to-end-tests, python-build, ui-build]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:

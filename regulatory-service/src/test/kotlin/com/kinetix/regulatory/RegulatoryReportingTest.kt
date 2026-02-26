@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.regulatory
 
 import com.kinetix.common.model.AssetClass
 import io.kotest.core.spec.style.BehaviorSpec
@@ -167,9 +167,9 @@ private fun generateXbrlReport(result: FrtbResult): String {
     return sb.toString()
 }
 
-// --- Acceptance test ---
+// --- Test ---
 
-class RegulatoryReportingAcceptanceTest : BehaviorSpec({
+class RegulatoryReportingTest : BehaviorSpec({
 
     given("a portfolio with positions across multiple asset classes") {
         val exposures = mapOf(

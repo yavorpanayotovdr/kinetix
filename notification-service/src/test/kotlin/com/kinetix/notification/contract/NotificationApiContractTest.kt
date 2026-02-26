@@ -1,4 +1,4 @@
-package com.kinetix.acceptance
+package com.kinetix.notification.contract
 
 import com.kinetix.notification.delivery.InAppDeliveryService
 import com.kinetix.notification.engine.RulesEngine
@@ -13,7 +13,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.*
 
-class GatewayNotificationContractIntegrationTest : BehaviorSpec({
+class NotificationApiContractTest : BehaviorSpec({
 
     given("the notification-service running") {
 

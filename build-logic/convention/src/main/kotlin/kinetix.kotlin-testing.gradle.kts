@@ -15,7 +15,7 @@ tasks.withType<Test>().configureEach {
 tasks.named<Test>("test") {
     filter {
         excludeTestsMatching("*IntegrationTest")
-        excludeTestsMatching("*AcceptanceTest")
+        excludeTestsMatching("*End2EndTest")
     }
 }
 
@@ -32,13 +32,13 @@ val integrationTest by tasks.registering(Test::class) {
     }
 }
 
-val acceptanceTest by tasks.registering(Test::class) {
-    description = "Runs acceptance tests."
+val end2EndTest by tasks.registering(Test::class) {
+    description = "Runs end-to-end tests."
     group = "verification"
     testClassesDirs = testSourceSets["test"].output.classesDirs
     classpath = testSourceSets["test"].runtimeClasspath
     filter {
-        includeTestsMatching("*AcceptanceTest")
+        includeTestsMatching("*End2EndTest")
         isFailOnNoMatchingTests = false
     }
 }
