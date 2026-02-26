@@ -106,7 +106,6 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
       if (toMs > fromMs) return { fromMs, toMs, durationMs: toMs - fromMs }
     }
     return null
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, history])
 
   const toX = useCallback(
