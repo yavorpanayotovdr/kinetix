@@ -7,11 +7,14 @@ function makeBucket(overrides: Partial<TimeBucket> = {}): TimeBucket {
   return {
     from: new Date('2025-01-15T10:00:00Z'),
     to: new Date('2025-01-15T11:00:00Z'),
-    started: 1,
+    started: 7,
     completed: 3,
     failed: 1,
     running: 2,
-    jobIds: ['job-aaa-111', 'job-bbb-222'],
+    jobs: [
+      { jobId: 'job-aaa-111', startedAt: new Date('2025-01-15T10:01:00Z'), completedAt: new Date('2025-01-15T10:02:00Z'), status: 'COMPLETED' },
+      { jobId: 'job-bbb-222', startedAt: new Date('2025-01-15T10:03:00Z'), completedAt: null, status: 'RUNNING' },
+    ],
     ...overrides,
   }
 }
@@ -42,7 +45,7 @@ describe('ChartTooltip', () => {
     render(
       <ChartTooltip bucket={makeBucket()} visible={true} rangeDays={1} barCenterX={100} containerWidth={600} />,
     )
-    expect(screen.getByText(/Started: 1/)).toBeInTheDocument()
+    expect(screen.getByText(/Started: 7/)).toBeInTheDocument()
     expect(screen.getByText(/Completed: 3/)).toBeInTheDocument()
     expect(screen.getByText(/Failed: 1/)).toBeInTheDocument()
     expect(screen.getByText(/Running: 2/)).toBeInTheDocument()

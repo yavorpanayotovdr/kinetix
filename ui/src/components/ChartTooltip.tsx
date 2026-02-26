@@ -23,8 +23,7 @@ export function ChartTooltip({ bucket, visible, rangeDays, barCenterX, container
 
   if (!visible || !bucket) return null
 
-  const total = bucket.started + bucket.completed + bucket.failed + bucket.running
-  if (total === 0) return null
+  if (bucket.started === 0 && bucket.completed + bucket.failed + bucket.running === 0) return null
 
   const fromLabel = formatChartTime(bucket.from, rangeDays)
   const toLabel = formatChartTime(bucket.to, rangeDays)

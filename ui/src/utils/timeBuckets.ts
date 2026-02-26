@@ -1,5 +1,12 @@
 import type { ValuationJobSummaryDto } from '../types'
 
+export interface BucketJob {
+  jobId: string
+  startedAt: Date
+  completedAt: Date | null
+  status: string
+}
+
 export interface TimeBucket {
   from: Date
   to: Date
@@ -7,7 +14,7 @@ export interface TimeBucket {
   completed: number
   failed: number
   running: number
-  jobIds: string[]
+  jobs: BucketJob[]
 }
 
 const MINUTE = 60 * 1000
@@ -20,6 +27,11 @@ function bucketSizeMs(rangeMs: number): number {
   if (rangeMs <= DAY) return HOUR
   if (rangeMs <= 7 * DAY) return 4 * HOUR
   return DAY
+}
+
+function findBucketIndex(ms: number, fromMs: number, toMs: number, size: number, count: number): number | null {
+  if (ms < fromMs || ms >= toMs) return null
+  return Math.min(Math.floor((ms - fromMs) / size), count - 1)
 }
 
 export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: string): TimeBucket[] {
@@ -41,30 +53,45 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
     completed: 0,
     failed: 0,
     running: 0,
-    jobIds: [],
+    jobs: [],
   }))
 
+  // Pass 1: bucket by startedAt
   for (const job of jobs) {
-    const jobMs = new Date(job.startedAt).getTime()
-    if (jobMs < fromMs || jobMs >= toMs) continue
+    const startMs = new Date(job.startedAt).getTime()
+    const index = findBucketIndex(startMs, fromMs, toMs, size, count)
+    if (index === null) continue
 
-    const index = Math.min(Math.floor((jobMs - fromMs) / size), count - 1)
     const bucket = buckets[index]
-    bucket.jobIds.push(job.jobId)
+    const completedAt = job.completedAt ? new Date(job.completedAt) : null
 
-    switch (job.status) {
-      case 'STARTED':
-        bucket.started++
-        break
-      case 'COMPLETED':
-        bucket.completed++
-        break
-      case 'FAILED':
-        bucket.failed++
-        break
-      case 'RUNNING':
-        bucket.running++
-        break
+    bucket.started++
+    bucket.jobs.push({
+      jobId: job.jobId,
+      startedAt: new Date(job.startedAt),
+      completedAt,
+      status: job.status,
+    })
+
+    // If no completedAt, it's still running
+    if (!job.completedAt) {
+      bucket.running++
+    }
+  }
+
+  // Pass 2: bucket by completedAt
+  for (const job of jobs) {
+    if (!job.completedAt) continue
+
+    const completeMs = new Date(job.completedAt).getTime()
+    const index = findBucketIndex(completeMs, fromMs, toMs, size, count)
+    if (index === null) continue
+
+    const bucket = buckets[index]
+    if (job.status === 'COMPLETED') {
+      bucket.completed++
+    } else if (job.status === 'FAILED') {
+      bucket.failed++
     }
   }
 

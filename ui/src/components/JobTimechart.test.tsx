@@ -6,7 +6,7 @@ import { JobTimechart } from './JobTimechart'
 const CONTAINER_WIDTH = 600
 
 function makeBucket(overrides: Partial<TimeBucket> & { from: Date; to: Date }): TimeBucket {
-  return { started: 0, completed: 0, failed: 0, running: 0, jobIds: [], ...overrides }
+  return { started: 0, completed: 0, failed: 0, running: 0, jobs: [], ...overrides }
 }
 
 const timeRange = {
