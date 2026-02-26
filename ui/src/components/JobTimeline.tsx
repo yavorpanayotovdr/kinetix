@@ -421,11 +421,14 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                           <span>{item.instrumentId}</span>
                         </button>
                         {isBOpen && (
-                          <div data-testid={`var-breakdown-detail-${item.instrumentId}`} className="ml-4 mt-0.5 space-y-0.5">
-                            <div><span className="font-medium">VaR Contribution:</span> {item.varContribution}</div>
-                            <div><span className="font-medium">Expected Shortfall:</span> {item.esContribution}</div>
-                            <div><span className="font-medium">% of Total:</span> {item.percentageOfTotal}%</div>
-                            <div><span className="font-medium">Market Value:</span> {item.marketValue}</div>
+                          <div className="relative ml-4 mt-0.5">
+                            <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-var-breakdown-${item.instrumentId}`} />
+                            <pre
+                              data-testid={`var-breakdown-json-${item.instrumentId}`}
+                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                            >
+                              {JSON.stringify(item, null, 2)}
+                            </pre>
                           </div>
                         )}
                       </div>
