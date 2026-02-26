@@ -1,8 +1,30 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { VaRResultDto } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRDashboard } from './VaRDashboard'
+
+const CONTAINER_WIDTH = 800
+
+class FakeResizeObserver {
+  callback: ResizeObserverCallback
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+  }
+  observe() {
+    this.callback(
+      [{ contentRect: { width: CONTAINER_WIDTH } } as unknown as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    )
+  }
+  unobserve() {}
+  disconnect() {}
+}
+
+beforeEach(() => {
+  vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(CONTAINER_WIDTH)
+})
 
 const varResult: VaRResultDto = {
   portfolioId: 'port-1',
@@ -112,7 +134,7 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    const trend = screen.getByTestId('var-trend')
+    const trend = screen.getByTestId('var-trend-chart')
     expect(trend).toBeInTheDocument()
     expect(trend.querySelector('svg')).toBeInTheDocument()
   })
@@ -128,8 +150,28 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    const trend = screen.getByTestId('var-trend')
+    const trend = screen.getByTestId('var-trend-chart')
     expect(trend).toHaveTextContent('Collecting data...')
+  })
+
+  it('uses a 2-column grid with full-width trend chart below', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+        history={history}
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+      />,
+    )
+
+    const dashboard = screen.getByTestId('var-dashboard')
+    const grid = dashboard.querySelector('.md\\:grid-cols-2')
+    expect(grid).toBeInTheDocument()
+
+    const trendChart = screen.getByTestId('var-trend-chart')
+    expect(trendChart).toBeInTheDocument()
+    expect(grid!.contains(trendChart)).toBe(false)
   })
 
   it('calls onRefresh when Recalculate button is clicked', () => {
