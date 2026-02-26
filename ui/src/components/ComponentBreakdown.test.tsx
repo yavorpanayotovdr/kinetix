@@ -68,12 +68,11 @@ describe('ComponentBreakdown', () => {
     expect(segments[2]).toHaveAttribute('data-testid', 'breakdown-segment-COMMODITY')
   })
 
-  it('fills available width with justify-between and full-width flex', () => {
+  it('lays out legend and donut side by side with gap', () => {
     const { container } = render(<ComponentBreakdown breakdown={breakdown} />)
 
     const flexContainer = container.querySelector('.flex.items-center.gap-8')!
-    expect(flexContainer.className).toContain('justify-between')
-    expect(flexContainer.className).toContain('w-full')
+    expect(flexContainer).toBeTruthy()
   })
 
   it('renders donut at 130x130', () => {

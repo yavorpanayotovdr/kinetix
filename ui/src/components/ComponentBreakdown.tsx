@@ -43,8 +43,8 @@ export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
     <div>
       <h3 className="text-sm font-semibold text-slate-700 mb-3">Component Breakdown</h3>
 
-      <div className="flex items-center justify-between gap-8 w-full">
-        <div className="flex-1 space-y-2.5">
+      <div className="flex items-center gap-8">
+        <div className="space-y-2.5">
           {sorted.map((comp) => (
             <div
               key={comp.assetClass}
