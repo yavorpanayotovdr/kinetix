@@ -137,6 +137,14 @@ function setupDefaults() {
     zoomIn: vi.fn(),
     resetZoom: vi.fn(),
     zoomDepth: 0,
+    page: 1,
+    totalPages: 1,
+    hasNextPage: false,
+    nextPage: vi.fn(),
+    prevPage: vi.fn(),
+    firstPage: vi.fn(),
+    lastPage: vi.fn(),
+    goToPage: vi.fn(),
   })
 }
 
