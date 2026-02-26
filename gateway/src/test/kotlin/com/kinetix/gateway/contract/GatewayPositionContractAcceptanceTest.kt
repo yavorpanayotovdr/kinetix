@@ -16,7 +16,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
 
-class GatewayPositionContractTest : BehaviorSpec({
+class GatewayPositionContractAcceptanceTest : BehaviorSpec({
 
     val positionClient = mockk<PositionServiceClient>()
 

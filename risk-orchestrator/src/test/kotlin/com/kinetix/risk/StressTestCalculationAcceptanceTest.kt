@@ -161,7 +161,7 @@ private class StubGreeksCalculator {
     }
 }
 
-class StressTestCalculationTest : BehaviorSpec({
+class StressTestCalculationAcceptanceTest : BehaviorSpec({
 
     given("a portfolio with equity and commodity positions") {
         val exposures = mapOf(

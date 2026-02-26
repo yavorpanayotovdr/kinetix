@@ -21,6 +21,7 @@ from pathlib import Path
 PATTERNS = [
     # Gradle / local layout
     ("**/build/test-results/test/**/*.xml", "unit"),
+    ("**/build/test-results/acceptanceTest/**/*.xml", "acceptance"),
     ("**/build/test-results/integrationTest/**/*.xml", "integration"),
     ("**/build/test-results/end2EndTest/**/*.xml", "e2e"),
     ("**/risk-engine/**/pytest.xml", "unit"),
@@ -32,7 +33,7 @@ PATTERNS = [
     ("**/ui-test-xml/junit.xml", "unit"),
 ]
 
-TEST_TYPES = ["unit", "integration", "e2e"]
+TEST_TYPES = ["unit", "acceptance", "integration", "e2e"]
 COLUMN_WIDTH = 12
 
 
@@ -69,7 +70,7 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
 
     # CI artifact: e2e-test-xml/...
     if "e2e-test-xml" in parts:
-        return "acceptance-tests"
+        return "end2end-tests"
 
     # pytest: risk-engine/**/pytest.xml or python-test-xml/pytest.xml
     if xml_path.name == "pytest.xml":
@@ -187,8 +188,8 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
     lines = []
     lines.append("## Test Summary")
     lines.append("")
-    lines.append("| Component | Unit | Integration | E2E | Total |")
-    lines.append("|-----------|-----:|------------:|----:|------:|")
+    lines.append("| Component | Unit | Acceptance | Integration | E2E | Total |")
+    lines.append("|-----------|-----:|-----------:|------------:|----:|------:|")
 
     grand = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
 
@@ -203,7 +204,7 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
                 row_total += count
             else:
                 cells.append("-")
-        lines.append(f"| {comp} | {cells[0]} | {cells[1]} | {cells[2]} | {row_total} |")
+        lines.append(f"| {comp} | {' | '.join(cells)} | {row_total} |")
 
         for tt in TEST_TYPES:
             if (comp, tt) in summary:
@@ -214,7 +215,7 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
     for tt in TEST_TYPES:
         tt_total = sum(summary.get((c, tt), {}).get("tests", 0) for c in components)
         total_cells.append(str(tt_total) if tt_total else "-")
-    lines.append(f"| **Total** | **{total_cells[0]}** | **{total_cells[1]}** | **{total_cells[2]}** | **{grand['tests']}** |")
+    lines.append(f"| **Total** | {' | '.join(f'**{c}**' for c in total_cells)} | **{grand['tests']}** |")
 
     passed = grand["tests"] - grand["failures"] - grand["errors"] - grand["skipped"]
     failed = grand["failures"] + grand["errors"]

@@ -45,7 +45,7 @@ jobs:
               - 'rates-service/**'
               - 'reference-data-service/**'
               - 'volatility-service/**'
-              - 'acceptance-tests/**'
+              - 'end2end-tests/**'
             python:
               - 'risk-engine/**'
             ui:
@@ -62,8 +62,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: Compile and unit test
-        run: ./gradlew build -x integrationTest -x end2EndTest
+      - name: Compile, unit test, and acceptance test
+        run: ./gradlew build acceptanceTest -x integrationTest -x end2EndTest
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -130,20 +130,20 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: End-to-end tests
-        run: ./gradlew :acceptance-tests:end2EndTest
+        run: ./gradlew :end2end-tests:end2EndTest
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-reports
-          path: 'acceptance-tests/build/reports/tests/end2EndTest/'
+          path: 'end2end-tests/build/reports/tests/end2EndTest/'
           retention-days: 14
       - name: Upload test XML
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-xml
-          path: 'acceptance-tests/build/test-results/end2EndTest/**/*.xml'
+          path: 'end2end-tests/build/test-results/end2EndTest/**/*.xml'
           retention-days: 1
 
   python-build:

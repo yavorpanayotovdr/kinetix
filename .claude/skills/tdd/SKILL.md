@@ -18,6 +18,7 @@ Follow these steps **in order**. Do not skip ahead.
 
 - Decide the right test level:
   - **Unit test** for pure business logic (default choice).
+  - **Acceptance test** (`*AcceptanceTest`) for contract and behaviour tests at module boundaries (no infra needed).
   - **Integration test** (`*IntegrationTest`) for infrastructure boundaries -- DB, Kafka, gRPC. Use Testcontainers for external dependencies.
   - **End-to-end test** (`*End2EndTest`) for end-to-end flows across services.
 
@@ -50,11 +51,14 @@ Run the test and verify it **fails for the right reason** (assertion failure, no
 # Unit tests
 ./gradlew :<module>:test --tests "<fully.qualified.TestClass>"
 
+# Acceptance tests
+./gradlew :<module>:acceptanceTest --tests "<fully.qualified.TestClass>"
+
 # Integration tests
 ./gradlew :<module>:integrationTest --tests "<fully.qualified.TestClass>"
 
 # End-to-end tests
-./gradlew :acceptance-tests:end2EndTest --tests "<fully.qualified.TestClass>"
+./gradlew :end2end-tests:end2EndTest --tests "<fully.qualified.TestClass>"
 
 # Python (risk-engine)
 cd risk-engine && uv run pytest tests/<test_file>::<test_name> -v

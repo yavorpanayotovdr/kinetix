@@ -14,7 +14,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 
-class NotificationAlertingTest : BehaviorSpec({
+class NotificationAlertingAcceptanceTest : BehaviorSpec({
 
     given("a portfolio with VaR breach alert rule configured") {
         val rulesEngine = RulesEngine(InMemoryAlertRuleRepository())

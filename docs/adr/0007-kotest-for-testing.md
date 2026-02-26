@@ -26,6 +26,7 @@ Use Kotest 5.9 as the primary testing framework for all Kotlin modules. Use Mock
 
 ### Test Organization
 - `*Test` suffix for unit tests → run by `./gradlew test`
+- `*AcceptanceTest` suffix → run by `./gradlew acceptanceTest`
 - `*IntegrationTest` suffix → run by `./gradlew integrationTest`
 - `*End2EndTest` suffix → run by `./gradlew end2EndTest`
 - Separation enforced by Gradle task filters in `kinetix.kotlin-testing.gradle.kts`

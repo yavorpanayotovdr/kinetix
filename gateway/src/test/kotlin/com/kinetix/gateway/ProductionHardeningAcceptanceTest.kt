@@ -42,7 +42,7 @@ private fun generateToken(roles: List<Role>): String = JWT.create()
     .withExpiresAt(Date(System.currentTimeMillis() + 3_600_000))
     .sign(Algorithm.HMAC256(TEST_SECRET))
 
-class ProductionHardeningTest : BehaviorSpec({
+class ProductionHardeningAcceptanceTest : BehaviorSpec({
 
     val positionClient = mockk<PositionServiceClient>()
     val riskClient = mockk<RiskServiceClient>()

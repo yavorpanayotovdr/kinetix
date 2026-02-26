@@ -97,7 +97,7 @@ private class StubAnomalyDetector {
     }
 }
 
-class MLModelTest : BehaviorSpec({
+class MLModelAcceptanceTest : BehaviorSpec({
 
     given("a trained volatility prediction model for EQUITY") {
         val predictor = StubVolatilityPredictor()

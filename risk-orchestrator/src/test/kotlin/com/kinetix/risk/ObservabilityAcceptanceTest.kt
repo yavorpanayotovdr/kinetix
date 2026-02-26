@@ -62,7 +62,7 @@ private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
     }
 }
 
-class ObservabilityTest : BehaviorSpec({
+class ObservabilityAcceptanceTest : BehaviorSpec({
 
     given("a risk orchestrator with metrics enabled") {
         val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)

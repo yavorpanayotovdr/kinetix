@@ -14,7 +14,7 @@ import io.mockk.*
 import kotlinx.serialization.json.*
 import java.time.Instant
 
-class GatewayRiskContractTest : BehaviorSpec({
+class GatewayRiskContractAcceptanceTest : BehaviorSpec({
 
     val riskClient = mockk<RiskServiceClient>()
 

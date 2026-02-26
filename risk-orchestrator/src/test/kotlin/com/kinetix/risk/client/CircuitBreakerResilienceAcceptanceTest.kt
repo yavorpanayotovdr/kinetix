@@ -15,7 +15,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.*
 import java.time.Instant
 
-class CircuitBreakerResilienceTest : BehaviorSpec({
+class CircuitBreakerResilienceAcceptanceTest : BehaviorSpec({
 
     given("circuit breaker protecting risk engine calls") {
 

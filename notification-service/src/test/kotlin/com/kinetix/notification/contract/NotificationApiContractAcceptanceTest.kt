@@ -13,7 +13,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.*
 
-class NotificationApiContractTest : BehaviorSpec({
+class NotificationApiContractAcceptanceTest : BehaviorSpec({
 
     given("the notification-service running") {
 

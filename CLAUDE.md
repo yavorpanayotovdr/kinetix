@@ -29,9 +29,10 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Kotlin tests** use Kotest `FunSpec` with `shouldBe` / `shouldThrow` matchers and MockK for mocking.
 - **Python tests** use pytest.
 - **UI tests** use Vitest.
+- **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`. These are contract and behaviour tests that live in each service module.
 - **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
-- **End-to-end tests** are named `*End2EndTest` and run via `./gradlew end2EndTest`.
-- Regular `./gradlew test` excludes both integration and end-to-end tests.
+- **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
+- Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
 
 ## Communication Style
 

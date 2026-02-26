@@ -15,7 +15,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
 
-class GatewayPriceContractTest : BehaviorSpec({
+class GatewayPriceContractAcceptanceTest : BehaviorSpec({
 
     val priceClient = mockk<PriceServiceClient>()
 

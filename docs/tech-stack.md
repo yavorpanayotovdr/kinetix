@@ -135,7 +135,7 @@ settings.gradle.kts
 ├── reference-data-service
 ├── volatility-service
 ├── correlation-service
-└── acceptance-tests
+└── end2end-tests
 ```
 
 ---
@@ -487,7 +487,7 @@ kinetix/
 │       ├── ml/                   # ML models (anomaly, credit, vol)
 │       └── stress/               # Stress testing engine
 ├── ui/                           # React + TypeScript frontend
-├── acceptance-tests/             # End-to-end API tests
+├── end2end-tests/                # End-to-end API tests
 ├── load-tests/                   # Gatling performance tests
 ├── infra/                        # Docker Compose and config
 │   ├── docker-compose.infra.yml

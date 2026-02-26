@@ -11,7 +11,7 @@
 **/dist/
 **/__pycache__/
 
-acceptance-tests/
+end2end-tests/
 load-tests/
 docs/
 

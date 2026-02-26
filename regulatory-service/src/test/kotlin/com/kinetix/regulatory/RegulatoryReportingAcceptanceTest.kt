@@ -169,7 +169,7 @@ private fun generateXbrlReport(result: FrtbResult): String {
 
 // --- Test ---
 
-class RegulatoryReportingTest : BehaviorSpec({
+class RegulatoryReportingAcceptanceTest : BehaviorSpec({
 
     given("a portfolio with positions across multiple asset classes") {
         val exposures = mapOf(

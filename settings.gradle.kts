@@ -28,5 +28,5 @@ include(
     "reference-data-service",
     "volatility-service",
     "correlation-service",
-    "acceptance-tests",
+    "end2end-tests",
 )

@@ -34,7 +34,7 @@ risk-orchestrator/
 regulatory-service/
 notification-service/
 audit-service/
-acceptance-tests/       End-to-end tests
+end2end-tests/          End-to-end tests
 ```
 
 Convention plugins in `build-logic/convention/`:

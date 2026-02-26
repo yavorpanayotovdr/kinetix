@@ -11,7 +11,7 @@ import io.ktor.server.testing.*
 import io.mockk.*
 import kotlinx.serialization.json.*
 
-class GatewayErrorResponseContractTest : BehaviorSpec({
+class GatewayErrorResponseContractAcceptanceTest : BehaviorSpec({
 
     given("gateway error responses") {
 

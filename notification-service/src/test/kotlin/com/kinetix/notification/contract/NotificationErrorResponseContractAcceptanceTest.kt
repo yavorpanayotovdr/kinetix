@@ -13,7 +13,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.*
 
-class NotificationErrorResponseContractTest : BehaviorSpec({
+class NotificationErrorResponseContractAcceptanceTest : BehaviorSpec({
 
     given("notification-service error responses") {
 

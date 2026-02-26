@@ -28,7 +28,7 @@ COPY regulatory-service/ regulatory-service/
 COPY notification-service/ notification-service/
 
 RUN chmod +x gradlew && \
-    ./gradlew :${SERVICE_NAME}:installDist --no-daemon -x test -x integrationTest -x end2EndTest
+    ./gradlew :${SERVICE_NAME}:installDist --no-daemon -x test -x acceptanceTest -x integrationTest -x end2EndTest
 
 # --- Runtime stage ---
 FROM eclipse-temurin:21-jre-alpine

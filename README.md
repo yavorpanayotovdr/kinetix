@@ -155,7 +155,7 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 ### Kotlin (end-to-end tests)
 
 ```bash
-./gradlew :acceptance-tests:end2EndTest
+./gradlew :end2end-tests:end2EndTest
 ```
 
 ### Python (risk engine)
@@ -211,7 +211,7 @@ kinetix/
 ├── proto/                 Protobuf/gRPC definitions
 ├── common/                Shared Kotlin library
 ├── build-logic/           Gradle convention plugins
-├── acceptance-tests/      End-to-end API tests
+├── end2end-tests/         End-to-end API tests
 ├── load-tests/            Gatling performance tests
 ├── infra/                 Docker Compose and infra config
 ├── deploy/                Docker, Helm, and Terraform configs
