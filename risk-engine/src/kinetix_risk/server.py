@@ -18,6 +18,7 @@ from kinetix_risk.metrics import risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.volatility import VolatilityProvider
 from kinetix_risk.dependencies_server import MarketDataDependenciesServicer
 from kinetix_risk.regulatory_server import RegulatoryReportingServicer
 from kinetix_risk.stress_server import StressTestServicer
@@ -39,7 +40,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             confidence_level=confidence,
             time_horizon_days=request.time_horizon_days or 1,
             num_simulations=request.num_simulations or 10_000,
-            volatility_provider=bundle.volatility_provider,
+            volatility_provider=bundle.volatility_provider or VolatilityProvider.with_jitter(),
             correlation_matrix=bundle.correlation_matrix,
         )
 

@@ -57,6 +57,13 @@ class VolatilityProvider:
         return cls(get_volatility)
 
     @classmethod
+    def with_jitter(cls, scale: float = 0.03) -> "VolatilityProvider":
+        def lookup(ac: AssetClass) -> float:
+            base = get_volatility(ac)
+            return base * (1 + np.random.normal(0, scale))
+        return cls(lookup)
+
+    @classmethod
     def from_dict(cls, vols: dict[AssetClass, float]) -> "VolatilityProvider":
         def lookup(ac: AssetClass) -> float:
             return vols.get(ac, DEFAULT_VOLATILITIES[ac])

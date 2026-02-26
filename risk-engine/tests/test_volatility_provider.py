@@ -1,3 +1,5 @@
+import pytest
+
 from kinetix_risk.models import (
     AssetClass,
     CalculationType,
@@ -47,3 +49,19 @@ class TestVolatilityProvider:
             volatility_provider=VolatilityProvider.static(),
         )
         assert abs(result_no_provider.var_value - result_static.var_value) < 1e-10
+
+    def test_jittered_provider_returns_values_near_defaults(self):
+        provider = VolatilityProvider.with_jitter()
+        for ac, default_vol in DEFAULT_VOLATILITIES.items():
+            vol = provider(ac)
+            assert vol == pytest.approx(default_vol, rel=0.15), (
+                f"{ac}: jittered vol {vol} too far from default {default_vol}"
+            )
+
+    def test_jittered_provider_produces_varying_results(self):
+        provider_a = VolatilityProvider.with_jitter()
+        provider_b = VolatilityProvider.with_jitter()
+        any_differ = any(
+            provider_a(ac) != provider_b(ac) for ac in AssetClass
+        )
+        assert any_differ, "Two jittered providers should produce different values"
