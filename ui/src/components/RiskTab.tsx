@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { VaRDashboard } from './VaRDashboard'
 import { GreeksPanel } from './GreeksPanel'
@@ -25,6 +26,13 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
     setVolBump,
   } = useVaR(portfolioId)
 
+  const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
+
+  const handleRefresh = useCallback(async () => {
+    await refresh()
+    setJobRefreshSignal((prev) => prev + 1)
+  }, [refresh])
+
   return (
     <div>
       <VaRDashboard
@@ -33,7 +41,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         loading={varLoading}
         refreshing={varRefreshing}
         error={varError}
-        onRefresh={refresh}
+        onRefresh={handleRefresh}
         timeRange={varTimeRange}
         setTimeRange={setVarTimeRange}
         zoomIn={varZoomIn}
@@ -48,7 +56,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         onVolBumpChange={setVolBump}
       />
       <div className="mt-4">
-        <JobHistory portfolioId={portfolioId} />
+        <JobHistory portfolioId={portfolioId} refreshSignal={jobRefreshSignal} />
       </div>
     </div>
   )

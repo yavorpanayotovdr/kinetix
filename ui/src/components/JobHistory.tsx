@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
@@ -10,6 +10,7 @@ import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 interface JobHistoryProps {
   portfolioId: string | null
+  refreshSignal?: number
 }
 
 function buildSearchableText(
@@ -47,13 +48,21 @@ function jobMatchesSearch(
   return tokens.every((t) => text.includes(t))
 }
 
-export function JobHistory({ portfolioId }: JobHistoryProps) {
+export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     expanded ? portfolioId : null,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
+
+  const prevSignalRef = useRef(refreshSignal)
+  useEffect(() => {
+    if (refreshSignal !== prevSignalRef.current) {
+      prevSignalRef.current = refreshSignal
+      refresh()
+    }
+  }, [refreshSignal, refresh])
 
   useEffect(() => {
     setPageInput(String(page + 1))

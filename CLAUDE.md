@@ -34,6 +34,10 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
 - Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
 
+## Architectural Decisions
+
+- **Ask before changing architecture.** Before introducing a new service, module, library, messaging topic, database table, or API contract — or before significantly restructuring existing ones — explain the trade-offs and get my approval. Within an existing service's boundaries, follow the established patterns and conventions autonomously.
+
 ## Guardrails
 
 - **Never delete or remove a test** (test file, test function, or test assertion) without my explicit permission. If a test is failing, fix the code under test or fix the test — do not delete it to make the build pass. Always explain the failure and ask before removing any test.
