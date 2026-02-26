@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
-import type { VaRResultDto } from '../types'
+import type { VaRResultDto, TimeRange } from '../types'
 
 export interface VaRHistoryEntry {
   varValue: number
@@ -11,19 +11,53 @@ export interface VaRHistoryEntry {
 export interface UseVaRResult {
   varResult: VaRResultDto | null
   history: VaRHistoryEntry[]
+  filteredHistory: VaRHistoryEntry[]
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
+  timeRange: TimeRange
+  setTimeRange: (range: TimeRange) => void
+  zoomIn: (range: TimeRange) => void
+  resetZoom: () => void
+  zoomDepth: number
 }
 
 const POLL_INTERVAL = 30_000
 const MAX_HISTORY = 60
+
+const SLIDING_DURATIONS: Record<string, number> = {
+  'Last 1h': 60 * 60 * 1000,
+  'Last 24h': 24 * 60 * 60 * 1000,
+  'Last 7d': 7 * 24 * 60 * 60 * 1000,
+}
+
+function defaultTimeRange(): TimeRange {
+  const now = new Date()
+  const from = new Date(now.getTime() - 60 * 60 * 1000)
+  return { from: from.toISOString(), to: now.toISOString(), label: 'Last 1h' }
+}
+
+function resolveTimeRange(range: TimeRange): { from: string; to: string } {
+  const duration = SLIDING_DURATIONS[range.label]
+  if (duration) {
+    const now = new Date()
+    return { from: new Date(now.getTime() - duration).toISOString(), to: now.toISOString() }
+  }
+  if (range.label === 'Today') {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return { from: start.toISOString(), to: now.toISOString() }
+  }
+  return { from: range.from, to: range.to }
+}
 
 export function useVaR(portfolioId: string | null): UseVaRResult {
   const [varResult, setVarResult] = useState<VaRResultDto | null>(null)
   const [history, setHistory] = useState<VaRHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
+  const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const initialLoadDone = useRef(false)
 
   const load = useCallback(async () => {
@@ -101,5 +135,32 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     }
   }, [portfolioId])
 
-  return { varResult, history, loading, error, refresh }
+  const filteredHistory = useMemo(() => {
+    const { from, to } = resolveTimeRange(timeRange)
+    const fromMs = new Date(from).getTime()
+    const toMs = new Date(to).getTime()
+    return history.filter((e) => {
+      const t = new Date(e.calculatedAt).getTime()
+      return t >= fromMs && t <= toMs
+    })
+  }, [history, timeRange])
+
+  const setTimeRange = useCallback((range: TimeRange) => {
+    setZoomStack([])
+    setTimeRangeInternal(range)
+  }, [])
+
+  const zoomIn = useCallback((range: TimeRange) => {
+    setZoomStack((prev) => [...prev, timeRange])
+    setTimeRangeInternal(range)
+  }, [timeRange])
+
+  const resetZoom = useCallback(() => {
+    if (zoomStack.length > 0) {
+      setTimeRangeInternal(zoomStack[0])
+      setZoomStack([])
+    }
+  }, [zoomStack])
+
+  return { varResult, history, filteredHistory, loading, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length }
 }

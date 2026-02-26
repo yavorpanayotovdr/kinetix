@@ -1,20 +1,26 @@
 import { RefreshCw } from 'lucide-react'
-import type { VaRResultDto } from '../types'
+import type { VaRResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRGauge } from './VaRGauge'
 import { ComponentBreakdown } from './ComponentBreakdown'
 import { VaRTrendChart } from './VaRTrendChart'
+import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Button, Spinner } from './ui'
 
 interface VaRDashboardProps {
   varResult: VaRResultDto | null
-  history: VaRHistoryEntry[]
+  filteredHistory: VaRHistoryEntry[]
   loading: boolean
   error: string | null
   onRefresh: () => void
+  timeRange: TimeRange
+  setTimeRange: (range: TimeRange) => void
+  zoomIn: (range: TimeRange) => void
+  resetZoom: () => void
+  zoomDepth: number
 }
 
-export function VaRDashboard({ varResult, history, loading, error, onRefresh }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth }: VaRDashboardProps) {
   if (loading) {
     return (
       <Card data-testid="var-loading" className="mb-4">
@@ -60,7 +66,14 @@ export function VaRDashboard({ varResult, history, loading, error, onRefresh }: 
       </div>
 
       <div className="mt-4">
-        <VaRTrendChart history={history} />
+        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+        <VaRTrendChart
+          history={filteredHistory}
+          timeRange={timeRange}
+          onZoom={zoomIn}
+          zoomDepth={zoomDepth}
+          onResetZoom={resetZoom}
+        />
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">

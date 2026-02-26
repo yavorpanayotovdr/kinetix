@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
+import type { TimeRange } from '../types'
 import { formatTimeOnly } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { clampTooltipLeft } from '../utils/clampTooltipLeft'
+import { useBrushSelection } from '../hooks/useBrushSelection'
 
 interface VaRTrendChartProps {
   history: VaRHistoryEntry[]
+  timeRange?: TimeRange
+  onZoom?: (range: TimeRange) => void
+  zoomDepth?: number
+  onResetZoom?: () => void
 }
 
 const PADDING = { top: 32, right: 16, bottom: 32, left: 56 }
@@ -44,7 +51,7 @@ function computeNiceGridLines(min: number, max: number, count: number): number[]
   return lines
 }
 
-export function VaRTrendChart({ history }: VaRTrendChartProps) {
+export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onResetZoom }: VaRTrendChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
@@ -68,6 +75,30 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
 
   const plotWidth = containerWidth - PADDING.left - PADDING.right
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
+
+  const handleBrushEnd = useCallback(
+    (startX: number, endX: number) => {
+      if (!timeRange || !onZoom) return
+
+      const fromMs = new Date(timeRange.from).getTime()
+      const toMs = new Date(timeRange.to).getTime()
+
+      const leftPct = (startX - PADDING.left) / plotWidth
+      const rightPct = (endX - PADDING.left) / plotWidth
+
+      const zoomFrom = new Date(fromMs + leftPct * (toMs - fromMs))
+      const zoomTo = new Date(fromMs + rightPct * (toMs - fromMs))
+
+      onZoom({
+        from: zoomFrom.toISOString(),
+        to: zoomTo.toISOString(),
+        label: 'Custom',
+      })
+    },
+    [timeRange, onZoom, plotWidth],
+  )
+
+  const { brush, handlers: brushHandlers } = useBrushSelection({ onBrushEnd: handleBrushEnd })
 
   const { min, max } = useMemo(() => {
     const values = history.map((e) => e.varValue)
@@ -131,6 +162,8 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
+      brushHandlers.onMouseMove(e)
+
       if (points.length === 0) return
 
       const el = containerRef.current
@@ -151,12 +184,13 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
 
       setHoveredIndex(closest)
     },
-    [points],
+    [points, brushHandlers],
   )
 
   const handleMouseLeave = useCallback(() => {
+    brushHandlers.onMouseLeave()
     setHoveredIndex(null)
-  }, [])
+  }, [brushHandlers])
 
   useLayoutEffect(() => {
     if (hoveredIndex === null || !tooltipRef.current) return
@@ -183,6 +217,17 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
 
   return (
     <div ref={containerRef} data-testid="var-trend-chart" className="relative rounded bg-slate-800 p-4 pb-14">
+      {zoomDepth > 0 && onResetZoom && (
+        <button
+          data-testid="reset-zoom"
+          onClick={onResetZoom}
+          className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 text-xs text-slate-300 bg-slate-700 hover:bg-slate-600 rounded"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset zoom
+        </button>
+      )}
+
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-slate-300">VaR Trend</h3>
         <span className="text-sm font-mono text-indigo-400">{formattedLatest}</span>
@@ -191,8 +236,10 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
       <svg
         width="100%"
         height={CHART_HEIGHT}
-        className="select-none"
+        className={`select-none ${onZoom ? 'cursor-crosshair' : ''}`}
+        onMouseDown={onZoom ? brushHandlers.onMouseDown : undefined}
         onMouseMove={handleMouseMove}
+        onMouseUp={onZoom ? brushHandlers.onMouseUp : undefined}
         onMouseLeave={handleMouseLeave}
       >
         {/* Y-axis grid lines */}
@@ -264,6 +311,19 @@ export function VaRTrendChart({ history }: VaRTrendChartProps) {
               strokeWidth={2}
             />
           </>
+        )}
+
+        {/* Brush selection overlay */}
+        {brush.active && (
+          <rect
+            x={Math.min(brush.startX, brush.currentX)}
+            y={PADDING.top}
+            width={Math.abs(brush.currentX - brush.startX)}
+            height={plotHeight}
+            fill="rgba(99, 102, 241, 0.2)"
+            stroke="#6366f1"
+            strokeWidth={1}
+          />
         )}
       </svg>
 

@@ -220,4 +220,176 @@ describe('useVaR', () => {
     expect(result.current.varResult).toEqual(freshResult)
     expect(result.current.history).toHaveLength(2)
   })
+
+  it('default time range is Last 1h', () => {
+    const { result } = renderHook(() => useVaR(null))
+
+    expect(result.current.timeRange.label).toBe('Last 1h')
+  })
+
+  it('filteredHistory only includes entries within the time range', async () => {
+    const oldEntry: VaRResultDto = {
+      ...varResult,
+      calculatedAt: '2025-01-15T08:00:00Z',
+      varValue: '100000.00',
+    }
+    const recentEntry: VaRResultDto = {
+      ...varResult,
+      calculatedAt: '2025-01-15T10:30:00Z',
+      varValue: '200000.00',
+    }
+
+    mockFetchVaR.mockResolvedValueOnce(oldEntry)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.history).toHaveLength(1)
+    })
+
+    mockFetchVaR.mockResolvedValueOnce(recentEntry)
+
+    await act(async () => {
+      vi.advanceTimersByTime(30_000)
+    })
+
+    await waitFor(() => {
+      expect(result.current.history).toHaveLength(2)
+    })
+
+    // Set a narrow time range that only includes the recent entry
+    act(() => {
+      result.current.setTimeRange({
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T11:00:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.filteredHistory).toHaveLength(1)
+    expect(result.current.filteredHistory[0].varValue).toBe(200000)
+  })
+
+  it('setTimeRange clears zoom stack', async () => {
+    mockFetchVaR.mockResolvedValue(varResult)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // Zoom in to create a stack entry
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T10:30:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(1)
+
+    // setTimeRange should clear the zoom stack
+    act(() => {
+      result.current.setTimeRange({
+        from: '2025-01-15T09:00:00Z',
+        to: '2025-01-15T11:00:00Z',
+        label: 'Last 1h',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(0)
+  })
+
+  it('zoomIn pushes current range onto stack', async () => {
+    mockFetchVaR.mockResolvedValue(varResult)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T10:15:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(1)
+    expect(result.current.timeRange.label).toBe('Custom')
+
+    // Zoom in again
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:05:00Z',
+        to: '2025-01-15T10:10:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(2)
+  })
+
+  it('resetZoom restores original range', async () => {
+    mockFetchVaR.mockResolvedValue(varResult)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    const originalRange = result.current.timeRange
+
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T10:15:00Z',
+        label: 'Custom',
+      })
+    })
+
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:05:00Z',
+        to: '2025-01-15T10:10:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(2)
+
+    act(() => {
+      result.current.resetZoom()
+    })
+
+    expect(result.current.zoomDepth).toBe(0)
+    expect(result.current.timeRange.label).toBe(originalRange.label)
+  })
+
+  it('zoomDepth reflects stack length', async () => {
+    mockFetchVaR.mockResolvedValue(varResult)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.zoomDepth).toBe(0)
+
+    act(() => {
+      result.current.zoomIn({
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T10:15:00Z',
+        label: 'Custom',
+      })
+    })
+
+    expect(result.current.zoomDepth).toBe(1)
+  })
 })

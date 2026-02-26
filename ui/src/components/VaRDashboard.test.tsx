@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { VaRResultDto } from '../types'
+import type { VaRResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRDashboard } from './VaRDashboard'
 
@@ -46,15 +46,32 @@ const history: VaRHistoryEntry[] = [
   { varValue: 1300000, expectedShortfall: 1600000, calculatedAt: '2025-01-15T11:00:00Z' },
 ]
 
+const defaultTimeRange: TimeRange = {
+  from: '2025-01-15T09:30:00Z',
+  to: '2025-01-15T10:30:00Z',
+  label: 'Last 1h',
+}
+
+const defaultZoomProps = {
+  timeRange: defaultTimeRange,
+  setTimeRange: vi.fn(),
+  filteredHistory: history,
+  zoomIn: vi.fn(),
+  resetZoom: vi.fn(),
+  zoomDepth: 0,
+}
+
 describe('VaRDashboard', () => {
   it('shows loading state', () => {
     render(
       <VaRDashboard
         varResult={null}
-        history={[]}
+
         loading={true}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
+        filteredHistory={[]}
       />,
     )
 
@@ -65,10 +82,12 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={null}
-        history={[]}
+
         loading={false}
         error="Failed to fetch VaR"
         onRefresh={() => {}}
+        {...defaultZoomProps}
+        filteredHistory={[]}
       />,
     )
 
@@ -80,10 +99,12 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={null}
-        history={[]}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
+        filteredHistory={[]}
       />,
     )
 
@@ -94,10 +115,11 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
       />,
     )
 
@@ -110,10 +132,11 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
       />,
     )
 
@@ -127,10 +150,11 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
       />,
     )
 
@@ -143,10 +167,12 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={[history[0]]}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
+        filteredHistory={[history[0]]}
       />,
     )
 
@@ -158,10 +184,11 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
       />,
     )
 
@@ -180,10 +207,11 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={onRefresh}
+        {...defaultZoomProps}
       />,
     )
 
@@ -195,13 +223,29 @@ describe('VaRDashboard', () => {
     render(
       <VaRDashboard
         varResult={varResult}
-        history={history}
+
         loading={false}
         error={null}
         onRefresh={() => {}}
+        {...defaultZoomProps}
       />,
     )
 
     expect(screen.getByTestId('var-dashboard')).toHaveTextContent('HISTORICAL')
+  })
+
+  it('renders TimeRangeSelector with the time range', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    expect(screen.getByTestId('time-range-selector')).toBeInTheDocument()
   })
 })

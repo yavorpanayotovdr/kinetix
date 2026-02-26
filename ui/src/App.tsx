@@ -33,7 +33,7 @@ function App() {
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
-  const { varResult, history, loading: varLoading, error: varError, refresh } = useVaR(portfolioId)
+  const { varResult, filteredHistory, loading: varLoading, error: varError, refresh, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth } = useVaR(portfolioId)
   const stress = useStressTest(portfolioId)
   const greeks = useGreeks(portfolioId)
   const notifications = useNotifications()
@@ -116,10 +116,15 @@ function App() {
                   <div>
                     <VaRDashboard
                       varResult={varResult}
-                      history={history}
+                      filteredHistory={filteredHistory}
                       loading={varLoading}
                       error={varError}
                       onRefresh={refresh}
+                      timeRange={varTimeRange}
+                      setTimeRange={setVarTimeRange}
+                      zoomIn={varZoomIn}
+                      resetZoom={varResetZoom}
+                      zoomDepth={varZoomDepth}
                     />
                     <GreeksPanel
                       greeksResult={greeks.greeksResult}

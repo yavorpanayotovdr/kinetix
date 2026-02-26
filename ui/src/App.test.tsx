@@ -71,9 +71,15 @@ function setupDefaults() {
   mockUseVaR.mockReturnValue({
     varResult: null,
     history: [],
+    filteredHistory: [],
     loading: false,
     error: null,
     refresh: vi.fn(),
+    timeRange: { from: '2025-01-15T09:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 1h' },
+    setTimeRange: vi.fn(),
+    zoomIn: vi.fn(),
+    resetZoom: vi.fn(),
+    zoomDepth: 0,
   })
   mockUseStressTest.mockReturnValue({
     scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
@@ -202,9 +208,15 @@ describe('App', () => {
     mockUseVaR.mockReturnValue({
       varResult,
       history: [],
+      filteredHistory: [],
       loading: false,
       error: null,
       refresh: vi.fn(),
+      timeRange: { from: '2025-01-15T09:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 1h' },
+      setTimeRange: vi.fn(),
+      zoomIn: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomDepth: 0,
     })
 
     render(<App />)

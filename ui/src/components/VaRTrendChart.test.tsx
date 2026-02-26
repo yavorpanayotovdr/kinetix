@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
+import type { TimeRange } from '../types'
 import { VaRTrendChart } from './VaRTrendChart'
 
 const CONTAINER_WIDTH = 800
@@ -143,5 +144,105 @@ describe('VaRTrendChart', () => {
     render(<VaRTrendChart history={history} />)
 
     expect(observeCalls).toBeGreaterThan(0)
+  })
+
+  describe('zoom interaction', () => {
+    const timeRange: TimeRange = {
+      from: '2025-01-15T09:00:00Z',
+      to: '2025-01-15T13:00:00Z',
+      label: 'Custom',
+    }
+
+    it('renders reset zoom button when zoomDepth > 0', () => {
+      render(
+        <VaRTrendChart
+          history={history}
+          timeRange={timeRange}
+          onZoom={vi.fn()}
+          zoomDepth={1}
+          onResetZoom={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByTestId('reset-zoom')).toBeInTheDocument()
+      expect(screen.getByTestId('reset-zoom')).toHaveTextContent('Reset zoom')
+    })
+
+    it('hides reset zoom button when zoomDepth is 0', () => {
+      render(
+        <VaRTrendChart
+          history={history}
+          timeRange={timeRange}
+          onZoom={vi.fn()}
+          zoomDepth={0}
+          onResetZoom={vi.fn()}
+        />,
+      )
+
+      expect(screen.queryByTestId('reset-zoom')).not.toBeInTheDocument()
+    })
+
+    it('calls onResetZoom when reset zoom button is clicked', () => {
+      const onResetZoom = vi.fn()
+
+      render(
+        <VaRTrendChart
+          history={history}
+          timeRange={timeRange}
+          onZoom={vi.fn()}
+          zoomDepth={2}
+          onResetZoom={onResetZoom}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('reset-zoom'))
+      expect(onResetZoom).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls onZoom with a Custom TimeRange on brush drag', () => {
+      const onZoom = vi.fn()
+
+      render(
+        <VaRTrendChart
+          history={history}
+          timeRange={timeRange}
+          onZoom={onZoom}
+          zoomDepth={0}
+          onResetZoom={vi.fn()}
+        />,
+      )
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+
+      fireEvent.mouseDown(svg, { clientX: 100, clientY: 50 })
+      fireEvent.mouseMove(svg, { clientX: 300, clientY: 50 })
+      fireEvent.mouseUp(svg)
+
+      expect(onZoom).toHaveBeenCalledTimes(1)
+      const zoomRange = onZoom.mock.calls[0][0] as TimeRange
+      expect(zoomRange.label).toBe('Custom')
+      expect(zoomRange.from).toBeDefined()
+      expect(zoomRange.to).toBeDefined()
+    })
+
+    it('renders brush overlay rect during drag', () => {
+      render(
+        <VaRTrendChart
+          history={history}
+          timeRange={timeRange}
+          onZoom={vi.fn()}
+          zoomDepth={0}
+          onResetZoom={vi.fn()}
+        />,
+      )
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+
+      fireEvent.mouseDown(svg, { clientX: 100, clientY: 50 })
+      fireEvent.mouseMove(svg, { clientX: 300, clientY: 50 })
+
+      const overlay = svg.querySelector('rect[fill="rgba(99, 102, 241, 0.2)"]')
+      expect(overlay).toBeInTheDocument()
+    })
   })
 })
