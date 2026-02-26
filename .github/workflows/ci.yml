@@ -43,6 +43,7 @@ jobs:
               - 'audit-service/**'
               - 'correlation-service/**'
               - 'rates-service/**'
+              - 'reference-data-service/**'
               - 'acceptance-tests/**'
             python:
               - 'risk-engine/**'
@@ -90,6 +91,7 @@ jobs:
           - audit-service
           - correlation-service
           - rates-service
+          - reference-data-service
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
