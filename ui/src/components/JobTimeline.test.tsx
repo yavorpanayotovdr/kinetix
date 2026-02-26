@@ -58,7 +58,14 @@ const steps: JobStepDto[] = [
     startedAt: '2025-01-15T10:00:00.080Z',
     completedAt: '2025-01-15T10:00:00.130Z',
     durationMs: 50,
-    details: { varValue: '5000.0', expectedShortfall: '6250.0' },
+    details: {
+      varValue: '5000.0',
+      expectedShortfall: '6250.0',
+      positionBreakdown: JSON.stringify([
+        { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '17000.00', varContribution: '3000.00', esContribution: '3750.00', percentageOfTotal: '60.00' },
+        { instrumentId: 'TSLA', assetClass: 'EQUITY', marketValue: '12500.00', varContribution: '2000.00', esContribution: '2500.00', percentageOfTotal: '40.00' },
+      ]),
+    },
     error: null,
   },
   {
@@ -243,7 +250,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-PUBLISH_RESULT')).not.toBeInTheDocument()
     })
 
@@ -274,6 +281,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('details-CALCULATE_VAR')).toBeInTheDocument()
     })
 
     it('filters items within matching steps to only those that match', () => {
@@ -296,7 +304,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
     })
 
     it('treats spaces as AND for item filtering within steps', () => {
@@ -608,6 +616,54 @@ describe('JobTimeline', () => {
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       expect(screen.queryByText('dependenciesByPosition:')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('per-position VaR breakdown in CALCULATE_VAR', () => {
+    it('renders expandable position breakdown items in CALCULATE_VAR details', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      expect(screen.getByTestId('details-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('var-breakdown-AAPL')).toBeInTheDocument()
+      expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
+    })
+
+    it('expands position breakdown item to show JSON with VaR contribution', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
+
+      const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
+      expect(jsonBlock).toBeInTheDocument()
+      expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
+      expect(jsonBlock.textContent).toContain('"varContribution": "3000.00"')
+      expect(jsonBlock.textContent).toContain('"esContribution": "3750.00"')
+      expect(jsonBlock.textContent).toContain('"percentageOfTotal": "60.00"')
+    })
+
+    it('does not render positionBreakdown key as a regular detail', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      expect(screen.queryByText('positionBreakdown:')).not.toBeInTheDocument()
+    })
+
+    it('shows filter input when CALCULATE_VAR step has position breakdown', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      expect(screen.getByTestId('filter-CALCULATE_VAR')).toBeInTheDocument()
+    })
+
+    it('filters position breakdown items by instrument ID', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      fireEvent.change(screen.getByTestId('filter-CALCULATE_VAR'), { target: { value: 'TSLA' } })
+
+      expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
+      expect(screen.queryByTestId('var-breakdown-AAPL')).not.toBeInTheDocument()
     })
   })
 })

@@ -71,6 +71,12 @@ interface DependencyItem {
   [key: string]: string
 }
 
+interface PositionBreakdownItem {
+  instrumentId: string
+  assetClass: string
+  [key: string]: string
+}
+
 interface MarketDataItem {
   instrumentId: string
   dataType: string
@@ -167,6 +173,16 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
     }
   }
 
+  const parsePositionBreakdown = (details: Record<string, string>): PositionBreakdownItem[] | null => {
+    const raw = details['positionBreakdown']
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as PositionBreakdownItem[]
+    } catch {
+      return null
+    }
+  }
+
   const filteredSteps = isSearchActive
     ? steps.filter((step) => stepMatchesSearch(step, search))
     : steps
@@ -214,7 +230,8 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               const depsByPosition = parseDependenciesByPosition(step.details)
               const dependencies = parseDependencies(step.details)
               const marketDataItems = parseMarketDataItems(step.details)
-              const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0)
+              const positionBreakdown = parsePositionBreakdown(step.details)
+              const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0) || (positionBreakdown && positionBreakdown.length > 0)
               const activeFilter = filter || (isSearchActive ? search : '')
               const filteredPositions = positions && activeFilter
                 ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, activeFilter))
@@ -225,10 +242,13 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               const filteredMarketDataItems = marketDataItems && activeFilter
                 ? marketDataItems.filter((m) => itemMatchesFilter(m as unknown as Record<string, string>, activeFilter))
                 : marketDataItems
+              const filteredPositionBreakdown = positionBreakdown && activeFilter
+                ? positionBreakdown.filter((b) => itemMatchesFilter(b as unknown as Record<string, string>, activeFilter))
+                : positionBreakdown
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {Object.entries(step.details)
-                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition')
+                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown')
                     .map(([key, value]) => (
                       <div key={key}>
                         <span className="font-medium">{key}:</span> {value}
@@ -379,6 +399,33 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                             <pre
                               data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
                               className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
+                            >
+                              {JSON.stringify(item, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {filteredPositionBreakdown && filteredPositionBreakdown.map((item, j) => {
+                    const bKey = `${stepIndex}-varb-${item.instrumentId}`
+                    const isBOpen = expandedItems[bKey] ?? false
+                    return (
+                      <div key={j} className="mt-1">
+                        <button
+                          data-testid={`var-breakdown-${item.instrumentId}`}
+                          onClick={() => toggleItem(bKey)}
+                          className="flex items-center gap-1 text-slate-600 hover:text-slate-800"
+                        >
+                          {isBOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          <span>{item.instrumentId}</span>
+                        </button>
+                        {isBOpen && (
+                          <div className="relative ml-4 mt-0.5">
+                            <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-var-breakdown-${item.instrumentId}`} />
+                            <pre
+                              data-testid={`var-breakdown-json-${item.instrumentId}`}
+                              className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                             >
                               {JSON.stringify(item, null, 2)}
                             </pre>

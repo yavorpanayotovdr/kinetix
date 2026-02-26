@@ -8,6 +8,8 @@ import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.serialization.json.Json
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.util.UUID
 
@@ -194,6 +196,9 @@ class VaRCalculationService(
             ).increment()
 
             val calcDuration = java.time.Duration.between(calcStart, Instant.now()).toMillis()
+
+            val positionBreakdown = computePositionBreakdown(positions, result)
+
             steps.add(
                 JobStep(
                     name = JobStepName.CALCULATE_VAR,
@@ -204,6 +209,7 @@ class VaRCalculationService(
                     details = mapOf(
                         "varValue" to result.varValue,
                         "expectedShortfall" to result.expectedShortfall,
+                        "positionBreakdown" to positionBreakdown,
                     ),
                 )
             )
@@ -265,6 +271,44 @@ class VaRCalculationService(
             updateJobSafely(job)
             throw e
         }
+    }
+
+    private fun computePositionBreakdown(positions: List<com.kinetix.common.model.Position>, result: VaRResult): String {
+        val breakdownByAssetClass = result.componentBreakdown.associateBy { it.assetClass }
+        val marketValueByAssetClass = positions.groupBy { it.assetClass }
+            .mapValues { (_, poses) -> poses.fold(BigDecimal.ZERO) { acc, p -> acc + p.marketValue.amount } }
+
+        val items = positions.map { pos ->
+            val breakdown = breakdownByAssetClass[pos.assetClass]
+            val assetClassTotal = marketValueByAssetClass[pos.assetClass] ?: BigDecimal.ONE
+            val weight = if (assetClassTotal.compareTo(BigDecimal.ZERO) != 0) {
+                pos.marketValue.amount.divide(assetClassTotal, 10, RoundingMode.HALF_UP)
+            } else {
+                BigDecimal.ZERO
+            }
+            val varContribution = BigDecimal(breakdown?.varContribution ?: 0.0) * weight
+            val varValue = BigDecimal(result.varValue)
+            val percentageOfTotal = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
+                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(100)
+            } else {
+                BigDecimal.ZERO
+            }
+            val esContribution = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
+                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(result.expectedShortfall)
+            } else {
+                BigDecimal.ZERO
+            }
+
+            buildMap {
+                put("instrumentId", pos.instrumentId.value)
+                put("assetClass", pos.assetClass.name)
+                put("marketValue", pos.marketValue.amount.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                put("varContribution", varContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                put("esContribution", esContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                put("percentageOfTotal", percentageOfTotal.setScale(2, RoundingMode.HALF_UP).toPlainString())
+            }
+        }
+        return Json.encodeToString(items)
     }
 
     private suspend fun saveJobSafely(job: ValuationJob) {

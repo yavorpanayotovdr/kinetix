@@ -499,6 +499,82 @@ class VaRCalculationServiceTest : FunSpec({
         ustDeps.map { it.jsonObject["dataType"]!!.jsonPrimitive.content }.toSet() shouldBe setOf("YIELD_CURVE", "CORRELATION_MATRIX")
     }
 
+    test("includes per-position VaR breakdown in CALCULATE_VAR step details") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val breakdownJson = calcStep.details["positionBreakdown"]
+        breakdownJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(breakdownJson).jsonArray
+        parsed shouldHaveSize 1
+
+        val item = parsed[0].jsonObject
+        item["instrumentId"]!!.jsonPrimitive.content shouldBe "AAPL"
+        item["assetClass"]!!.jsonPrimitive.content shouldBe "EQUITY"
+        item["varContribution"]!!.jsonPrimitive.content shouldBe "5000.00"
+        item["esContribution"]!!.jsonPrimitive.content shouldBe "6250.00"
+        item["percentageOfTotal"]!!.jsonPrimitive.content shouldBe "100.00"
+    }
+
+    test("distributes VaR proportionally across positions in the same asset class") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", marketPrice = "200.00"),
+            position(instrumentId = "TSLA", marketPrice = "100.00"),
+        )
+        val expectedResult = varResult(
+            varValue = 6000.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 6000.0, 100.0),
+            ),
+        )
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.calculateVaR(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val parsed = Json.parseToJsonElement(calcStep.details["positionBreakdown"] as String).jsonArray
+        parsed shouldHaveSize 2
+
+        val aapl = parsed.first { it.jsonObject["instrumentId"]!!.jsonPrimitive.content == "AAPL" }.jsonObject
+        aapl["varContribution"]!!.jsonPrimitive.content shouldBe "4000.00"
+        aapl["esContribution"]!!.jsonPrimitive.content shouldBe "5000.00"
+        aapl["percentageOfTotal"]!!.jsonPrimitive.content shouldBe "66.67"
+
+        val tsla = parsed.first { it.jsonObject["instrumentId"]!!.jsonPrimitive.content == "TSLA" }.jsonObject
+        tsla["varContribution"]!!.jsonPrimitive.content shouldBe "2000.00"
+        tsla["esContribution"]!!.jsonPrimitive.content shouldBe "2500.00"
+        tsla["percentageOfTotal"]!!.jsonPrimitive.content shouldBe "33.33"
+    }
+
     test("dependenciesByPosition absent when no dependencies are discovered") {
         val positions = listOf(position())
         val expectedResult = varResult()
