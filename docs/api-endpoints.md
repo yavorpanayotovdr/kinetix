@@ -29,12 +29,12 @@
 ┌────────┐┌────────┐┌────────┐┌──────────┐┌───────┐┌────────┐┌──────────┐
 │Position││ Price  ││  Risk  ││Notific.  ││ Rates ││Ref Data││Volatility│
 │Service ││Service ││Orchest.││Service   ││Service││Service ││Service   │
-│ (8081) ││ (8082) ││ (8083) ││ (8086)   ││ (8084)││ (8087) ││ (8088)   │
+│ (8081) ││ (8082) ││ (8083) ││ (8086)   ││ (8088)││ (8089) ││ (8090)   │
 └────────┘└────────┘└───┬────┘└──────────┘└───────┘└────────┘└──────────┘
                         │                                        ┌──────────┐
                         │ gRPC                                   │Correlat. │
                         ▼                                        │Service   │
-                 ┌─────────────┐  ┌─────────┐ ┌──────────┐      │ (8089)   │
+                 ┌─────────────┐  ┌─────────┐ ┌──────────┐      │ (8091)   │
                  │ Risk Engine │  │  Audit  │ │Regulatory│      └──────────┘
                  │  (50051)    │  │ Service │ │ Service  │
                  │  Python     │  │ (8084)  │ │ (8085)   │
@@ -167,7 +167,7 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 
 ---
 
-### Rates Service (port 8084) — Yield Curves, Risk-Free Rates, Forwards
+### Rates Service (port 8088) — Yield Curves, Risk-Free Rates, Forwards
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -186,7 +186,7 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 
 ---
 
-### Reference Data Service (port 8087) — Dividends & Credit Spreads
+### Reference Data Service (port 8089) — Dividends & Credit Spreads
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -199,7 +199,7 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 
 ---
 
-### Volatility Service (port 8088) — Volatility Surfaces
+### Volatility Service (port 8090) — Volatility Surfaces
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -211,7 +211,7 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 
 ---
 
-### Correlation Service (port 8089) — Correlation Matrices
+### Correlation Service (port 8091) — Correlation Matrices
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -256,7 +256,8 @@ All endpoints are gRPC RPCs. No REST API.
 
 | RPC | Request → Response | Description |
 |-----|-------------------|-------------|
-| `CalculateVaR` | `VaRRequest → VaRResponse` | Unary VaR calculation (Historical/Parametric/Monte Carlo) |
+| `Valuate` | `ValuationRequest → ValuationResponse` | Unified VaR + Greeks calculation (requested outputs: VAR, EXPECTED_SHORTFALL, GREEKS) |
+| `CalculateVaR` | `VaRRequest → VaRResponse` | ~~Deprecated~~ — use `Valuate` instead |
 | `CalculateVaRStream` | `stream VaRRequest → stream VaRResponse` | Bidirectional streaming VaR |
 
 **StressTestService**
@@ -265,7 +266,7 @@ All endpoints are gRPC RPCs. No REST API.
 |-----|-------------------|-------------|
 | `RunStressTest` | `StressTestRequest → StressTestResponse` | Run stress test with market shocks |
 | `ListScenarios` | `ListScenariosRequest → ListScenariosResponse` | List historical stress scenarios |
-| `CalculateGreeks` | `GreeksRequest → GreeksResponse` | Portfolio Greeks (Delta, Gamma, Vega, Theta, Rho) |
+| `CalculateGreeks` | `GreeksRequest → GreeksResponse` | ~~Deprecated~~ — use `Valuate` with GREEKS output instead |
 
 **RegulatoryReportingService**
 
@@ -301,10 +302,10 @@ All endpoints are gRPC RPCs. No REST API.
 Protocol Breakdown
 ──────────────────────────────────────────────
   REST (HTTP)     69 endpoints across 11 services
-  gRPC            12 RPCs in 5 service definitions
+  gRPC            13 RPCs in 5 service definitions
   WebSocket        1 real-time price stream
 ──────────────────────────────────────────────
-  Total           82
+  Total           83
 
 Method Distribution (REST only)
 ──────────────────────────────────────────────

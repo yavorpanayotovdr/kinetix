@@ -111,7 +111,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
 
 | Tool | Version | Scope |
 |------|---------|-------|
-| Gradle (Kotlin DSL) | — | Kotlin services, convention plugins, version catalog |
+| Gradle (Kotlin DSL) | 9.3.1 | Kotlin services, convention plugins, version catalog |
 | build-logic/convention | — | Shared plugins: `kinetix.kotlin-common`, `kinetix.kotlin-library`, `kinetix.kotlin-service`, `kinetix.kotlin-testing`, `kinetix.protobuf` |
 | uv | — | Python dependency management and virtual environment |
 | Hatchling | — | Python package build backend |
@@ -135,7 +135,8 @@ settings.gradle.kts
 ├── reference-data-service
 ├── volatility-service
 ├── correlation-service
-└── end2end-tests
+├── end2end-tests
+└── load-tests             (standalone — Gatling performance tests)
 ```
 
 ---
@@ -163,6 +164,7 @@ All backend services run on Ktor with Netty. The gateway installs the full plugi
 | React | ^19.2.0 | Component framework |
 | React DOM | ^19.2.0 | DOM rendering |
 | Tailwind CSS | ^4.2.0 | Utility-first styling |
+| lucide-react | ^0.575.0 | Icon library |
 | Vite Plugin React | ^5.1.1 | HMR and JSX transform |
 | ESLint | ^9.39.1 | Linting |
 
@@ -242,9 +244,15 @@ Proto definitions live in `proto/src/main/proto/kinetix/`.
 
 | Service | Proto File | Methods |
 |---------|-----------|---------|
-| RiskCalculationService | `risk/risk_calculation.proto` | `CalculateVaR`, `CalculateVaRStream` (bidirectional) |
+| RiskCalculationService | `risk/risk_calculation.proto` | `Valuate`, `CalculateVaR` (deprecated), `CalculateVaRStream` (bidirectional) |
+| StressTestService | `risk/stress_testing.proto` | `RunStressTest`, `ListScenarios`, `CalculateGreeks` (deprecated) |
+| RegulatoryReportingService | `risk/regulatory_reporting.proto` | `CalculateFrtb`, `GenerateReport` |
+| MarketDataDependenciesService | `risk/market_data_dependencies.proto` | `DiscoverDependencies` |
+| MLPredictionService | `risk/ml_prediction.proto` | `PredictVolatility`, `PredictVolatilityBatch`, `ScoreCredit`, `DetectAnomaly` |
 
 **Common types** (`common/types.proto`): `Money`, `PortfolioId`, `TradeId`, `InstrumentId`, `Position`, `AssetClass` enum (EQUITY, FIXED_INCOME, FX, COMMODITY, DERIVATIVE).
+
+The `Valuate` RPC is the primary entry point for risk calculations. It accepts a `ValuationRequest` with `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) and returns a unified `ValuationResponse` containing VaR, ES, component breakdown, and Greeks in a single call. The older `CalculateVaR` and `CalculateGreeks` RPCs are deprecated.
 
 ### Communication Patterns
 
@@ -428,9 +436,11 @@ Four-tier test pyramid. All tiers run in CI.
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| `ci.yml` | Push/PR to main | changes, kotlin-build, kotlin-integration, acceptance, python-build, ui-build |
+| `ci.yml` | Push/PR to main | changes, kotlin-compile, kotlin-unit-tests (matrix per module), kotlin-acceptance-tests (matrix), kotlin-integration (matrix), end-to-end-tests, python-build, ui-build, test-summary |
 | `load-test.yml` | Manual (workflow_dispatch) | Gatling simulation (GatewaySimulation or StressTestSimulation) |
 | `dependency-review.yml` | PR to main | Fails on high-severity vulnerabilities |
+
+The CI pipeline uses path-based change detection to skip unchanged layers. Unit and acceptance tests run in parallel per module via a matrix strategy. Integration tests run after unit/acceptance pass. A test-summary job aggregates all JUnit XML results into a GitHub check run.
 
 **CI Runtime**: Java 21 (Temurin), Python 3.12 (uv), Node.js 22.
 
@@ -501,11 +511,15 @@ kinetix/
 │   ├── otel-collector/           # OTel Collector config
 │   ├── loki/                     # Loki config
 │   └── tempo/                    # Tempo config
+├── scripts/                      # CI and dev utility scripts
 ├── docs/                         # Documentation
 │   ├── adr/                      # Architecture Decision Records
+│   ├── ui/                       # UI tab documentation
 │   ├── plan.md                   # Project roadmap
 │   ├── tech-stack.md             # This file
 │   ├── risk-calculation.md       # Risk calculation architecture
+│   ├── api-endpoints.md          # Full API endpoint reference
+│   ├── evolution-report.md       # Project evolution history
 │   └── market-data-services-plan.md  # Market data services design
 ├── gradle/libs.versions.toml     # Version catalog
 └── settings.gradle.kts           # Gradle project includes
@@ -544,6 +558,7 @@ Alphabetical list of all dependencies and their pinned/minimum versions.
 | Gatling Gradle Plugin | 3.13.4 | load-tests/build.gradle.kts |
 | Grafana | latest | docker-compose.observability.yml |
 | gRPC | 1.70.0 | libs.versions.toml |
+| Gradle | 9.3.1 | gradle-wrapper.properties |
 | gRPC Kotlin | 1.4.3 | libs.versions.toml |
 | grpcio (Python) | >= 1.60 | pyproject.toml |
 | Hatchling | latest | pyproject.toml |
@@ -561,6 +576,7 @@ Alphabetical list of all dependencies and their pinned/minimum versions.
 | Lettuce (Redis) | 6.5.3.RELEASE | libs.versions.toml |
 | Logback | 1.5.16 | libs.versions.toml |
 | Loki | latest | docker-compose.observability.yml |
+| lucide-react | ^0.575.0 | ui/package.json |
 | Micrometer | 1.14.4 | libs.versions.toml |
 | MockK | 1.13.16 | libs.versions.toml |
 | NumPy | >= 1.26 | pyproject.toml |

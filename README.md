@@ -62,7 +62,7 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 |---|---|
 | Languages | Kotlin 2.1.20 (JVM 21), Python 3.12, TypeScript 5.9 |
 | Web framework | Ktor 3.1.3 |
-| Frontend | React 19, Tailwind CSS 4, Vite 7 |
+| Frontend | React 19, Tailwind CSS 4, Vite 7, lucide-react |
 | Database | PostgreSQL 17 / TimescaleDB |
 | Messaging | Apache Kafka 3.9 (KRaft) |
 | Caching | Redis 7 |
@@ -70,7 +70,7 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 | Auth | Keycloak 24.0 (OAuth2/OIDC) |
 | ML / Numerics | PyTorch, scikit-learn, NumPy, SciPy |
 | Observability | Micrometer, OpenTelemetry, Prometheus, Grafana, Loki, Tempo |
-| Build | Gradle 9.3 (Kotlin DSL, convention plugins), uv, npm |
+| Build | Gradle 9.3.1 (Kotlin DSL, convention plugins), uv, npm |
 | Testing | Kotest, Testcontainers, MockK, pytest, Vitest, Gatling |
 | CI/CD | GitHub Actions |
 
@@ -140,7 +140,13 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 ### Kotlin (unit tests)
 
 ```bash
-./gradlew build -x integrationTest -x end2EndTest
+./gradlew test
+```
+
+### Kotlin (acceptance tests)
+
+```bash
+./gradlew acceptanceTest
 ```
 
 ### Kotlin (integration tests)
@@ -150,6 +156,11 @@ This starts infrastructure (Postgres, Kafka, Redis), observability (Grafana, Pro
 ./gradlew :price-service:integrationTest
 ./gradlew :risk-orchestrator:integrationTest
 ./gradlew :audit-service:integrationTest
+./gradlew :rates-service:integrationTest
+./gradlew :reference-data-service:integrationTest
+./gradlew :volatility-service:integrationTest
+./gradlew :correlation-service:integrationTest
+./gradlew :regulatory-service:integrationTest
 ```
 
 ### Kotlin (end-to-end tests)
@@ -188,8 +199,11 @@ Key docs in the repo:
 
 - [`docs/tech-stack.md`](docs/tech-stack.md) - Comprehensive technical reference
 - [`docs/risk-calculation.md`](docs/risk-calculation.md) - Risk calculation architecture and data flow
+- [`docs/api-endpoints.md`](docs/api-endpoints.md) - Full API endpoint reference
 - [`docs/plan.md`](docs/plan.md) - Development roadmap and increments
+- [`docs/evolution-report.md`](docs/evolution-report.md) - Project evolution history
 - [`docs/adr/`](docs/adr/) - Architecture Decision Records
+- [`docs/ui/`](docs/ui/) - UI tab documentation (Risk, Positions, Scenarios, Regulatory, Alerts, System)
 
 ## Project Structure
 
@@ -215,5 +229,6 @@ kinetix/
 ├── load-tests/            Gatling performance tests
 ├── infra/                 Docker Compose and infra config
 ├── deploy/                Docker, Helm, and Terraform configs
+├── scripts/               CI and dev utility scripts
 └── docs/                  Tech docs and ADRs
 ```

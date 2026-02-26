@@ -1,8 +1,10 @@
 # Market Data Services Plan
 
+> **Status: COMPLETED** — All four services (rates-service, reference-data-service, volatility-service, correlation-service) have been implemented and are fully operational. This document is retained as a historical design reference.
+
 ## Context
 
-The risk engine's dependency registry declares what market data each asset class needs for VaR calculation. Today only **SPOT_PRICE** and **HISTORICAL_PRICES** are fetchable (both from price-service). The remaining seven types are discovered but silently skipped.
+The risk engine's dependency registry declares what market data each asset class needs for VaR calculation. When this plan was written, only **SPOT_PRICE** and **HISTORICAL_PRICES** were fetchable (both from price-service). The remaining seven types were discovered but silently skipped. All data types are now served by their respective services.
 
 | Asset Class | Required | Optional |
 |---|---|---|
@@ -266,7 +268,7 @@ interface CorrelationServiceClient {
 
 ## Implementation order
 
-1. **rates-service** — unblocks FIXED_INCOME and DERIVATIVE
-2. **reference-data-service** — completes FIXED_INCOME and DERIVATIVE (can be built in parallel with rates-service)
-3. **volatility-service** — fully unblocks DERIVATIVE
-4. **correlation-service** — portfolio-level, lowest urgency (risk engine falls back to identity matrix)
+1. **rates-service** — unblocks FIXED_INCOME and DERIVATIVE ✅
+2. **reference-data-service** — completes FIXED_INCOME and DERIVATIVE ✅
+3. **volatility-service** — fully unblocks DERIVATIVE ✅
+4. **correlation-service** — portfolio-level ✅

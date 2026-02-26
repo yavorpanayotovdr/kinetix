@@ -109,7 +109,7 @@ UI (StressTestPanel)
 |-------|--------|---------|
 | `/api/v1/risk/stress/scenarios` | GET | List available stress scenarios |
 | `/api/v1/risk/stress/{portfolioId}` | POST | Run stress test for a portfolio |
-| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks (sensitivity analysis) |
+| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
 
 ---
 

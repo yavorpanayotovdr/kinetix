@@ -18,9 +18,9 @@ The Risk tab is the analytical heart of Kinetix, providing Value at Risk (VaR) c
    - Absolute dollar contribution and percentage of total per class
    - Sorted by percentage descending
 
-3. **VaR Trend** — Line chart of the last 60 VaR calculations over time
+3. **VaR Trend** — Grafana-style line chart with zoomable time range, pre-populated with VaR history on load
 
-**Metadata bar** shows calculation type (PARAMETRIC / HISTORICAL / MONTE_CARLO) and timestamp. A **Recalculate** button triggers a fresh computation.
+**Metadata bar** shows calculation type (PARAMETRIC / HISTORICAL / MONTE_CARLO) and timestamp. A **Run VaR** button triggers a fresh computation.
 
 ### Greeks Panel (expandable)
 
@@ -78,26 +78,30 @@ Computed per asset class (EQUITY, FIXED_INCOME, COMMODITY, FX).
 
 ## Architecture
 
-### 5-step VaR calculation pipeline
+### VaR calculation pipeline (Valuation Job)
 
 ```
-1. Fetch Positions      → Position Service (gRPC)
-2. Discover Dependencies → Risk Engine (gRPC) — what market data is needed
-3. Fetch Market Data     → Price, Rates, Volatility, Correlation services
-4. Calculate VaR         → Risk Engine (gRPC) — Python numerical computation
-5. Publish Result        → Kafka "risk.results" topic
+1. Fetch Positions        → Position Service (gRPC)
+2. Discover Dependencies  → Risk Engine (gRPC) — what market data is needed
+3. Fetch Market Data      → Price, Rates, Volatility, Correlation services
+4. Valuate                → Risk Engine (gRPC, unified Valuate RPC) — VaR + Greeks in one call
+5. Publish Result         → Kafka "risk.results" topic
 ```
+
+The unified `Valuate` RPC accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) and returns all results in a single `ValuationResponse`, eliminating separate round-trips for VaR and Greeks.
 
 ### Data flow
 
 ```
-UI (VaRDashboard, GreeksPanel)
+UI (VaRDashboard, GreeksPanel — lazy-loaded sub-sections)
   → Risk Orchestrator (Kotlin/Ktor, HTTP REST)
-    → Risk Engine (Python, gRPC) — NumPy/SciPy computation
+    → Risk Engine (Python, gRPC Valuate RPC) — NumPy/SciPy computation
     → Position Service (gRPC) — portfolio holdings
     → Market Data services — vols, correlations, rates, prices
   → Kafka "risk.results" — consumed by Notification Service for alerting
 ```
+
+The Risk tab uses lazy-loaded sub-sections — the Greeks panel and Job History only load when expanded, improving initial render performance.
 
 ### Calculation triggers
 
@@ -138,10 +142,12 @@ UI (VaRDashboard, GreeksPanel)
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/v1/risk/var/{portfolioId}` | POST | Trigger VaR calculation |
+| `/api/v1/risk/var/{portfolioId}` | POST | Trigger VaR calculation (uses unified Valuate RPC) |
 | `/api/v1/risk/var/{portfolioId}` | GET | Fetch cached latest VaR result |
-| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks |
+| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
 | `/api/v1/risk/dependencies/{portfolioId}` | POST | Discover market data dependencies |
+| `/api/v1/risk/jobs/{portfolioId}` | GET | List valuation jobs (pagination + date range) |
+| `/api/v1/risk/jobs/detail/{jobId}` | GET | Job execution details |
 
 ---
 

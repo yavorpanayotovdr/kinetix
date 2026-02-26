@@ -67,12 +67,14 @@ The Python **Risk Engine** (`risk-engine/src/kinetix_risk/`) supports three VaR 
 1. **Risk Orchestrator** fetches positions from Position Service
 2. Orchestrator discovers market data dependencies per asset class (see table below)
 3. **MarketDataFetcher** fetches from the appropriate services (Price, Rates, Reference Data, Volatility, Correlation)
-4. Positions + market data are sent via gRPC to the Python Risk Engine
+4. Positions + market data are sent via the unified **`Valuate`** gRPC RPC to the Python Risk Engine
 5. Risk Engine aggregates positions by asset class, applies volatilities + correlations
-6. Dispatches to the selected VaR calculator (parametric/historical/MC)
-7. Returns VaR, Expected Shortfall, and component breakdown
+6. Dispatches to the selected VaR calculator (parametric/historical/MC) and computes Greeks if requested
+7. Returns a unified `ValuationResponse` containing VaR, Expected Shortfall, component breakdown, and optionally Greeks (Delta, Gamma, Vega, Theta, Rho)
 8. Results are cached in-memory by the orchestrator (`LatestVaRCache`)
 9. Gateway exposes REST endpoints; UI polls every 30 seconds
+
+The `Valuate` RPC accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) so that VaR and Greeks can be computed in a single pipeline call rather than requiring separate gRPC round-trips. The older `CalculateVaR` and `CalculateGreeks` RPCs are deprecated.
 
 ## Market Data by Asset Class
 
@@ -99,6 +101,19 @@ The risk engine also provides:
 ## Scheduling
 
 The `ScheduledVaRCalculator` runs parametric VaR (95% CL, 1-day horizon) every 60 seconds for all portfolios, keeping the cache fresh. On-demand calculations (any method) can be triggered via POST from the UI.
+
+## Valuation Jobs
+
+Each risk calculation is tracked as a **Valuation Job** — a pipeline of discrete phases visible in the UI:
+
+1. **FETCH_POSITIONS** — Load portfolio positions
+2. **DISCOVER_DEPENDENCIES** — Determine required market data per asset class
+3. **FETCH_MARKET_DATA** — Retrieve data from Price, Rates, Volatility, Correlation services
+4. **CALCULATE_VAR** — Run the selected VaR method
+5. **CALCULATE_GREEKS** — Compute Greeks (if requested)
+6. **PUBLISH_RESULT** — Publish to Kafka `risk.results`
+
+The UI displays job history with a zoomable timechart, search, pagination, and step-by-step pipeline visualization showing duration, status, and market data details per phase.
 
 ## Mathematical Foundations
 

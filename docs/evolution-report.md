@@ -26,6 +26,9 @@ The price service was renamed from "market-data-service" to reflect its true sco
 **25 Feb 2026 — Valuation Jobs UX Perfection & Dashboard Links**
 Tooltips for VaR and ES were refined. Time range filtering was added with server-side support. A zoomable timechart was introduced. Stress Testing was moved to a new Scenarios tab. Auto-polling replaced manual refresh. Click-to-zoom on bars, market data highlighting, per-position dependency grouping, pagination — feature after feature was polished. The Prices service Grafana link was inlined into the service health card. Custom Claude Code skills were created (TDD, architecture reference, evolution report).
 
+**26 Feb 2026 — Unified Valuate RPC & CI Matrix Split**
+VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, replacing the separate `CalculateVaR` and `CalculateGreeks` calls with a `ValuationRequest` that accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) and returns a unified `ValuationResponse`. The CI pipeline was split from a monolithic `kotlin-build` job into per-module matrix jobs for unit tests, acceptance tests, and integration tests — enabling parallel execution and faster feedback. VaR history was pre-populated on dashboard load, Risk tab sub-sections became lazy-loaded, and valuation job durations were formatted as human-readable seconds.
+
 ---
 
 ## 2. Initial Vision vs Current State
@@ -81,7 +84,7 @@ Tooltips for VaR and ES were refined. Time range filtering was added with server
 
 ### Key Integrations
 
-- **Kafka event mesh**: 6 topics connecting Position → Risk → Notification → Regulatory services
+- **Kafka event mesh**: 10 topics connecting Position, Price, Risk, Notification, Rates, Reference Data, Volatility, and Correlation services
 - **gRPC for compute**: Risk Orchestrator → Python Risk Engine (VaR, Greeks, stress tests, ML predictions)
 - **WebSocket**: Gateway → UI for real-time price broadcasting
 - **Keycloak OIDC**: JWT-based authentication with 5 role types
@@ -144,7 +147,7 @@ Tooltips for VaR and ES were refined. Time range filtering was added with server
 - Configurable notification alerting (VaR breaches, P&L thresholds)
 - JWT authentication via Keycloak with 5 role types
 - Real-time price broadcasting via WebSocket
-- Polished React UI with 4 tabs (Portfolio, Risk, Scenarios, System)
+- Polished React UI with 6 tabs (Positions, Risk, Scenarios, Regulatory, Alerts, System)
 - Valuation Jobs with zoomable timechart, search, pagination, pipeline visualization
 - Full observability: Prometheus metrics, Grafana dashboards, Loki logs, Tempo traces
 - GitHub Actions CI with test pyramid and test summary
@@ -152,15 +155,17 @@ Tooltips for VaR and ES were refined. Time range filtering was added with server
 - AWS EKS deployment infrastructure (Helm, Terraform, Dockerfiles)
 - 200 commits, ~555 conversation prompts across 92 sessions
 
-**What's in progress:**
-- Adding Grafana dashboard links for remaining services (beyond Prices) in the Service Health UI
-- The Prices service has an inline Grafana link; the remaining 8 services need similar dashboards
+**Recent additions (26 Feb):**
+- Unified `Valuate` gRPC RPC replacing separate VaR and Greeks calls
+- CI pipeline split into per-module matrix jobs (unit, acceptance, integration)
+- Lazy-loaded Risk tab sub-sections for faster navigation
+- VaR history pre-populated on dashboard load
+- Human-readable valuation job durations
+- Configurable simulation delays for valuation job phases
 
 **Known issues / tech debt:**
 - Some Helm chart `.tgz` files are untracked in git
-- The risk-engine `uv.lock` has unstaged changes
 - GitHub wiki links were attempted but remain broken — documentation lives in-repo
-- The VaR gauge component has uncommitted test changes
 
 ---
 
@@ -186,7 +191,8 @@ Tooltips for VaR and ES were refined. Time range filtering was added with server
 | Market data services expansion | `ce27ebb4-3b1f-4e81-b71c-c2d483283652` | 24 Feb |
 | Valuation Jobs UX iterations | `9eeb77be-97bb-42a0-ac8b-dfb3cd2f4953` | 24–25 Feb |
 | Grafana dashboard links | `0ac35409-0a31-4d6e-bd07-2eadf76d6e4e` | 25 Feb |
+| Unified Valuate RPC & CI matrix split | — | 26 Feb |
 
 ---
 
-*Report generated from 555 conversation entries across 92 sessions, cross-referenced with 200 git commits spanning 10–25 February 2026.*
+*Report generated from conversation history, cross-referenced with git commits spanning 10–26 February 2026.*

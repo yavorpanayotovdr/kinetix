@@ -305,3 +305,58 @@ Modern risk management platform for large financial institutions.
 ### 9.3 Performance
 - [x] Gatling load test suite
 - [x] p95 < 3s for API calls, > 99% success rate under load
+
+---
+
+## Increment 10: Market Data Services Expansion
+
+### 10.1 Rates Service
+- [x] Yield curves, risk-free rates, forward curves
+- [x] PostgreSQL persistence, Redis caching, Kafka publishing
+- [x] HTTP endpoints and integration tests
+- [x] Risk orchestrator client for YIELD_CURVE, RISK_FREE_RATE, FORWARD_CURVE
+
+### 10.2 Reference Data Service
+- [x] Dividend yields and credit spreads
+- [x] PostgreSQL persistence, Redis caching, Kafka publishing
+- [x] HTTP endpoints and integration tests
+- [x] Risk orchestrator client for DIVIDEND_YIELD, CREDIT_SPREAD
+
+### 10.3 Volatility Service
+- [x] Volatility surfaces (strike x expiry)
+- [x] PostgreSQL persistence, Redis caching, Kafka publishing
+- [x] HTTP endpoints and integration tests
+- [x] Risk orchestrator client for VOLATILITY_SURFACE
+
+### 10.4 Correlation Service
+- [x] Correlation matrices (historical, exponentially-weighted, shrinkage)
+- [x] PostgreSQL persistence, Redis caching, Kafka publishing
+- [x] HTTP endpoints and integration tests
+- [x] Risk orchestrator client for CORRELATION_MATRIX
+
+---
+
+## Increment 11: Valuation Jobs & UI Polish
+
+### 11.1 Valuation Jobs Pipeline
+- [x] Job tracking with step-by-step pipeline visualization
+- [x] Zoomable timechart for job history
+- [x] Search, pagination, and time range filtering
+- [x] Per-position market data dependency grouping
+
+### 11.2 Unified Valuate RPC
+- [x] Single `Valuate` gRPC RPC replacing separate VaR and Greeks calls
+- [x] `ValuationRequest` with `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS)
+- [x] Deprecated `CalculateVaR` and `CalculateGreeks` RPCs
+
+### 11.3 UI Refinements
+- [x] 6-tab layout (Positions, Risk, Scenarios, Regulatory, Alerts, System)
+- [x] Lazy-loaded Risk tab sub-sections
+- [x] VaR history pre-populated on dashboard load
+- [x] Grafana-style VaR trend chart with zoom
+- [x] Human-readable valuation job durations
+- [x] Configurable simulation delays for valuation job phases
+
+### 11.4 CI Pipeline
+- [x] Per-module matrix jobs for unit, acceptance, and integration tests
+- [x] Aggregated test summary with GitHub check run
