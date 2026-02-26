@@ -163,13 +163,25 @@ class TestDiscoverXmlFilesFromCIArtifacts:
     """After download-artifact@v4, XML files live under artifact-name dirs
     with leading directory structure stripped."""
 
+    def test_discovers_unit_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "unit-test-xml-gateway" / "gateway" / "build" / "test-results" / "test" / "TEST-Some.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("gateway", "unit") in [(r[0], r[1]) for r in results]
+
+    def test_discovers_acceptance_tests_from_ci_artifact(self, tmp_repo):
+        xml = tmp_repo / "acceptance-test-xml-risk-orchestrator" / "risk-orchestrator" / "build" / "test-results" / "acceptanceTest" / "TEST-Some.xml"
+        _write_xml(xml)
+        results = discover_xml_files(tmp_repo)
+        assert ("risk-orchestrator", "acceptance") in [(r[0], r[1]) for r in results]
+
     def test_discovers_integration_tests_from_ci_artifact(self, tmp_repo):
-        xml = tmp_repo / "integration-test-xml-position-service" / "TEST-Some.xml"
+        xml = tmp_repo / "integration-test-xml-position-service" / "position-service" / "build" / "test-results" / "integrationTest" / "TEST-Some.xml"
         _write_xml(xml)
         results = discover_xml_files(tmp_repo)
         assert ("position-service", "integration") in [(r[0], r[1]) for r in results]
 
-    def test_discovers_acceptance_tests_from_ci_artifact(self, tmp_repo):
+    def test_discovers_e2e_tests_from_ci_artifact(self, tmp_repo):
         xml = tmp_repo / "e2e-test-xml" / "TEST-Some.xml"
         _write_xml(xml)
         results = discover_xml_files(tmp_repo)
@@ -189,7 +201,7 @@ class TestDiscoverXmlFilesFromCIArtifacts:
 
     def test_no_double_counting_when_both_layouts_present(self, tmp_repo):
         """If a file matches both Gradle and CI patterns, it should only be counted once."""
-        xml = tmp_repo / "kotlin-unit-test-xml" / "gateway" / "build" / "test-results" / "test" / "TEST-A.xml"
+        xml = tmp_repo / "unit-test-xml-gateway" / "gateway" / "build" / "test-results" / "test" / "TEST-A.xml"
         _write_xml(xml, tests=5)
         results = discover_xml_files(tmp_repo)
         gateway_results = [r for r in results if r[0] == "gateway" and r[1] == "unit"]

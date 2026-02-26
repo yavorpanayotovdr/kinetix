@@ -26,9 +26,11 @@ PATTERNS = [
     ("**/build/test-results/end2EndTest/**/*.xml", "e2e"),
     ("**/risk-engine/**/pytest.xml", "unit"),
     ("**/ui/**/junit.xml", "unit"),
-    # CI artifact layout (download-artifact@v4 strips leading directory structure)
-    ("**/integration-test-xml-*/*.xml", "integration"),
-    ("**/e2e-test-xml/*.xml", "e2e"),
+    # CI artifact layout (download-artifact@v4 preserves directory structure)
+    ("**/unit-test-xml-*/**/*.xml", "unit"),
+    ("**/acceptance-test-xml-*/**/*.xml", "acceptance"),
+    ("**/integration-test-xml-*/**/*.xml", "integration"),
+    ("**/e2e-test-xml/**/*.xml", "e2e"),
     ("**/python-test-xml/pytest.xml", "unit"),
     ("**/ui-test-xml/junit.xml", "unit"),
 ]
@@ -63,8 +65,12 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
             return parts[idx - 1]
         return None
 
-    # CI artifact: integration-test-xml-<module>/...
+    # CI artifact: <type>-test-xml-<module>/...
     for part in parts:
+        if part.startswith("unit-test-xml-"):
+            return part.removeprefix("unit-test-xml-")
+        if part.startswith("acceptance-test-xml-"):
+            return part.removeprefix("acceptance-test-xml-")
         if part.startswith("integration-test-xml-"):
             return part.removeprefix("integration-test-xml-")
 

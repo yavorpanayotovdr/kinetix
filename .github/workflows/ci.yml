@@ -51,7 +51,7 @@ jobs:
             ui:
               - 'ui/**'
 
-  kotlin-build:
+  kotlin-compile:
     needs: changes
     if: needs.changes.outputs.kotlin == 'true' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -62,25 +62,89 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: Compile, unit test, and acceptance test
-        run: ./gradlew build acceptanceTest -x integrationTest -x end2EndTest
+      - name: Compile all modules
+        run: ./gradlew classes testClasses -x test -x acceptanceTest -x integrationTest -x end2EndTest
+
+  kotlin-unit-tests:
+    needs: kotlin-compile
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - common
+          - gateway
+          - notification-service
+          - position-service
+          - price-service
+          - rates-service
+          - risk-orchestrator
+          - regulatory-service
+          - audit-service
+          - reference-data-service
+          - volatility-service
+          - correlation-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests (${{ matrix.module }})
+        run: ./gradlew :${{ matrix.module }}:test
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kotlin-unit-test-reports
-          path: '**/build/reports/tests/test/'
+          name: unit-test-reports-${{ matrix.module }}
+          path: '${{ matrix.module }}/build/reports/tests/test/'
           retention-days: 14
       - name: Upload test XML
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kotlin-unit-test-xml
-          path: '**/build/test-results/test/**/*.xml'
+          name: unit-test-xml-${{ matrix.module }}
+          path: '${{ matrix.module }}/build/test-results/test/**/*.xml'
+          retention-days: 1
+
+  kotlin-acceptance-tests:
+    needs: kotlin-compile
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - gateway
+          - notification-service
+          - risk-orchestrator
+          - regulatory-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Acceptance tests (${{ matrix.module }})
+        run: ./gradlew :${{ matrix.module }}:acceptanceTest
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-reports-${{ matrix.module }}
+          path: '${{ matrix.module }}/build/reports/tests/acceptanceTest/'
+          retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-xml-${{ matrix.module }}
+          path: '${{ matrix.module }}/build/test-results/acceptanceTest/**/*.xml'
           retention-days: 1
 
   kotlin-integration:
-    needs: kotlin-build
+    needs: [kotlin-unit-tests, kotlin-acceptance-tests]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -218,7 +282,7 @@ jobs:
           retention-days: 1
 
   test-summary:
-    needs: [kotlin-build, kotlin-integration, end-to-end-tests, python-build, ui-build]
+    needs: [kotlin-unit-tests, kotlin-acceptance-tests, kotlin-integration, end-to-end-tests, python-build, ui-build]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
