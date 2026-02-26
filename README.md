@@ -198,6 +198,7 @@ See the [project wiki](../../wiki) for detailed documentation including architec
 Key docs in the repo:
 
 - [`docs/tech-stack.md`](docs/tech-stack.md) - Comprehensive technical reference
+- [`docs/persistence.md`](docs/persistence.md) - Persistence layer reference (databases, schemas, repositories, data flow)
 - [`docs/risk-calculation.md`](docs/risk-calculation.md) - Risk calculation architecture and data flow
 - [`docs/api-endpoints.md`](docs/api-endpoints.md) - Full API endpoint reference
 - [`docs/plan.md`](docs/plan.md) - Development roadmap and increments

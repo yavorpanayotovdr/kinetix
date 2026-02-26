@@ -190,6 +190,8 @@ A single PostgreSQL instance (TimescaleDB image) hosts per-service databases.
 | kinetix_volatility | Volatility Service | volatility_surfaces, volatility_surface_data |
 | kinetix_correlation | Correlation Service | correlation_matrices |
 
+> **Full reference:** See [`persistence.md`](persistence.md) for complete table schemas, repository interfaces, connection-pool settings, and cross-service data flow.
+
 ### ORM and Database Libraries
 
 | Library | Version | Role |
@@ -517,6 +519,7 @@ kinetix/
 │   ├── ui/                       # UI tab documentation
 │   ├── plan.md                   # Project roadmap
 │   ├── tech-stack.md             # This file
+│   ├── persistence.md            # Persistence layer reference
 │   ├── risk-calculation.md       # Risk calculation architecture
 │   ├── api-endpoints.md          # Full API endpoint reference
 │   ├── evolution-report.md       # Project evolution history
