@@ -629,17 +629,21 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
     })
 
-    it('expands position breakdown item to show JSON with VaR contribution', () => {
+    it('expands position breakdown item to show VaR and ES values', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
-      const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
-      expect(jsonBlock).toBeInTheDocument()
-      expect(jsonBlock.textContent).toContain('"instrumentId": "AAPL"')
-      expect(jsonBlock.textContent).toContain('"varContribution": "3000.00"')
-      expect(jsonBlock.textContent).toContain('"esContribution": "3750.00"')
-      expect(jsonBlock.textContent).toContain('"percentageOfTotal": "60.00"')
+      const detail = screen.getByTestId('var-breakdown-detail-AAPL')
+      expect(detail).toBeInTheDocument()
+      expect(detail.textContent).toContain('VaR Contribution:')
+      expect(detail.textContent).toContain('3000.00')
+      expect(detail.textContent).toContain('Expected Shortfall:')
+      expect(detail.textContent).toContain('3750.00')
+      expect(detail.textContent).toContain('% of Total:')
+      expect(detail.textContent).toContain('60.00%')
+      expect(detail.textContent).toContain('Market Value:')
+      expect(detail.textContent).toContain('17000.00')
     })
 
     it('does not render positionBreakdown key as a regular detail', () => {
