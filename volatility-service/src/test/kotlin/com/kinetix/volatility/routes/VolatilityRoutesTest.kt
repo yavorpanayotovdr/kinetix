@@ -11,6 +11,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.mockk.just
+import io.mockk.runs
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -63,6 +69,56 @@ class VolatilityRoutesTest : FunSpec({
 
             val response = client.get("/api/v1/volatility/UNKNOWN/surface/latest")
             response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("POST surfaces returns 201 Created") {
+        coEvery { ingestionService.ingest(any()) } just runs
+
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [{"strike": 100.0, "maturityDays": 30, "impliedVol": 0.25}],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "AAPL"
+        }
+    }
+
+    test("GET surface history returns 200 with surfaces") {
+        val surfaces = listOf(
+            VolSurface(
+                instrumentId = InstrumentId("AAPL"),
+                asOf = NOW,
+                points = listOf(VolPoint(BigDecimal("100"), 30, BigDecimal("0.25"))),
+                source = VolatilitySource.BLOOMBERG,
+            ),
+        )
+        coEvery { volSurfaceRepo.findByTimeRange(InstrumentId("AAPL"), any(), any()) } returns surfaces
+
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.get("/api/v1/volatility/AAPL/surface/history?from=2026-01-01T00:00:00Z&to=2026-12-31T00:00:00Z")
+            response.status shouldBe HttpStatusCode.OK
+            response.bodyAsText() shouldContain "AAPL"
+        }
+    }
+
+    test("GET surface history returns 400 when missing from parameter") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.get("/api/v1/volatility/AAPL/surface/history?to=2026-12-31T00:00:00Z")
+            response.status shouldBe HttpStatusCode.BadRequest
         }
     }
 })

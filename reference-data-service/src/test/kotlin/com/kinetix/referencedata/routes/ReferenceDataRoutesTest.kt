@@ -12,6 +12,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.mockk.just
+import io.mockk.runs
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -96,6 +102,50 @@ class ReferenceDataRoutesTest : FunSpec({
 
             val response = client.get("/api/v1/reference-data/credit-spreads/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("POST dividends returns 201 Created") {
+        coEvery { ingestionService.ingest(any<DividendYield>()) } just runs
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
+
+            val response = client.post("/api/v1/reference-data/dividends") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "yield": 0.0065,
+                        "exDate": "2026-03-15",
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "AAPL"
+        }
+    }
+
+    test("POST credit-spreads returns 201 Created") {
+        coEvery { ingestionService.ingest(any<CreditSpread>()) } just runs
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
+
+            val response = client.post("/api/v1/reference-data/credit-spreads") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "CORP-BOND-1",
+                        "spread": 0.0125,
+                        "rating": "AA",
+                        "source": "RATING_AGENCY"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "CORP-BOND-1"
         }
     }
 })

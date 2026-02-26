@@ -10,6 +10,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.mockk.just
+import io.mockk.runs
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -133,6 +139,114 @@ class RatesRoutesTest : FunSpec({
 
             val response = client.get("/api/v1/rates/forwards/UNKNOWN/latest")
             response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("POST yield-curves returns 201 Created") {
+        coEvery { ingestionService.ingest(any<YieldCurve>()) } just runs
+
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/yield-curves") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "curveId": "USD-TREASURY",
+                        "currency": "USD",
+                        "tenors": [{"label": "1M", "days": 30, "rate": "0.04"}],
+                        "source": "CENTRAL_BANK"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "USD-TREASURY"
+        }
+    }
+
+    test("POST risk-free returns 201 Created") {
+        coEvery { ingestionService.ingest(any<RiskFreeRate>()) } just runs
+
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/risk-free") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "currency": "USD",
+                        "tenor": "3M",
+                        "rate": "0.0525",
+                        "source": "CENTRAL_BANK"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "0.0525"
+        }
+    }
+
+    test("POST forwards returns 201 Created") {
+        coEvery { ingestionService.ingest(any<ForwardCurve>()) } just runs
+
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/forwards") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "EURUSD",
+                        "assetClass": "FX",
+                        "points": [{"tenor": "1M", "value": "1.0855"}],
+                        "source": "REUTERS"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "EURUSD"
+        }
+    }
+
+    test("GET yield-curves history returns 200 with curves") {
+        val curves = listOf(
+            YieldCurve(
+                currency = USD,
+                asOf = NOW,
+                tenors = listOf(Tenor.oneMonth(BigDecimal("0.04"))),
+                curveId = "USD-TREASURY",
+                source = RateSource.CENTRAL_BANK,
+            ),
+        )
+        coEvery { yieldCurveRepo.findByTimeRange("USD-TREASURY", any(), any()) } returns curves
+
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.get("/api/v1/rates/yield-curves/USD-TREASURY/history?from=2026-01-01T00:00:00Z&to=2026-12-31T00:00:00Z")
+            response.status shouldBe HttpStatusCode.OK
+            response.bodyAsText() shouldContain "USD-TREASURY"
+        }
+    }
+
+    test("GET forwards history returns 200 with curves") {
+        val curves = listOf(
+            ForwardCurve(
+                instrumentId = InstrumentId("EURUSD"),
+                assetClass = "FX",
+                points = listOf(CurvePoint("1M", 1.0855)),
+                asOfDate = NOW,
+                source = RateSource.REUTERS,
+            ),
+        )
+        coEvery { forwardCurveRepo.findByTimeRange(InstrumentId("EURUSD"), any(), any()) } returns curves
+
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.get("/api/v1/rates/forwards/EURUSD/history?from=2026-01-01T00:00:00Z&to=2026-12-31T00:00:00Z")
+            response.status shouldBe HttpStatusCode.OK
+            response.bodyAsText() shouldContain "EURUSD"
         }
     }
 })

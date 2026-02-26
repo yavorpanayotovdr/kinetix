@@ -9,6 +9,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.mockk.just
+import io.mockk.runs
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -59,6 +65,28 @@ class CorrelationRoutesTest : FunSpec({
 
             val response = client.get("/api/v1/correlations/latest?labels=UNKNOWN1,UNKNOWN2&window=252")
             response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("POST ingest returns 201 Created") {
+        coEvery { ingestionService.ingest(any()) } just runs
+
+        testApplication {
+            application { module(correlationRepo, ingestionService) }
+
+            val response = client.post("/api/v1/correlations/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "labels": ["AAPL", "MSFT"],
+                        "values": [1.0, 0.65, 0.65, 1.0],
+                        "windowDays": 252,
+                        "method": "HISTORICAL"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.Created
+            response.bodyAsText() shouldContain "AAPL"
         }
     }
 })
