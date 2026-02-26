@@ -41,6 +41,7 @@ jobs:
               - 'regulatory-service/**'
               - 'notification-service/**'
               - 'audit-service/**'
+              - 'correlation-service/**'
               - 'acceptance-tests/**'
             python:
               - 'risk-engine/**'
@@ -86,6 +87,7 @@ jobs:
           - price-service
           - risk-orchestrator
           - audit-service
+          - correlation-service
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

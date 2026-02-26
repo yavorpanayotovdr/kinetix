@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { RotateCcw } from 'lucide-react'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import type { TimeRange } from '../types'
-import { formatTimeOnly } from '../utils/format'
+import { formatTimeOnly, formatChartTime } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { clampTooltipLeft } from '../utils/clampTooltipLeft'
 import { useBrushSelection } from '../hooks/useBrushSelection'
@@ -111,8 +111,42 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
 
   const gridLines = useMemo(() => computeNiceGridLines(min, max, 4), [min, max])
 
+  const timeExtent = useMemo(() => {
+    if (!timeRange) return null
+    const fromMs = new Date(timeRange.from).getTime()
+    const toMs = new Date(timeRange.to).getTime()
+    return toMs > fromMs ? { fromMs, toMs, durationMs: toMs - fromMs } : null
+  }, [timeRange])
+
+  const toX = useCallback(
+    (timestampMs: number) => {
+      if (timeExtent) {
+        const pct = (timestampMs - timeExtent.fromMs) / timeExtent.durationMs
+        return PADDING.left + pct * plotWidth
+      }
+      return 0
+    },
+    [timeExtent, plotWidth],
+  )
+
   const xLabels = useMemo(() => {
     if (history.length < 2) return []
+
+    if (timeExtent) {
+      const count = 6
+      const rangeDays = timeExtent.durationMs / (24 * 60 * 60 * 1000)
+      const labels: { x: number; text: string }[] = []
+      for (let i = 0; i <= count; i++) {
+        const t = timeExtent.fromMs + (i / count) * timeExtent.durationMs
+        labels.push({
+          x: PADDING.left + (i / count) * plotWidth,
+          text: formatChartTime(new Date(t), rangeDays),
+        })
+      }
+      return labels
+    }
+
+    // Fallback: index-based (no timeRange)
     const count = Math.min(6, history.length)
     const step = Math.max(1, Math.floor((history.length - 1) / (count - 1)))
     const labels: { x: number; text: string }[] = []
@@ -131,16 +165,18 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
     }
 
     return labels
-  }, [history, plotWidth])
+  }, [history, plotWidth, timeExtent])
 
   const points = useMemo(() => {
     if (history.length < 2) return []
     const range = max - min || 1
     return history.map((entry, i) => ({
-      x: PADDING.left + (i / (history.length - 1)) * plotWidth,
+      x: timeExtent
+        ? toX(new Date(entry.calculatedAt).getTime())
+        : PADDING.left + (i / (history.length - 1)) * plotWidth,
       y: PADDING.top + (1 - (entry.varValue - min) / range) * plotHeight,
     }))
-  }, [history, plotWidth, plotHeight, min, max])
+  }, [history, plotWidth, plotHeight, min, max, timeExtent, toX])
 
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ')
 

@@ -47,9 +47,9 @@ const history: VaRHistoryEntry[] = [
 ]
 
 const defaultTimeRange: TimeRange = {
-  from: '2025-01-15T09:30:00Z',
+  from: '2025-01-14T10:30:00Z',
   to: '2025-01-15T10:30:00Z',
-  label: 'Last 1h',
+  label: 'Last 24h',
 }
 
 const defaultZoomProps = {
@@ -59,6 +59,7 @@ const defaultZoomProps = {
   zoomIn: vi.fn(),
   resetZoom: vi.fn(),
   zoomDepth: 0,
+  refreshing: false,
 }
 
 describe('VaRDashboard', () => {
@@ -232,6 +233,28 @@ describe('VaRDashboard', () => {
     )
 
     expect(screen.getByTestId('var-dashboard')).toHaveTextContent('HISTORICAL')
+  })
+
+  it('shows spinner on Recalculate button when refreshing, not full loading state', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        refreshing={true}
+      />,
+    )
+
+    // Dashboard should still be visible (not replaced by loading spinner)
+    expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
+    expect(screen.queryByTestId('var-loading')).not.toBeInTheDocument()
+
+    // Recalculate button should show a spinner
+    const button = screen.getByTestId('var-recalculate')
+    expect(button.querySelector('.animate-spin')).toBeInTheDocument()
   })
 
   it('renders TimeRangeSelector with the time range', () => {

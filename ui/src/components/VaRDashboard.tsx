@@ -11,6 +11,7 @@ interface VaRDashboardProps {
   varResult: VaRResultDto | null
   filteredHistory: VaRHistoryEntry[]
   loading: boolean
+  refreshing?: boolean
   error: string | null
   onRefresh: () => void
   timeRange: TimeRange
@@ -20,7 +21,7 @@ interface VaRDashboardProps {
   zoomDepth: number
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth }: VaRDashboardProps) {
   if (loading) {
     return (
       <Card data-testid="var-loading" className="mb-4">
@@ -85,10 +86,11 @@ export function VaRDashboard({ varResult, filteredHistory, loading, error, onRef
           data-testid="var-recalculate"
           variant="primary"
           size="sm"
-          icon={<RefreshCw className="h-3 w-3" />}
+          icon={<RefreshCw className={`h-3 w-3${refreshing ? ' animate-spin' : ''}`} />}
           onClick={onRefresh}
+          disabled={refreshing}
         >
-          Recalculate
+          {refreshing ? 'Recalculating...' : 'Recalculate'}
         </Button>
       </div>
     </Card>

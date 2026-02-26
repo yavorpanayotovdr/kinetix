@@ -41,33 +41,10 @@ export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-700 mb-2">Component Breakdown</h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-3">Component Breakdown</h3>
 
-      <div className="flex flex-col items-center">
-        <svg viewBox={`0 0 ${center * 2} ${center * 2}`} width="120" height="120">
-          {segments.map(({ comp, offset }) => {
-            const pct = Number(comp.percentageOfTotal) / 100
-            const dashLength = pct * circumference
-
-            return (
-              <circle
-                key={comp.assetClass}
-                data-testid={`breakdown-segment-${comp.assetClass}`}
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="none"
-                stroke={ASSET_CLASS_COLORS[comp.assetClass] || DEFAULT_COLOR}
-                strokeWidth={strokeWidth}
-                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-                strokeDashoffset={-offset * circumference}
-                transform={`rotate(-90 ${center} ${center})`}
-              />
-            )
-          })}
-        </svg>
-
-        <div className="w-full mt-3 space-y-1 text-xs">
+      <div className="flex items-center gap-8">
+        <div className="min-w-[180px] space-y-2.5">
           {sorted.map((comp) => (
             <div
               key={comp.assetClass}
@@ -75,18 +52,49 @@ export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
               className="flex items-center gap-2"
             >
               <span
-                className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: ASSET_CLASS_COLORS[comp.assetClass] || DEFAULT_COLOR }}
               />
-              <span className="flex-1 text-slate-600">{formatAssetClassLabel(comp.assetClass)}</span>
-              <span className="text-slate-700 font-medium tabular-nums">
-                {formatMoney(comp.varContribution, 'USD')}
-              </span>
-              <span className="text-slate-500 tabular-nums w-14 text-right">
-                {comp.percentageOfTotal}%
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 leading-tight">
+                  {formatAssetClassLabel(comp.assetClass)}
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">
+                    {formatMoney(comp.varContribution, 'USD')}
+                  </span>
+                  <span className="text-xs text-slate-400 tabular-nums leading-tight">
+                    {comp.percentageOfTotal}%
+                  </span>
+                </div>
+              </div>
             </div>
           ))}
+        </div>
+
+        <div className="flex-shrink-0">
+          <svg viewBox={`0 0 ${center * 2} ${center * 2}`} width="110" height="110">
+            {segments.map(({ comp, offset }) => {
+              const pct = Number(comp.percentageOfTotal) / 100
+              const dashLength = pct * circumference
+
+              return (
+                <circle
+                  key={comp.assetClass}
+                  data-testid={`breakdown-segment-${comp.assetClass}`}
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill="none"
+                  stroke={ASSET_CLASS_COLORS[comp.assetClass] || DEFAULT_COLOR}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                  strokeDashoffset={-offset * circumference}
+                  transform={`rotate(-90 ${center} ${center})`}
+                />
+              )
+            })}
+          </svg>
         </div>
       </div>
     </div>

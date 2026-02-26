@@ -221,10 +221,44 @@ describe('useVaR', () => {
     expect(result.current.history).toHaveLength(2)
   })
 
-  it('default time range is Last 1h', () => {
+  it('refresh sets refreshing instead of loading', async () => {
+    mockFetchVaR.mockResolvedValue(varResult)
+
+    let resolveRefresh!: (v: VaRResultDto) => void
+    mockTriggerVaR.mockReturnValue(
+      new Promise<VaRResultDto>((r) => {
+        resolveRefresh = r
+      }),
+    )
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // Start refresh — should set refreshing, NOT loading
+    act(() => {
+      result.current.refresh()
+    })
+
+    expect(result.current.refreshing).toBe(true)
+    expect(result.current.loading).toBe(false)
+
+    // Resolve refresh
+    await act(async () => {
+      resolveRefresh({ ...varResult, calculatedAt: '2025-01-15T11:00:00Z' })
+    })
+
+    await waitFor(() => {
+      expect(result.current.refreshing).toBe(false)
+    })
+  })
+
+  it('default time range is Last 24h', () => {
     const { result } = renderHook(() => useVaR(null))
 
-    expect(result.current.timeRange.label).toBe('Last 1h')
+    expect(result.current.timeRange.label).toBe('Last 24h')
   })
 
   it('filteredHistory only includes entries within the time range', async () => {
@@ -441,15 +475,15 @@ describe('useVaR', () => {
       return hook
     }
 
-    it('Last 1h default shows only entries within the last hour', async () => {
+    it('Last 24h default shows entries within the last 24 hours', async () => {
       vi.setSystemTime(NOW)
 
       const { result } = await loadAllEntries()
 
       expect(result.current.history).toHaveLength(5)
-      expect(result.current.timeRange.label).toBe('Last 1h')
-      expect(result.current.filteredHistory).toHaveLength(2)
-      expect(result.current.filteredHistory.map((e) => e.varValue)).toEqual([400000, 500000])
+      expect(result.current.timeRange.label).toBe('Last 24h')
+      expect(result.current.filteredHistory).toHaveLength(4)
+      expect(result.current.filteredHistory.map((e) => e.varValue)).toEqual([200000, 300000, 400000, 500000])
     })
 
     it('switching to Last 24h includes entries from 6h and 2h ago', async () => {

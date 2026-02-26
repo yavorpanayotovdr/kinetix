@@ -13,6 +13,7 @@ export interface UseVaRResult {
   history: VaRHistoryEntry[]
   filteredHistory: VaRHistoryEntry[]
   loading: boolean
+  refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
   timeRange: TimeRange
@@ -33,8 +34,8 @@ const SLIDING_DURATIONS: Record<string, number> = {
 
 function defaultTimeRange(): TimeRange {
   const now = new Date()
-  const from = new Date(now.getTime() - 60 * 60 * 1000)
-  return { from: from.toISOString(), to: now.toISOString(), label: 'Last 1h' }
+  const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  return { from: from.toISOString(), to: now.toISOString(), label: 'Last 24h' }
 }
 
 function resolveTimeRange(range: TimeRange): { from: string; to: string } {
@@ -55,6 +56,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [varResult, setVarResult] = useState<VaRResultDto | null>(null)
   const [history, setHistory] = useState<VaRHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
@@ -107,7 +109,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const refresh = useCallback(async () => {
     if (!portfolioId) return
 
-    setLoading(true)
+    setRefreshing(true)
     setError(null)
 
     try {
@@ -131,7 +133,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
-      setLoading(false)
+      setRefreshing(false)
     }
   }, [portfolioId])
 
@@ -162,5 +164,5 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     }
   }, [zoomStack])
 
-  return { varResult, history, filteredHistory, loading, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length }
+  return { varResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length }
 }

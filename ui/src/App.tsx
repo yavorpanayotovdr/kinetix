@@ -33,7 +33,7 @@ function App() {
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
-  const { varResult, filteredHistory, loading: varLoading, error: varError, refresh, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth } = useVaR(portfolioId)
+  const { varResult, filteredHistory, loading: varLoading, refreshing: varRefreshing, error: varError, refresh, timeRange: varTimeRange, setTimeRange: setVarTimeRange, zoomIn: varZoomIn, resetZoom: varResetZoom, zoomDepth: varZoomDepth } = useVaR(portfolioId)
   const stress = useStressTest(portfolioId)
   const greeks = useGreeks(portfolioId)
   const notifications = useNotifications()
@@ -118,6 +118,7 @@ function App() {
                       varResult={varResult}
                       filteredHistory={filteredHistory}
                       loading={varLoading}
+                      refreshing={varRefreshing}
                       error={varError}
                       onRefresh={refresh}
                       timeRange={varTimeRange}
