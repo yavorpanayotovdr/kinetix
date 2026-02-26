@@ -6,15 +6,16 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.testcontainers.kafka.ConfluentKafkaContainer
 import org.testcontainers.utility.DockerImageName
+import java.time.Duration
 import java.util.Properties
 
-@Suppress("DEPRECATION")
 object KafkaTestSetup {
 
-    private val kafka = org.testcontainers.containers.KafkaContainer(
+    private val kafka = ConfluentKafkaContainer(
         DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
-    )
+    ).withStartupTimeout(Duration.ofMinutes(5))
 
     fun start(): String {
         if (!kafka.isRunning) {
