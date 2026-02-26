@@ -90,7 +90,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           onClick={onRefresh}
           disabled={refreshing}
         >
-          {refreshing ? 'Recalculating...' : 'Recalculate'}
+          {refreshing ? 'Running...' : 'Run VaR'}
         </Button>
       </div>
     </Card>
