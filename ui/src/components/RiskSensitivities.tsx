@@ -94,7 +94,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
       <div data-testid="greeks-summary" className="flex flex-col gap-1 text-xs">
         <div className="relative">
           <span className="text-slate-600 inline-flex items-center gap-1">
-            Theta (time decay)
+            Theta
             <Info
               data-testid="greek-info-theta"
               className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
@@ -114,7 +114,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
         </div>
         <div className="relative">
           <span className="text-slate-600 inline-flex items-center gap-1">
-            Rho (rate sensitivity)
+            Rho
             <Info
               data-testid="greek-info-rho"
               className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
