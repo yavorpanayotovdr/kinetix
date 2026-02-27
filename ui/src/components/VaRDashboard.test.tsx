@@ -72,8 +72,6 @@ const defaultZoomProps = {
   zoomDepth: 0,
   refreshing: false,
   greeksResult: null as GreeksResultDto | null,
-  volBump: 0,
-  onVolBumpChange: vi.fn(),
 }
 
 describe('VaRDashboard', () => {
@@ -321,38 +319,4 @@ describe('VaRDashboard', () => {
     expect(screen.queryByTestId('risk-sensitivities')).not.toBeInTheDocument()
   })
 
-  it('renders what-if strip when greeksResult and onVolBumpChange are provided', () => {
-    render(
-      <VaRDashboard
-        varResult={varResult}
-
-        loading={false}
-        error={null}
-        onRefresh={() => {}}
-        {...defaultZoomProps}
-        greeksResult={greeksResult}
-        volBump={0}
-        onVolBumpChange={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByTestId('greeks-whatif')).toBeInTheDocument()
-    expect(screen.getByTestId('vol-bump-slider')).toBeInTheDocument()
-  })
-
-  it('does not render what-if strip when greeksResult is null', () => {
-    render(
-      <VaRDashboard
-        varResult={varResult}
-
-        loading={false}
-        error={null}
-        onRefresh={() => {}}
-        {...defaultZoomProps}
-        greeksResult={null}
-      />,
-    )
-
-    expect(screen.queryByTestId('greeks-whatif')).not.toBeInTheDocument()
-  })
 })

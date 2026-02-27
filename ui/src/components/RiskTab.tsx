@@ -21,8 +21,6 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
     zoomIn: varZoomIn,
     resetZoom: varResetZoom,
     zoomDepth: varZoomDepth,
-    volBump,
-    setVolBump,
   } = useVaR(portfolioId)
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
@@ -47,8 +45,6 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         resetZoom={varResetZoom}
         zoomDepth={varZoomDepth}
         greeksResult={greeksResult}
-        volBump={volBump}
-        onVolBumpChange={setVolBump}
       />
       <div className="mt-4">
         <JobHistory portfolioId={portfolioId} refreshSignal={jobRefreshSignal} />

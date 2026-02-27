@@ -28,8 +28,6 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
-      volBump: 0,
-      setVolBump: vi.fn(),
     })
     mockUseJobHistory.mockReturnValue({
       runs: [],

@@ -6,7 +6,6 @@ import { RiskSensitivities } from './RiskSensitivities'
 import { ComponentBreakdown } from './ComponentBreakdown'
 import { VaRTrendChart } from './VaRTrendChart'
 import { TimeRangeSelector } from './TimeRangeSelector'
-import { WhatIfStrip } from './WhatIfStrip'
 import { Card, Button, Spinner } from './ui'
 
 interface VaRDashboardProps {
@@ -22,11 +21,9 @@ interface VaRDashboardProps {
   resetZoom: () => void
   zoomDepth: number
   greeksResult?: GreeksResultDto | null
-  volBump?: number
-  onVolBumpChange?: (bump: number) => void
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, volBump = 0, onVolBumpChange }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult }: VaRDashboardProps) {
   if (loading) {
     return (
       <Card data-testid="var-loading" className="mb-4">
@@ -89,12 +86,6 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           onResetZoom={resetZoom}
         />
       </div>
-
-      {greeksResult && onVolBumpChange && (
-        <div className="mt-4">
-          <WhatIfStrip greeksResult={greeksResult} volBump={volBump} onVolBumpChange={onVolBumpChange} />
-        </div>
-      )}
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
         <span>
