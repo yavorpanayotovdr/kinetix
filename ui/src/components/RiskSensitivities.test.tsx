@@ -47,7 +47,7 @@ describe('RiskSensitivities', () => {
 
     const pvDisplay = screen.getByTestId('pv-display')
     expect(pvDisplay).toBeInTheDocument()
-    expect(pvDisplay).toHaveTextContent('Portfolio Value')
+    expect(pvDisplay).toHaveTextContent('PV')
     expect(pvDisplay).toHaveTextContent('$1.8M')
   })
 

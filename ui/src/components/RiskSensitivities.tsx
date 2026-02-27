@@ -12,7 +12,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
     <div data-testid="risk-sensitivities">
       {pvValue != null && (
         <div data-testid="pv-display" className="text-xs mb-2">
-          <span className="text-slate-600">Portfolio Value: </span>
+          <span className="text-slate-600">PV: </span>
           <span className="font-medium">{formatCompactCurrency(Number(pvValue))}</span>
         </div>
       )}
