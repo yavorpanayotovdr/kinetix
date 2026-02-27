@@ -56,7 +56,7 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
   const dashOffset = circumference * (1 - ratio)
 
   return (
-    <div ref={gaugeRef} data-testid="var-gauge" className="flex flex-col items-center">
+    <div data-testid="var-gauge" className="flex flex-col items-center">
       <svg viewBox="0 0 200 120" className="w-48 h-28">
         <path
           d="M 20 90 A 80 80 0 0 1 180 90"
@@ -75,47 +75,49 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
           strokeDashoffset={dashOffset}
         />
       </svg>
-      <div className="relative">
-        <div data-testid="var-confidence" className="text-xs text-slate-500 -mt-2 inline-flex items-center gap-1">
-          {confidenceLabel(confidenceLevel)}
-          <Info
-            data-testid="var-info"
-            className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-            onClick={() => togglePopover('var')}
-          />
+      <div ref={gaugeRef} className="flex flex-col items-center">
+        <div className="relative">
+          <div data-testid="var-confidence" className="text-xs text-slate-500 -mt-2 inline-flex items-center gap-1">
+            {confidenceLabel(confidenceLevel)}
+            <Info
+              data-testid="var-info"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('var')}
+            />
+          </div>
+          {openPopover === 'var' && (
+            <span
+              data-testid="var-popover"
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="var-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {metricDescriptions.var}
+            </span>
+          )}
         </div>
-        {openPopover === 'var' && (
-          <span
-            data-testid="var-popover"
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-          >
-            <button data-testid="var-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-            {metricDescriptions.var}
-          </span>
-        )}
-      </div>
-      <div data-testid="var-value" className="text-lg font-bold mt-1">
-        {formatMoney(varValue.toFixed(2), 'USD')}
-      </div>
-      <div className="relative">
-        <div data-testid="es-value" className="text-xs text-slate-500 mt-1 inline-flex items-center gap-1">
-          ES
-          <Info
-            data-testid="es-info"
-            className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-            onClick={() => togglePopover('es')}
-          />
-          {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+        <div data-testid="var-value" className="text-lg font-bold mt-1">
+          {formatMoney(varValue.toFixed(2), 'USD')}
         </div>
-        {openPopover === 'es' && (
-          <span
-            data-testid="es-popover"
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-          >
-            <button data-testid="es-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-            {metricDescriptions.es}
-          </span>
-        )}
+        <div className="relative">
+          <div data-testid="es-value" className="text-xs text-slate-500 mt-1 inline-flex items-center gap-1">
+            ES
+            <Info
+              data-testid="es-info"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('es')}
+            />
+            {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+          </div>
+          {openPopover === 'es' && (
+            <span
+              data-testid="es-popover"
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="es-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {metricDescriptions.es}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
