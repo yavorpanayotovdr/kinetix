@@ -12,7 +12,7 @@ const STEP_LABELS: Record<string, string> = {
   FETCH_POSITIONS: 'Fetch Positions',
   DISCOVER_DEPENDENCIES: 'Discover Dependencies',
   FETCH_MARKET_DATA: 'Fetch Dependencies',
-  CALCULATE_VAR: 'Calculate VaR',
+  CALCULATE_VAR: 'Valuation',
   PUBLISH_RESULT: 'Publish Result',
 }
 
@@ -249,13 +249,30 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                 : positionBreakdown
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
-                  {Object.entries(step.details)
-                    .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown')
-                    .map(([key, value]) => (
+                  {(() => {
+                    const scalarEntries = Object.entries(step.details)
+                      .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown')
+                    if (step.name === 'CALCULATE_VAR' && scalarEntries.length > 0) {
+                      const obj = Object.fromEntries(scalarEntries)
+                      const json = JSON.stringify(obj, null, 2)
+                      return (
+                        <div className="relative">
+                          <CopyButton text={json} testId="copy-valuation-result" />
+                          <pre
+                            data-testid="valuation-result-json"
+                            className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
+                          >
+                            {json}
+                          </pre>
+                        </div>
+                      )
+                    }
+                    return scalarEntries.map(([key, value]) => (
                       <div key={key}>
                         <span className="font-medium">{key}:</span> {value}
                       </div>
-                    ))}
+                    ))
+                  })()}
                   {hasItems && (
                     <FilterInput
                       testId={`filter-${step.name}`}

@@ -61,6 +61,7 @@ const steps: JobStepDto[] = [
     details: {
       varValue: '5000.0',
       expectedShortfall: '6250.0',
+      pvValue: '1800000.0',
       positionBreakdown: JSON.stringify([
         { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '17000.00', varContribution: '3000.00', esContribution: '3750.00', percentageOfTotal: '60.00', delta: '0.850000', gamma: '0.020000', vega: '1500.000000' },
         { instrumentId: 'TSLA', assetClass: 'EQUITY', marketValue: '12500.00', varContribution: '2000.00', esContribution: '2500.00', percentageOfTotal: '40.00', delta: '0.850000', gamma: '0.020000', vega: '1500.000000' },
@@ -97,7 +98,7 @@ describe('JobTimeline', () => {
     expect(screen.getByText('Fetch Positions')).toBeInTheDocument()
     expect(screen.getByText('Discover Dependencies')).toBeInTheDocument()
     expect(screen.getByText('Fetch Dependencies')).toBeInTheDocument()
-    expect(screen.getByText('Calculate VaR')).toBeInTheDocument()
+    expect(screen.getByText('Valuation')).toBeInTheDocument()
     expect(screen.getByText('Publish Result')).toBeInTheDocument()
   })
 
@@ -261,7 +262,7 @@ describe('JobTimeline', () => {
     })
 
     it('matches step label name', () => {
-      render(<JobTimeline steps={steps} search="Calculate" />)
+      render(<JobTimeline steps={steps} search="Valuation" />)
 
       expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
@@ -751,6 +752,27 @@ describe('JobTimeline', () => {
       expect(jsonBlock.textContent).toContain('"delta": "0.850000"')
       expect(jsonBlock.textContent).toContain('"gamma": "0.020000"')
       expect(jsonBlock.textContent).toContain('"vega": "1500.000000"')
+    })
+
+    it('renders valuation results as a JSON block with copy button', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      const jsonBlock = screen.getByTestId('valuation-result-json')
+      expect(jsonBlock).toBeInTheDocument()
+      expect(jsonBlock.textContent).toContain('"varValue"')
+      expect(jsonBlock.textContent).toContain('"expectedShortfall"')
+      expect(jsonBlock.textContent).toContain('"pvValue"')
+
+      expect(screen.getByTestId('copy-valuation-result')).toBeInTheDocument()
+    })
+
+    it('valuation results JSON excludes positionBreakdown', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+
+      const jsonBlock = screen.getByTestId('valuation-result-json')
+      expect(jsonBlock.textContent).not.toContain('positionBreakdown')
     })
   })
 })
