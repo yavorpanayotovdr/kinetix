@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { Info, RefreshCw } from 'lucide-react'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
@@ -30,6 +31,9 @@ interface VaRDashboardProps {
 }
 
 export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult }: VaRDashboardProps) {
+  const [tooltipOpen, setTooltipOpen] = useState(false)
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   if (loading) {
     return (
       <Card data-testid="var-loading" className="mb-4">
@@ -56,6 +60,19 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
       </Card>
     )
   }
+
+  const description = calculationTypeDescriptions[varResult.calculationType]
+
+  const showTooltip = () => setTooltipOpen(true)
+  const hideTooltip = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current)
+    setTooltipOpen(false)
+  }
+  const handleMouseEnter = () => {
+    hoverTimer.current = setTimeout(showTooltip, 300)
+  }
+  const handleMouseLeave = () => hideTooltip()
+  const handleClick = () => setTooltipOpen(prev => !prev)
 
   const varValue = Number(varResult.varValue)
   const expectedShortfall = Number(varResult.expectedShortfall)
@@ -94,8 +111,17 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-        <span>
-          <span title={calculationTypeDescriptions[varResult.calculationType]} className="inline-flex items-center gap-1 cursor-help">{varResult.calculationType}<Info className="h-3 w-3" /></span> &middot;{' '}
+        <span className="relative">
+          <span data-testid="calc-type-label" className="inline-flex items-center gap-1" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <Info data-testid="calc-type-info" className="h-3 w-3 cursor-pointer" onClick={handleClick} />
+            {varResult.calculationType}
+          </span>
+          {tooltipOpen && description && (
+            <span data-testid="calc-type-tooltip" className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-2 py-1 text-xs text-white shadow-lg">
+              {description}
+            </span>
+          )}
+          {' '}&middot;{' '}
           {new Date(varResult.calculatedAt).toLocaleString()}
         </span>
         <Button

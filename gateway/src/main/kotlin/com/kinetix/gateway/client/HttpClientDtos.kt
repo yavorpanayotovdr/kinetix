@@ -85,7 +85,7 @@ data class ComponentBreakdownDto(
 )
 
 @Serializable
-data class VaRResultDto(
+data class ValuationResultDto(
     val portfolioId: String,
     val calculationType: String,
     val confidenceLevel: String,
@@ -95,6 +95,7 @@ data class VaRResultDto(
     val calculatedAt: String,
     val greeks: GreeksResultDto? = null,
     val computedOutputs: List<String>? = null,
+    val pvValue: String? = null,
 )
 
 @Serializable
@@ -328,7 +329,7 @@ fun PricePointDto.toDomain() = PricePoint(
     source = PriceSource.valueOf(source),
 )
 
-fun VaRResultDto.toDomain() = VaRResultSummary(
+fun ValuationResultDto.toDomain() = ValuationResultSummary(
     portfolioId = portfolioId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
@@ -343,6 +344,7 @@ fun VaRResultDto.toDomain() = VaRResultSummary(
     },
     calculatedAt = Instant.parse(calculatedAt),
     greeks = greeks?.toDomain(),
+    pvValue = pvValue?.toDoubleOrNull(),
 )
 
 fun StressTestResultDto.toDomain() = StressTestResultSummary(

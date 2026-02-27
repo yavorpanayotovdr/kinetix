@@ -91,7 +91,7 @@ class StressTestRoutesTest : FunSpec({
     }
 
     test("POST /api/v1/risk/greeks/{portfolioId} returns 200 with Greeks result") {
-        coEvery { riskClient.calculateVaR(any()) } returns VaRResultSummary(
+        coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
             portfolioId = "port-1",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",

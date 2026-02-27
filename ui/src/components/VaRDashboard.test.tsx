@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
@@ -248,7 +248,7 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('var-dashboard')).toHaveTextContent('HISTORICAL')
   })
 
-  it('shows tooltip with info icon describing the calculation method', () => {
+  it('shows tooltip on info icon click and hides on second click', () => {
     render(
       <VaRDashboard
         varResult={varResult}
@@ -260,12 +260,17 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    const label = screen.getByTitle(/historical simulation/i)
-    expect(label).toHaveTextContent('HISTORICAL')
-    expect(label.querySelector('svg')).toBeInTheDocument()
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('calc-type-info'))
+    expect(screen.getByTestId('calc-type-tooltip')).toHaveTextContent(/historical simulation/i)
+
+    fireEvent.click(screen.getByTestId('calc-type-info'))
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
   })
 
-  it('shows parametric tooltip for PARAMETRIC calculation type', () => {
+  it('shows tooltip on hover after a short delay', () => {
+    vi.useFakeTimers()
     render(
       <VaRDashboard
         varResult={{ ...varResult, calculationType: 'PARAMETRIC' }}
@@ -277,11 +282,19 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    const label = screen.getByTitle(/variance-covariance/i)
-    expect(label).toHaveTextContent('PARAMETRIC')
+    fireEvent.mouseEnter(screen.getByTestId('calc-type-label'))
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
+
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(screen.getByTestId('calc-type-tooltip')).toHaveTextContent(/variance-covariance/i)
+
+    fireEvent.mouseLeave(screen.getByTestId('calc-type-label'))
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
+
+    vi.useRealTimers()
   })
 
-  it('shows Monte Carlo tooltip for MONTE_CARLO calculation type', () => {
+  it('shows correct tooltip for each calculation type', () => {
     render(
       <VaRDashboard
         varResult={{ ...varResult, calculationType: 'MONTE_CARLO' }}
@@ -293,8 +306,8 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    const label = screen.getByTitle(/monte carlo/i)
-    expect(label).toHaveTextContent('MONTE_CARLO')
+    fireEvent.click(screen.getByTestId('calc-type-info'))
+    expect(screen.getByTestId('calc-type-tooltip')).toHaveTextContent(/monte carlo/i)
   })
 
   it('shows spinner on Recalculate button when refreshing, not full loading state', () => {

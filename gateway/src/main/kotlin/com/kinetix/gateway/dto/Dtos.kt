@@ -23,7 +23,7 @@ import com.kinetix.gateway.client.RiskClassChargeItem
 import com.kinetix.gateway.client.StressTestParams
 import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
-import com.kinetix.gateway.client.VaRResultSummary
+import com.kinetix.gateway.client.ValuationResultSummary
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.Instant
@@ -168,7 +168,7 @@ data class ComponentBreakdownDto(
 )
 
 @Serializable
-data class VaRResultResponse(
+data class ValuationResultResponse(
     val portfolioId: String,
     val calculationType: String,
     val confidenceLevel: String,
@@ -178,6 +178,7 @@ data class VaRResultResponse(
     val calculatedAt: String,
     val greeks: GreeksResponse? = null,
     val computedOutputs: List<String>? = null,
+    val pvValue: String? = null,
 )
 
 // --- VaR mappers ---
@@ -210,7 +211,7 @@ fun ComponentBreakdownItem.toDto(): ComponentBreakdownDto = ComponentBreakdownDt
     percentageOfTotal = "%.2f".format(percentageOfTotal),
 )
 
-fun VaRResultSummary.toResponse(): VaRResultResponse = VaRResultResponse(
+fun ValuationResultSummary.toResponse(): ValuationResultResponse = ValuationResultResponse(
     portfolioId = portfolioId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
@@ -219,6 +220,7 @@ fun VaRResultSummary.toResponse(): VaRResultResponse = VaRResultResponse(
     componentBreakdown = componentBreakdown.map { it.toDto() },
     calculatedAt = calculatedAt.toString(),
     greeks = greeks?.toResponse(),
+    pvValue = pvValue?.let { "%.2f".format(it) },
 )
 
 // --- Stress Test DTOs ---

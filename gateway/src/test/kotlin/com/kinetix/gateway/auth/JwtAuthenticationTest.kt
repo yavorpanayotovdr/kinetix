@@ -158,7 +158,7 @@ class JwtAuthenticationTest : FunSpec({
     }
 
     test("token with RISK_MANAGER role can calculate VaR") {
-        coEvery { riskClient.calculateVaR(any()) } returns VaRResultSummary(
+        coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
             portfolioId = "port-1",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",

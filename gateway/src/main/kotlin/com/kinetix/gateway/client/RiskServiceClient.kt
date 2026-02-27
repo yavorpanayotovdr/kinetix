@@ -17,7 +17,7 @@ data class ComponentBreakdownItem(
     val percentageOfTotal: Double,
 )
 
-data class VaRResultSummary(
+data class ValuationResultSummary(
     val portfolioId: String,
     val calculationType: String,
     val confidenceLevel: String,
@@ -26,6 +26,7 @@ data class VaRResultSummary(
     val componentBreakdown: List<ComponentBreakdownItem>,
     val calculatedAt: Instant,
     val greeks: GreeksResultSummary? = null,
+    val pvValue: Double? = null,
 )
 
 data class StressTestParams(
@@ -159,8 +160,8 @@ data class ValuationJobDetailItem(
 )
 
 interface RiskServiceClient {
-    suspend fun calculateVaR(params: VaRCalculationParams): VaRResultSummary?
-    suspend fun getLatestVaR(portfolioId: String): VaRResultSummary?
+    suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
+    suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
     suspend fun listScenarios(): List<String>
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?

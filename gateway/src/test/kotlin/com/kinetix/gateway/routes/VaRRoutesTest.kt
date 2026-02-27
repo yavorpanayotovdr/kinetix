@@ -3,7 +3,7 @@ package com.kinetix.gateway.routes
 import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.client.VaRCalculationParams
-import com.kinetix.gateway.client.VaRResultSummary
+import com.kinetix.gateway.client.ValuationResultSummary
 import com.kinetix.gateway.module
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -15,7 +15,7 @@ import io.mockk.*
 import kotlinx.serialization.json.*
 import java.time.Instant
 
-private val sampleResult = VaRResultSummary(
+private val sampleResult = ValuationResultSummary(
     portfolioId = "port-1",
     calculationType = "HISTORICAL",
     confidenceLevel = "CL_95",
@@ -29,6 +29,7 @@ private val sampleResult = VaRResultSummary(
         ),
     ),
     calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+    pvValue = 9876543.21,
 )
 
 class VaRRoutesTest : FunSpec({
@@ -61,6 +62,7 @@ class VaRRoutesTest : FunSpec({
             breakdown[0].jsonObject["varContribution"]?.jsonPrimitive?.content shouldBe "800000.00"
             breakdown[0].jsonObject["percentageOfTotal"]?.jsonPrimitive?.content shouldBe "64.85"
             body["calculatedAt"]?.jsonPrimitive?.content shouldBe "2025-01-15T10:00:00Z"
+            body["pvValue"]?.jsonPrimitive?.content shouldBe "9876543.21"
         }
     }
 

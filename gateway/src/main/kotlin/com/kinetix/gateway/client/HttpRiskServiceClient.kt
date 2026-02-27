@@ -11,7 +11,7 @@ class HttpRiskServiceClient(
     private val baseUrl: String,
 ) : RiskServiceClient {
 
-    override suspend fun calculateVaR(params: VaRCalculationParams): VaRResultSummary? {
+    override suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary? {
         val response = httpClient.post("$baseUrl/api/v1/risk/var/${params.portfolioId}") {
             contentType(ContentType.Application.Json)
             setBody(
@@ -25,14 +25,14 @@ class HttpRiskServiceClient(
             )
         }
         if (response.status == HttpStatusCode.NotFound) return null
-        val dto: VaRResultDto = response.body()
+        val dto: ValuationResultDto = response.body()
         return dto.toDomain()
     }
 
-    override suspend fun getLatestVaR(portfolioId: String): VaRResultSummary? {
+    override suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary? {
         val response = httpClient.get("$baseUrl/api/v1/risk/var/$portfolioId")
         if (response.status == HttpStatusCode.NotFound) return null
-        val dto: VaRResultDto = response.body()
+        val dto: ValuationResultDto = response.body()
         return dto.toDomain()
     }
 

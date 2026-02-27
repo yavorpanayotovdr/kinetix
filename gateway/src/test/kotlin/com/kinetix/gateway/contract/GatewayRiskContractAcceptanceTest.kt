@@ -24,7 +24,7 @@ class GatewayRiskContractAcceptanceTest : BehaviorSpec({
 
         `when`("POST /api/v1/risk/var/{portfolioId} with valid request") {
             then("returns 200 with VaR response shape including componentBreakdown") {
-                coEvery { riskClient.calculateVaR(any()) } returns VaRResultSummary(
+                coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
                     portfolioId = "port-1",
                     calculationType = "PARAMETRIC",
                     confidenceLevel = "CL_95",
@@ -34,6 +34,7 @@ class GatewayRiskContractAcceptanceTest : BehaviorSpec({
                         ComponentBreakdownItem("EQUITY", 30000.0, 60.0),
                     ),
                     calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+                    pvValue = 1250000.0,
                 )
 
                 testApplication {
