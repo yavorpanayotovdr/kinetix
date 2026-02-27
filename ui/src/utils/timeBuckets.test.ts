@@ -20,6 +20,7 @@ function makeJob(
     calculationType: null,
     varValue: null,
     expectedShortfall: null,
+    pvValue: null,
   }
 }
 

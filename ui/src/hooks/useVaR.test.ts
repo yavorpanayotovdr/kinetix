@@ -36,6 +36,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1200000,
           expectedShortfall: 1500000,
+          pvValue: 10000000,
         },
         {
           jobId: 'j2',
@@ -48,6 +49,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1300000,
           expectedShortfall: 1600000,
+          pvValue: 11000000,
         },
       ],
       totalCount: 2,
@@ -86,6 +88,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1200000,
           expectedShortfall: 1500000,
+          pvValue: 10000000,
         },
         {
           jobId: 'j2',
@@ -98,6 +101,7 @@ describe('useVaR', () => {
           calculationType: null,
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
         {
           jobId: 'j3',
@@ -110,6 +114,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
       ],
       totalCount: 3,
@@ -140,6 +145,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1300000,
           expectedShortfall: 1600000,
+          pvValue: 11000000,
         },
         {
           jobId: 'j1',
@@ -152,6 +158,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1200000,
           expectedShortfall: 1500000,
+          pvValue: 10000000,
         },
       ],
       totalCount: 2,
@@ -182,6 +189,7 @@ describe('useVaR', () => {
           calculationType: 'HISTORICAL',
           varValue: 1200000,
           expectedShortfall: 1500000,
+          pvValue: 10000000,
         },
       ],
       totalCount: 1,

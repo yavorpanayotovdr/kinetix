@@ -20,6 +20,7 @@ const jobSummary = {
   calculationType: 'PARAMETRIC',
   varValue: 5000.0,
   expectedShortfall: 6250.0,
+  pvValue: 50000.0,
 }
 
 const jobSummary2 = {
@@ -33,6 +34,7 @@ const jobSummary2 = {
   calculationType: 'PARAMETRIC',
   varValue: 4000.0,
   expectedShortfall: 5000.0,
+  pvValue: 40000.0,
 }
 
 const jobDetail = {

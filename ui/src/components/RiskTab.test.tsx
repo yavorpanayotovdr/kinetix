@@ -54,6 +54,7 @@ describe('RiskTab', () => {
       goToPage: vi.fn(),
       pageSize: 10,
       setPageSize: vi.fn(),
+      totalCount: 0,
     })
   })
 
