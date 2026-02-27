@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { VaRDashboard } from './VaRDashboard'
-import { GreeksPanel } from './GreeksPanel'
 import { JobHistory } from './JobHistory'
 
 interface RiskTabProps {
@@ -47,11 +46,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         zoomIn={varZoomIn}
         resetZoom={varResetZoom}
         zoomDepth={varZoomDepth}
-      />
-      <GreeksPanel
         greeksResult={greeksResult}
-        loading={varLoading}
-        error={varError}
         volBump={volBump}
         onVolBumpChange={setVolBump}
       />

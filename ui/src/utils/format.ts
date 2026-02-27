@@ -80,6 +80,11 @@ export function formatDuration(ms: number): string {
   return `${minutes}m ${remainingSeconds}s`
 }
 
+export function formatNum(value: string | number, decimals = 2): string {
+  const num = typeof value === 'string' ? Number(value) : value
+  return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+}
+
 export function pnlColorClass(amount: string): string {
   const value = Number(amount)
   if (value > 0) return 'text-green-600'

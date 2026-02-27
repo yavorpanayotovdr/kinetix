@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, formatDuration, pnlColorClass } from './format'
+import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, formatDuration, formatNum, pnlColorClass } from './format'
 
 describe('formatMoney', () => {
   it('formats USD with dollar sign and commas', () => {
@@ -28,6 +28,28 @@ describe('formatMoney', () => {
 
   it('rounds to 2 decimal places', () => {
     expect(formatMoney('150.999', 'USD')).toBe('$151.00')
+  })
+})
+
+describe('formatNum', () => {
+  it('formats a number string with default 2 decimal places', () => {
+    expect(formatNum('1234.560000')).toBe('1,234.56')
+  })
+
+  it('formats a numeric value with default 2 decimal places', () => {
+    expect(formatNum(5678.12)).toBe('5,678.12')
+  })
+
+  it('uses custom decimal places', () => {
+    expect(formatNum('-123.450000', 4)).toBe('-123.4500')
+  })
+
+  it('pads short decimals to the requested precision', () => {
+    expect(formatNum(42, 4)).toBe('42.0000')
+  })
+
+  it('formats zero', () => {
+    expect(formatNum(0)).toBe('0.00')
   })
 })
 

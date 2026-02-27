@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { VaRResultDto, TimeRange } from '../types'
+import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRDashboard } from './VaRDashboard'
 
@@ -52,6 +52,17 @@ const defaultTimeRange: TimeRange = {
   label: 'Last 24h',
 }
 
+const greeksResult: GreeksResultDto = {
+  portfolioId: 'port-1',
+  assetClassGreeks: [
+    { assetClass: 'EQUITY', delta: '1234.560000', gamma: '78.900000', vega: '5678.120000' },
+    { assetClass: 'COMMODITY', delta: '567.890000', gamma: '12.340000', vega: '2345.670000' },
+  ],
+  theta: '-123.450000',
+  rho: '456.780000',
+  calculatedAt: '2025-01-15T10:00:00Z',
+}
+
 const defaultZoomProps = {
   timeRange: defaultTimeRange,
   setTimeRange: vi.fn(),
@@ -60,6 +71,9 @@ const defaultZoomProps = {
   resetZoom: vi.fn(),
   zoomDepth: 0,
   refreshing: false,
+  greeksResult: null as GreeksResultDto | null,
+  volBump: 0,
+  onVolBumpChange: vi.fn(),
 }
 
 describe('VaRDashboard', () => {
@@ -182,7 +196,7 @@ describe('VaRDashboard', () => {
     expect(trend.querySelector('[data-testid="single-point-dot"]')).toBeInTheDocument()
   })
 
-  it('uses a 2-column grid with full-width trend chart below', () => {
+  it('uses a 4-column grid with full-width trend chart below', () => {
     render(
       <VaRDashboard
         varResult={varResult}
@@ -195,7 +209,7 @@ describe('VaRDashboard', () => {
     )
 
     const dashboard = screen.getByTestId('var-dashboard')
-    const grid = dashboard.querySelector('.md\\:grid-cols-2')
+    const grid = dashboard.querySelector('.md\\:grid-cols-4')
     expect(grid).toBeInTheDocument()
 
     const trendChart = screen.getByTestId('var-trend-chart')
@@ -271,5 +285,74 @@ describe('VaRDashboard', () => {
     )
 
     expect(screen.getByTestId('time-range-selector')).toBeInTheDocument()
+  })
+
+  it('renders risk sensitivities when greeksResult is provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        greeksResult={greeksResult}
+      />,
+    )
+
+    expect(screen.getByTestId('risk-sensitivities')).toBeInTheDocument()
+    expect(screen.getByTestId('greeks-heatmap')).toBeInTheDocument()
+  })
+
+  it('renders placeholder when greeksResult is null', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        greeksResult={null}
+      />,
+    )
+
+    expect(screen.getByTestId('sensitivities-placeholder')).toBeInTheDocument()
+    expect(screen.queryByTestId('risk-sensitivities')).not.toBeInTheDocument()
+  })
+
+  it('renders what-if strip when greeksResult and onVolBumpChange are provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        greeksResult={greeksResult}
+        volBump={0}
+        onVolBumpChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('greeks-whatif')).toBeInTheDocument()
+    expect(screen.getByTestId('vol-bump-slider')).toBeInTheDocument()
+  })
+
+  it('does not render what-if strip when greeksResult is null', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        greeksResult={null}
+      />,
+    )
+
+    expect(screen.queryByTestId('greeks-whatif')).not.toBeInTheDocument()
   })
 })
