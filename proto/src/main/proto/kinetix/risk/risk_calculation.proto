@@ -102,6 +102,7 @@ enum ValuationOutput {
   VAR = 1;
   EXPECTED_SHORTFALL = 2;
   GREEKS = 3;
+  PV = 4;
 }
 
 message ValuationRequest {
@@ -138,6 +139,7 @@ message ValuationResponse {
   google.protobuf.Timestamp calculated_at = 7;
   GreeksSummary greeks = 8;
   repeated ValuationOutput computed_outputs = 9;
+  double pv_value = 10;
 }
 
 service RiskCalculationService {

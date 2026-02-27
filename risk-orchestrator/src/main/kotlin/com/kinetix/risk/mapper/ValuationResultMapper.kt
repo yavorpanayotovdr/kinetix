@@ -38,6 +38,7 @@ private val PROTO_VALUATION_OUTPUT_TO_DOMAIN = mapOf(
     ProtoValuationOutput.VAR to ValuationOutput.VAR,
     ProtoValuationOutput.EXPECTED_SHORTFALL to ValuationOutput.EXPECTED_SHORTFALL,
     ProtoValuationOutput.GREEKS to ValuationOutput.GREEKS,
+    ProtoValuationOutput.PV to ValuationOutput.PV,
 )
 
 fun ValuationResponse.toDomainValuation(): ValuationResult {
@@ -78,5 +79,6 @@ fun ValuationResponse.toDomainValuation(): ValuationResult {
         greeks = greeksResult,
         calculatedAt = Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()),
         computedOutputs = computedOutputs,
+        pvValue = if (pvValue != 0.0) pvValue else null,
     )
 }

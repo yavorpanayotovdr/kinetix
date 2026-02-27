@@ -40,6 +40,7 @@ internal fun ValuationResult.toResponse() = VaRResultResponse(
         )
     },
     computedOutputs = computedOutputs.map { it.name },
+    pvValue = pvValue?.let { "%.2f".format(it) },
 )
 
 internal val FRTB_RISK_CLASS_NAMES = mapOf(

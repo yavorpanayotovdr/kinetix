@@ -13,4 +13,5 @@ data class ValuationResult(
     val greeks: GreeksResult?,
     val calculatedAt: Instant,
     val computedOutputs: Set<ValuationOutput>,
+    val pvValue: Double? = null,
 )

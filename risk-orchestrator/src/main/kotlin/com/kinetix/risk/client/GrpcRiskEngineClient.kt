@@ -24,6 +24,7 @@ private val DOMAIN_VALUATION_OUTPUT_TO_PROTO = mapOf(
     ValuationOutput.VAR to ProtoValuationOutput.VAR,
     ValuationOutput.EXPECTED_SHORTFALL to ProtoValuationOutput.EXPECTED_SHORTFALL,
     ValuationOutput.GREEKS to ProtoValuationOutput.GREEKS,
+    ValuationOutput.PV to ProtoValuationOutput.PV,
 )
 
 class GrpcRiskEngineClient(

@@ -93,6 +93,7 @@ class ValuationResult:
     var_result: VaRResult | None
     greeks_result: GreeksResult | None
     computed_outputs: list[str]
+    pv_value: float | None = None
 
 
 class FrtbRiskClass(Enum):

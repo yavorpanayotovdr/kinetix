@@ -78,6 +78,7 @@ class ValuationResultMapperTest : FunSpec({
             ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS,
         )
         result.calculatedAt.epochSecond shouldBe 1700000000
+        result.pvValue.shouldBeNull()
     }
 
     test("maps ValuationResponse without Greeks") {
@@ -100,6 +101,29 @@ class ValuationResultMapperTest : FunSpec({
         result.greeks.shouldBeNull()
         result.computedOutputs shouldContainExactlyInAnyOrder listOf(
             ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL,
+        )
+    }
+
+    test("maps PV value from response to domain") {
+        val now = Timestamp.newBuilder().setSeconds(1700000000).build()
+        val response = ValuationResponse.newBuilder()
+            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-pv"))
+            .setCalculationType(RiskCalculationType.PARAMETRIC)
+            .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
+            .setVarValue(25000.0)
+            .setExpectedShortfall(31000.0)
+            .setPvValue(1800000.0)
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .addComputedOutputs(ProtoValuationOutput.EXPECTED_SHORTFALL)
+            .addComputedOutputs(ProtoValuationOutput.PV)
+            .setCalculatedAt(now)
+            .build()
+
+        val result = response.toDomainValuation()
+
+        result.pvValue shouldBe 1800000.0
+        result.computedOutputs shouldContainExactlyInAnyOrder listOf(
+            ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.PV,
         )
     }
 

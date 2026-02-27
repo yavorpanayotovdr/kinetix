@@ -53,6 +53,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(5000.0)
             .setExpectedShortfall(6200.0)
+            .setPvValue(17000.0)
             .addComponentBreakdown(
                 VaRComponentBreakdown.newBuilder()
                     .setAssetClass(ProtoAssetClass.EQUITY)
@@ -62,6 +63,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             .setCalculatedAt(Timestamp.newBuilder().setSeconds(1700000000))
             .addComputedOutputs(ProtoValuationOutput.VAR)
             .addComputedOutputs(ProtoValuationOutput.EXPECTED_SHORTFALL)
+            .addComputedOutputs(ProtoValuationOutput.PV)
             .build()
 
         coEvery { stub.valuate(any(), any()) } returns protoResponse
@@ -73,10 +75,11 @@ class GrpcRiskEngineClientTest : FunSpec({
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 5000.0
         result.expectedShortfall shouldBe 6200.0
+        result.pvValue shouldBe 17000.0
         result.componentBreakdown shouldHaveSize 1
         result.componentBreakdown[0].assetClass shouldBe AssetClass.EQUITY
         result.greeks shouldBe null
-        result.computedOutputs shouldBe setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL)
+        result.computedOutputs shouldBe setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.PV)
 
         coVerify {
             stub.valuate(match { req ->

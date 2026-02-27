@@ -302,6 +302,24 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('greeks-heatmap')).toBeInTheDocument()
   })
 
+  it('passes pvValue to RiskSensitivities when present', () => {
+    const varResultWithPv = { ...varResult, pvValue: '1800000.00' }
+    render(
+      <VaRDashboard
+        varResult={varResultWithPv}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        greeksResult={greeksResult}
+      />,
+    )
+
+    expect(screen.getByTestId('pv-display')).toBeInTheDocument()
+    expect(screen.getByTestId('pv-display')).toHaveTextContent('$1.8M')
+  })
+
   it('renders placeholder when greeksResult is null', () => {
     render(
       <VaRDashboard

@@ -43,6 +43,7 @@ class ValuationOutput(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     VAR: _ClassVar[ValuationOutput]
     EXPECTED_SHORTFALL: _ClassVar[ValuationOutput]
     GREEKS: _ClassVar[ValuationOutput]
+    PV: _ClassVar[ValuationOutput]
 RISK_CALCULATION_TYPE_UNSPECIFIED: RiskCalculationType
 HISTORICAL: RiskCalculationType
 PARAMETRIC: RiskCalculationType
@@ -64,6 +65,7 @@ VALUATION_OUTPUT_UNSPECIFIED: ValuationOutput
 VAR: ValuationOutput
 EXPECTED_SHORTFALL: ValuationOutput
 GREEKS: ValuationOutput
+PV: ValuationOutput
 
 class TimeSeriesPoint(_message.Message):
     __slots__ = ("timestamp", "value")
@@ -212,7 +214,7 @@ class GreekValues(_message.Message):
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ...) -> None: ...
 
 class ValuationResponse(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs")
+    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs", "pv_value")
     PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -222,6 +224,7 @@ class ValuationResponse(_message.Message):
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
     GREEKS_FIELD_NUMBER: _ClassVar[int]
     COMPUTED_OUTPUTS_FIELD_NUMBER: _ClassVar[int]
+    PV_VALUE_FIELD_NUMBER: _ClassVar[int]
     portfolio_id: _types_pb2.PortfolioId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
@@ -231,4 +234,5 @@ class ValuationResponse(_message.Message):
     calculated_at: _timestamp_pb2.Timestamp
     greeks: GreeksSummary
     computed_outputs: _containers.RepeatedScalarFieldContainer[ValuationOutput]
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ...) -> None: ...
+    pv_value: float
+    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., pv_value: _Optional[float] = ...) -> None: ...

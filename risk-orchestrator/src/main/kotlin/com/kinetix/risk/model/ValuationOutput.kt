@@ -4,4 +4,5 @@ enum class ValuationOutput {
     VAR,
     EXPECTED_SHORTFALL,
     GREEKS,
+    PV,
 }

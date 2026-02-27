@@ -65,7 +65,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
 
         <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">
           {greeksResult ? (
-            <RiskSensitivities greeksResult={greeksResult} />
+            <RiskSensitivities greeksResult={greeksResult} pvValue={varResult.pvValue} />
           ) : (
             <div data-testid="sensitivities-placeholder" className="text-sm text-slate-400 text-center">No greeks data</div>
           )}

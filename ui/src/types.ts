@@ -55,6 +55,7 @@ export interface VaRResultDto {
   calculatedAt: string
   greeks?: GreeksResultDto
   computedOutputs?: string[]
+  pvValue?: string
 }
 
 export interface VaRCalculationRequestDto {

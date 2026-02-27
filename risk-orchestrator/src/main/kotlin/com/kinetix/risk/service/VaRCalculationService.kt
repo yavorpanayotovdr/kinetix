@@ -228,6 +228,7 @@ class VaRCalculationService(
                     put("theta", greeks.theta)
                     put("rho", greeks.rho)
                 }
+                result.pvValue?.let { put("pvValue", it) }
             }
 
             steps.add(

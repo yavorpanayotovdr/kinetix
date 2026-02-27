@@ -107,6 +107,54 @@ class TestValuationGreeks:
         assert result.greeks_result is not None
 
 
+class TestValuationPV:
+    def test_pv_returns_sum_of_market_values(self):
+        result = calculate_valuation(
+            positions=_sample_positions(),
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["PV"],
+        )
+        assert result.pv_value == 1_000_000.0 + 500_000.0 + 300_000.0
+        assert "PV" in result.computed_outputs
+
+    def test_pv_not_computed_when_not_requested(self):
+        result = calculate_valuation(
+            positions=_sample_positions(),
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR"],
+        )
+        assert result.pv_value is None
+        assert "PV" not in result.computed_outputs
+
+    def test_pv_works_alongside_all_other_outputs(self):
+        result = calculate_valuation(
+            positions=_sample_positions(),
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR", "EXPECTED_SHORTFALL", "GREEKS", "PV"],
+        )
+        assert result.var_result is not None
+        assert result.greeks_result is not None
+        assert result.pv_value == 1_800_000.0
+        assert set(result.computed_outputs) == {"VAR", "EXPECTED_SHORTFALL", "GREEKS", "PV"}
+
+    def test_empty_positions_returns_none_pv(self):
+        result = calculate_valuation(
+            positions=[],
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["PV"],
+        )
+        assert result.pv_value is None
+        assert result.computed_outputs == []
+
+
 class TestValuationEdgeCases:
     def test_empty_positions_returns_none_results(self):
         result = calculate_valuation(

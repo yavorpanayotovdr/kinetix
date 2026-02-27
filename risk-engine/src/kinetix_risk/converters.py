@@ -96,6 +96,7 @@ _VALUATION_OUTPUT_NAME_TO_PROTO = {
     "VAR": risk_calculation_pb2.VAR,
     "EXPECTED_SHORTFALL": risk_calculation_pb2.EXPECTED_SHORTFALL,
     "GREEKS": risk_calculation_pb2.GREEKS,
+    "PV": risk_calculation_pb2.PV,
 }
 
 _PROTO_VALUATION_OUTPUT_TO_NAME = {v: k for k, v in _VALUATION_OUTPUT_NAME_TO_PROTO.items()}
@@ -169,6 +170,7 @@ def valuation_result_to_proto_response(
         component_breakdown=breakdown,
         calculated_at=now,
         computed_outputs=computed_proto,
+        pv_value=result.pv_value or 0.0,
     )
     if greeks_summary is not None:
         response.greeks.CopyFrom(greeks_summary)

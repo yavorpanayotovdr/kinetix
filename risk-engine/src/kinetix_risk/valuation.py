@@ -25,13 +25,15 @@ def calculate_valuation(
     outputs = requested_outputs if requested_outputs else _DEFAULT_OUTPUTS
 
     if not positions:
-        return ValuationResult(var_result=None, greeks_result=None, computed_outputs=[])
+        return ValuationResult(var_result=None, greeks_result=None, computed_outputs=[], pv_value=None)
 
     need_var = "VAR" in outputs or "EXPECTED_SHORTFALL" in outputs
     need_greeks = "GREEKS" in outputs
+    need_pv = "PV" in outputs
 
     var_result = None
     greeks_result = None
+    pv_value = None
     computed = []
 
     if need_var:
@@ -61,8 +63,13 @@ def calculate_valuation(
         )
         computed.append("GREEKS")
 
+    if need_pv:
+        pv_value = sum(pos.market_value for pos in positions)
+        computed.append("PV")
+
     return ValuationResult(
         var_result=var_result,
         greeks_result=greeks_result,
         computed_outputs=computed,
+        pv_value=pv_value,
     )

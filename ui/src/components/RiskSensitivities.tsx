@@ -1,13 +1,21 @@
 import type { GreeksResultDto } from '../types'
 import { formatNum } from '../utils/format'
+import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 
 interface RiskSensitivitiesProps {
   greeksResult: GreeksResultDto
+  pvValue?: string | null
 }
 
-export function RiskSensitivities({ greeksResult }: RiskSensitivitiesProps) {
+export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesProps) {
   return (
     <div data-testid="risk-sensitivities">
+      {pvValue != null && (
+        <div data-testid="pv-display" className="text-xs mb-2">
+          <span className="text-slate-600">Portfolio Value: </span>
+          <span className="font-medium">{formatCompactCurrency(Number(pvValue))}</span>
+        </div>
+      )}
       <table data-testid="greeks-heatmap" className="text-xs mb-2">
         <thead>
           <tr className="border-b text-left text-slate-600">

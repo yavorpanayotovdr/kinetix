@@ -37,5 +37,5 @@ data class VaRCalculationRequest(
     val confidenceLevel: ConfidenceLevel,
     val timeHorizonDays: Int = 1,
     val numSimulations: Int = 10_000,
-    val requestedOutputs: Set<ValuationOutput> = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
+    val requestedOutputs: Set<ValuationOutput> = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS, ValuationOutput.PV),
 )

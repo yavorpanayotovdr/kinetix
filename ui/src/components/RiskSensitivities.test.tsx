@@ -41,4 +41,25 @@ describe('RiskSensitivities', () => {
     expect(equityRow).toHaveTextContent('78.90')
     expect(equityRow).toHaveTextContent('5,678.12')
   })
+
+  it('displays PV when pvValue is provided', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} pvValue="1800000.00" />)
+
+    const pvDisplay = screen.getByTestId('pv-display')
+    expect(pvDisplay).toBeInTheDocument()
+    expect(pvDisplay).toHaveTextContent('Portfolio Value')
+    expect(pvDisplay).toHaveTextContent('$1.8M')
+  })
+
+  it('does not display PV when pvValue is null', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} pvValue={null} />)
+
+    expect(screen.queryByTestId('pv-display')).not.toBeInTheDocument()
+  })
+
+  it('does not display PV when pvValue is omitted', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} />)
+
+    expect(screen.queryByTestId('pv-display')).not.toBeInTheDocument()
+  })
 })
