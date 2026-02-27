@@ -56,7 +56,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
 
   return (
     <Card data-testid="var-dashboard" className="mb-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <VaRGauge
           varValue={varValue}
           expectedShortfall={expectedShortfall}
