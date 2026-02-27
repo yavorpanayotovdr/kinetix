@@ -760,9 +760,9 @@ describe('JobTimeline', () => {
 
       const jsonBlock = screen.getByTestId('valuation-result-json')
       expect(jsonBlock).toBeInTheDocument()
-      expect(jsonBlock.textContent).toContain('"varValue"')
+      expect(jsonBlock.textContent).toContain('"var"')
       expect(jsonBlock.textContent).toContain('"expectedShortfall"')
-      expect(jsonBlock.textContent).toContain('"pvValue"')
+      expect(jsonBlock.textContent).toContain('"pv"')
 
       expect(screen.getByTestId('copy-valuation-result')).toBeInTheDocument()
     })

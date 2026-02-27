@@ -253,7 +253,8 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                     const scalarEntries = Object.entries(step.details)
                       .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown')
                     if (step.name === 'CALCULATE_VAR' && scalarEntries.length > 0) {
-                      const obj = Object.fromEntries(scalarEntries)
+                      const DISPLAY_KEYS: Record<string, string> = { varValue: 'var', pvValue: 'pv' }
+                      const obj = Object.fromEntries(scalarEntries.map(([k, v]) => [DISPLAY_KEYS[k] ?? k, v]))
                       const json = JSON.stringify(obj, null, 2)
                       return (
                         <div className="relative">
