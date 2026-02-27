@@ -79,18 +79,16 @@ describe('VaRTrendChart', () => {
     const svg = screen.getByTestId('var-trend-chart').querySelector('svg')
     expect(svg).toBeInTheDocument()
 
-    const polyline = svg!.querySelector('polyline')
+    const polyline = svg!.querySelector('polyline[stroke="#6366f1"]')
     expect(polyline).toBeInTheDocument()
-    expect(polyline).toHaveAttribute('stroke', '#6366f1')
   })
 
   it('renders an area fill polygon', () => {
     render(<VaRTrendChart history={history} />)
 
     const svg = screen.getByTestId('var-trend-chart').querySelector('svg')
-    const polygon = svg!.querySelector('polygon')
+    const polygon = svg!.querySelector('polygon[fill="rgba(99, 102, 241, 0.15)"]')
     expect(polygon).toBeInTheDocument()
-    expect(polygon).toHaveAttribute('fill', 'rgba(99, 102, 241, 0.15)')
   })
 
   it('renders Y-axis grid lines with labels', () => {
@@ -188,6 +186,48 @@ describe('VaRTrendChart', () => {
     // 1-hour range uses "HH:MM" format — should NOT contain "Jan"
     expect(hourLabels.some((l) => l?.includes('Jan'))).toBe(false)
     expect(hourLabels.some((l) => /^\d{2}:\d{2}$/.test(l ?? ''))).toBe(true)
+  })
+
+  it('renders ES polyline with amber stroke', () => {
+    render(<VaRTrendChart history={history} />)
+
+    const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+    const polylines = svg.querySelectorAll('polyline')
+    const esPolyline = Array.from(polylines).find((p) => p.getAttribute('stroke') === '#f59e0b')
+    expect(esPolyline).toBeInTheDocument()
+  })
+
+  it('renders ES area fill polygon', () => {
+    render(<VaRTrendChart history={history} />)
+
+    const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+    const polygons = svg.querySelectorAll('polygon')
+    const esArea = Array.from(polygons).find((p) => p.getAttribute('fill') === 'rgba(245, 158, 11, 0.10)')
+    expect(esArea).toBeInTheDocument()
+  })
+
+  it('shows ES hover dot on mousemove', () => {
+    render(<VaRTrendChart history={history} />)
+
+    const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+    fireEvent.mouseMove(svg, { clientX: 200, clientY: 100 })
+
+    const dot = svg.querySelector('circle[data-testid="hover-dot-es"]')
+    expect(dot).toBeInTheDocument()
+    expect(dot).toHaveAttribute('fill', '#f59e0b')
+  })
+
+  it('renders a legend with VaR and ES labels', () => {
+    render(<VaRTrendChart history={history} />)
+
+    const chart = screen.getByTestId('var-trend-chart')
+    expect(chart).toHaveTextContent('VaR')
+    expect(chart).toHaveTextContent('ES')
+
+    const legend = chart.querySelector('.bg-indigo-500')
+    expect(legend).toBeInTheDocument()
+    const esLegend = chart.querySelector('.bg-amber-500')
+    expect(esLegend).toBeInTheDocument()
   })
 
   describe('zoom interaction', () => {

@@ -78,7 +78,7 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
 
   const { min, max } = useMemo(() => {
-    const values = history.map((e) => e.varValue)
+    const values = history.flatMap((e) => [e.varValue, e.expectedShortfall])
     const minVal = Math.min(...values)
     const maxVal = Math.max(...values)
     const range = maxVal - minVal
@@ -177,6 +177,27 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
     return `${first} ${polylinePoints} ${last}`
   }, [points, polylinePoints, plotHeight])
 
+  const esPoints = useMemo(() => {
+    if (history.length < 2) return []
+    const range = max - min || 1
+    return history.map((entry) => ({
+      x: timeExtent
+        ? toX(new Date(entry.calculatedAt).getTime())
+        : PADDING.left + plotWidth / 2,
+      y: PADDING.top + (1 - (entry.expectedShortfall - min) / range) * plotHeight,
+    }))
+  }, [history, plotWidth, plotHeight, min, max, timeExtent, toX])
+
+  const esPolylinePoints = esPoints.map((p) => `${p.x},${p.y}`).join(' ')
+
+  const esAreaPoints = useMemo(() => {
+    if (esPoints.length === 0) return ''
+    const baseY = PADDING.top + plotHeight
+    const first = `${esPoints[0].x},${baseY}`
+    const last = `${esPoints[esPoints.length - 1].x},${baseY}`
+    return `${first} ${esPolylinePoints} ${last}`
+  }, [esPoints, esPolylinePoints, plotHeight])
+
   const toY = useCallback(
     (value: number) => {
       const range = max - min || 1
@@ -226,6 +247,8 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
 
   const latestValue = history.length > 0 ? history[history.length - 1].varValue : 0
   const formattedLatest = latestValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const latestES = history.length > 0 ? history[history.length - 1].expectedShortfall : 0
+  const formattedLatestES = latestES.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
   if (history.length === 0) {
     return (
@@ -295,7 +318,19 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
 
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-slate-300">VaR Trend</h3>
-        <span className="text-sm font-mono text-indigo-400">{formattedLatest}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-mono text-indigo-400">{formattedLatest}</span>
+          <span className="text-sm font-mono text-amber-400">{formattedLatestES}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 mb-1 text-xs text-slate-400">
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-0.5 bg-indigo-500 rounded" /> VaR
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3 h-0.5 bg-amber-500 rounded" /> ES
+        </span>
       </div>
 
       <svg
@@ -341,6 +376,11 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
           </text>
         ))}
 
+        {/* ES area fill */}
+        <polygon points={esAreaPoints} fill="rgba(245, 158, 11, 0.10)" />
+        {/* ES line */}
+        <polyline points={esPolylinePoints} fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinejoin="round" />
+
         {/* Area fill */}
         <polygon points={areaPoints} fill="rgba(99, 102, 241, 0.15)" />
 
@@ -375,6 +415,17 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
               stroke="white"
               strokeWidth={2}
             />
+            {esPoints[hoveredIndex] && (
+              <circle
+                data-testid="hover-dot-es"
+                cx={esPoints[hoveredIndex].x}
+                cy={esPoints[hoveredIndex].y}
+                r={4}
+                fill="#f59e0b"
+                stroke="white"
+                strokeWidth={2}
+              />
+            )}
           </>
         )}
 
