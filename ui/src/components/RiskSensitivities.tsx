@@ -92,8 +92,8 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
       </table>
 
       <div data-testid="greeks-summary" className="flex flex-col gap-1 text-xs">
-        <div className="relative">
-          <span className="text-slate-600 inline-flex items-center gap-1">
+        <div className="relative flex items-center">
+          <span className="text-slate-600 inline-flex items-center gap-1 w-16">
             Theta
             <Info
               data-testid="greek-info-theta"
@@ -101,7 +101,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
               onClick={() => togglePopover('theta')}
             />
           </span>
-          <span className="font-medium"> {formatNum(greeksResult.theta, 4)}</span>
+          <span className="font-medium">{formatNum(greeksResult.theta, 4)}</span>
           {openPopover === 'theta' && (
             <span
               data-testid="greek-popover-theta"
@@ -112,8 +112,8 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
             </span>
           )}
         </div>
-        <div className="relative">
-          <span className="text-slate-600 inline-flex items-center gap-1">
+        <div className="relative flex items-center">
+          <span className="text-slate-600 inline-flex items-center gap-1 w-16">
             Rho
             <Info
               data-testid="greek-info-rho"
@@ -121,7 +121,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
               onClick={() => togglePopover('rho')}
             />
           </span>
-          <span className="font-medium"> {formatNum(greeksResult.rho, 4)}</span>
+          <span className="font-medium">{formatNum(greeksResult.rho, 4)}</span>
           {openPopover === 'rho' && (
             <span
               data-testid="greek-popover-rho"
