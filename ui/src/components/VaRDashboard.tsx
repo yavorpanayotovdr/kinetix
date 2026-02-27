@@ -63,7 +63,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           confidenceLevel={varResult.confidenceLevel}
         />
 
-        <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col justify-center">
+        <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">
           {greeksResult ? (
             <RiskSensitivities greeksResult={greeksResult} />
           ) : (
