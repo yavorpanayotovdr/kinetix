@@ -15,26 +15,26 @@ class HttpRatesServiceClient(
     private val baseUrl: String,
 ) : RatesServiceClient {
 
-    override suspend fun getLatestYieldCurve(curveId: String): YieldCurve? {
+    override suspend fun getLatestYieldCurve(curveId: String): ClientResponse<YieldCurve> {
         val response = httpClient.get("$baseUrl/api/v1/rates/yield-curves/$curveId/latest")
-        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dto: YieldCurveDto = response.body()
-        return dto.toDomain()
+        return ClientResponse.Success(dto.toDomain())
     }
 
-    override suspend fun getLatestRiskFreeRate(currency: java.util.Currency, tenor: String): RiskFreeRate? {
+    override suspend fun getLatestRiskFreeRate(currency: java.util.Currency, tenor: String): ClientResponse<RiskFreeRate> {
         val response = httpClient.get("$baseUrl/api/v1/rates/risk-free/${currency.currencyCode}/latest") {
             parameter("tenor", tenor)
         }
-        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dto: RiskFreeRateDto = response.body()
-        return dto.toDomain()
+        return ClientResponse.Success(dto.toDomain())
     }
 
-    override suspend fun getLatestForwardCurve(instrumentId: InstrumentId): ForwardCurve? {
+    override suspend fun getLatestForwardCurve(instrumentId: InstrumentId): ClientResponse<ForwardCurve> {
         val response = httpClient.get("$baseUrl/api/v1/rates/forwards/${instrumentId.value}/latest")
-        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dto: ForwardCurveDto = response.body()
-        return dto.toDomain()
+        return ClientResponse.Success(dto.toDomain())
     }
 }

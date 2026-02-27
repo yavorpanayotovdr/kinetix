@@ -4,5 +4,5 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.VolSurface
 
 interface VolatilityServiceClient {
-    suspend fun getLatestSurface(instrumentId: InstrumentId): VolSurface?
+    suspend fun getLatestSurface(instrumentId: InstrumentId): ClientResponse<VolSurface>
 }

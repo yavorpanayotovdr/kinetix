@@ -1,6 +1,7 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.InstrumentId
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
@@ -43,24 +44,37 @@ class MarketDataFetcher(
         for (dep in dependencies) {
             val startTime = Instant.now()
             try {
-                val value = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                val result = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
                 val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
-                if (value != null) {
-                    results.add(FetchSuccess(dep, value))
-                } else {
-                    val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
-                    results.add(
+                when (result) {
+                    is ClientResponse.Success -> results.add(FetchSuccess(dep, result.value))
+                    is ClientResponse.NotFound -> results.add(
                         FetchFailure(
                             dependency = dep,
-                            reason = reason,
+                            reason = "NOT_FOUND",
                             url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                            httpStatus = null,
+                            httpStatus = result.httpStatus,
                             errorMessage = null,
                             service = resolveServiceName(dep.dataType),
                             timestamp = startTime,
                             durationMs = durationMs,
                         )
                     )
+                    null -> {
+                        val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = reason,
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = null,
+                                errorMessage = null,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
@@ -138,16 +152,18 @@ class MarketDataFetcher(
         instrumentId: String,
         assetClass: String,
         parameters: Map<String, String>,
-    ): MarketDataValue? = when (dataType) {
+    ): ClientResponse<MarketDataValue>? = when (dataType) {
         "SPOT_PRICE" -> {
-            val pricePoint = priceServiceClient.getLatestPrice(InstrumentId(instrumentId))
-            pricePoint?.let {
-                ScalarMarketData(
-                    dataType = "SPOT_PRICE",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    value = it.price.amount.toDouble(),
+            when (val response = priceServiceClient.getLatestPrice(InstrumentId(instrumentId))) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    ScalarMarketData(
+                        dataType = "SPOT_PRICE",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        value = response.value.price.amount.toDouble(),
+                    )
                 )
+                is ClientResponse.NotFound -> response
             }
         }
 
@@ -155,107 +171,141 @@ class MarketDataFetcher(
             val lookbackDays = parameters["lookbackDays"]?.toLongOrNull() ?: 252L
             val now = Instant.now()
             val from = now.minus(lookbackDays, ChronoUnit.DAYS)
-            val history = priceServiceClient.getPriceHistory(InstrumentId(instrumentId), from, now)
-            if (history.isNotEmpty()) {
-                TimeSeriesMarketData(
-                    dataType = "HISTORICAL_PRICES",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    points = history.map { pp ->
-                        TimeSeriesPoint(
-                            timestamp = pp.timestamp,
-                            value = pp.price.amount.toDouble(),
+            when (val response = priceServiceClient.getPriceHistory(InstrumentId(instrumentId), from, now)) {
+                is ClientResponse.Success -> {
+                    val history = response.value
+                    if (history.isNotEmpty()) {
+                        ClientResponse.Success(
+                            TimeSeriesMarketData(
+                                dataType = "HISTORICAL_PRICES",
+                                instrumentId = instrumentId,
+                                assetClass = assetClass,
+                                points = history.map { pp ->
+                                    TimeSeriesPoint(
+                                        timestamp = pp.timestamp,
+                                        value = pp.price.amount.toDouble(),
+                                    )
+                                },
+                            )
                         )
-                    },
-                )
-            } else null
+                    } else null
+                }
+                is ClientResponse.NotFound -> response
+            }
         }
 
         "YIELD_CURVE" -> {
             val curveId = parameters["curveId"] ?: instrumentId
-            val yieldCurve = ratesServiceClient?.getLatestYieldCurve(curveId)
-            yieldCurve?.let {
-                CurveMarketData(
-                    dataType = "YIELD_CURVE",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    points = it.tenors.map { tenor ->
-                        CurvePointValue(tenor = tenor.label, value = tenor.rate.toDouble())
-                    },
+            val response = ratesServiceClient?.getLatestYieldCurve(curveId)
+            when (response) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    CurveMarketData(
+                        dataType = "YIELD_CURVE",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        points = response.value.tenors.map { tenor ->
+                            CurvePointValue(tenor = tenor.label, value = tenor.rate.toDouble())
+                        },
+                    )
                 )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
         "RISK_FREE_RATE" -> {
             val currency = parameters["currency"] ?: "USD"
             val tenor = parameters["tenor"] ?: "3M"
-            val riskFreeRate = ratesServiceClient?.getLatestRiskFreeRate(Currency.getInstance(currency), tenor)
-            riskFreeRate?.let {
-                ScalarMarketData(
-                    dataType = "RISK_FREE_RATE",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    value = it.rate,
+            val response = ratesServiceClient?.getLatestRiskFreeRate(Currency.getInstance(currency), tenor)
+            when (response) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    ScalarMarketData(
+                        dataType = "RISK_FREE_RATE",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        value = response.value.rate,
+                    )
                 )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
         "FORWARD_CURVE" -> {
-            val forwardCurve = ratesServiceClient?.getLatestForwardCurve(InstrumentId(instrumentId))
-            forwardCurve?.let {
-                CurveMarketData(
-                    dataType = "FORWARD_CURVE",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    points = it.points.map { point ->
-                        CurvePointValue(tenor = point.tenor, value = point.value)
-                    },
+            val response = ratesServiceClient?.getLatestForwardCurve(InstrumentId(instrumentId))
+            when (response) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    CurveMarketData(
+                        dataType = "FORWARD_CURVE",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        points = response.value.points.map { point ->
+                            CurvePointValue(tenor = point.tenor, value = point.value)
+                        },
+                    )
                 )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
         "DIVIDEND_YIELD" -> {
-            val dividendYield = referenceDataServiceClient?.getLatestDividendYield(InstrumentId(instrumentId))
-            dividendYield?.let {
-                ScalarMarketData(
-                    dataType = "DIVIDEND_YIELD",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    value = it.yield,
+            val response = referenceDataServiceClient?.getLatestDividendYield(InstrumentId(instrumentId))
+            when (response) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    ScalarMarketData(
+                        dataType = "DIVIDEND_YIELD",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        value = response.value.yield,
+                    )
                 )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
         "CREDIT_SPREAD" -> {
-            val creditSpread = referenceDataServiceClient?.getLatestCreditSpread(InstrumentId(instrumentId))
-            creditSpread?.let {
-                ScalarMarketData(
-                    dataType = "CREDIT_SPREAD",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    value = it.spread,
+            val response = referenceDataServiceClient?.getLatestCreditSpread(InstrumentId(instrumentId))
+            when (response) {
+                is ClientResponse.Success -> ClientResponse.Success(
+                    ScalarMarketData(
+                        dataType = "CREDIT_SPREAD",
+                        instrumentId = instrumentId,
+                        assetClass = assetClass,
+                        value = response.value.spread,
+                    )
                 )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
         "VOLATILITY_SURFACE" -> {
-            val surface = volatilityServiceClient?.getLatestSurface(InstrumentId(instrumentId))
-            surface?.let {
-                val strikes = it.strikes.map { s -> s.toDouble() }
-                val maturities = it.maturities.map { m -> m.toString() }
-                val values = maturities.flatMap { mat ->
-                    strikes.map { strike ->
-                        it.volAt(strike.toBigDecimal(), mat.toInt()).toDouble()
+            val response = volatilityServiceClient?.getLatestSurface(InstrumentId(instrumentId))
+            when (response) {
+                is ClientResponse.Success -> {
+                    val surface = response.value
+                    val strikes = surface.strikes.map { s -> s.toDouble() }
+                    val maturities = surface.maturities.map { m -> m.toString() }
+                    val values = maturities.flatMap { mat ->
+                        strikes.map { strike ->
+                            surface.volAt(strike.toBigDecimal(), mat.toInt()).toDouble()
+                        }
                     }
+                    ClientResponse.Success(
+                        MatrixMarketData(
+                            dataType = "VOLATILITY_SURFACE",
+                            instrumentId = instrumentId,
+                            assetClass = assetClass,
+                            rows = maturities,
+                            columns = strikes.map { s -> s.toString() },
+                            values = values,
+                        )
+                    )
                 }
-                MatrixMarketData(
-                    dataType = "VOLATILITY_SURFACE",
-                    instrumentId = instrumentId,
-                    assetClass = assetClass,
-                    rows = maturities,
-                    columns = strikes.map { s -> s.toString() },
-                    values = values,
-                )
+                is ClientResponse.NotFound -> response
+                null -> null
             }
         }
 
@@ -266,16 +316,20 @@ class MarketDataFetcher(
                 logger.debug("No labels provided for CORRELATION_MATRIX, skipping")
                 null
             } else {
-                val matrix = correlationServiceClient?.getCorrelationMatrix(labels, windowDays)
-                matrix?.let {
-                    MatrixMarketData(
-                        dataType = "CORRELATION_MATRIX",
-                        instrumentId = instrumentId,
-                        assetClass = assetClass,
-                        rows = it.labels,
-                        columns = it.labels,
-                        values = it.values,
+                val response = correlationServiceClient?.getCorrelationMatrix(labels, windowDays)
+                when (response) {
+                    is ClientResponse.Success -> ClientResponse.Success(
+                        MatrixMarketData(
+                            dataType = "CORRELATION_MATRIX",
+                            instrumentId = instrumentId,
+                            assetClass = assetClass,
+                            rows = response.value.labels,
+                            columns = response.value.labels,
+                            values = response.value.values,
+                        )
                     )
+                    is ClientResponse.NotFound -> response
+                    null -> null
                 }
             }
         }

@@ -47,7 +47,7 @@ const steps: JobStepDto[] = [
       marketDataItems: JSON.stringify([
         { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY', status: 'FETCHED', value: '170.5' },
         { instrumentId: 'USD_SOFR', dataType: 'YIELD_CURVE', assetClass: 'RATES', status: 'FETCHED', points: '6' },
-        { instrumentId: 'AAPL', dataType: 'HISTORICAL_PRICES', assetClass: 'EQUITY', status: 'MISSING', issue: { reason: 'NOT_FOUND', url: 'http://price:8082/api/prices/AAPL/history', httpStatus: '', errorMessage: '', service: 'price-service', timestamp: '2026-02-24T10:00:00Z', durationMs: '12' } },
+        { instrumentId: 'AAPL', dataType: 'HISTORICAL_PRICES', assetClass: 'EQUITY', status: 'MISSING', issue: { reason: 'NOT_FOUND', url: 'http://price:8082/api/prices/AAPL/history', service: 'price-service', timestamp: '2026-02-24T10:00:00Z', durationMs: '12' } },
       ]),
     },
     error: null,

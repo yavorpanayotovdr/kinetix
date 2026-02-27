@@ -13,10 +13,10 @@ class HttpVolatilityServiceClient(
     private val baseUrl: String,
 ) : VolatilityServiceClient {
 
-    override suspend fun getLatestSurface(instrumentId: InstrumentId): VolSurface? {
+    override suspend fun getLatestSurface(instrumentId: InstrumentId): ClientResponse<VolSurface> {
         val response = httpClient.get("$baseUrl/api/v1/volatility/${instrumentId.value}/surface/latest")
-        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dto: VolSurfaceDto = response.body()
-        return dto.toDomain()
+        return ClientResponse.Success(dto.toDomain())
     }
 }

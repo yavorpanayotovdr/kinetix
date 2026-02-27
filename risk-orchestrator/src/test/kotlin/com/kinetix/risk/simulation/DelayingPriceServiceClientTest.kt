@@ -2,6 +2,7 @@ package com.kinetix.risk.simulation
 
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.PricePoint
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PriceServiceClient
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
@@ -19,17 +20,18 @@ class DelayingPriceServiceClientTest : FunSpec({
 
     val instrumentId = InstrumentId("AAPL")
     val pricePoint = mockk<PricePoint>()
+    val successResponse = ClientResponse.Success(pricePoint)
 
     test("delegates getLatestPrice and returns result") {
-        coEvery { delegate.getLatestPrice(instrumentId) } returns pricePoint
+        coEvery { delegate.getLatestPrice(instrumentId) } returns successResponse
 
         val result = client.getLatestPrice(instrumentId)
 
-        result shouldBe pricePoint
+        result shouldBe successResponse
     }
 
     test("applies delay to getLatestPrice") {
-        coEvery { delegate.getLatestPrice(instrumentId) } returns pricePoint
+        coEvery { delegate.getLatestPrice(instrumentId) } returns successResponse
 
         val elapsed = measureTimeMillis {
             client.getLatestPrice(instrumentId)
@@ -41,7 +43,7 @@ class DelayingPriceServiceClientTest : FunSpec({
     test("delegates getPriceHistory and returns result") {
         val from = Instant.parse("2025-01-01T00:00:00Z")
         val to = Instant.parse("2025-01-15T00:00:00Z")
-        val history = listOf(pricePoint)
+        val history = ClientResponse.Success(listOf(pricePoint))
         coEvery { delegate.getPriceHistory(instrumentId, from, to) } returns history
 
         val result = client.getPriceHistory(instrumentId, from, to)
@@ -52,7 +54,7 @@ class DelayingPriceServiceClientTest : FunSpec({
     test("applies delay to getPriceHistory") {
         val from = Instant.parse("2025-01-01T00:00:00Z")
         val to = Instant.parse("2025-01-15T00:00:00Z")
-        coEvery { delegate.getPriceHistory(instrumentId, from, to) } returns emptyList()
+        coEvery { delegate.getPriceHistory(instrumentId, from, to) } returns ClientResponse.Success(emptyList())
 
         val elapsed = measureTimeMillis {
             client.getPriceHistory(instrumentId, from, to)

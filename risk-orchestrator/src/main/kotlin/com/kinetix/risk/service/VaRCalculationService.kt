@@ -6,6 +6,10 @@ import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -166,32 +170,34 @@ class VaRCalculationService(
                     details = mapOf(
                         "requested" to dependencies.size,
                         "fetched" to marketData.size,
-                        "marketDataItems" to Json.encodeToString(dependencies.map { dep ->
-                            val result = fetchResults.find { it.dependency == dep }
-                            val fetched = (result as? FetchSuccess)?.value
-                            val failure = result as? FetchFailure
-                            buildMap {
-                                put("instrumentId", dep.instrumentId)
-                                put("dataType", dep.dataType)
-                                put("assetClass", dep.assetClass)
-                                put("status", if (fetched != null) "FETCHED" else "MISSING")
-                                if (fetched is ScalarMarketData) put("value", fetched.value.toString())
-                                if (fetched is CurveMarketData) put("points", fetched.points.size.toString())
-                                if (fetched is TimeSeriesMarketData) put("points", fetched.points.size.toString())
-                                if (fetched is MatrixMarketData) put("rows", fetched.rows.size.toString())
-                                if (failure != null) {
-                                    put("error", Json.encodeToString(buildMap {
-                                        put("reason", failure.reason)
-                                        put("url", failure.url ?: "")
-                                        put("httpStatus", failure.httpStatus?.toString() ?: "")
-                                        put("errorMessage", failure.errorMessage ?: "")
-                                        put("service", failure.service)
-                                        put("timestamp", failure.timestamp.toString())
-                                        put("durationMs", failure.durationMs.toString())
-                                    }))
+                        "marketDataItems" to buildJsonArray {
+                            dependencies.forEach { dep ->
+                                val result = fetchResults.find { it.dependency == dep }
+                                val fetched = (result as? FetchSuccess)?.value
+                                val failure = result as? FetchFailure
+                                addJsonObject {
+                                    put("instrumentId", dep.instrumentId)
+                                    put("dataType", dep.dataType)
+                                    put("assetClass", dep.assetClass)
+                                    put("status", if (fetched != null) "FETCHED" else "MISSING")
+                                    if (fetched is ScalarMarketData) put("value", fetched.value.toString())
+                                    if (fetched is CurveMarketData) put("points", fetched.points.size.toString())
+                                    if (fetched is TimeSeriesMarketData) put("points", fetched.points.size.toString())
+                                    if (fetched is MatrixMarketData) put("rows", fetched.rows.size.toString())
+                                    if (failure != null) {
+                                        putJsonObject("issue") {
+                                            put("reason", failure.reason)
+                                            failure.url?.let { put("url", it) }
+                                            failure.httpStatus?.let { put("httpStatus", it.toString()) }
+                                            failure.errorMessage?.let { put("errorMessage", it) }
+                                            put("service", failure.service)
+                                            put("timestamp", failure.timestamp.toString())
+                                            put("durationMs", failure.durationMs.toString())
+                                        }
+                                    }
                                 }
                             }
-                        }),
+                        }.toString(),
                     ),
                 )
             )

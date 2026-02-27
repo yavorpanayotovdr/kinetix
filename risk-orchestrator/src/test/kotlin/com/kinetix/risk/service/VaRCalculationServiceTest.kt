@@ -522,19 +522,18 @@ class VaRCalculationServiceTest : FunSpec({
         val missingItem = parsed[1].jsonObject
         missingItem["status"]!!.jsonPrimitive.content shouldBe "MISSING"
 
-        val errorJson = missingItem["error"]!!.jsonPrimitive.content
-        val error = Json.parseToJsonElement(errorJson).jsonObject
-        error["reason"]!!.jsonPrimitive.content shouldBe "NOT_FOUND"
-        error["url"]!!.jsonPrimitive.content shouldBe "http://rates:8088/api/rates/yield-curves/USD_SOFR/latest"
-        error["httpStatus"]!!.jsonPrimitive.content shouldBe "404"
-        error["errorMessage"]!!.jsonPrimitive.content shouldBe "Yield curve not found for USD_SOFR"
-        error["service"]!!.jsonPrimitive.content shouldBe "rates-service"
-        error["timestamp"]!!.jsonPrimitive.content shouldBe "2026-02-24T10:00:00Z"
-        error["durationMs"]!!.jsonPrimitive.content shouldBe "42"
+        val issue = missingItem["issue"]!!.jsonObject
+        issue["reason"]!!.jsonPrimitive.content shouldBe "NOT_FOUND"
+        issue["url"]!!.jsonPrimitive.content shouldBe "http://rates:8088/api/rates/yield-curves/USD_SOFR/latest"
+        issue["httpStatus"]!!.jsonPrimitive.content shouldBe "404"
+        issue["errorMessage"]!!.jsonPrimitive.content shouldBe "Yield curve not found for USD_SOFR"
+        issue["service"]!!.jsonPrimitive.content shouldBe "rates-service"
+        issue["timestamp"]!!.jsonPrimitive.content shouldBe "2026-02-24T10:00:00Z"
+        issue["durationMs"]!!.jsonPrimitive.content shouldBe "42"
 
-        // FETCHED item should NOT have error key
+        // FETCHED item should NOT have issue key
         val fetchedItem = parsed[0].jsonObject
-        fetchedItem.containsKey("error") shouldBe false
+        fetchedItem.containsKey("issue") shouldBe false
     }
 
     test("FETCH_POSITIONS step contains dependenciesByPosition when dependencies are discovered") {

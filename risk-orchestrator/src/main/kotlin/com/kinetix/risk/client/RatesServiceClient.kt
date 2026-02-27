@@ -7,7 +7,7 @@ import com.kinetix.common.model.YieldCurve
 import java.util.Currency
 
 interface RatesServiceClient {
-    suspend fun getLatestYieldCurve(curveId: String): YieldCurve?
-    suspend fun getLatestRiskFreeRate(currency: Currency, tenor: String): RiskFreeRate?
-    suspend fun getLatestForwardCurve(instrumentId: InstrumentId): ForwardCurve?
+    suspend fun getLatestYieldCurve(curveId: String): ClientResponse<YieldCurve>
+    suspend fun getLatestRiskFreeRate(currency: Currency, tenor: String): ClientResponse<RiskFreeRate>
+    suspend fun getLatestForwardCurve(instrumentId: InstrumentId): ClientResponse<ForwardCurve>
 }

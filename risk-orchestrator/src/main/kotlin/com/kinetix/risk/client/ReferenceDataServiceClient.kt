@@ -5,6 +5,6 @@ import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 
 interface ReferenceDataServiceClient {
-    suspend fun getLatestDividendYield(instrumentId: InstrumentId): DividendYield?
-    suspend fun getLatestCreditSpread(instrumentId: InstrumentId): CreditSpread?
+    suspend fun getLatestDividendYield(instrumentId: InstrumentId): ClientResponse<DividendYield>
+    suspend fun getLatestCreditSpread(instrumentId: InstrumentId): ClientResponse<CreditSpread>
 }

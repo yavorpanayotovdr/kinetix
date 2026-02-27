@@ -1,6 +1,7 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.*
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.model.DiscoveredDependency
@@ -48,7 +49,7 @@ class MarketDataFetcherTest : FunSpec({
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
         )
 
-        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns pricePoint()
+        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns ClientResponse.Success(pricePoint())
 
         val result = fetcher.fetch(deps)
 
@@ -65,9 +66,11 @@ class MarketDataFetcherTest : FunSpec({
             DiscoveredDependency("HISTORICAL_PRICES", "AAPL", "EQUITY", mapOf("lookbackDays" to "252")),
         )
 
-        coEvery { priceServiceClient.getPriceHistory(InstrumentId("AAPL"), any(), any()) } returns listOf(
-            pricePoint(amount = "168.00", timestamp = Instant.parse("2026-02-22T10:00:00Z")),
-            pricePoint(amount = "170.50", timestamp = Instant.parse("2026-02-23T10:00:00Z")),
+        coEvery { priceServiceClient.getPriceHistory(InstrumentId("AAPL"), any(), any()) } returns ClientResponse.Success(
+            listOf(
+                pricePoint(amount = "168.00", timestamp = Instant.parse("2026-02-22T10:00:00Z")),
+                pricePoint(amount = "170.50", timestamp = Instant.parse("2026-02-23T10:00:00Z")),
+            )
         )
 
         val result = fetcher.fetch(deps)
@@ -86,7 +89,7 @@ class MarketDataFetcherTest : FunSpec({
             DiscoveredDependency("YIELD_CURVE", "AAPL", "EQUITY"),
         )
 
-        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns pricePoint()
+        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns ClientResponse.Success(pricePoint())
 
         val result = fetcher.fetch(deps)
 
@@ -109,7 +112,7 @@ class MarketDataFetcherTest : FunSpec({
         )
 
         coEvery { priceServiceClient.getLatestPrice(InstrumentId("FAIL")) } throws RuntimeException("price unavailable")
-        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns pricePoint()
+        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns ClientResponse.Success(pricePoint())
 
         val result = fetcher.fetch(deps)
 
@@ -129,18 +132,19 @@ class MarketDataFetcherTest : FunSpec({
         result.shouldBeEmpty()
     }
 
-    test("returns FetchFailure with NOT_FOUND reason when client returns null") {
+    test("returns FetchFailure with NOT_FOUND reason and httpStatus when client returns NotFound") {
         val deps = listOf(
             DiscoveredDependency("SPOT_PRICE", "UNKNOWN", "EQUITY"),
         )
 
-        coEvery { priceServiceClient.getLatestPrice(InstrumentId("UNKNOWN")) } returns null
+        coEvery { priceServiceClient.getLatestPrice(InstrumentId("UNKNOWN")) } returns ClientResponse.NotFound(404)
 
         val result = fetcher.fetch(deps)
 
         result shouldHaveSize 1
         val failure = result[0].shouldBeInstanceOf<FetchFailure>()
         failure.reason shouldBe "NOT_FOUND"
+        failure.httpStatus shouldBe 404
         failure.service shouldBe "price-service"
         failure.dependency.instrumentId shouldBe "UNKNOWN"
     }
@@ -169,7 +173,7 @@ class MarketDataFetcherTest : FunSpec({
             correlationServiceBaseUrl = "http://corr:8091",
         )
 
-        coEvery { priceServiceClient.getLatestPrice(any()) } returns null
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.NotFound(404)
 
         val deps = listOf(
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
@@ -187,7 +191,7 @@ class MarketDataFetcherTest : FunSpec({
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
         )
 
-        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns null
+        coEvery { priceServiceClient.getLatestPrice(InstrumentId("AAPL")) } returns ClientResponse.NotFound(404)
 
         val result = fetcher.fetch(deps)
 
@@ -217,8 +221,8 @@ class MarketDataFetcherTest : FunSpec({
         val ratesClient = mockk<RatesServiceClient>()
         val fetcherWithRates = MarketDataFetcher(priceServiceClient, ratesServiceClient = ratesClient)
 
-        coEvery { priceServiceClient.getLatestPrice(any()) } returns null
-        coEvery { ratesClient.getLatestYieldCurve(any()) } returns null
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.NotFound(404)
+        coEvery { ratesClient.getLatestYieldCurve(any()) } returns ClientResponse.NotFound(404)
 
         val deps = listOf(
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
