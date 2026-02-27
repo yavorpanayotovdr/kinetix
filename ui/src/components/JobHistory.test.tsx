@@ -32,6 +32,8 @@ const defaultHookResult = {
   firstPage: vi.fn(),
   lastPage: vi.fn(),
   goToPage: vi.fn(),
+  pageSize: 10,
+  setPageSize: vi.fn(),
 }
 
 describe('JobHistory', () => {
@@ -870,6 +872,128 @@ describe('JobHistory', () => {
     fireEvent.change(input, { target: { value: '999' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(goToPage).toHaveBeenCalledWith(2)
+  })
+
+  it('renders page size input showing current value with dropdown trigger', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      pageSize: 10,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('page-size-input') as HTMLInputElement
+    expect(input).toBeInTheDocument()
+    expect(input.value).toBe('10')
+    expect(screen.getByTestId('page-size-toggle')).toBeInTheDocument()
+  })
+
+  it('opens preset dropdown and calls setPageSize when an option is clicked', () => {
+    const setPageSize = vi.fn()
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      setPageSize,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    expect(screen.queryByTestId('page-size-option-50')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('page-size-toggle'))
+
+    expect(screen.getByTestId('page-size-option-10')).toBeInTheDocument()
+    expect(screen.getByTestId('page-size-option-20')).toBeInTheDocument()
+    expect(screen.getByTestId('page-size-option-50')).toBeInTheDocument()
+    expect(screen.queryByTestId('page-size-option-100')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('page-size-option-50'))
+    expect(setPageSize).toHaveBeenCalledWith(50)
+
+    expect(screen.queryByTestId('page-size-option-50')).not.toBeInTheDocument()
+  })
+
+  it('calls setPageSize when user types a custom value and presses Enter', () => {
+    const setPageSize = vi.fn()
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      setPageSize,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('page-size-input')
+    fireEvent.change(input, { target: { value: '35' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(setPageSize).toHaveBeenCalledWith(35)
+  })
+
+  it('reflects current pageSize in the input value', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+        },
+      ],
+      pageSize: 50,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const input = screen.getByTestId('page-size-input') as HTMLInputElement
+    expect(input.value).toBe('50')
   })
 
   it('calls closeJob when close detail button is clicked', () => {

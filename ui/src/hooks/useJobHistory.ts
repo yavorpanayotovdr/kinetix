@@ -44,6 +44,8 @@ export interface UseJobHistoryResult {
   resetZoom: () => void
   zoomDepth: number
   page: number
+  pageSize: number
+  setPageSize: (size: number) => void
   totalPages: number
   hasNextPage: boolean
   nextPage: () => void
@@ -54,7 +56,7 @@ export interface UseJobHistoryResult {
 }
 
 const POLL_INTERVAL = 5_000
-const PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 10
 
 export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [runs, setRuns] = useState<ValuationJobSummaryDto[]>([])
@@ -66,6 +68,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const [fetchVersion, setFetchVersion] = useState(0)
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSizeInternal] = useState(DEFAULT_PAGE_SIZE)
   const [totalCount, setTotalCount] = useState(0)
 
   const timeRangeRef = useRef(timeRange)
@@ -73,6 +76,9 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
   const pageRef = useRef(page)
   pageRef.current = page
+
+  const pageSizeRef = useRef(pageSize)
+  pageSizeRef.current = pageSize
 
   const load = useCallback(async () => {
     if (!portfolioId) return
@@ -82,7 +88,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     try {
       const { from, to } = resolveQueryRange(timeRangeRef.current)
-      const { items, totalCount: count } = await fetchValuationJobs(portfolioId, PAGE_SIZE, pageRef.current * PAGE_SIZE, from, to)
+      const { items, totalCount: count } = await fetchValuationJobs(portfolioId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
       setTotalCount(count)
       setRuns(items)
       setTimeRangeInternal((prev) => {
@@ -107,7 +113,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     const interval = setInterval(load, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, load, fetchVersion, page])
+  }, [portfolioId, load, fetchVersion, page, pageSize])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {
@@ -172,8 +178,8 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
   }, [zoomStack])
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const hasNextPage = (page + 1) * PAGE_SIZE < totalCount
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const hasNextPage = (page + 1) * pageSize < totalCount
 
   const nextPage = useCallback(() => {
     if (!hasNextPage) return
@@ -210,9 +216,16 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setPage(clamped)
   }, [totalPages])
 
+  const setPageSize = useCallback((size: number) => {
+    setExpandedJobs({})
+    setLoadingJobIds(new Set())
+    setPage(0)
+    setPageSizeInternal(size)
+  }, [])
+
   const refresh = useCallback(() => {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
 }

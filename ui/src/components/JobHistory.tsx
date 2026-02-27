@@ -51,10 +51,13 @@ function jobMatchesSearch(
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     expanded ? portfolioId : null,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
+  const [pageSizeInput, setPageSizeInput] = useState(String(pageSize))
+  const [pageSizeOpen, setPageSizeOpen] = useState(false)
+  const pageSizeRef = useRef<HTMLDivElement>(null)
 
   const prevSignalRef = useRef(refreshSignal)
   useEffect(() => {
@@ -67,6 +70,30 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
   useEffect(() => {
     setPageInput(String(page + 1))
   }, [page])
+
+  useEffect(() => {
+    setPageSizeInput(String(pageSize))
+  }, [pageSize])
+
+  useEffect(() => {
+    if (!pageSizeOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pageSizeRef.current && !pageSizeRef.current.contains(e.target as Node)) {
+        setPageSizeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [pageSizeOpen])
+
+  const submitPageSizeInput = () => {
+    const parsed = parseInt(pageSizeInput, 10)
+    if (isNaN(parsed) || parsed < 1) {
+      setPageSizeInput(String(pageSize))
+      return
+    }
+    setPageSize(parsed)
+  }
 
   const submitPageInput = () => {
     const parsed = parseInt(pageInput, 10)
@@ -200,6 +227,53 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
                   >
                     <ChevronsRight className="h-3 w-3" />
                   </button>
+                  <span className="mx-1 border-l border-slate-200 h-4" />
+                  <div data-testid="page-size-selector" className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <span>Per page:</span>
+                    <div ref={pageSizeRef} className="relative inline-flex">
+                      <input
+                        data-testid="page-size-input"
+                        type="text"
+                        value={pageSizeInput}
+                        onChange={(e) => setPageSizeInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            submitPageSizeInput()
+                            setPageSizeOpen(false)
+                          }
+                        }}
+                        onBlur={submitPageSizeInput}
+                        className="w-12 pl-1.5 pr-5 py-0.5 text-xs rounded border border-slate-200 bg-white text-slate-600 focus:outline-none focus:border-primary-300"
+                      />
+                      <button
+                        data-testid="page-size-toggle"
+                        type="button"
+                        onClick={() => setPageSizeOpen((prev) => !prev)}
+                        className="absolute right-0 top-0 bottom-0 flex items-center px-1 text-slate-400 hover:text-slate-600"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                      {pageSizeOpen && (
+                        <ul className="absolute left-full top-0 ml-0.5 flex items-center bg-white border border-slate-200 rounded shadow-sm z-10">
+                          {[10, 20, 50].map((size) => (
+                            <li key={size}>
+                              <button
+                                data-testid={`page-size-option-${size}`}
+                                type="button"
+                                onClick={() => {
+                                  setPageSize(size)
+                                  setPageSizeOpen(false)
+                                }}
+                                className={`px-2 py-0.5 text-xs whitespace-nowrap hover:bg-slate-50 ${pageSize === size ? 'font-semibold text-primary-600' : 'text-slate-600'}`}
+                              >
+                                {size}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </>
