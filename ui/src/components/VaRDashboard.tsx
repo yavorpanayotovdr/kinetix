@@ -116,8 +116,8 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
         <span ref={calcTypeRef} className="relative">
           <span data-testid="calc-type-label" className="inline-flex items-center gap-1">
-            <Info data-testid="calc-type-info" className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors" onClick={toggleTooltip} />
             {varResult.calculationType}
+            <Info data-testid="calc-type-info" className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors" onClick={toggleTooltip} />
           </span>
           {tooltipOpen && description && (
             <span data-testid="calc-type-tooltip" className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs text-white text-justify shadow-lg z-10">
