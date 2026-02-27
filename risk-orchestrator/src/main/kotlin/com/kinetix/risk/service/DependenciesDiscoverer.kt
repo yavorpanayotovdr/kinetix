@@ -22,11 +22,11 @@ class DependenciesDiscoverer(
             return emptyList()
         }
 
-        val seen = mutableSetOf<Pair<String, String>>()
+        val seen = mutableSetOf<Triple<String, String, Map<String, String>>>()
         return depsResponse.dependenciesList.mapNotNull { dep ->
             val dataTypeName = dep.dataType.name
             val instrumentId = dep.instrumentId
-            val key = dataTypeName to instrumentId
+            val key = Triple(dataTypeName, instrumentId, dep.parametersMap)
 
             if (!seen.add(key)) return@mapNotNull null
 

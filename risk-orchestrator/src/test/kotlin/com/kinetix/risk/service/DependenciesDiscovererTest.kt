@@ -88,7 +88,7 @@ class DependenciesDiscovererTest : FunSpec({
         result.shouldBeEmpty()
     }
 
-    test("deduplicates by data type and instrument id") {
+    test("deduplicates by data type, instrument id, and parameters") {
         val positions = listOf(position())
         val depsResponse = DataDependenciesResponse.newBuilder()
             .addDependencies(dependency(MarketDataType.SPOT_PRICE))
@@ -102,5 +102,23 @@ class DependenciesDiscovererTest : FunSpec({
 
         result shouldHaveSize 2
         result.map { it.instrumentId } shouldContainExactlyInAnyOrder listOf("AAPL", "MSFT")
+    }
+
+    test("preserves dependencies with same data type but different parameters") {
+        val positions = listOf(position())
+        val depsResponse = DataDependenciesResponse.newBuilder()
+            .addDependencies(dependency(MarketDataType.YIELD_CURVE, instrumentId = "", parameters = mapOf("curveId" to "USD")))
+            .addDependencies(dependency(MarketDataType.YIELD_CURVE, instrumentId = "", parameters = mapOf("curveId" to "EUR")))
+            .build()
+
+        coEvery { riskEngineClient.discoverDependencies(positions, "PARAMETRIC", "CL_95") } returns depsResponse
+
+        val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
+
+        result shouldHaveSize 2
+        result.map { it.parameters } shouldContainExactlyInAnyOrder listOf(
+            mapOf("curveId" to "USD"),
+            mapOf("curveId" to "EUR"),
+        )
     }
 })

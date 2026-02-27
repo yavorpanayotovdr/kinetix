@@ -8,12 +8,17 @@ from kinetix_risk.dependencies import (
 from kinetix_risk.models import AssetClass, PositionRisk
 
 
-def _pos(instrument_id: str, asset_class: AssetClass, market_value: float = 100_000.0) -> PositionRisk:
+def _pos(
+    instrument_id: str,
+    asset_class: AssetClass,
+    market_value: float = 100_000.0,
+    currency: str = "USD",
+) -> PositionRisk:
     return PositionRisk(
         instrument_id=instrument_id,
         asset_class=asset_class,
         market_value=market_value,
-        currency="USD",
+        currency=currency,
     )
 
 
@@ -215,6 +220,42 @@ class TestDiscover:
         yc = [d for d in result if d.data_type == "YIELD_CURVE"]
         assert len(yc) == 1
         assert yc[0].instrument_id == ""
+        assert yc[0].parameters == {"curveId": "USD"}
+
+    def test_yield_curve_has_curve_id_from_position_currency(self):
+        positions = [_pos("BOND-1", AssetClass.FIXED_INCOME, currency="EUR")]
+        result = discover(positions)
+        yc = [d for d in result if d.data_type == "YIELD_CURVE"]
+        assert len(yc) == 1
+        assert yc[0].parameters == {"curveId": "EUR"}
+
+    def test_multi_currency_fixed_income_produces_multiple_yield_curves(self):
+        positions = [
+            _pos("BOND-USD", AssetClass.FIXED_INCOME, currency="USD"),
+            _pos("BOND-EUR", AssetClass.FIXED_INCOME, currency="EUR"),
+        ]
+        result = discover(positions)
+        yc = [d for d in result if d.data_type == "YIELD_CURVE"]
+        assert len(yc) == 2
+        params = {frozenset(d.parameters.items()) for d in yc}
+        assert params == {
+            frozenset({("curveId", "USD")}),
+            frozenset({("curveId", "EUR")}),
+        }
+
+    def test_multi_currency_derivative_produces_multiple_risk_free_rates(self):
+        positions = [
+            _pos("OPT-USD", AssetClass.DERIVATIVE, currency="USD"),
+            _pos("OPT-EUR", AssetClass.DERIVATIVE, currency="EUR"),
+        ]
+        result = discover(positions)
+        rfr = [d for d in result if d.data_type == "RISK_FREE_RATE"]
+        assert len(rfr) == 2
+        params = {frozenset(d.parameters.items()) for d in rfr}
+        assert params == {
+            frozenset({("currency", "USD")}),
+            frozenset({("currency", "EUR")}),
+        }
 
     def test_fixed_income_credit_spread_is_per_instrument(self):
         positions = [

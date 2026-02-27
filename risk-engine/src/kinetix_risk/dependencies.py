@@ -20,6 +20,7 @@ class _DependencyTemplate:
     required: bool
     description: str
     parameters: dict[str, str] = field(default_factory=dict)
+    currency_parameter: str | None = None
 
 
 DEPENDENCIES_REGISTRY: dict[AssetClass, list[_DependencyTemplate]] = {
@@ -44,6 +45,7 @@ DEPENDENCIES_REGISTRY: dict[AssetClass, list[_DependencyTemplate]] = {
             per_instrument=False,
             required=True,
             description="Risk-free yield curve for discounting cash flows",
+            currency_parameter="curveId",
         ),
         _DependencyTemplate(
             data_type="CREDIT_SPREAD",
@@ -98,7 +100,7 @@ DEPENDENCIES_REGISTRY: dict[AssetClass, list[_DependencyTemplate]] = {
             per_instrument=False,
             required=True,
             description="Risk-free interest rate for discounting",
-            parameters={"currency": "USD"},
+            currency_parameter="currency",
         ),
         _DependencyTemplate(
             data_type="DIVIDEND_YIELD",
@@ -111,14 +113,17 @@ DEPENDENCIES_REGISTRY: dict[AssetClass, list[_DependencyTemplate]] = {
 
 
 def discover(positions: list[PositionRisk]) -> list[MarketDataDependency]:
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, frozenset]] = set()
     result: list[MarketDataDependency] = []
 
     for pos in positions:
         templates = DEPENDENCIES_REGISTRY.get(pos.asset_class, [])
         for tmpl in templates:
             instrument_id = pos.instrument_id if tmpl.per_instrument else ""
-            key = (tmpl.data_type, instrument_id)
+            params = dict(tmpl.parameters)
+            if tmpl.currency_parameter is not None:
+                params[tmpl.currency_parameter] = pos.currency
+            key = (tmpl.data_type, instrument_id, frozenset(params.items()))
             if key in seen:
                 continue
             seen.add(key)
@@ -128,13 +133,13 @@ def discover(positions: list[PositionRisk]) -> list[MarketDataDependency]:
                 asset_class=pos.asset_class.value,
                 required=tmpl.required,
                 description=tmpl.description,
-                parameters=dict(tmpl.parameters),
+                parameters=params,
             ))
 
     # Add portfolio-level correlation matrix if there are 2+ distinct asset classes
     asset_classes = {pos.asset_class for pos in positions}
     if len(asset_classes) >= 2:
-        key = ("CORRELATION_MATRIX", "")
+        key = ("CORRELATION_MATRIX", "", frozenset())
         if key not in seen:
             seen.add(key)
             result.append(MarketDataDependency(
