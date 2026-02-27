@@ -144,5 +144,36 @@ describe('RiskSensitivities', () => {
       fireEvent.click(screen.getByTestId('greek-popover-delta-close'))
       expect(screen.queryByTestId('greek-popover-delta')).not.toBeInTheDocument()
     })
+
+    it('shows theta explanation when info icon is clicked', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      fireEvent.click(screen.getByTestId('greek-info-theta'))
+
+      const popover = screen.getByTestId('greek-popover-theta')
+      expect(popover).toBeInTheDocument()
+      expect(popover).toHaveTextContent('passage of time')
+    })
+
+    it('shows rho explanation when info icon is clicked', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      fireEvent.click(screen.getByTestId('greek-info-rho'))
+
+      const popover = screen.getByTestId('greek-popover-rho')
+      expect(popover).toBeInTheDocument()
+      expect(popover).toHaveTextContent('interest rates')
+    })
+
+    it('closes theta/rho popover when a header popover is opened', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      fireEvent.click(screen.getByTestId('greek-info-theta'))
+      expect(screen.getByTestId('greek-popover-theta')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('greek-info-delta'))
+      expect(screen.queryByTestId('greek-popover-theta')).not.toBeInTheDocument()
+      expect(screen.getByTestId('greek-popover-delta')).toBeInTheDocument()
+    })
   })
 })

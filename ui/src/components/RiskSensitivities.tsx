@@ -5,12 +5,14 @@ import { useClickOutside } from '../hooks/useClickOutside'
 import { formatNum } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 
-type Greek = 'delta' | 'gamma' | 'vega'
+type Greek = 'delta' | 'gamma' | 'vega' | 'theta' | 'rho'
 
 const greekDescriptions: Record<Greek, string> = {
   delta: "If the underlying asset(s) move up by $1, the portfolio's value is expected to increase by approximately this amount (and vice versa for a $1 decline).",
   gamma: "For each $1 move in the underlying, delta itself is expected to change by approximately this amount — measures how quickly directional exposure accelerates.",
   vega: "If implied volatility rises by 1 percentage point, the portfolio's value is expected to change by approximately this amount.",
+  theta: "The portfolio's value is expected to change by approximately this amount each day purely due to the passage of time, assuming all other factors remain constant.",
+  rho: "If interest rates rise by 1 percentage point, the portfolio's value is expected to change by approximately this amount — measures sensitivity to rate movements.",
 }
 
 interface RiskSensitivitiesProps {
@@ -20,10 +22,10 @@ interface RiskSensitivitiesProps {
 
 export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesProps) {
   const [openPopover, setOpenPopover] = useState<Greek | null>(null)
-  const headerRowRef = useRef<HTMLTableRowElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const closePopover = useCallback(() => setOpenPopover(null), [])
-  useClickOutside(headerRowRef, closePopover)
+  useClickOutside(containerRef, closePopover)
 
   useEffect(() => {
     if (!openPopover) return
@@ -61,7 +63,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
   )
 
   return (
-    <div data-testid="risk-sensitivities">
+    <div ref={containerRef} data-testid="risk-sensitivities">
       {pvValue != null && (
         <div data-testid="pv-display" className="text-xs mb-2">
           <span className="text-slate-600">PV: </span>
@@ -70,7 +72,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
       )}
       <table data-testid="greeks-heatmap" className="text-xs mb-2">
         <thead>
-          <tr ref={headerRowRef} className="border-b text-left text-slate-600">
+          <tr className="border-b text-left text-slate-600">
             <th className="py-1 pr-5">Asset Class</th>
             {renderHeader('Delta', 'delta', 'py-1 px-4 text-right')}
             {renderHeader('Gamma', 'gamma', 'py-1 px-4 text-right')}
@@ -90,13 +92,45 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
       </table>
 
       <div data-testid="greeks-summary" className="flex flex-col gap-1 text-xs">
-        <div>
-          <span className="text-slate-600">Theta (time decay): </span>
-          <span className="font-medium">{formatNum(greeksResult.theta, 4)}</span>
+        <div className="relative">
+          <span className="text-slate-600 inline-flex items-center gap-1">
+            Theta (time decay)
+            <Info
+              data-testid="greek-info-theta"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('theta')}
+            />
+          </span>
+          <span className="font-medium"> {formatNum(greeksResult.theta, 4)}</span>
+          {openPopover === 'theta' && (
+            <span
+              data-testid="greek-popover-theta"
+              className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="greek-popover-theta-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {greekDescriptions.theta}
+            </span>
+          )}
         </div>
-        <div>
-          <span className="text-slate-600">Rho (rate sensitivity): </span>
-          <span className="font-medium">{formatNum(greeksResult.rho, 4)}</span>
+        <div className="relative">
+          <span className="text-slate-600 inline-flex items-center gap-1">
+            Rho (rate sensitivity)
+            <Info
+              data-testid="greek-info-rho"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('rho')}
+            />
+          </span>
+          <span className="font-medium"> {formatNum(greeksResult.rho, 4)}</span>
+          {openPopover === 'rho' && (
+            <span
+              data-testid="greek-popover-rho"
+              className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="greek-popover-rho-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {greekDescriptions.rho}
+            </span>
+          )}
         </div>
       </div>
     </div>
