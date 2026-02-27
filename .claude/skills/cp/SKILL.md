@@ -4,4 +4,4 @@ description: Commit and push — stage changed files, create a commit, and push 
 disable-model-invocation: true
 ---
 
-Commit and push all current changes. Behave exactly as if the user typed "commit and push".
+commit and push
