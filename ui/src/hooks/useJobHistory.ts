@@ -46,6 +46,7 @@ export interface UseJobHistoryResult {
   page: number
   pageSize: number
   setPageSize: (size: number) => void
+  totalCount: number
   totalPages: number
   hasNextPage: boolean
   nextPage: () => void
@@ -227,5 +228,5 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
+  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
 }

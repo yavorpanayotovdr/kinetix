@@ -25,6 +25,7 @@ const defaultHookResult = {
   resetZoom: vi.fn(),
   zoomDepth: 0,
   page: 0,
+  totalCount: 0,
   totalPages: 1,
   hasNextPage: false,
   nextPage: vi.fn(),
@@ -615,6 +616,35 @@ describe('JobHistory', () => {
     const input = screen.getByTestId('pagination-page-input') as HTMLInputElement
     expect(input.value).toBe('1')
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('of 3')
+  })
+
+  it('displays total job count next to per page selector', () => {
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
+        },
+      ],
+      totalCount: 47,
+      totalPages: 5,
+      hasNextPage: true,
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    const totalLabel = screen.getByTestId('total-count')
+    expect(totalLabel).toHaveTextContent('Total: 47')
   })
 
   it('disables previous and first buttons on first page', () => {

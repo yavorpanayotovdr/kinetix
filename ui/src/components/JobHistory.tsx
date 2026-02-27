@@ -51,7 +51,7 @@ function jobMatchesSearch(
 
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
+  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     portfolioId,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
@@ -271,6 +271,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
                       )}
                     </div>
                   </div>
+                  <span data-testid="total-count" className="text-xs text-slate-400">Total: {totalCount}</span>
                 </div>
               )}
             </>
