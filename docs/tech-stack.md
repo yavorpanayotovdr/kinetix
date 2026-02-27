@@ -136,7 +136,7 @@ settings.gradle.kts
 ├── volatility-service
 ├── correlation-service
 ├── end2end-tests
-└── load-tests             (standalone — Gatling performance tests)
+└── load-tests             (standalone Gradle project — not included in root build)
 ```
 
 ---
@@ -156,6 +156,8 @@ All backend services run on Ktor with Netty. The gateway installs the full plugi
 | WebSockets | ktor-server-websockets | Real-time market data streaming |
 | Auth / JWT | ktor-server-auth-jwt | Keycloak JWT validation |
 | Micrometer | ktor-server-metrics-micrometer | Prometheus `/metrics` endpoint |
+| OpenAPI | ktor-openapi (smiley4) | OpenAPI spec generation (`/openapi.json`) |
+| Swagger UI | ktor-swagger-ui (smiley4) | Interactive API docs (`/swagger`) |
 
 ### React 19 (UI)
 
@@ -576,6 +578,7 @@ Alphabetical list of all dependencies and their pinned/minimum versions.
 | kotlinx-datetime | 0.6.2 | libs.versions.toml |
 | kotlinx-serialization | 1.8.0 | libs.versions.toml |
 | Ktor | 3.1.3 | libs.versions.toml |
+| Ktor OpenAPI Tools (smiley4) | 5.6.0 | libs.versions.toml |
 | Lettuce (Redis) | 6.5.3.RELEASE | libs.versions.toml |
 | Logback | 1.5.16 | libs.versions.toml |
 | Loki | latest | docker-compose.observability.yml |

@@ -159,7 +159,7 @@ suspend fun findByInstrumentId(instrumentId: InstrumentId, from: Instant, to: In
 
 #### Tables
 
-**valuation_jobs** (V1 as `calculation_runs`, V2 → `calculation_jobs`, V3 → `valuation_jobs`)
+**valuation_jobs** (V1 as `calculation_runs`, V2 → `calculation_jobs`, V3 → `valuation_jobs`, V4 adds `pv_value`)
 
 | Column | Type | Constraints |
 |--------|------|-------------|
@@ -174,6 +174,7 @@ suspend fun findByInstrumentId(instrumentId: InstrumentId, from: Instant, to: In
 | confidence_level | DOUBLE PRECISION | Nullable |
 | var_value | DOUBLE PRECISION | Nullable |
 | expected_shortfall | DOUBLE PRECISION | Nullable |
+| pv_value | DOUBLE PRECISION | Nullable |
 | steps | JSONB | Nullable — `List<JobStepJson>` |
 | error | TEXT | Nullable |
 
@@ -290,7 +291,7 @@ suspend fun findRecent(limit: Int = 50): List<AlertEvent>
 
 | Column | Type | Constraints |
 |--------|------|-------------|
-| id | BIGSERIAL | **PK** (auto-increment) |
+| id | VARCHAR(255) | **PK** |
 | portfolio_id | VARCHAR | Indexed |
 | total_sbm_charge | DOUBLE PRECISION | |
 | gross_jtd | DOUBLE PRECISION | |
@@ -329,7 +330,7 @@ suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord?
 | Column | Type | Constraints |
 |--------|------|-------------|
 | curve_id | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | currency | VARCHAR | |
 | data_source | VARCHAR | |
 | created_at | TIMESTAMPTZ | |
@@ -339,7 +340,7 @@ suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord?
 | Column | Type | Constraints |
 |--------|------|-------------|
 | curve_id | VARCHAR | **PK** (composite), FK → yield_curves (CASCADE) |
-| as_of_date | DATE | **PK** (composite), FK → yield_curves (CASCADE) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite), FK → yield_curves (CASCADE) |
 | label | VARCHAR | **PK** (composite) |
 | days | INTEGER | |
 | rate | DECIMAL(28,12) | |
@@ -350,7 +351,7 @@ suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord?
 |--------|------|-------------|
 | currency | VARCHAR | **PK** (composite) |
 | tenor | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | rate | DECIMAL(28,12) | |
 | data_source | VARCHAR | |
 | created_at | TIMESTAMPTZ | |
@@ -360,7 +361,7 @@ suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord?
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | asset_class | VARCHAR | |
 | data_source | VARCHAR | |
 | created_at | TIMESTAMPTZ | |
@@ -370,7 +371,7 @@ suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord?
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite), FK → forward_curves (CASCADE) |
-| as_of_date | DATE | **PK** (composite), FK → forward_curves (CASCADE) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite), FK → forward_curves (CASCADE) |
 | tenor | VARCHAR | **PK** (composite) |
 | value | DECIMAL(28,12) | |
 
@@ -415,7 +416,7 @@ suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Insta
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | yield | DECIMAL(18,8) | |
 | ex_date | VARCHAR(10) | Nullable |
 | data_source | VARCHAR | |
@@ -426,7 +427,7 @@ suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Insta
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | spread | DECIMAL(18,8) | |
 | rating | VARCHAR(20) | Nullable |
 | data_source | VARCHAR | |
@@ -465,7 +466,7 @@ suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Insta
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite) |
-| as_of_date | DATE | **PK** (composite) |
+| as_of_date | TIMESTAMPTZ | **PK** (composite) |
 | data_source | VARCHAR | |
 | created_at | TIMESTAMPTZ | |
 
@@ -474,7 +475,7 @@ suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Insta
 | Column | Type | Constraints |
 |--------|------|-------------|
 | instrument_id | VARCHAR | **PK** (composite), FK → volatility_surfaces |
-| as_of_date | DATE | **PK** (composite), FK → volatility_surfaces |
+| as_of_date | TIMESTAMPTZ | **PK** (composite), FK → volatility_surfaces |
 | strike | DECIMAL(28,12) | **PK** (composite) |
 | maturity_days | INTEGER | **PK** (composite) |
 | implied_vol | DECIMAL(18,8) | |
@@ -504,14 +505,14 @@ suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Insta
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | BIGSERIAL | **PK** (auto-increment) |
-| labels_json | TEXT | JSON array of instrument labels |
-| values_json | TEXT | JSON 2-D matrix |
+| labels | TEXT | JSON array of instrument labels |
+| values | TEXT | JSON 2-D matrix |
 | window_days | INTEGER | |
-| as_of_date | DATE | Indexed |
+| as_of_date | TIMESTAMPTZ | Indexed |
 | method | VARCHAR | |
 | created_at | TIMESTAMPTZ | |
 
-Indexed on `(labels_json, window_days)` for latest-matrix lookups and on `as_of_date` for time-range queries.
+Indexed on `(labels, window_days)` for latest-matrix lookups and on `as_of_date` for time-range queries.
 
 #### Repository — `CorrelationMatrixRepository`
 
@@ -689,8 +690,7 @@ Migrations follow the standard Flyway convention: `V<number>__<description>.sql`
 | `bool(…)` | BOOLEAN | Flags (e.g. `enabled`) |
 | `text(…)` | TEXT | Long strings, JSON blobs, error messages |
 | `jsonb(…)` | JSONB | Structured nested data (valuation steps) |
-| `date(…)` | DATE | As-of dates |
-| `timestampWithTimeZone(…)` | TIMESTAMPTZ | Event timestamps (stored at UTC) |
+| `timestampWithTimeZone(…)` | TIMESTAMPTZ | Event timestamps and as-of dates (stored at UTC) |
 | `uuid(…)` | UUID | Job identifiers |
 
 ### Timestamp Strategy

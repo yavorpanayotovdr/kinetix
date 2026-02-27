@@ -29,6 +29,9 @@ Tooltips for VaR and ES were refined. Time range filtering was added with server
 **26 Feb 2026 — Unified Valuate RPC & CI Matrix Split**
 VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, replacing the separate `CalculateVaR` and `CalculateGreeks` calls with a `ValuationRequest` that accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) and returns a unified `ValuationResponse`. The CI pipeline was split from a monolithic `kotlin-build` job into per-module matrix jobs for unit tests, acceptance tests, and integration tests — enabling parallel execution and faster feedback. VaR history was pre-populated on dashboard load, Risk tab sub-sections became lazy-loaded, and valuation job durations were formatted as human-readable seconds.
 
+**27 Feb 2026 — Risk Dashboard Refinements & OpenAPI**
+The "Portfolio Value" label was renamed to "PV" in the Risk tab. An ES (Expected Shortfall) line was added to the VaR Trend chart alongside the existing VaR line. The Valuation Jobs section was made non-collapsible for direct visibility, and a total job count was added to the pagination bar. OpenAPI specification generation (`/openapi.json`) and Swagger UI (`/swagger`) were integrated across all Kotlin services using `ktor-openapi-tools`. The `GreeksPanel` component was replaced by inline `RiskSensitivities` within the VaR Dashboard grid. Documentation was audited and updated to reflect the current state of the codebase.
+
 ---
 
 ## 2. Initial Vision vs Current State
@@ -139,7 +142,7 @@ VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, repla
 ## 6. Current State Summary
 
 **What's working:**
-- 9 microservices (Gateway, Position, Price, Risk Orchestrator, Notification, Rates, Reference Data, Volatility, Correlation) + Python Risk Engine
+- 11 microservices (Gateway, Position, Price, Risk Orchestrator, Audit, Regulatory, Notification, Rates, Reference Data, Volatility, Correlation) + Python Risk Engine
 - Full VaR calculation pipeline: Historical, Parametric, Monte Carlo
 - ML models: LSTM volatility, GBT credit scoring, Isolation Forest anomaly detection
 - Stress testing with historical scenarios (GFC 2008, COVID 2020, etc.)
@@ -155,13 +158,16 @@ VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, repla
 - AWS EKS deployment infrastructure (Helm, Terraform, Dockerfiles)
 - 200 commits, ~555 conversation prompts across 92 sessions
 
-**Recent additions (26 Feb):**
+**Recent additions (27 Feb):**
 - Unified `Valuate` gRPC RPC replacing separate VaR and Greeks calls
 - CI pipeline split into per-module matrix jobs (unit, acceptance, integration)
-- Lazy-loaded Risk tab sub-sections for faster navigation
 - VaR history pre-populated on dashboard load
 - Human-readable valuation job durations
-- Configurable simulation delays for valuation job phases
+- OpenAPI spec generation and Swagger UI across all services (`ktor-openapi-tools`)
+- ES (Expected Shortfall) line in VaR Trend chart
+- PV (Portfolio Value) display in Risk Sensitivities
+- Non-collapsible Valuation Jobs section with total job count in pagination
+- Inline Risk Sensitivities replacing separate Greeks panel
 
 **Known issues / tech debt:**
 - Some Helm chart `.tgz` files are untracked in git
@@ -195,4 +201,4 @@ VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, repla
 
 ---
 
-*Report generated from conversation history, cross-referenced with git commits spanning 10–26 February 2026.*
+*Report generated from conversation history, cross-referenced with git commits spanning 10–27 February 2026.*

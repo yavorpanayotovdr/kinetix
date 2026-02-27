@@ -6,32 +6,35 @@ The Risk tab is the analytical heart of Kinetix, providing Value at Risk (VaR) c
 
 ## What it displays
 
-### VaR Dashboard (3-column layout)
+### VaR Dashboard (4-column grid layout)
 
-1. **VaR Gauge** — Normal distribution curve with shaded regions:
+1. **VaR Gauge** (1 column) — Normal distribution curve with shaded regions:
    - Blue fill at the confidence level (95% or 99%) showing VaR
    - Red fill in the tail showing Expected Shortfall (CVaR)
    - Numeric VaR and ES values displayed side-by-side
 
-2. **Component Breakdown** — Donut chart showing VaR contribution by asset class:
+2. **Risk Sensitivities** (2 columns) — Inline Greeks display:
+   - **PV (Portfolio Value)** — displayed when available
+   - **Greeks Heatmap** — Delta, Gamma, Vega by asset class with interactive tooltips
+   - **Summary metrics** — Theta (time decay) and Rho (rate sensitivity)
+
+3. **Component Breakdown** (1 column) — Donut chart showing VaR contribution by asset class:
    - EQUITY (blue), FIXED_INCOME (green), COMMODITY (amber), FX (purple)
    - Absolute dollar contribution and percentage of total per class
    - Sorted by percentage descending
 
-3. **VaR Trend** — Grafana-style line chart with zoomable time range, pre-populated with VaR history on load
+### VaR Trend
+
+Grafana-style line chart with zoomable time range, pre-populated with VaR history on load. Plots both the **VaR line** (indigo) and the **ES (Expected Shortfall) line** (orange) with area fills. Hover shows both values. Legend toggles each line.
 
 **Metadata bar** shows calculation type (PARAMETRIC / HISTORICAL / MONTE_CARLO) and timestamp. A **Run VaR** button triggers a fresh computation.
 
-### Greeks Panel (expandable)
-
-- **Greeks Heatmap** — Delta, Gamma, Vega by asset class
-- **Portfolio-Level Greeks** — Theta (time decay) and Rho (rate sensitivity)
-- **What-If Slider** — Volatility bump (-5pp to +5pp) with projected VaR change
-
 ### Job History
 
+- Always visible below the VaR Dashboard (non-collapsible)
 - Tables and timeline views of past calculation jobs
 - Shows status, duration, calculation type, results, and step-by-step execution details
+- Pagination bar with total job count
 
 ---
 
@@ -93,7 +96,7 @@ The unified `Valuate` RPC accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, 
 ### Data flow
 
 ```
-UI (VaRDashboard, GreeksPanel — lazy-loaded sub-sections)
+UI (VaRDashboard with inline RiskSensitivities, JobHistory)
   → Risk Orchestrator (Kotlin/Ktor, HTTP REST)
     → Risk Engine (Python, gRPC Valuate RPC) — NumPy/SciPy computation
     → Position Service (gRPC) — portfolio holdings
@@ -101,7 +104,7 @@ UI (VaRDashboard, GreeksPanel — lazy-loaded sub-sections)
   → Kafka "risk.results" — consumed by Notification Service for alerting
 ```
 
-The Risk tab uses lazy-loaded sub-sections — the Greeks panel and Job History only load when expanded, improving initial render performance.
+Risk Sensitivities (Greeks) render inline within the VaR Dashboard grid when Greeks data is available. Job History renders unconditionally below the dashboard.
 
 ### Calculation triggers
 
@@ -118,7 +121,7 @@ The Risk tab uses lazy-loaded sub-sections — the Greeks panel and Job History 
 | VaR Gauge | `ui/src/components/VaRGauge.tsx` |
 | VaR Dashboard | `ui/src/components/VaRDashboard.tsx` |
 | Component Breakdown | `ui/src/components/ComponentBreakdown.tsx` |
-| Greeks Panel | `ui/src/components/GreeksPanel.tsx` |
+| Risk Sensitivities | `ui/src/components/RiskSensitivities.tsx` |
 | Job History | `ui/src/components/JobHistory.tsx` |
 | VaR Hook | `ui/src/hooks/useVaR.ts` |
 | Greeks Hook | `ui/src/hooks/useGreeks.ts` |

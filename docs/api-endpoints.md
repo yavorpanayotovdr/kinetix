@@ -53,6 +53,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/system/health` | System-wide health (all services, dev mode) |
 | `WS` | `/ws/prices` | Real-time price stream (subscribe/unsubscribe) |
 
@@ -89,7 +91,6 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/v1/regulatory/frtb/{portfolioId}` | Calculate FRTB capital charges |
-| `POST` | `/api/v1/regulatory/report/{portfolioId}` | Generate regulatory report (CSV/XBRL) |
 
 **Notifications (→ Notification Service)**
 
@@ -108,6 +109,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/portfolios` | List all portfolio IDs |
 | `GET` | `/api/v1/portfolios/{portfolioId}/positions` | Get positions for a portfolio |
 | `POST` | `/api/v1/portfolios/{portfolioId}/trades` | Book a trade (creates/updates position) |
@@ -122,6 +125,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/prices/{instrumentId}/latest` | Latest price for an instrument |
 | `GET` | `/api/v1/prices/{instrumentId}/history` | Price history (`from`, `to` params) |
 | `POST` | `/api/v1/prices/ingest` | Ingest a new price point |
@@ -136,6 +141,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `POST` | `/api/v1/risk/var/{portfolioId}` | Calculate VaR (`calculationType`, `confidenceLevel`, `timeHorizonDays`, `numSimulations`) |
 | `GET` | `/api/v1/risk/var/{portfolioId}` | Latest cached VaR result |
 | `POST` | `/api/v1/risk/stress/{portfolioId}` | Run stress test with custom shocks |
@@ -145,7 +152,6 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 | `GET` | `/api/v1/risk/jobs/{portfolioId}` | List valuation jobs (pagination + date range) |
 | `GET` | `/api/v1/risk/jobs/detail/{jobId}` | Job execution details |
 | `POST` | `/api/v1/regulatory/frtb/{portfolioId}` | Calculate FRTB capital charges |
-| `POST` | `/api/v1/regulatory/report/{portfolioId}` | Generate regulatory report |
 
 **Kafka:** Consumes from `trades.lifecycle`, `price.updates`, `rates.*` · Publishes to `risk.results`
 **gRPC:** Calls Risk Engine on port 50051
@@ -158,12 +164,14 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/notifications/rules` | List all alert rules |
 | `POST` | `/api/v1/notifications/rules` | Create a new alert rule |
 | `DELETE` | `/api/v1/notifications/rules/{ruleId}` | Delete an alert rule |
 | `GET` | `/api/v1/notifications/alerts` | Recent alerts (`limit` param, default 50) |
 
-**Kafka:** Consumes from `risk.results`, `trades.lifecycle`
+**Kafka:** Consumes from `risk.results`, `risk.anomalies`
 
 ---
 
@@ -173,6 +181,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/rates/yield-curves/{curveId}/latest` | Latest yield curve |
 | `GET` | `/api/v1/rates/yield-curves/{curveId}/history` | Yield curve history (`from`, `to`) |
 | `POST` | `/api/v1/rates/yield-curves` | Ingest yield curve data |
@@ -192,6 +202,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/reference-data/dividends/{instrumentId}/latest` | Latest dividend yield |
 | `POST` | `/api/v1/reference-data/dividends` | Ingest dividend yield data |
 | `GET` | `/api/v1/reference-data/credit-spreads/{instrumentId}/latest` | Latest credit spread |
@@ -205,6 +217,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/volatility/{instrumentId}/surface/latest` | Latest volatility surface |
 | `GET` | `/api/v1/volatility/{instrumentId}/surface/history` | Vol surface history (`from`, `to`) |
 | `POST` | `/api/v1/volatility/surfaces` | Ingest volatility surface data |
@@ -217,6 +231,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/correlations/latest` | Latest correlation matrix (`labels`, `window` params) |
 | `POST` | `/api/v1/correlations/ingest` | Ingest correlation matrix data |
 
@@ -228,6 +244,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `GET` | `/api/v1/audit/events` | Get audit events (optional `portfolioId` filter) |
 
 **Kafka:** Consumes from `trades.lifecycle`
@@ -240,6 +258,8 @@ The gateway proxies all client requests to backend services, enforces JWT authen
 |--------|------|-------------|
 | `GET` | `/health` | Service health check |
 | `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI specification |
+| `GET` | `/swagger` | Swagger UI |
 | `POST` | `/api/v1/regulatory/frtb/{portfolioId}/calculate` | Calculate FRTB capital charges |
 | `GET` | `/api/v1/regulatory/frtb/{portfolioId}/history` | FRTB calculation history (`limit`, `offset`) |
 | `GET` | `/api/v1/regulatory/frtb/{portfolioId}/latest` | Latest FRTB calculation |
@@ -301,38 +321,40 @@ All endpoints are gRPC RPCs. No REST API.
 ```
 Protocol Breakdown
 ──────────────────────────────────────────────
-  REST (HTTP)     69 endpoints across 11 services
+  REST (HTTP)     90 endpoints across 11 services
   gRPC            13 RPCs in 5 service definitions
   WebSocket        1 real-time price stream
 ──────────────────────────────────────────────
-  Total           83
+  Total          104
 
 Method Distribution (REST only)
 ──────────────────────────────────────────────
-  GET             40  ████████████████████  (58%)
-  POST            26  █████████████         (38%)
-  DELETE           2  █                     ( 3%)
+  GET             61  ████████████████████  (68%)
+  POST            25  ████████              (28%)
+  DELETE           2  █                     ( 2%)
   WebSocket        1  █                     ( 1%)
 ──────────────────────────────────────────────
 
 Endpoints per Service (REST)
 ──────────────────────────────────────────────
-  Gateway         23  ████████████████████████
-  Risk Orchestr.  12  ████████████
-  Rates Service   10  ██████████
-  Notification     6  ██████
-  Ref Data Svc     6  ██████
-  Position Svc     5  █████
-  Price Service    5  █████
-  Volatility Svc   5  █████
-  Regulatory Svc   5  █████
-  Correlation Svc  4  ████
-  Audit Service    3  ███
+  Gateway         24  ████████████████████████
+  Risk Orchestr.  14  ██████████████
+  Rates Service   12  ████████████
+  Notification     8  ████████
+  Ref Data Svc     8  ████████
+  Position Svc     7  ███████
+  Price Service    7  ███████
+  Volatility Svc   7  ███████
+  Regulatory Svc   7  ███████
+  Correlation Svc  6  ██████
+  Audit Service    5  █████
 ──────────────────────────────────────────────
 
 Common Endpoints (all Kotlin services)
 ──────────────────────────────────────────────
-  GET /health     Health check
-  GET /metrics    Prometheus scrape target
+  GET /health        Health check
+  GET /metrics       Prometheus scrape target
+  GET /openapi.json  OpenAPI specification
+  GET /swagger       Swagger UI
 ──────────────────────────────────────────────
 ```
