@@ -75,14 +75,6 @@ describe('JobHistory', () => {
     expect(mockUseJobHistory).toHaveBeenCalledWith('port-1')
   })
 
-  it('passes null to hook when collapsed', () => {
-    render(<JobHistory portfolioId="port-1" />)
-
-    fireEvent.click(screen.getByTestId('job-history-toggle'))
-
-    expect(mockUseJobHistory).toHaveBeenCalledWith(null)
-  })
-
   it('shows loading state', () => {
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
@@ -128,7 +120,7 @@ describe('JobHistory', () => {
 
     render(<JobHistory portfolioId="port-1" />)
 
-    const toggle = screen.getByTestId('job-history-toggle')
+    const toggle = screen.getByTestId('job-history-header')
     const badge = toggle.querySelector('.inline-flex.items-center')!
     expect(badge).toHaveTextContent('1')
   })
@@ -330,7 +322,7 @@ describe('JobHistory', () => {
 
     render(<JobHistory portfolioId="port-1" />)
 
-    const toggle = screen.getByTestId('job-history-toggle')
+    const toggle = screen.getByTestId('job-history-header')
     const badge = () => toggle.querySelector('.inline-flex.items-center')!
 
     expect(badge()).toHaveTextContent('2')
@@ -763,7 +755,7 @@ describe('JobHistory', () => {
 
     render(<JobHistory portfolioId="port-1" />)
 
-    const toggle = screen.getByTestId('job-history-toggle')
+    const toggle = screen.getByTestId('job-history-header')
     const badge = toggle.querySelector('.inline-flex.items-center')!
     expect(badge).toHaveTextContent('Page 3 of 5')
   })

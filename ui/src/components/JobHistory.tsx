@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
+
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
 import { JobHistoryTable } from './JobHistoryTable'
@@ -49,10 +50,9 @@ function jobMatchesSearch(
 }
 
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
-  const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
   const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
-    expanded ? portfolioId : null,
+    portfolioId,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
   const [pageSizeInput, setPageSizeInput] = useState(String(pageSize))
@@ -114,21 +114,18 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
 
   return (
     <Card data-testid="job-history">
-      <button
-        data-testid="job-history-toggle"
-        onClick={() => setExpanded((prev) => !prev)}
+      <div
+        data-testid="job-history-header"
         className="flex items-center gap-2 w-full text-left"
       >
-        {expanded ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
         <History className="h-4 w-4 text-slate-500" />
         <span className="text-sm font-semibold text-slate-700">Valuation Jobs</span>
-        {expanded && filteredRuns.length > 0 && (
+        {filteredRuns.length > 0 && (
           <Badge variant="neutral">{totalPages > 1 ? `Page ${page + 1} of ${totalPages}` : filteredRuns.length}</Badge>
         )}
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="mt-3">
+      <div className="mt-3">
           {loading && !runs.length && (
             <div data-testid="job-history-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2">
               <Spinner size="sm" />
@@ -279,7 +276,6 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
             </>
           )}
         </div>
-      )}
     </Card>
   )
 }
