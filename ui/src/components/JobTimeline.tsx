@@ -11,7 +11,7 @@ interface JobTimelineProps {
 const STEP_LABELS: Record<string, string> = {
   FETCH_POSITIONS: 'Fetch Positions',
   DISCOVER_DEPENDENCIES: 'Discover Dependencies',
-  FETCH_MARKET_DATA: 'Fetch Market Data',
+  FETCH_MARKET_DATA: 'Fetch Dependencies',
   CALCULATE_VAR: 'Calculate VaR',
   PUBLISH_RESULT: 'Publish Result',
 }

@@ -96,7 +96,7 @@ describe('JobTimeline', () => {
 
     expect(screen.getByText('Fetch Positions')).toBeInTheDocument()
     expect(screen.getByText('Discover Dependencies')).toBeInTheDocument()
-    expect(screen.getByText('Fetch Market Data')).toBeInTheDocument()
+    expect(screen.getByText('Fetch Dependencies')).toBeInTheDocument()
     expect(screen.getByText('Calculate VaR')).toBeInTheDocument()
     expect(screen.getByText('Publish Result')).toBeInTheDocument()
   })
