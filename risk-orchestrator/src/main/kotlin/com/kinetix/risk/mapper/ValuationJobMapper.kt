@@ -17,6 +17,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     calculationType = calculationType,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -31,6 +32,7 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
     steps = steps.map { it.toResponse() },
     error = error,
 )

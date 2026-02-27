@@ -25,6 +25,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[confidenceLevel] = job.confidenceLevel
             it[varValue] = job.varValue
             it[expectedShortfall] = job.expectedShortfall
+            it[pvValue] = job.pvValue
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -39,6 +40,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[confidenceLevel] = job.confidenceLevel
             it[varValue] = job.varValue
             it[expectedShortfall] = job.expectedShortfall
+            it[pvValue] = job.pvValue
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -107,8 +109,13 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         error = error,
     )
 
+    private fun parseStepName(raw: String): JobStepName = when (raw) {
+        "CALCULATE_VAR" -> JobStepName.VALUATION
+        else -> JobStepName.valueOf(raw)
+    }
+
     private fun JobStepJson.toDomain(): JobStep = JobStep(
-        name = JobStepName.valueOf(name),
+        name = parseStepName(name),
         status = RunStatus.valueOf(status),
         startedAt = Instant.parse(startedAt),
         completedAt = completedAt?.let { Instant.parse(it) },
@@ -129,6 +136,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         confidenceLevel = this[ValuationJobsTable.confidenceLevel],
         varValue = this[ValuationJobsTable.varValue],
         expectedShortfall = this[ValuationJobsTable.expectedShortfall],
+        pvValue = this[ValuationJobsTable.pvValue],
         steps = this[ValuationJobsTable.steps].map { it.toDomain() },
         error = this[ValuationJobsTable.error],
     )

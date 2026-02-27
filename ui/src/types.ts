@@ -186,6 +186,7 @@ export interface ValuationJobSummaryDto {
   calculationType: string | null
   varValue: number | null
   expectedShortfall: number | null
+  pvValue: number | null
 }
 
 export interface ValuationJobDetailDto {
@@ -200,6 +201,7 @@ export interface ValuationJobDetailDto {
   confidenceLevel: string | null
   varValue: number | null
   expectedShortfall: number | null
+  pvValue: number | null
   steps: JobStepDto[]
   error: string | null
 }

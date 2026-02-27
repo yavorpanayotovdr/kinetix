@@ -25,6 +25,7 @@ private val JOB = ValuationJobSummaryItem(
     calculationType = "PARAMETRIC",
     varValue = 5000.0,
     expectedShortfall = 6250.0,
+    pvValue = 1_800_000.0,
 )
 
 class JobHistoryRoutesTest : FunSpec({

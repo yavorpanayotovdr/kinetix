@@ -34,6 +34,7 @@ private fun completedJob(
     confidenceLevel = "CL_95",
     varValue = 5000.0,
     expectedShortfall = 6250.0,
+    pvValue = 1_800_000.0,
     steps = listOf(
         JobStep(
             name = JobStepName.FETCH_POSITIONS,

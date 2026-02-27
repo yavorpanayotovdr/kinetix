@@ -236,7 +236,7 @@ class VaRCalculationServiceTest : FunSpec({
         job.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
         job.steps[1].name shouldBe JobStepName.DISCOVER_DEPENDENCIES
         job.steps[2].name shouldBe JobStepName.FETCH_MARKET_DATA
-        job.steps[3].name shouldBe JobStepName.CALCULATE_VAR
+        job.steps[3].name shouldBe JobStepName.VALUATION
         job.steps[4].name shouldBe JobStepName.PUBLISH_RESULT
 
         job.steps[0].details["positionCount"] shouldBe 1
@@ -606,7 +606,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -648,7 +648,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
         val parsed = Json.parseToJsonElement(calcStep.details["positionBreakdown"] as String).jsonArray
         parsed shouldHaveSize 2
 
@@ -721,7 +721,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -758,7 +758,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.CALCULATE_VAR }
+        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -797,7 +797,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val job = jobSlot.captured
         job.steps shouldHaveSize 5
-        job.steps[3].name shouldBe JobStepName.CALCULATE_VAR
+        job.steps[3].name shouldBe JobStepName.VALUATION
 
         val calcStep = job.steps[3]
         calcStep.details["greeksAssetClassCount"] shouldBe 1

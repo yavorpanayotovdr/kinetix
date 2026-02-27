@@ -233,7 +233,7 @@ class VaRCalculationService(
 
             steps.add(
                 JobStep(
-                    name = JobStepName.CALCULATE_VAR,
+                    name = JobStepName.VALUATION,
                     status = RunStatus.COMPLETED,
                     startedAt = calcStart,
                     completedAt = Instant.now(),
@@ -275,6 +275,7 @@ class VaRCalculationService(
                 confidenceLevel = request.confidenceLevel.name,
                 varValue = result.varValue,
                 expectedShortfall = result.expectedShortfall,
+                pvValue = result.pvValue,
                 steps = steps,
             )
             updateJobSafely(job)

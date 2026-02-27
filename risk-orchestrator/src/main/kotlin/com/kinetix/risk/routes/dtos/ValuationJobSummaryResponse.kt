@@ -14,4 +14,5 @@ data class ValuationJobSummaryResponse(
     val calculationType: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
 )

@@ -141,6 +141,7 @@ data class ValuationJobSummaryItem(
     val calculationType: String?,
     val varValue: Double?,
     val expectedShortfall: Double?,
+    val pvValue: Double?,
 )
 
 data class ValuationJobDetailItem(
@@ -155,6 +156,7 @@ data class ValuationJobDetailItem(
     val confidenceLevel: String?,
     val varValue: Double?,
     val expectedShortfall: Double?,
+    val pvValue: Double?,
     val steps: List<JobStepItem>,
     val error: String?,
 )

@@ -266,6 +266,7 @@ data class ValuationJobSummaryClientDto(
     val calculationType: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
 )
 
 @Serializable
@@ -281,6 +282,7 @@ data class ValuationJobDetailClientDto(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
     val steps: List<JobStepClientDto> = emptyList(),
     val error: String? = null,
 )
@@ -466,6 +468,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     calculationType = calculationType,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
@@ -480,6 +483,7 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
     steps = steps.map { it.toDomain() },
     error = error,
 )

@@ -15,6 +15,7 @@ const runs: ValuationJobSummaryDto[] = [
     calculationType: 'PARAMETRIC',
     varValue: 5000.0,
     expectedShortfall: 6250.0,
+    pvValue: 1800000.0,
   },
   {
     jobId: 'job-2',
@@ -27,6 +28,7 @@ const runs: ValuationJobSummaryDto[] = [
     calculationType: 'PARAMETRIC',
     varValue: null,
     expectedShortfall: null,
+    pvValue: null,
   },
 ]
 
@@ -42,6 +44,7 @@ const jobDetail: ValuationJobDetailDto = {
   confidenceLevel: 'CL_95',
   varValue: 5000.0,
   expectedShortfall: 6250.0,
+  pvValue: 1800000.0,
   steps: [
     {
       name: 'FETCH_POSITIONS',
@@ -68,6 +71,7 @@ const jobDetail2: ValuationJobDetailDto = {
   confidenceLevel: 'CL_95',
   varValue: null,
   expectedShortfall: null,
+  pvValue: null,
   steps: [
     {
       name: 'FETCH_POSITIONS',
@@ -233,7 +237,7 @@ describe('JobHistoryTable', () => {
           error: null,
         },
         {
-          name: 'CALCULATE_VAR',
+          name: 'VALUATION',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00.080Z',
           completedAt: '2025-01-15T10:00:00.130Z',
@@ -257,7 +261,7 @@ describe('JobHistoryTable', () => {
     fireEvent.change(screen.getByTestId('detail-search-job-1'), { target: { value: 'AAPL' } })
 
     expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-    expect(screen.queryByTestId('job-step-CALCULATE_VAR')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('job-step-VALUATION')).not.toBeInTheDocument()
   })
 
   it('displays truncated job ID in each row', () => {
@@ -343,6 +347,7 @@ describe('JobHistoryTable', () => {
         calculationType: 'PARAMETRIC',
         varValue: null,
         expectedShortfall: null,
+        pvValue: null,
       }
 
       render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
@@ -379,6 +384,7 @@ describe('JobHistoryTable', () => {
         calculationType: 'PARAMETRIC',
         varValue: null,
         expectedShortfall: null,
+        pvValue: null,
       }
 
       const { unmount } = render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)

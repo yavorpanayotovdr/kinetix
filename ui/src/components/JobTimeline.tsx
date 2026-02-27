@@ -12,7 +12,7 @@ const STEP_LABELS: Record<string, string> = {
   FETCH_POSITIONS: 'Fetch Positions',
   DISCOVER_DEPENDENCIES: 'Discover Dependencies',
   FETCH_MARKET_DATA: 'Fetch Dependencies',
-  CALCULATE_VAR: 'Valuation',
+  VALUATION: 'Valuation',
   PUBLISH_RESULT: 'Publish Result',
 }
 
@@ -252,7 +252,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                   {(() => {
                     const scalarEntries = Object.entries(step.details)
                       .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown' && key !== 'dataTypes')
-                    if (step.name === 'CALCULATE_VAR' && scalarEntries.length > 0) {
+                    if (step.name === 'VALUATION' && scalarEntries.length > 0) {
                       const DISPLAY_KEYS: Record<string, string> = { varValue: 'var', pvValue: 'pv' }
                       const obj = Object.fromEntries(scalarEntries.map(([k, v]) => [DISPLAY_KEYS[k] ?? k, v]))
                       const json = JSON.stringify(obj, null, 2)

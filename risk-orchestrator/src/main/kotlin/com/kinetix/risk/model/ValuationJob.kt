@@ -15,6 +15,7 @@ data class ValuationJob(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
     val steps: List<JobStep> = emptyList(),
     val error: String? = null,
 )

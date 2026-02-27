@@ -1,0 +1,1 @@
+ALTER TABLE valuation_jobs ADD COLUMN pv_value DOUBLE PRECISION;

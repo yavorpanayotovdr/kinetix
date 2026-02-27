@@ -17,6 +17,7 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val confidenceLevel = varchar("confidence_level", 10).nullable()
     val varValue = double("var_value").nullable()
     val expectedShortfall = double("expected_shortfall").nullable()
+    val pvValue = double("pv_value").nullable()
     val steps = jsonb<List<JobStepJson>>("steps", Json)
     val error = text("error").nullable()
 

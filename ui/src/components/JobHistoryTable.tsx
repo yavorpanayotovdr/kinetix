@@ -69,11 +69,19 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                 </span>
               </span>
             </th>
-            <th className="py-2">
+            <th className="py-2 pr-3">
               <span className="relative inline-flex items-center gap-1 group">
                 ES <Info className="h-3 w-3 text-slate-400" />
                 <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
                   ES (Expected Shortfall) estimates the average loss in the worst-case scenarios beyond the VaR (Value at Risk) threshold. For example, if VaR at 95% confidence is $5,000, the ES tells you the average loss you'd expect in that worst 5% of cases.
+                </span>
+              </span>
+            </th>
+            <th className="py-2">
+              <span className="relative inline-flex items-center gap-1 group">
+                PV <Info className="h-3 w-3 text-slate-400" />
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block w-64 p-2 text-xs font-normal text-slate-600 bg-white rounded shadow-lg border border-slate-200">
+                  PV (Present Value) is the total current market value of the portfolio, calculated by summing the mark-to-market values of all positions.
                 </span>
               </span>
             </th>
@@ -116,15 +124,20 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                   <td className="py-2 pr-3 text-slate-700 font-mono">
                     {run.varValue != null ? run.varValue.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}
                   </td>
-                  <td className="py-2 text-slate-700 font-mono">
+                  <td className="py-2 pr-3 text-slate-700 font-mono">
                     {run.expectedShortfall != null
                       ? run.expectedShortfall.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : '-'}
+                  </td>
+                  <td className="py-2 text-slate-700 font-mono">
+                    {run.pvValue != null
+                      ? run.pvValue.toLocaleString(undefined, { maximumFractionDigits: 2 })
                       : '-'}
                   </td>
                 </tr>
                 {(isExpanded || isLoading) && (
                   <tr data-testid={`job-detail-row-${run.jobId}`}>
-                    <td colSpan={7} className="p-0">
+                    <td colSpan={8} className="p-0">
                       <div data-testid="job-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-700">Job Details</h4>

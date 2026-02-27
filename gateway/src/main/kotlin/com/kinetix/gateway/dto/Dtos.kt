@@ -549,6 +549,7 @@ data class ValuationJobSummaryResponse(
     val calculationType: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
 )
 
 @Serializable
@@ -564,6 +565,7 @@ data class ValuationJobDetailResponse(
     val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    val pvValue: Double? = null,
     val steps: List<JobStepDto> = emptyList(),
     val error: String? = null,
 )
@@ -597,6 +599,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     calculationType = calculationType,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -611,6 +614,7 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
+    pvValue = pvValue,
     steps = steps.map { it.toDto() },
     error = error,
 )

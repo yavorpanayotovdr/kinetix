@@ -57,6 +57,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
     })
@@ -120,6 +121,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
     })
@@ -144,6 +146,7 @@ describe('JobHistory', () => {
       confidenceLevel: 'CL_95',
       varValue: 5000.0,
       expectedShortfall: 6250.0,
+      pvValue: 1800000.0,
       steps: [
         {
           name: 'FETCH_POSITIONS',
@@ -172,6 +175,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       expandedJobs: { 'job-1': detail },
@@ -199,6 +203,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
     })
@@ -223,6 +228,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'job-2',
@@ -235,6 +241,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
       ],
     })
@@ -262,6 +269,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'job-2',
@@ -274,6 +282,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
       ],
     })
@@ -301,6 +310,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'job-2',
@@ -313,6 +323,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
       ],
     })
@@ -344,6 +355,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'job-2',
@@ -356,6 +368,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
         {
           jobId: 'job-3',
@@ -368,6 +381,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 2000.0,
           expectedShortfall: 3000.0,
+          pvValue: null,
         },
       ],
     })
@@ -396,6 +410,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'job-2',
@@ -408,6 +423,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 3000.0,
           expectedShortfall: 4000.0,
+          pvValue: null,
         },
       ],
       expandedJobs: {
@@ -423,6 +439,7 @@ describe('JobHistory', () => {
           confidenceLevel: 'CL_95',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
           steps: [
             {
               name: 'FETCH_POSITIONS',
@@ -452,6 +469,7 @@ describe('JobHistory', () => {
           confidenceLevel: 'CL_95',
           varValue: 3000.0,
           expectedShortfall: 4000.0,
+          pvValue: null,
           steps: [
             {
               name: 'FETCH_POSITIONS',
@@ -495,6 +513,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
     })
@@ -519,6 +538,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
     })
@@ -549,6 +569,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
         {
           jobId: 'deadbeef-cafe-babe-face-123456789abc',
@@ -561,6 +582,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 3000.0,
           expectedShortfall: 4000.0,
+          pvValue: null,
         },
       ],
     })
@@ -588,6 +610,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       totalPages: 3,
@@ -617,6 +640,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 0,
@@ -645,6 +669,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 1,
@@ -680,6 +705,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 1,
@@ -727,6 +753,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 2,
@@ -756,6 +783,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 0,
@@ -785,6 +813,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 0,
@@ -818,6 +847,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 0,
@@ -851,6 +881,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       page: 0,
@@ -889,6 +920,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       pageSize: 10,
@@ -918,6 +950,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       setPageSize,
@@ -956,6 +989,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       setPageSize,
@@ -985,6 +1019,7 @@ describe('JobHistory', () => {
           calculationType: 'PARAMETRIC',
           varValue: 5000.0,
           expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
         },
       ],
       pageSize: 50,
@@ -1012,6 +1047,7 @@ describe('JobHistory', () => {
           calculationType: null,
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
         },
       ],
       expandedJobs: {
@@ -1027,6 +1063,7 @@ describe('JobHistory', () => {
           confidenceLevel: null,
           varValue: null,
           expectedShortfall: null,
+          pvValue: null,
           steps: [],
           error: null,
         },

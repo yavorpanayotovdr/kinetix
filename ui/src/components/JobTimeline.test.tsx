@@ -53,7 +53,7 @@ const steps: JobStepDto[] = [
     error: null,
   },
   {
-    name: 'CALCULATE_VAR',
+    name: 'VALUATION',
     status: 'COMPLETED',
     startedAt: '2025-01-15T10:00:00.080Z',
     completedAt: '2025-01-15T10:00:00.130Z',
@@ -88,7 +88,7 @@ describe('JobTimeline', () => {
     expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
     expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
     expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+    expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
     expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
   })
 
@@ -240,7 +240,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
     })
 
@@ -250,7 +250,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-PUBLISH_RESULT')).not.toBeInTheDocument()
     })
 
@@ -264,7 +264,7 @@ describe('JobTimeline', () => {
     it('matches step label name', () => {
       render(<JobTimeline steps={steps} search="Valuation" />)
 
-      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
       expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
     })
 
@@ -281,7 +281,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('details-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('details-VALUATION')).toBeInTheDocument()
     })
 
     it('filters items within matching steps to only those that match', () => {
@@ -304,7 +304,7 @@ describe('JobTimeline', () => {
       expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
       expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
     })
 
     it('treats spaces as AND for item filtering within steps', () => {
@@ -694,19 +694,19 @@ describe('JobTimeline', () => {
     })
   })
 
-  describe('per-position VaR breakdown in CALCULATE_VAR', () => {
-    it('renders expandable position breakdown items in CALCULATE_VAR details', () => {
+  describe('per-position VaR breakdown in VALUATION', () => {
+    it('renders expandable position breakdown items in VALUATION details', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
-      expect(screen.getByTestId('details-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('details-VALUATION')).toBeInTheDocument()
       expect(screen.getByTestId('var-breakdown-AAPL')).toBeInTheDocument()
       expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
     })
 
     it('expands position breakdown item to show VaR and ES as JSON with copy button', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
       const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
@@ -721,23 +721,23 @@ describe('JobTimeline', () => {
 
     it('does not render positionBreakdown key as a regular detail', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       expect(screen.queryByText('positionBreakdown:')).not.toBeInTheDocument()
     })
 
-    it('shows filter input when CALCULATE_VAR step has position breakdown', () => {
+    it('shows filter input when VALUATION step has position breakdown', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
-      expect(screen.getByTestId('filter-CALCULATE_VAR')).toBeInTheDocument()
+      expect(screen.getByTestId('filter-VALUATION')).toBeInTheDocument()
     })
 
     it('filters position breakdown items by instrument ID', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
-      fireEvent.change(screen.getByTestId('filter-CALCULATE_VAR'), { target: { value: 'TSLA' } })
+      fireEvent.change(screen.getByTestId('filter-VALUATION'), { target: { value: 'TSLA' } })
 
       expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
       expect(screen.queryByTestId('var-breakdown-AAPL')).not.toBeInTheDocument()
@@ -745,7 +745,7 @@ describe('JobTimeline', () => {
 
     it('includes delta, gamma, vega in position breakdown JSON', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
       const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
@@ -756,7 +756,7 @@ describe('JobTimeline', () => {
 
     it('renders valuation results as a JSON block with copy button', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       const jsonBlock = screen.getByTestId('valuation-result-json')
       expect(jsonBlock).toBeInTheDocument()
@@ -769,7 +769,7 @@ describe('JobTimeline', () => {
 
     it('valuation results JSON excludes positionBreakdown', () => {
       render(<JobTimeline steps={steps} />)
-      fireEvent.click(screen.getByTestId('toggle-CALCULATE_VAR'))
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       const jsonBlock = screen.getByTestId('valuation-result-json')
       expect(jsonBlock.textContent).not.toContain('positionBreakdown')

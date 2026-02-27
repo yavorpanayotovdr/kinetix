@@ -42,6 +42,7 @@ private fun completedJob(
     confidenceLevel = "CL_95",
     varValue = varValue,
     expectedShortfall = varValue * 1.25,
+    pvValue = 1_800_000.0,
     steps = listOf(
         JobStep(
             name = JobStepName.FETCH_POSITIONS,
@@ -68,7 +69,7 @@ private fun completedJob(
             details = mapOf("requested" to 3, "fetched" to 2),
         ),
         JobStep(
-            name = JobStepName.CALCULATE_VAR,
+            name = JobStepName.VALUATION,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(80),
             completedAt = startedAt.plusMillis(130),
@@ -109,6 +110,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         found.confidenceLevel shouldBe "CL_95"
         found.varValue shouldBe 5000.0
         found.expectedShortfall shouldBe 6250.0
+        found.pvValue shouldBe 1_800_000.0
         found.durationMs shouldBe 150
         found.error shouldBe null
         found.steps shouldHaveSize 5
@@ -195,6 +197,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
             durationMs = 200,
             varValue = 5000.0,
             expectedShortfall = 6250.0,
+            pvValue = 1_800_000.0,
             steps = listOf(
                 JobStep(
                     name = JobStepName.FETCH_POSITIONS,
@@ -215,6 +218,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         updated.durationMs shouldBe 200
         updated.varValue shouldBe 5000.0
         updated.expectedShortfall shouldBe 6250.0
+        updated.pvValue shouldBe 1_800_000.0
         updated.steps shouldHaveSize 1
         updated.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
         updated.error shouldBe null
