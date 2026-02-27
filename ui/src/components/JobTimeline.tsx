@@ -82,7 +82,8 @@ interface MarketDataItem {
   instrumentId: string
   dataType: string
   status: string
-  [key: string]: string
+  issue?: Record<string, string>
+  [key: string]: string | Record<string, string> | undefined
 }
 
 function stepMatchesSearch(step: JobStepDto, term: string): boolean {
@@ -93,9 +94,9 @@ function stepMatchesSearch(step: JobStepDto, term: string): boolean {
   return tokens.every((t) => text.includes(t))
 }
 
-function itemMatchesFilter(item: Record<string, string>, term: string): boolean {
+function itemMatchesFilter(item: Record<string, unknown>, term: string): boolean {
   const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
-  const text = Object.values(item).join(' ').toLowerCase()
+  const text = Object.values(item).map((v) => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(' ').toLowerCase()
   return tokens.every((t) => text.includes(t))
 }
 
@@ -235,16 +236,16 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
               const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0) || (positionBreakdown && positionBreakdown.length > 0)
               const activeFilter = filter || (isSearchActive ? search : '')
               const filteredPositions = positions && activeFilter
-                ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, string>, activeFilter))
+                ? positions.filter((p) => itemMatchesFilter(p as unknown as Record<string, unknown>, activeFilter))
                 : positions
               const filteredDependencies = dependencies && activeFilter
-                ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, string>, activeFilter))
+                ? dependencies.filter((d) => itemMatchesFilter(d as unknown as Record<string, unknown>, activeFilter))
                 : dependencies
               const filteredMarketDataItems = marketDataItems && activeFilter
-                ? marketDataItems.filter((m) => itemMatchesFilter(m as unknown as Record<string, string>, activeFilter))
+                ? marketDataItems.filter((m) => itemMatchesFilter(m as unknown as Record<string, unknown>, activeFilter))
                 : marketDataItems
               const filteredPositionBreakdown = positionBreakdown && activeFilter
-                ? positionBreakdown.filter((b) => itemMatchesFilter(b as unknown as Record<string, string>, activeFilter))
+                ? positionBreakdown.filter((b) => itemMatchesFilter(b as unknown as Record<string, unknown>, activeFilter))
                 : positionBreakdown
               return (
                 <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
@@ -383,11 +384,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                     const isMdOpen = expandedItems[mdKey] ?? false
                     const isFetched = item.status === 'FETCHED'
                     const jsonBg = isFetched ? 'bg-slate-50' : 'bg-red-50'
-                    const { error: errorRaw, ...resourceFields } = item
-                    let parsedError: Record<string, string> | null = null
-                    if (errorRaw) {
-                      try { parsedError = JSON.parse(errorRaw) } catch { /* ignore */ }
-                    }
+                    const { issue: parsedIssue, ...resourceFields } = item
                     return (
                       <div key={j} className="mt-1">
                         <button
@@ -400,24 +397,43 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                           <span>{item.dataType} — {item.instrumentId}</span>
                         </button>
                         {isMdOpen && (
-                          <div className="ml-4 mt-0.5 space-y-1">
-                            <div className="relative">
-                              <CopyButton text={JSON.stringify(resourceFields, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
-                              <pre
-                                data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
-                                className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
-                              >
-                                {JSON.stringify(resourceFields, null, 2)}
-                              </pre>
-                            </div>
-                            {parsedError && (
+                          <div className="ml-4 mt-0.5">
+                            {parsedIssue ? (() => {
+                              const fullJson = JSON.stringify({ ...resourceFields, issue: parsedIssue }, null, 2)
+                              const lines = fullJson.split('\n')
+                              const issueLineIndex = lines.findIndex(l => l.trimStart().startsWith('"issue":'))
+                              const topLines = lines.slice(0, issueLineIndex).join('\n')
+                              const bottomLines = lines.slice(issueLineIndex).join('\n')
+                              return (
+                                <>
+                                  <div className="relative">
+                                    <CopyButton text={JSON.stringify(resourceFields, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
+                                    <pre
+                                      data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
+                                      className={`p-2 pl-8 ${jsonBg} rounded-t text-[11px] font-mono overflow-x-auto`}
+                                    >
+                                      {topLines}
+                                    </pre>
+                                  </div>
+                                  <div className="relative">
+                                    <CopyButton text={JSON.stringify(parsedIssue, null, 2)} testId={`copy-issue-${item.instrumentId}-${item.dataType}`} />
+                                    <pre
+                                      data-testid={`issue-json-${item.instrumentId}-${item.dataType}`}
+                                      className="p-2 pl-8 bg-red-100 border border-red-300 text-red-900 font-mono text-[11px] rounded-b overflow-x-auto"
+                                    >
+                                      {bottomLines}
+                                    </pre>
+                                  </div>
+                                </>
+                              )
+                            })() : (
                               <div className="relative">
-                                <CopyButton text={JSON.stringify(parsedError, null, 2)} testId={`copy-error-${item.instrumentId}-${item.dataType}`} />
+                                <CopyButton text={JSON.stringify(resourceFields, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
                                 <pre
-                                  data-testid={`error-json-${item.instrumentId}-${item.dataType}`}
-                                  className="p-2 pl-8 bg-red-100 border border-red-300 text-red-900 font-mono text-[11px] rounded overflow-x-auto"
+                                  data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
+                                  className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
                                 >
-                                  {JSON.stringify(parsedError, null, 2)}
+                                  {JSON.stringify(resourceFields, null, 2)}
                                 </pre>
                               </div>
                             )}

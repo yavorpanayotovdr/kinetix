@@ -47,7 +47,7 @@ const steps: JobStepDto[] = [
       marketDataItems: JSON.stringify([
         { instrumentId: 'AAPL', dataType: 'SPOT_PRICE', assetClass: 'EQUITY', status: 'FETCHED', value: '170.5' },
         { instrumentId: 'USD_SOFR', dataType: 'YIELD_CURVE', assetClass: 'RATES', status: 'FETCHED', points: '6' },
-        { instrumentId: 'AAPL', dataType: 'HISTORICAL_PRICES', assetClass: 'EQUITY', status: 'MISSING', error: JSON.stringify({ reason: 'NOT_FOUND', url: 'http://price:8082/api/prices/AAPL/history', httpStatus: '', errorMessage: '', service: 'price-service', timestamp: '2026-02-24T10:00:00Z', durationMs: '12' }) },
+        { instrumentId: 'AAPL', dataType: 'HISTORICAL_PRICES', assetClass: 'EQUITY', status: 'MISSING', issue: { reason: 'NOT_FOUND', url: 'http://price:8082/api/prices/AAPL/history', httpStatus: '', errorMessage: '', service: 'price-service', timestamp: '2026-02-24T10:00:00Z', durationMs: '12' } },
       ]),
     },
     error: null,
@@ -495,40 +495,40 @@ describe('JobTimeline', () => {
       expect(screen.queryByTestId('market-data-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
     })
 
-    it('renders error diagnostics block for MISSING items with error data', () => {
+    it('renders issue diagnostics block for MISSING items with issue data', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
-      const errorBlock = screen.getByTestId('error-json-AAPL-HISTORICAL_PRICES')
-      expect(errorBlock).toBeInTheDocument()
-      expect(errorBlock.textContent).toContain('"reason": "NOT_FOUND"')
-      expect(errorBlock.textContent).toContain('"service": "price-service"')
-      expect(errorBlock.textContent).toContain('"url": "http://price:8082/api/prices/AAPL/history"')
+      const issueBlock = screen.getByTestId('issue-json-AAPL-HISTORICAL_PRICES')
+      expect(issueBlock).toBeInTheDocument()
+      expect(issueBlock.textContent).toContain('"reason": "NOT_FOUND"')
+      expect(issueBlock.textContent).toContain('"service": "price-service"')
+      expect(issueBlock.textContent).toContain('"url": "http://price:8082/api/prices/AAPL/history"')
     })
 
-    it('error diagnostics block has red styling and monospace font', () => {
+    it('issue diagnostics block has red styling and monospace font', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
-      const errorBlock = screen.getByTestId('error-json-AAPL-HISTORICAL_PRICES')
-      expect(errorBlock.className).toContain('bg-red-100')
-      expect(errorBlock.className).toContain('border-red-300')
-      expect(errorBlock.className).toContain('text-red-900')
-      expect(errorBlock.className).toContain('font-mono')
+      const issueBlock = screen.getByTestId('issue-json-AAPL-HISTORICAL_PRICES')
+      expect(issueBlock.className).toContain('bg-red-100')
+      expect(issueBlock.className).toContain('border-red-300')
+      expect(issueBlock.className).toContain('text-red-900')
+      expect(issueBlock.className).toContain('font-mono')
     })
 
-    it('does not render error diagnostics block for FETCHED items', () => {
+    it('does not render issue diagnostics block for FETCHED items', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
 
-      expect(screen.queryByTestId('error-json-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('issue-json-AAPL-SPOT_PRICE')).not.toBeInTheDocument()
     })
 
-    it('does not render error diagnostics block for MISSING items without error data', () => {
-      const stepsNoError: JobStepDto[] = steps.map((s) =>
+    it('does not render issue diagnostics block for MISSING items without issue data', () => {
+      const stepsNoIssue: JobStepDto[] = steps.map((s) =>
         s.name === 'FETCH_MARKET_DATA'
           ? {
               ...s,
@@ -543,30 +543,30 @@ describe('JobTimeline', () => {
             }
           : s,
       )
-      render(<JobTimeline steps={stepsNoError} />)
+      render(<JobTimeline steps={stepsNoIssue} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
-      expect(screen.queryByTestId('error-json-AAPL-HISTORICAL_PRICES')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('issue-json-AAPL-HISTORICAL_PRICES')).not.toBeInTheDocument()
     })
 
-    it('excludes error field from resource JSON block', () => {
+    it('excludes issue field from resource JSON block', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
       const resourceBlock = screen.getByTestId('market-data-json-AAPL-HISTORICAL_PRICES')
-      expect(resourceBlock.textContent).not.toContain('"error"')
+      expect(resourceBlock.textContent).not.toContain('"issue"')
       expect(resourceBlock.textContent).toContain('"instrumentId": "AAPL"')
       expect(resourceBlock.textContent).toContain('"status": "MISSING"')
     })
 
-    it('renders a separate copy button for error diagnostics', () => {
+    it('renders a separate copy button for issue diagnostics', () => {
       render(<JobTimeline steps={steps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
-      expect(screen.getByTestId('copy-error-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
+      expect(screen.getByTestId('copy-issue-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
       expect(screen.getByTestId('copy-market-data-AAPL-HISTORICAL_PRICES')).toBeInTheDocument()
     })
   })
