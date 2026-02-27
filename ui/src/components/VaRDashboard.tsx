@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react'
+import { Info, RefreshCw } from 'lucide-react'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { VaRGauge } from './VaRGauge'
@@ -95,7 +95,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
         <span>
-          <span title={calculationTypeDescriptions[varResult.calculationType]}>{varResult.calculationType}</span> &middot;{' '}
+          <span title={calculationTypeDescriptions[varResult.calculationType]} className="inline-flex items-center gap-1 cursor-help">{varResult.calculationType}<Info className="h-3 w-3" /></span> &middot;{' '}
           {new Date(varResult.calculatedAt).toLocaleString()}
         </span>
         <Button

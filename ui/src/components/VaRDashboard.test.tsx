@@ -248,7 +248,7 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('var-dashboard')).toHaveTextContent('HISTORICAL')
   })
 
-  it('shows tooltip describing the calculation method', () => {
+  it('shows tooltip with info icon describing the calculation method', () => {
     render(
       <VaRDashboard
         varResult={varResult}
@@ -262,6 +262,7 @@ describe('VaRDashboard', () => {
 
     const label = screen.getByTitle(/historical simulation/i)
     expect(label).toHaveTextContent('HISTORICAL')
+    expect(label.querySelector('svg')).toBeInTheDocument()
   })
 
   it('shows parametric tooltip for PARAMETRIC calculation type', () => {
