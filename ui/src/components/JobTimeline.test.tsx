@@ -714,7 +714,7 @@ describe('JobTimeline', () => {
       expect(jsonBlock.textContent).toContain('"varContribution": "3000.00"')
       expect(jsonBlock.textContent).toContain('"esContribution": "3750.00"')
       expect(jsonBlock.textContent).toContain('"percentageOfTotal": "60.00"')
-      expect(jsonBlock.textContent).toContain('"marketValue": "17000.00"')
+      expect(jsonBlock.textContent).toContain('"pv": "17000.00"')
 
       expect(screen.getByTestId('copy-var-breakdown-AAPL')).toBeInTheDocument()
     })
@@ -741,6 +741,16 @@ describe('JobTimeline', () => {
 
       expect(screen.getByTestId('var-breakdown-TSLA')).toBeInTheDocument()
       expect(screen.queryByTestId('var-breakdown-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('renames marketValue to pv in position breakdown JSON', () => {
+      render(<JobTimeline steps={steps} />)
+      fireEvent.click(screen.getByTestId('toggle-VALUATION'))
+      fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
+
+      const jsonBlock = screen.getByTestId('var-breakdown-json-AAPL')
+      expect(jsonBlock.textContent).toContain('"pv": "17000.00"')
+      expect(jsonBlock.textContent).not.toContain('"marketValue"')
     })
 
     it('includes delta, gamma, vega in position breakdown JSON', () => {

@@ -463,6 +463,11 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                   {filteredPositionBreakdown && filteredPositionBreakdown.map((item, j) => {
                     const bKey = `${stepIndex}-varb-${item.instrumentId}`
                     const isBOpen = expandedItems[bKey] ?? false
+                    const BREAKDOWN_DISPLAY_KEYS: Record<string, string> = { marketValue: 'pv' }
+                    const displayItem = Object.fromEntries(
+                      Object.entries(item).map(([k, v]) => [BREAKDOWN_DISPLAY_KEYS[k] ?? k, v]),
+                    )
+                    const displayJson = JSON.stringify(displayItem, null, 2)
                     return (
                       <div key={j} className="mt-1">
                         <button
@@ -475,12 +480,12 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                         </button>
                         {isBOpen && (
                           <div className="relative ml-4 mt-0.5">
-                            <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-var-breakdown-${item.instrumentId}`} />
+                            <CopyButton text={displayJson} testId={`copy-var-breakdown-${item.instrumentId}`} />
                             <pre
                               data-testid={`var-breakdown-json-${item.instrumentId}`}
                               className="p-2 pl-8 bg-slate-50 rounded text-[11px] font-mono overflow-x-auto"
                             >
-                              {JSON.stringify(item, null, 2)}
+                              {displayJson}
                             </pre>
                           </div>
                         )}
