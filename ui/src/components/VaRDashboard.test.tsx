@@ -307,6 +307,25 @@ describe('VaRDashboard', () => {
     expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
   })
 
+  it('closes calc-type popover when close button is clicked', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('calc-type-info'))
+    expect(screen.getByTestId('calc-type-tooltip')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('calc-type-tooltip-close'))
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
+  })
+
   it('shows correct tooltip for each calculation type', () => {
     render(
       <VaRDashboard

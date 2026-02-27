@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Info, RefreshCw } from 'lucide-react'
+import { Info, RefreshCw, X } from 'lucide-react'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -121,6 +121,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           </span>
           {tooltipOpen && description && (
             <span data-testid="calc-type-tooltip" className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs text-white text-justify shadow-lg z-10">
+              <button data-testid="calc-type-tooltip-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closeTooltip}><X className="h-3 w-3" /></button>
               {description}
             </span>
           )}

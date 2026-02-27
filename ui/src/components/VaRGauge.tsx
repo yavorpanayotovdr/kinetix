@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Info } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { formatMoney } from '../utils/format'
 
@@ -75,12 +75,9 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
           strokeDashoffset={dashOffset}
         />
       </svg>
-      <div data-testid="var-confidence" className="text-xs text-slate-500 -mt-2">
-        {confidenceLabel(confidenceLevel)}
-      </div>
       <div className="relative">
-        <div data-testid="var-value" className="text-lg font-bold mt-1 inline-flex items-center gap-1">
-          {formatMoney(varValue.toFixed(2), 'USD')}
+        <div data-testid="var-confidence" className="text-xs text-slate-500 -mt-2 inline-flex items-center gap-1">
+          {confidenceLabel(confidenceLevel)}
           <Info
             data-testid="var-info"
             className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
@@ -92,24 +89,30 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
             data-testid="var-popover"
             className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
           >
+            <button data-testid="var-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
             {metricDescriptions.var}
           </span>
         )}
       </div>
+      <div data-testid="var-value" className="text-lg font-bold mt-1">
+        {formatMoney(varValue.toFixed(2), 'USD')}
+      </div>
       <div className="relative">
         <div data-testid="es-value" className="text-xs text-slate-500 mt-1 inline-flex items-center gap-1">
-          ES: {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+          ES
           <Info
             data-testid="es-info"
             className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
             onClick={() => togglePopover('es')}
           />
+          {formatMoney(expectedShortfall.toFixed(2), 'USD')}
         </div>
         {openPopover === 'es' && (
           <span
             data-testid="es-popover"
             className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
           >
+            <button data-testid="es-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
             {metricDescriptions.es}
           </span>
         )}

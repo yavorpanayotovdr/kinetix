@@ -134,5 +134,15 @@ describe('RiskSensitivities', () => {
       fireEvent.mouseDown(document.body)
       expect(screen.queryByTestId('greek-popover-delta')).not.toBeInTheDocument()
     })
+
+    it('closes popover when close button is clicked', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      fireEvent.click(screen.getByTestId('greek-info-delta'))
+      expect(screen.getByTestId('greek-popover-delta')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('greek-popover-delta-close'))
+      expect(screen.queryByTestId('greek-popover-delta')).not.toBeInTheDocument()
+    })
   })
 })

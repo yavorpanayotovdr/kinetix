@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Info } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import type { GreeksResultDto } from '../types'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { formatNum } from '../utils/format'
@@ -53,6 +53,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
           data-testid={`greek-popover-${greek}`}
           className="absolute top-full left-0 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
         >
+          <button data-testid={`greek-popover-${greek}-close`} className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
           {greekDescriptions[greek]}
         </span>
       )}

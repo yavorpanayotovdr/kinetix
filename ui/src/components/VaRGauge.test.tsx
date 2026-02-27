@@ -121,5 +121,17 @@ describe('VaRGauge', () => {
       expect(screen.queryByTestId('var-popover')).not.toBeInTheDocument()
       expect(screen.getByTestId('es-popover')).toBeInTheDocument()
     })
+
+    it('closes popover when close button is clicked', () => {
+      render(
+        <VaRGauge varValue={1234567.89} expectedShortfall={1567890.12} confidenceLevel="CL_95" />,
+      )
+
+      fireEvent.click(screen.getByTestId('var-info'))
+      expect(screen.getByTestId('var-popover')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('var-popover-close'))
+      expect(screen.queryByTestId('var-popover')).not.toBeInTheDocument()
+    })
   })
 })
