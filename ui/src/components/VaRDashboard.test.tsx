@@ -248,6 +248,54 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('var-dashboard')).toHaveTextContent('HISTORICAL')
   })
 
+  it('shows tooltip describing the calculation method', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    const label = screen.getByTitle(/historical simulation/i)
+    expect(label).toHaveTextContent('HISTORICAL')
+  })
+
+  it('shows parametric tooltip for PARAMETRIC calculation type', () => {
+    render(
+      <VaRDashboard
+        varResult={{ ...varResult, calculationType: 'PARAMETRIC' }}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    const label = screen.getByTitle(/variance-covariance/i)
+    expect(label).toHaveTextContent('PARAMETRIC')
+  })
+
+  it('shows Monte Carlo tooltip for MONTE_CARLO calculation type', () => {
+    render(
+      <VaRDashboard
+        varResult={{ ...varResult, calculationType: 'MONTE_CARLO' }}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    const label = screen.getByTitle(/monte carlo/i)
+    expect(label).toHaveTextContent('MONTE_CARLO')
+  })
+
   it('shows spinner on Recalculate button when refreshing, not full loading state', () => {
     render(
       <VaRDashboard

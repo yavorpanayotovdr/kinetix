@@ -8,6 +8,12 @@ import { VaRTrendChart } from './VaRTrendChart'
 import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Button, Spinner } from './ui'
 
+const calculationTypeDescriptions: Record<string, string> = {
+  PARAMETRIC: 'Variance-covariance method — assumes returns are normally distributed and estimates VaR from the portfolio\'s mean and standard deviation.',
+  HISTORICAL: 'Historical simulation — uses actual past returns to estimate potential losses without assuming a specific distribution.',
+  MONTE_CARLO: 'Monte Carlo simulation — generates thousands of random return scenarios to estimate the distribution of potential losses.',
+}
+
 interface VaRDashboardProps {
   varResult: VaRResultDto | null
   filteredHistory: VaRHistoryEntry[]
@@ -89,7 +95,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
         <span>
-          {varResult.calculationType} &middot;{' '}
+          <span title={calculationTypeDescriptions[varResult.calculationType]}>{varResult.calculationType}</span> &middot;{' '}
           {new Date(varResult.calculatedAt).toLocaleString()}
         </span>
         <Button
