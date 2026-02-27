@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
@@ -269,8 +269,7 @@ describe('VaRDashboard', () => {
     expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
   })
 
-  it('shows tooltip on hover after a short delay', () => {
-    vi.useFakeTimers()
+  it('closes calc-type popover when Escape is pressed', () => {
     render(
       <VaRDashboard
         varResult={{ ...varResult, calculationType: 'PARAMETRIC' }}
@@ -282,16 +281,30 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    fireEvent.mouseEnter(screen.getByTestId('calc-type-label'))
-    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
-
-    act(() => { vi.advanceTimersByTime(300) })
+    fireEvent.click(screen.getByTestId('calc-type-info'))
     expect(screen.getByTestId('calc-type-tooltip')).toHaveTextContent(/variance-covariance/i)
 
-    fireEvent.mouseLeave(screen.getByTestId('calc-type-label'))
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
+  })
 
-    vi.useRealTimers()
+  it('closes calc-type popover when clicking outside', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('calc-type-info'))
+    expect(screen.getByTestId('calc-type-tooltip')).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByTestId('calc-type-tooltip')).not.toBeInTheDocument()
   })
 
   it('shows correct tooltip for each calculation type', () => {
