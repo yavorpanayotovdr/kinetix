@@ -144,7 +144,7 @@ class VaRCalculationService(
 
             // Step 3: Fetch market data
             val fetchMdStart = Instant.now()
-            val marketData = try {
+            val fetchResults = try {
                 if (dependencies.isNotEmpty() && marketDataFetcher != null) {
                     marketDataFetcher.fetch(dependencies)
                 } else {
@@ -152,8 +152,9 @@ class VaRCalculationService(
                 }
             } catch (e: Exception) {
                 logger.warn("Market data fetch failed, proceeding with defaults", e)
-                emptyList()
+                emptyList<FetchResult>()
             }
+            val marketData = fetchResults.filterIsInstance<FetchSuccess>().map { it.value }
             val fetchMdDuration = java.time.Duration.between(fetchMdStart, Instant.now()).toMillis()
             steps.add(
                 JobStep(
@@ -166,7 +167,9 @@ class VaRCalculationService(
                         "requested" to dependencies.size,
                         "fetched" to marketData.size,
                         "marketDataItems" to Json.encodeToString(dependencies.map { dep ->
-                            val fetched = marketData.find { it.dataType == dep.dataType && it.instrumentId == dep.instrumentId }
+                            val result = fetchResults.find { it.dependency == dep }
+                            val fetched = (result as? FetchSuccess)?.value
+                            val failure = result as? FetchFailure
                             buildMap {
                                 put("instrumentId", dep.instrumentId)
                                 put("dataType", dep.dataType)
@@ -176,6 +179,17 @@ class VaRCalculationService(
                                 if (fetched is CurveMarketData) put("points", fetched.points.size.toString())
                                 if (fetched is TimeSeriesMarketData) put("points", fetched.points.size.toString())
                                 if (fetched is MatrixMarketData) put("rows", fetched.rows.size.toString())
+                                if (failure != null) {
+                                    put("error", Json.encodeToString(buildMap {
+                                        put("reason", failure.reason)
+                                        put("url", failure.url ?: "")
+                                        put("httpStatus", failure.httpStatus?.toString() ?: "")
+                                        put("errorMessage", failure.errorMessage ?: "")
+                                        put("service", failure.service)
+                                        put("timestamp", failure.timestamp.toString())
+                                        put("durationMs", failure.durationMs.toString())
+                                    }))
+                                }
                             }
                         }),
                     ),

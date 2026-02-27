@@ -182,6 +182,11 @@ fun Application.moduleWithRoutes() {
     val marketDataFetcher = MarketDataFetcher(
         effectivePriceServiceClient, effectiveRatesServiceClient, effectiveReferenceDataServiceClient,
         effectiveVolatilityServiceClient, effectiveCorrelationServiceClient,
+        priceServiceBaseUrl = priceServiceBaseUrl,
+        ratesServiceBaseUrl = ratesServiceBaseUrl,
+        referenceDataServiceBaseUrl = referenceDataServiceBaseUrl,
+        volatilityServiceBaseUrl = volatilityServiceBaseUrl,
+        correlationServiceBaseUrl = correlationServiceBaseUrl,
     )
 
     val riskDbConfig = environment.config.config("riskDatabase")

@@ -398,16 +398,29 @@ class VaRCalculationServiceTest : FunSpec({
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
             DiscoveredDependency("YIELD_CURVE", "USD_SOFR", "RATES"),
         )
-        val marketData = listOf<MarketDataValue>(
-            ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.5),
+        val spotDep = dependencies[0]
+        val yieldDep = dependencies[1]
+        val spotValue = ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.5)
+        val fetchResults = listOf<FetchResult>(
+            FetchSuccess(spotDep, spotValue),
+            FetchFailure(
+                dependency = yieldDep,
+                reason = "CLIENT_UNAVAILABLE",
+                url = "http://rates:8088/api/rates/yield-curves/USD_SOFR/latest",
+                httpStatus = null,
+                errorMessage = null,
+                service = "rates-service",
+                timestamp = Instant.parse("2026-02-24T10:00:00Z"),
+                durationMs = 5,
+            ),
         )
 
         val discoverer = mockk<DependenciesDiscoverer>()
         val fetcher = mockk<MarketDataFetcher>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
-        coEvery { fetcher.fetch(dependencies) } returns marketData
+        coEvery { fetcher.fetch(dependencies) } returns fetchResults
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
-        coEvery { riskEngineClient.valuate(any(), positions, marketData) } returns expectedResult
+        coEvery { riskEngineClient.valuate(any(), positions, listOf(spotValue)) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val serviceWithFetcher = VaRCalculationService(
@@ -448,6 +461,80 @@ class VaRCalculationServiceTest : FunSpec({
         curveItem["instrumentId"]!!.jsonPrimitive.content shouldBe "USD_SOFR"
         curveItem["dataType"]!!.jsonPrimitive.content shouldBe "YIELD_CURVE"
         curveItem["status"]!!.jsonPrimitive.content shouldBe "MISSING"
+    }
+
+    test("MISSING market data items contain error diagnostics with all seven fields") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        val dependencies = listOf(
+            DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"),
+            DiscoveredDependency("YIELD_CURVE", "USD_SOFR", "RATES"),
+        )
+        val spotDep = dependencies[0]
+        val yieldDep = dependencies[1]
+        val spotValue = ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.5)
+        val failureTimestamp = Instant.parse("2026-02-24T10:00:00Z")
+        val fetchResults = listOf<FetchResult>(
+            FetchSuccess(spotDep, spotValue),
+            FetchFailure(
+                dependency = yieldDep,
+                reason = "NOT_FOUND",
+                url = "http://rates:8088/api/rates/yield-curves/USD_SOFR/latest",
+                httpStatus = 404,
+                errorMessage = "Yield curve not found for USD_SOFR",
+                service = "rates-service",
+                timestamp = failureTimestamp,
+                durationMs = 42,
+            ),
+        )
+
+        val discoverer = mockk<DependenciesDiscoverer>()
+        val fetcher = mockk<MarketDataFetcher>()
+        coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
+        coEvery { fetcher.fetch(dependencies) } returns fetchResults
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions, listOf(spotValue)) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        val serviceWithFetcher = VaRCalculationService(
+            positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+            dependenciesDiscoverer = discoverer,
+            marketDataFetcher = fetcher,
+            jobRecorder = jobRecorder,
+        )
+
+        serviceWithFetcher.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val jobSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(jobSlot)) }
+
+        val mdStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_MARKET_DATA }
+        val itemsJson = mdStep.details["marketDataItems"]
+        itemsJson.shouldBeInstanceOf<String>()
+
+        val parsed = Json.parseToJsonElement(itemsJson).jsonArray
+        val missingItem = parsed[1].jsonObject
+        missingItem["status"]!!.jsonPrimitive.content shouldBe "MISSING"
+
+        val errorJson = missingItem["error"]!!.jsonPrimitive.content
+        val error = Json.parseToJsonElement(errorJson).jsonObject
+        error["reason"]!!.jsonPrimitive.content shouldBe "NOT_FOUND"
+        error["url"]!!.jsonPrimitive.content shouldBe "http://rates:8088/api/rates/yield-curves/USD_SOFR/latest"
+        error["httpStatus"]!!.jsonPrimitive.content shouldBe "404"
+        error["errorMessage"]!!.jsonPrimitive.content shouldBe "Yield curve not found for USD_SOFR"
+        error["service"]!!.jsonPrimitive.content shouldBe "rates-service"
+        error["timestamp"]!!.jsonPrimitive.content shouldBe "2026-02-24T10:00:00Z"
+        error["durationMs"]!!.jsonPrimitive.content shouldBe "42"
+
+        // FETCHED item should NOT have error key
+        val fetchedItem = parsed[0].jsonObject
+        fetchedItem.containsKey("error") shouldBe false
     }
 
     test("FETCH_POSITIONS step contains dependenciesByPosition when dependencies are discovered") {

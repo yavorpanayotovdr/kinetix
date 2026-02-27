@@ -9,11 +9,15 @@ import com.kinetix.risk.client.CorrelationServiceClient
 import com.kinetix.risk.model.CurveMarketData
 import com.kinetix.risk.model.CurvePointValue
 import com.kinetix.risk.model.DiscoveredDependency
+import com.kinetix.risk.model.FetchFailure
+import com.kinetix.risk.model.FetchResult
+import com.kinetix.risk.model.FetchSuccess
 import com.kinetix.risk.model.MarketDataValue
 import com.kinetix.risk.model.MatrixMarketData
 import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.TimeSeriesPoint
+import io.ktor.client.plugins.ResponseException
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -25,25 +29,108 @@ class MarketDataFetcher(
     private val referenceDataServiceClient: ReferenceDataServiceClient? = null,
     private val volatilityServiceClient: VolatilityServiceClient? = null,
     private val correlationServiceClient: CorrelationServiceClient? = null,
+    private val priceServiceBaseUrl: String = "",
+    private val ratesServiceBaseUrl: String = "",
+    private val referenceDataServiceBaseUrl: String = "",
+    private val volatilityServiceBaseUrl: String = "",
+    private val correlationServiceBaseUrl: String = "",
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
 
-    suspend fun fetch(dependencies: List<DiscoveredDependency>): List<MarketDataValue> {
-        val results = mutableListOf<MarketDataValue>()
+    suspend fun fetch(dependencies: List<DiscoveredDependency>): List<FetchResult> {
+        val results = mutableListOf<FetchResult>()
 
         for (dep in dependencies) {
+            val startTime = Instant.now()
             try {
                 val value = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
                 if (value != null) {
-                    results.add(value)
+                    results.add(FetchSuccess(dep, value))
+                } else {
+                    val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
+                    results.add(
+                        FetchFailure(
+                            dependency = dep,
+                            reason = reason,
+                            url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                            httpStatus = null,
+                            errorMessage = null,
+                            service = resolveServiceName(dep.dataType),
+                            timestamp = startTime,
+                            durationMs = durationMs,
+                        )
+                    )
                 }
             } catch (e: Exception) {
+                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
                 logger.warn("Failed to fetch {} for {}, skipping", dep.dataType, dep.instrumentId, e)
+                results.add(
+                    FetchFailure(
+                        dependency = dep,
+                        reason = "EXCEPTION",
+                        url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                        httpStatus = extractHttpStatus(e),
+                        errorMessage = e.message,
+                        service = resolveServiceName(dep.dataType),
+                        timestamp = startTime,
+                        durationMs = durationMs,
+                    )
+                )
             }
         }
 
-        logger.debug("Fetched {} market data values for {} dependencies", results.size, dependencies.size)
+        val successCount = results.count { it is FetchSuccess }
+        logger.debug("Fetched {} market data values for {} dependencies", successCount, dependencies.size)
         return results
+    }
+
+    private fun isClientAvailable(dataType: String): Boolean = when (dataType) {
+        "SPOT_PRICE", "HISTORICAL_PRICES" -> true
+        "YIELD_CURVE", "RISK_FREE_RATE", "FORWARD_CURVE" -> ratesServiceClient != null
+        "DIVIDEND_YIELD", "CREDIT_SPREAD" -> referenceDataServiceClient != null
+        "VOLATILITY_SURFACE" -> volatilityServiceClient != null
+        "CORRELATION_MATRIX" -> correlationServiceClient != null
+        else -> false
+    }
+
+    private fun resolveServiceName(dataType: String): String = when (dataType) {
+        "SPOT_PRICE", "HISTORICAL_PRICES" -> "price-service"
+        "YIELD_CURVE", "RISK_FREE_RATE", "FORWARD_CURVE" -> "rates-service"
+        "DIVIDEND_YIELD", "CREDIT_SPREAD" -> "reference-data-service"
+        "VOLATILITY_SURFACE" -> "volatility-service"
+        "CORRELATION_MATRIX" -> "correlation-service"
+        else -> "unknown"
+    }
+
+    private fun resolveUrl(dataType: String, instrumentId: String, parameters: Map<String, String>): String? {
+        val id = instrumentId
+        return when (dataType) {
+            "SPOT_PRICE" -> "$priceServiceBaseUrl/api/prices/$id/latest"
+            "HISTORICAL_PRICES" -> "$priceServiceBaseUrl/api/prices/$id/history"
+            "YIELD_CURVE" -> {
+                val curveId = parameters["curveId"] ?: id
+                "$ratesServiceBaseUrl/api/rates/yield-curves/$curveId/latest"
+            }
+            "RISK_FREE_RATE" -> {
+                val currency = parameters["currency"] ?: "USD"
+                val tenor = parameters["tenor"] ?: "3M"
+                "$ratesServiceBaseUrl/api/rates/risk-free/$currency/$tenor"
+            }
+            "FORWARD_CURVE" -> "$ratesServiceBaseUrl/api/rates/forward-curves/$id/latest"
+            "DIVIDEND_YIELD" -> "$referenceDataServiceBaseUrl/api/reference-data/$id/dividend-yield"
+            "CREDIT_SPREAD" -> "$referenceDataServiceBaseUrl/api/reference-data/$id/credit-spread"
+            "VOLATILITY_SURFACE" -> "$volatilityServiceBaseUrl/api/volatility/$id/surface/latest"
+            "CORRELATION_MATRIX" -> "$correlationServiceBaseUrl/api/correlation/matrix"
+            else -> null
+        }
+    }
+
+    private fun extractHttpStatus(e: Exception): Int? {
+        if (e is ResponseException) {
+            return e.response.status.value
+        }
+        return null
     }
 
     private suspend fun fetchDependency(

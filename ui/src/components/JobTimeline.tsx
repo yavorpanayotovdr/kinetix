@@ -383,6 +383,11 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                     const isMdOpen = expandedItems[mdKey] ?? false
                     const isFetched = item.status === 'FETCHED'
                     const jsonBg = isFetched ? 'bg-slate-50' : 'bg-red-50'
+                    const { error: errorRaw, ...resourceFields } = item
+                    let parsedError: Record<string, string> | null = null
+                    if (errorRaw) {
+                      try { parsedError = JSON.parse(errorRaw) } catch { /* ignore */ }
+                    }
                     return (
                       <div key={j} className="mt-1">
                         <button
@@ -395,14 +400,27 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                           <span>{item.dataType} — {item.instrumentId}</span>
                         </button>
                         {isMdOpen && (
-                          <div className="relative ml-4 mt-0.5">
-                            <CopyButton text={JSON.stringify(item, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
-                            <pre
-                              data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
-                              className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
-                            >
-                              {JSON.stringify(item, null, 2)}
-                            </pre>
+                          <div className="ml-4 mt-0.5 space-y-1">
+                            <div className="relative">
+                              <CopyButton text={JSON.stringify(resourceFields, null, 2)} testId={`copy-market-data-${item.instrumentId}-${item.dataType}`} />
+                              <pre
+                                data-testid={`market-data-json-${item.instrumentId}-${item.dataType}`}
+                                className={`p-2 pl-8 ${jsonBg} rounded text-[11px] font-mono overflow-x-auto`}
+                              >
+                                {JSON.stringify(resourceFields, null, 2)}
+                              </pre>
+                            </div>
+                            {parsedError && (
+                              <div className="relative">
+                                <CopyButton text={JSON.stringify(parsedError, null, 2)} testId={`copy-error-${item.instrumentId}-${item.dataType}`} />
+                                <pre
+                                  data-testid={`error-json-${item.instrumentId}-${item.dataType}`}
+                                  className="p-2 pl-8 bg-red-100 border border-red-300 text-red-900 font-mono text-[11px] rounded overflow-x-auto"
+                                >
+                                  {JSON.stringify(parsedError, null, 2)}
+                                </pre>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
