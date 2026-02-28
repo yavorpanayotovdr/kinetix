@@ -177,7 +177,7 @@ unexplained = totalPnl - sum(explained components)
 ---
 
 ### Step 2.3 — Frontend: Types, API, hook, and P&L tab
-- [ ] **Done**
+- [x] **Done** (commit 00c9aee)
 
 **What:** Add the P&L tab to the application with waterfall chart and attribution table.
 
