@@ -60,7 +60,7 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
         loading={sod.loading}
         creating={sod.creating}
         resetting={sod.resetting}
-        onCreateSnapshot={sod.createSnapshot}
+        onCreateSnapshot={() => sod.createSnapshot()}
         onResetBaseline={() => setShowResetDialog(true)}
         onPickFromHistory={() => setShowJobPicker(true)}
       />
