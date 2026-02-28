@@ -200,6 +200,16 @@ describe('PositionRiskTable', () => {
     })
   })
 
+  describe('error state', () => {
+    it('shows the error message when error is provided', () => {
+      render(<PositionRiskTable data={[]} loading={false} error="Failed to fetch position risk" />)
+
+      expect(screen.getByTestId('position-risk-error')).toHaveTextContent('Failed to fetch position risk')
+      expect(screen.queryByTestId('position-risk-empty')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('position-risk-table')).not.toBeInTheDocument()
+    })
+  })
+
   describe('empty state', () => {
     it('shows an empty message when data is empty and not loading', () => {
       render(<PositionRiskTable data={[]} loading={false} />)

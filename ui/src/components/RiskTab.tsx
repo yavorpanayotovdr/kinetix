@@ -28,6 +28,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
   const {
     positionRisk,
     loading: positionRiskLoading,
+    error: positionRiskError,
     refresh: refreshPositionRisk,
   } = usePositionRisk(portfolioId)
 
@@ -55,7 +56,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         greeksResult={greeksResult}
       />
       <div className="mt-4">
-        <PositionRiskTable data={positionRisk} loading={positionRiskLoading} />
+        <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
       </div>
       <div className="mt-4">
         <JobHistory portfolioId={portfolioId} refreshSignal={jobRefreshSignal} />

@@ -17,6 +17,7 @@ type SortDirection = 'asc' | 'desc'
 interface PositionRiskTableProps {
   data: PositionRiskDto[]
   loading: boolean
+  error?: string | null
 }
 
 function numericValue(row: PositionRiskDto, field: SortField, useAbsolute: boolean): number {
@@ -42,7 +43,7 @@ const COLUMNS: { label: string; field: SortField; sortable: true }[] = [
   { label: '% of Total', field: 'percentageOfTotal', sortable: true },
 ]
 
-export function PositionRiskTable({ data, loading }: PositionRiskTableProps) {
+export function PositionRiskTable({ data, loading, error }: PositionRiskTableProps) {
   const [expanded, setExpanded] = useState(true)
   const [sortField, setSortField] = useState<SortField>('varContribution')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -93,13 +94,19 @@ export function PositionRiskTable({ data, loading }: PositionRiskTableProps) {
           </div>
         )}
 
-        {!loading && data.length === 0 && (
+        {!loading && error && (
+          <div data-testid="position-risk-error" className="text-sm text-red-600 py-6 text-center px-4">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && data.length === 0 && (
           <div data-testid="position-risk-empty" className="text-sm text-slate-400 py-6 text-center">
             No position risk data available.
           </div>
         )}
 
-        {!loading && data.length > 0 && expanded && (
+        {!loading && !error && data.length > 0 && expanded && (
           <div data-testid="position-risk-table" className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
