@@ -9,6 +9,8 @@ type SortField =
   | 'delta'
   | 'gamma'
   | 'vega'
+  | 'theta'
+  | 'rho'
   | 'varContribution'
   | 'esContribution'
   | 'percentageOfTotal'
@@ -38,6 +40,8 @@ const COLUMNS: { label: string; field: SortField; sortable: true }[] = [
   { label: 'Delta', field: 'delta', sortable: true },
   { label: 'Gamma', field: 'gamma', sortable: true },
   { label: 'Vega', field: 'vega', sortable: true },
+  { label: 'Theta', field: 'theta', sortable: true },
+  { label: 'Rho', field: 'rho', sortable: true },
   { label: 'VaR Contribution', field: 'varContribution', sortable: true },
   { label: 'ES Contribution', field: 'esContribution', sortable: true },
   { label: '% of Total', field: 'percentageOfTotal', sortable: true },
@@ -149,6 +153,12 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                         <td className="py-2 pr-3 text-right font-mono">
                           {row.vega != null ? formatNum(row.vega) : '\u2014'}
                         </td>
+                        <td className="py-2 pr-3 text-right font-mono">
+                          {row.theta != null ? formatNum(row.theta) : '\u2014'}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono">
+                          {row.rho != null ? formatNum(row.rho) : '\u2014'}
+                        </td>
                         <td className="py-2 pr-3 text-right font-mono">{formatNum(row.varContribution)}</td>
                         <td className="py-2 pr-3 text-right font-mono">{formatNum(row.esContribution)}</td>
                         <td
@@ -160,8 +170,8 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                       </tr>
                       {isExpanded && (
                         <tr data-testid={`position-risk-detail-${row.instrumentId}`}>
-                          <td colSpan={9} className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                            <div className="grid grid-cols-3 gap-4 text-xs">
+                          <td colSpan={11} className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                            <div className="grid grid-cols-4 gap-4 text-xs">
                               <div>
                                 <span className="text-slate-500">Market Value</span>
                                 <p className="font-mono font-medium">{formatNum(row.marketValue)}</p>
@@ -175,6 +185,10 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                                 <p className="font-mono font-medium">{formatNum(row.esContribution)}</p>
                               </div>
                               <div>
+                                <span className="text-slate-500">% of Total</span>
+                                <p className="font-mono font-medium">{formatNum(row.percentageOfTotal)}%</p>
+                              </div>
+                              <div>
                                 <span className="text-slate-500">Delta</span>
                                 <p className="font-mono font-medium">{row.delta != null ? formatNum(row.delta) : '\u2014'}</p>
                               </div>
@@ -185,6 +199,10 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                               <div>
                                 <span className="text-slate-500">Vega</span>
                                 <p className="font-mono font-medium">{row.vega != null ? formatNum(row.vega) : '\u2014'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Theta</span>
+                                <p className="font-mono font-medium">{row.theta != null ? formatNum(row.theta) : '\u2014'}</p>
                               </div>
                             </div>
                           </td>

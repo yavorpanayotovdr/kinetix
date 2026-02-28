@@ -11,6 +11,8 @@ const makeRisk = (overrides: Partial<PositionRiskDto> = {}): PositionRiskDto => 
   delta: '1234.56',
   gamma: '45.67',
   vega: '89.01',
+  theta: '-12.34',
+  rho: '5.67',
   varContribution: '800.00',
   esContribution: '1000.00',
   percentageOfTotal: '64.85',
@@ -29,6 +31,8 @@ describe('PositionRiskTable', () => {
         'Delta',
         'Gamma',
         'Vega',
+        'Theta',
+        'Rho',
         'VaR Contribution',
         'ES Contribution',
         '% of Total',
@@ -53,17 +57,25 @@ describe('PositionRiskTable', () => {
       expect(within(row).getByText('64.85%')).toBeInTheDocument()
     })
 
-    it('shows dash for null greek values', () => {
+    it('renders theta and rho values', () => {
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      const row = screen.getByTestId('position-risk-row-AAPL')
+      expect(within(row).getByText('-12.34')).toBeInTheDocument()
+      expect(within(row).getByText('5.67')).toBeInTheDocument()
+    })
+
+    it('shows dash for null greek values including theta and rho', () => {
       render(
         <PositionRiskTable
-          data={[makeRisk({ delta: null, gamma: null, vega: null })]}
+          data={[makeRisk({ delta: null, gamma: null, vega: null, theta: null, rho: null })]}
           loading={false}
         />,
       )
 
       const row = screen.getByTestId('position-risk-row-AAPL')
       const cells = within(row).getAllByText('\u2014')
-      expect(cells).toHaveLength(3)
+      expect(cells).toHaveLength(5)
     })
   })
 

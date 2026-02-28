@@ -21,6 +21,8 @@ export interface PositionRiskDto {
   delta: string | null
   gamma: string | null
   vega: string | null
+  theta: string | null
+  rho: string | null
   varContribution: string
   esContribution: string
   percentageOfTotal: string
