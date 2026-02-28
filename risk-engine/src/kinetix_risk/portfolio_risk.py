@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 
 import numpy as np
@@ -25,6 +26,7 @@ def calculate_portfolio_var(
     num_simulations: int = 10_000,
     volatility_provider: VolatilityProvider | None = None,
     correlation_matrix: "np.ndarray | None" = None,
+    risk_free_rate: float = 0.0,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -38,6 +40,11 @@ def calculate_portfolio_var(
     grouped: dict[AssetClass, float] = defaultdict(float)
     for pos in positions:
         grouped[pos.asset_class] += pos.market_value
+
+    # Discount grouped market values when a risk-free rate is provided
+    if risk_free_rate != 0.0:
+        discount = math.exp(-risk_free_rate * time_horizon_days / 252)
+        grouped = {ac: mv * discount for ac, mv in grouped.items()}
 
     # Build exposures with volatility assumptions
     vol_fn = volatility_provider or VolatilityProvider.static()
