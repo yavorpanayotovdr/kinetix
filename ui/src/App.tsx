@@ -9,6 +9,7 @@ import { RegulatoryTab } from './components/RegulatoryTab'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
+import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 
 type Tab = 'positions' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
@@ -27,6 +28,7 @@ function App() {
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
+  const { positionRisk } = usePositionRisk(portfolioId)
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
 
@@ -99,7 +101,7 @@ function App() {
             {!loading && !error && (
               <>
                 {activeTab === 'positions' && (
-                  <PositionGrid positions={positions} connected={connected} />
+                  <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
                 )}
 
                 {activeTab === 'risk' && (

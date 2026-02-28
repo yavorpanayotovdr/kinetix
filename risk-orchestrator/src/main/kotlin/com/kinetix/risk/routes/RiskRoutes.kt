@@ -12,6 +12,7 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
 import com.kinetix.proto.risk.FrtbRequest
 import com.kinetix.proto.risk.GenerateReportRequest
@@ -35,6 +36,7 @@ fun Route.riskRoutes(
     stressTestStub: StressTestServiceGrpcKt.StressTestServiceCoroutineStub,
     regulatoryStub: RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub,
     riskEngineClient: RiskEngineClient? = null,
+    whatIfAnalysisService: WhatIfAnalysisService? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -100,6 +102,36 @@ fun Route.riskRoutes(
             call.respond(cached.positionRisk.map { it.toDto() })
         } else {
             call.respond(HttpStatusCode.NotFound)
+        }
+    }
+
+    // What-if analysis routes
+    if (whatIfAnalysisService != null) {
+        route("/api/v1/risk/what-if/{portfolioId}") {
+            post({
+                summary = "Run what-if analysis for a portfolio"
+                tags = listOf("What-If")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    body<WhatIfRequestBody>()
+                }
+            }) {
+                val portfolioId = call.requirePathParam("portfolioId")
+                val body = call.receive<WhatIfRequestBody>()
+
+                val trades = body.hypotheticalTrades.map { it.toDomain() }
+                val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
+                val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
+
+                val result = whatIfAnalysisService.analyzeWhatIf(
+                    portfolioId = PortfolioId(portfolioId),
+                    hypotheticalTrades = trades,
+                    calculationType = calcType,
+                    confidenceLevel = confLevel,
+                )
+
+                call.respond(result.toResponse())
+            }
         }
     }
 

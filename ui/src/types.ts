@@ -14,6 +14,18 @@ export interface PositionDto {
   unrealizedPnl: MoneyDto
 }
 
+export interface PositionRiskDto {
+  instrumentId: string
+  assetClass: string
+  marketValue: string
+  delta: string | null
+  gamma: string | null
+  vega: string | null
+  varContribution: string
+  esContribution: string
+  percentageOfTotal: string
+}
+
 export interface PortfolioDto {
   portfolioId: string
 }

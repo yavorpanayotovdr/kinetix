@@ -1,0 +1,15 @@
+package com.kinetix.risk.model
+
+import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.Money
+import com.kinetix.common.model.Side
+import java.math.BigDecimal
+
+data class HypotheticalTrade(
+    val instrumentId: InstrumentId,
+    val assetClass: AssetClass,
+    val side: Side,
+    val quantity: BigDecimal,
+    val price: Money,
+)

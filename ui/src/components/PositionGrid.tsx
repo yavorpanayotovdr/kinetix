@@ -1,14 +1,51 @@
-import { Wifi, WifiOff, Inbox } from 'lucide-react'
-import type { PositionDto } from '../types'
-import { formatMoney, formatQuantity, pnlColorClass } from '../utils/format'
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, Wifi, WifiOff, Inbox } from 'lucide-react'
+import type { PositionDto, PositionRiskDto } from '../types'
+import { formatMoney, formatNum, formatQuantity, pnlColorClass } from '../utils/format'
+import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { Card, EmptyState } from './ui'
+
+type SortField = 'delta' | 'gamma' | 'vega' | 'var-pct'
+type SortDirection = 'asc' | 'desc'
 
 interface PositionGridProps {
   positions: PositionDto[]
   connected?: boolean
+  positionRisk?: PositionRiskDto[]
 }
 
-export function PositionGrid({ positions, connected }: PositionGridProps) {
+function riskValue(risk: PositionRiskDto | undefined, field: SortField): number {
+  if (!risk) return -Infinity
+  switch (field) {
+    case 'delta': return risk.delta != null ? Number(risk.delta) : -Infinity
+    case 'gamma': return risk.gamma != null ? Number(risk.gamma) : -Infinity
+    case 'vega': return risk.vega != null ? Number(risk.vega) : -Infinity
+    case 'var-pct': return Number(risk.percentageOfTotal)
+  }
+}
+
+export function PositionGrid({ positions, connected, positionRisk }: PositionGridProps) {
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
+
+  const hasRisk = positionRisk != null && positionRisk.length > 0
+
+  const riskByInstrument = useMemo(() => {
+    if (!positionRisk) return new Map<string, PositionRiskDto>()
+    return new Map(positionRisk.map((r) => [r.instrumentId, r]))
+  }, [positionRisk])
+
+  const sortedPositions = useMemo(() => {
+    if (!sortField || !hasRisk) return positions
+    return [...positions].sort((a, b) => {
+      const riskA = riskByInstrument.get(a.instrumentId)
+      const riskB = riskByInstrument.get(b.instrumentId)
+      const valA = riskValue(riskA, sortField)
+      const valB = riskValue(riskB, sortField)
+      return sortDir === 'desc' ? valB - valA : valA - valB
+    })
+  }, [positions, sortField, sortDir, hasRisk, riskByInstrument])
+
   if (positions.length === 0) {
     return (
       <Card>
@@ -30,6 +67,32 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
   )
   const currency = positions[0].marketValue.currency
 
+  const totalDelta = hasRisk
+    ? positionRisk.reduce((sum, r) => sum + (r.delta != null ? Number(r.delta) : 0), 0)
+    : null
+  const totalVar = hasRisk
+    ? positionRisk.reduce((sum, r) => sum + Number(r.varContribution), 0)
+    : null
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === 'desc' ? 'asc' : 'desc'))
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
+
+  const sortIcon = (field: SortField) => {
+    if (sortField !== field) return null
+    return sortDir === 'desc'
+      ? <ChevronDown className="inline h-3 w-3" />
+      : <ChevronUp className="inline h-3 w-3" />
+  }
+
+  const positionColCount = 7
+  const riskColCount = 4
+
   return (
     <div>
       {connected !== undefined && (
@@ -48,7 +111,7 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
         </div>
       )}
 
-      <div data-testid="portfolio-summary" className="grid grid-cols-3 gap-3 mb-4">
+      <div data-testid="portfolio-summary" className={`grid gap-3 mb-4 ${hasRisk ? 'grid-cols-5' : 'grid-cols-3'}`}>
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Positions</div>
@@ -71,13 +134,51 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
             </div>
           </div>
         </Card>
+        {hasRisk && totalDelta != null && (
+          <Card>
+            <div data-testid="summary-portfolio-delta" className="text-center -my-1">
+              <div className="text-xs text-slate-500">Portfolio Delta</div>
+              <div className="text-lg font-bold text-slate-800">
+                {formatCompactCurrency(totalDelta)}
+              </div>
+            </div>
+          </Card>
+        )}
+        {hasRisk && totalVar != null && (
+          <Card>
+            <div data-testid="summary-portfolio-var" className="text-center -my-1">
+              <div className="text-xs text-slate-500">Portfolio VaR</div>
+              <div className="text-lg font-bold text-slate-800">
+                {formatCompactCurrency(totalVar)}
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       <Card>
         <div className="-mx-4 -my-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
+            <thead>
+              {hasRisk && (
+                <tr>
+                  <th
+                    data-testid="header-group-position"
+                    colSpan={positionColCount}
+                    className="px-4 py-1.5 text-left text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-200"
+                  >
+                    Position Details
+                  </th>
+                  <th
+                    data-testid="header-group-risk"
+                    colSpan={riskColCount}
+                    className="px-4 py-1.5 text-left text-xs font-semibold text-indigo-600 bg-indigo-50 border-b border-slate-200"
+                  >
+                    Risk Metrics
+                  </th>
+                </tr>
+              )}
+              <tr className="bg-slate-50">
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">
                   Instrument
                 </th>
@@ -99,34 +200,97 @@ export function PositionGrid({ positions, connected }: PositionGridProps) {
                 <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
                   Unrealized P&L
                 </th>
+                {hasRisk && (
+                  <>
+                    <th
+                      data-testid="sort-delta"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      onClick={() => handleSort('delta')}
+                    >
+                      Delta {sortIcon('delta')}
+                    </th>
+                    <th
+                      data-testid="sort-gamma"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      onClick={() => handleSort('gamma')}
+                    >
+                      Gamma {sortIcon('gamma')}
+                    </th>
+                    <th
+                      data-testid="sort-vega"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      onClick={() => handleSort('vega')}
+                    >
+                      Vega {sortIcon('vega')}
+                    </th>
+                    <th
+                      data-testid="sort-var-pct"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      onClick={() => handleSort('var-pct')}
+                    >
+                      VaR Contrib % {sortIcon('var-pct')}
+                    </th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {positions.map((pos) => (
-                <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>
-                  <td className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>
-                  <td className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>
-                  <td className="px-4 py-2 text-sm text-right">
-                    {formatMoney(pos.averageCost.amount, pos.averageCost.currency)}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-right">
-                    {formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-right">
-                    {formatMoney(pos.marketValue.amount, pos.marketValue.currency)}
-                  </td>
-                  <td
-                    data-testid={`pnl-${pos.instrumentId}`}
-                    className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)}`}
-                  >
-                    {formatMoney(
-                      pos.unrealizedPnl.amount,
-                      pos.unrealizedPnl.currency,
+              {sortedPositions.map((pos) => {
+                const risk = riskByInstrument.get(pos.instrumentId)
+                return (
+                  <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>
+                    <td className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>
+                    <td className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>
+                    <td className="px-4 py-2 text-sm text-right">
+                      {formatMoney(pos.averageCost.amount, pos.averageCost.currency)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right">
+                      {formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right">
+                      {formatMoney(pos.marketValue.amount, pos.marketValue.currency)}
+                    </td>
+                    <td
+                      data-testid={`pnl-${pos.instrumentId}`}
+                      className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)}`}
+                    >
+                      {formatMoney(
+                        pos.unrealizedPnl.amount,
+                        pos.unrealizedPnl.currency,
+                      )}
+                    </td>
+                    {hasRisk && (
+                      <>
+                        <td
+                          data-testid={`delta-${pos.instrumentId}`}
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                        >
+                          {risk?.delta != null ? formatNum(risk.delta) : '\u2014'}
+                        </td>
+                        <td
+                          data-testid={`gamma-${pos.instrumentId}`}
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                        >
+                          {risk?.gamma != null ? formatNum(risk.gamma) : '\u2014'}
+                        </td>
+                        <td
+                          data-testid={`vega-${pos.instrumentId}`}
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                        >
+                          {risk?.vega != null ? formatNum(risk.vega) : '\u2014'}
+                        </td>
+                        <td
+                          data-testid={`var-pct-${pos.instrumentId}`}
+                          className="px-4 py-2 text-sm text-right font-medium bg-indigo-50/30"
+                        >
+                          {risk ? `${formatNum(risk.percentageOfTotal)}%` : '\u2014'}
+                        </td>
+                      </>
                     )}
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

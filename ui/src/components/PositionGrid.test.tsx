@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import type { PositionDto } from '../types'
+import type { PositionDto, PositionRiskDto } from '../types'
 import { PositionGrid } from './PositionGrid'
 
 const makePosition = (overrides: Partial<PositionDto> = {}): PositionDto => ({
@@ -147,5 +148,183 @@ describe('PositionGrid', () => {
 
     const row = screen.getByTestId('position-row-AAPL')
     expect(within(row).getByText('150')).toBeInTheDocument()
+  })
+
+  describe('with position risk data', () => {
+    const makeRisk = (overrides: Partial<PositionRiskDto> = {}): PositionRiskDto => ({
+      instrumentId: 'AAPL',
+      assetClass: 'EQUITY',
+      marketValue: '15500.00',
+      delta: '1234.56',
+      gamma: '45.67',
+      vega: '89.01',
+      varContribution: '800.00',
+      esContribution: '1000.00',
+      percentageOfTotal: '64.85',
+      ...overrides,
+    })
+
+    it('renders risk metric column headers when positionRisk is provided', () => {
+      render(
+        <PositionGrid
+          positions={[makePosition()]}
+          positionRisk={[makeRisk()]}
+        />,
+      )
+
+      expect(screen.getByRole('columnheader', { name: 'Delta' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Gamma' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Vega' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'VaR Contrib %' })).toBeInTheDocument()
+    })
+
+    it('does not render risk columns when positionRisk is absent', () => {
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      expect(screen.queryByRole('columnheader', { name: 'Delta' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Gamma' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Vega' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'VaR Contrib %' })).not.toBeInTheDocument()
+    })
+
+    it('renders risk values in the row matched by instrumentId', () => {
+      render(
+        <PositionGrid
+          positions={[makePosition()]}
+          positionRisk={[makeRisk()]}
+        />,
+      )
+
+      const row = screen.getByTestId('position-row-AAPL')
+      expect(within(row).getByTestId('delta-AAPL')).toHaveTextContent('1,234.56')
+      expect(within(row).getByTestId('gamma-AAPL')).toHaveTextContent('45.67')
+      expect(within(row).getByTestId('vega-AAPL')).toHaveTextContent('89.01')
+      expect(within(row).getByTestId('var-pct-AAPL')).toHaveTextContent('64.85%')
+    })
+
+    it('shows dash when risk data is missing for a position', () => {
+      render(
+        <PositionGrid
+          positions={[
+            makePosition({ instrumentId: 'AAPL' }),
+            makePosition({ instrumentId: 'GOOGL' }),
+          ]}
+          positionRisk={[makeRisk({ instrumentId: 'AAPL' })]}
+        />,
+      )
+
+      const googlRow = screen.getByTestId('position-row-GOOGL')
+      expect(within(googlRow).getByTestId('delta-GOOGL')).toHaveTextContent('\u2014')
+      expect(within(googlRow).getByTestId('gamma-GOOGL')).toHaveTextContent('\u2014')
+      expect(within(googlRow).getByTestId('vega-GOOGL')).toHaveTextContent('\u2014')
+      expect(within(googlRow).getByTestId('var-pct-GOOGL')).toHaveTextContent('\u2014')
+    })
+
+    it('shows dash when greek value is null', () => {
+      render(
+        <PositionGrid
+          positions={[makePosition()]}
+          positionRisk={[makeRisk({ delta: null, gamma: null, vega: null })]}
+        />,
+      )
+
+      const row = screen.getByTestId('position-row-AAPL')
+      expect(within(row).getByTestId('delta-AAPL')).toHaveTextContent('\u2014')
+      expect(within(row).getByTestId('gamma-AAPL')).toHaveTextContent('\u2014')
+      expect(within(row).getByTestId('vega-AAPL')).toHaveTextContent('\u2014')
+      // VaR contribution should still show
+      expect(within(row).getByTestId('var-pct-AAPL')).toHaveTextContent('64.85%')
+    })
+
+    it('renders grouped header rows for Position Details and Risk Metrics', () => {
+      render(
+        <PositionGrid
+          positions={[makePosition()]}
+          positionRisk={[makeRisk()]}
+        />,
+      )
+
+      expect(screen.getByTestId('header-group-position')).toHaveTextContent('Position Details')
+      expect(screen.getByTestId('header-group-risk')).toHaveTextContent('Risk Metrics')
+    })
+
+    it('applies indigo tint to risk metrics header group', () => {
+      render(
+        <PositionGrid
+          positions={[makePosition()]}
+          positionRisk={[makeRisk()]}
+        />,
+      )
+
+      expect(screen.getByTestId('header-group-risk')).toHaveClass('bg-indigo-50')
+    })
+
+    it('sorts by VaR contribution when header is clicked', async () => {
+      const user = userEvent.setup()
+      const positions = [
+        makePosition({ instrumentId: 'AAPL' }),
+        makePosition({ instrumentId: 'MSFT' }),
+        makePosition({ instrumentId: 'GOOGL' }),
+      ]
+      const risk = [
+        makeRisk({ instrumentId: 'AAPL', percentageOfTotal: '20.00' }),
+        makeRisk({ instrumentId: 'MSFT', percentageOfTotal: '50.00' }),
+        makeRisk({ instrumentId: 'GOOGL', percentageOfTotal: '30.00' }),
+      ]
+
+      render(<PositionGrid positions={positions} positionRisk={risk} />)
+
+      const varHeader = screen.getByTestId('sort-var-pct')
+      await user.click(varHeader)
+
+      // After clicking, should sort descending: MSFT(50) > GOOGL(30) > AAPL(20)
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-row-MSFT')
+      expect(rows[1]).toHaveAttribute('data-testid', 'position-row-GOOGL')
+      expect(rows[2]).toHaveAttribute('data-testid', 'position-row-AAPL')
+    })
+
+    it('toggles sort direction on second click', async () => {
+      const user = userEvent.setup()
+      const positions = [
+        makePosition({ instrumentId: 'AAPL' }),
+        makePosition({ instrumentId: 'MSFT' }),
+      ]
+      const risk = [
+        makeRisk({ instrumentId: 'AAPL', percentageOfTotal: '20.00' }),
+        makeRisk({ instrumentId: 'MSFT', percentageOfTotal: '50.00' }),
+      ]
+
+      render(<PositionGrid positions={positions} positionRisk={risk} />)
+
+      const varHeader = screen.getByTestId('sort-var-pct')
+
+      // First click: descending
+      await user.click(varHeader)
+      let rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-row-MSFT')
+
+      // Second click: ascending
+      await user.click(varHeader)
+      rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-row-AAPL')
+    })
+
+    it('renders Portfolio Delta and Portfolio VaR summary cards when risk data is provided', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL' }),
+        makePosition({ instrumentId: 'MSFT' }),
+      ]
+      const risk = [
+        makeRisk({ instrumentId: 'AAPL', delta: '1000.00', varContribution: '800.00', percentageOfTotal: '60.00' }),
+        makeRisk({ instrumentId: 'MSFT', delta: '500.00', varContribution: '400.00', percentageOfTotal: '40.00' }),
+      ]
+
+      render(<PositionGrid positions={positions} positionRisk={risk} />)
+
+      const summary = screen.getByTestId('portfolio-summary')
+      expect(within(summary).getByTestId('summary-portfolio-delta')).toBeInTheDocument()
+      expect(within(summary).getByTestId('summary-portfolio-var')).toBeInTheDocument()
+    })
   })
 })

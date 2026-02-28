@@ -1,15 +1,24 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.Money
+import com.kinetix.common.model.Side
+import com.kinetix.risk.model.HypotheticalTrade
 import com.kinetix.risk.model.PositionRisk
 import com.kinetix.risk.model.ValuationResult
+import com.kinetix.risk.model.WhatIfResult
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.GreekValuesDto
 import com.kinetix.risk.routes.dtos.GreeksResponse
+import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
 import com.kinetix.risk.routes.dtos.VaRResultResponse
+import com.kinetix.risk.routes.dtos.WhatIfResponse
 import com.kinetix.proto.risk.FrtbRiskClass
 import com.kinetix.proto.risk.MarketDataType
+import java.math.BigDecimal
+import java.util.Currency
 
 internal fun ValuationResult.toResponse() = VaRResultResponse(
     portfolioId = portfolioId.value,
@@ -56,6 +65,58 @@ internal fun PositionRisk.toDto() = PositionRiskDto(
     varContribution = varContribution.toPlainString(),
     esContribution = esContribution.toPlainString(),
     percentageOfTotal = percentageOfTotal.toPlainString(),
+)
+
+internal fun HypotheticalTradeDto.toDomain() = HypotheticalTrade(
+    instrumentId = InstrumentId(instrumentId),
+    assetClass = AssetClass.valueOf(assetClass),
+    side = Side.valueOf(side),
+    quantity = BigDecimal(quantity),
+    price = Money(BigDecimal(priceAmount), Currency.getInstance(priceCurrency)),
+)
+
+internal fun WhatIfResult.toResponse() = WhatIfResponse(
+    baseVaR = "%.2f".format(baseVaR),
+    baseExpectedShortfall = "%.2f".format(baseExpectedShortfall),
+    baseGreeks = baseGreeks?.let { g ->
+        GreeksResponse(
+            portfolioId = "",
+            assetClassGreeks = g.assetClassGreeks.map { gv ->
+                GreekValuesDto(
+                    assetClass = gv.assetClass.name,
+                    delta = "%.6f".format(gv.delta),
+                    gamma = "%.6f".format(gv.gamma),
+                    vega = "%.6f".format(gv.vega),
+                )
+            },
+            theta = "%.6f".format(g.theta),
+            rho = "%.6f".format(g.rho),
+            calculatedAt = calculatedAt.toString(),
+        )
+    },
+    basePositionRisk = basePositionRisk.map { it.toDto() },
+    hypotheticalVaR = "%.2f".format(hypotheticalVaR),
+    hypotheticalExpectedShortfall = "%.2f".format(hypotheticalExpectedShortfall),
+    hypotheticalGreeks = hypotheticalGreeks?.let { g ->
+        GreeksResponse(
+            portfolioId = "",
+            assetClassGreeks = g.assetClassGreeks.map { gv ->
+                GreekValuesDto(
+                    assetClass = gv.assetClass.name,
+                    delta = "%.6f".format(gv.delta),
+                    gamma = "%.6f".format(gv.gamma),
+                    vega = "%.6f".format(gv.vega),
+                )
+            },
+            theta = "%.6f".format(g.theta),
+            rho = "%.6f".format(g.rho),
+            calculatedAt = calculatedAt.toString(),
+        )
+    },
+    hypotheticalPositionRisk = hypotheticalPositionRisk.map { it.toDto() },
+    varChange = "%.2f".format(varChange),
+    esChange = "%.2f".format(esChange),
+    calculatedAt = calculatedAt.toString(),
 )
 
 internal val FRTB_RISK_CLASS_NAMES = mapOf(

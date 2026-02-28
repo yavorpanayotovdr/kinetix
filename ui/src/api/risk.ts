@@ -1,4 +1,4 @@
-import type { VaRCalculationRequestDto, VaRResultDto } from '../types'
+import type { PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '../types'
 
 export async function fetchVaR(
   portfolioId: string,
@@ -39,6 +39,23 @@ export async function triggerVaRCalculation(
   if (!response.ok) {
     throw new Error(
       `Failed to trigger VaR calculation: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}
+
+export async function fetchPositionRisk(
+  portfolioId: string,
+): Promise<PositionRiskDto[]> {
+  const response = await fetch(
+    `/api/v1/risk/positions/${encodeURIComponent(portfolioId)}`,
+  )
+  if (response.status === 404) {
+    return []
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch position risk: ${response.status} ${response.statusText}`,
     )
   }
   return response.json()

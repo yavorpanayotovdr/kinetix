@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchVaR, triggerVaRCalculation } from './risk'
+import { fetchVaR, triggerVaRCalculation, fetchPositionRisk } from './risk'
 
 describe('risk API', () => {
   const mockFetch = vi.fn()
@@ -139,6 +139,73 @@ describe('risk API', () => {
 
       await expect(triggerVaRCalculation('port-1')).rejects.toThrow(
         'Failed to trigger VaR calculation: 500 Internal Server Error',
+      )
+    })
+  })
+
+  describe('fetchPositionRisk', () => {
+    const positionRiskData = [
+      {
+        instrumentId: 'AAPL',
+        assetClass: 'EQUITY',
+        marketValue: '15500.00',
+        delta: '1234.56',
+        gamma: '45.67',
+        vega: '89.01',
+        varContribution: '800.00',
+        esContribution: '1000.00',
+        percentageOfTotal: '64.85',
+      },
+    ]
+
+    it('returns parsed JSON on 200', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(positionRiskData),
+      })
+
+      const result = await fetchPositionRisk('port-1')
+
+      expect(result).toEqual(positionRiskData)
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/port-1')
+    })
+
+    it('returns empty array on 404', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const result = await fetchPositionRisk('port-1')
+
+      expect(result).toEqual([])
+    })
+
+    it('throws on 500', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      await expect(fetchPositionRisk('port-1')).rejects.toThrow(
+        'Failed to fetch position risk: 500 Internal Server Error',
+      )
+    })
+
+    it('URL-encodes the portfolioId', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      })
+
+      await fetchPositionRisk('port/special & id')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/positions/port%2Fspecial%20%26%20id',
       )
     })
   })
