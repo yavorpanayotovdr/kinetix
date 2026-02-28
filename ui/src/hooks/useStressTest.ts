@@ -58,10 +58,12 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
     try {
       const data = await runStressTest(portfolioId, selectedScenario)
       setResult(data)
-      setResults((prev) => {
-        const filtered = prev.filter((r) => r.scenarioName !== data.scenarioName)
-        return [...filtered, data]
-      })
+      if (data) {
+        setResults((prev) => {
+          const filtered = prev.filter((r) => r.scenarioName !== data.scenarioName)
+          return [...filtered, data]
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

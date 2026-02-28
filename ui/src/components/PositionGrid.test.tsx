@@ -158,6 +158,8 @@ describe('PositionGrid', () => {
       delta: '1234.56',
       gamma: '45.67',
       vega: '89.01',
+      theta: null,
+      rho: null,
       varContribution: '800.00',
       esContribution: '1000.00',
       percentageOfTotal: '64.85',

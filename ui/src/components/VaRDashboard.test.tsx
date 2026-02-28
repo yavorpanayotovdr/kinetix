@@ -41,9 +41,9 @@ const varResult: VaRResultDto = {
 }
 
 const history: VaRHistoryEntry[] = [
-  { varValue: 1200000, expectedShortfall: 1500000, calculatedAt: '2025-01-15T10:00:00Z' },
-  { varValue: 1234567.89, expectedShortfall: 1567890.12, calculatedAt: '2025-01-15T10:30:00Z' },
-  { varValue: 1300000, expectedShortfall: 1600000, calculatedAt: '2025-01-15T11:00:00Z' },
+  { varValue: 1200000, expectedShortfall: 1500000, calculatedAt: '2025-01-15T10:00:00Z', confidenceLevel: 'CL_95' },
+  { varValue: 1234567.89, expectedShortfall: 1567890.12, calculatedAt: '2025-01-15T10:30:00Z', confidenceLevel: 'CL_95' },
+  { varValue: 1300000, expectedShortfall: 1600000, calculatedAt: '2025-01-15T11:00:00Z', confidenceLevel: 'CL_95' },
 ]
 
 const defaultTimeRange: TimeRange = {

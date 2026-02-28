@@ -81,6 +81,7 @@ function setupDefaults() {
     selectedScenario: 'MARKET_CRASH',
     setSelectedScenario: vi.fn(),
     result: null,
+    results: [],
     loading: false,
     error: null,
     run: vi.fn(),

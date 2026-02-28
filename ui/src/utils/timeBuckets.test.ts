@@ -18,6 +18,7 @@ function makeJob(
     completedAt: opts?.completedAt ?? null,
     durationMs: null,
     calculationType: null,
+    confidenceLevel: null,
     varValue: null,
     expectedShortfall: null,
     pvValue: null,

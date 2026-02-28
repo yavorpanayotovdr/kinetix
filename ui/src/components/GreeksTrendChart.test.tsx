@@ -31,11 +31,11 @@ beforeEach(() => {
 })
 
 const history: VaRHistoryEntry[] = [
-  { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
-  { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', delta: 1600.2, gamma: 65.5, vega: 5200.3, theta: -135.2 },
-  { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
-  { varValue: 1_400_000, expectedShortfall: 1_700_000, calculatedAt: '2025-01-15T11:30:00Z', delta: 1700.5, gamma: 70.2, vega: 5400.8, theta: -142.8 },
-  { varValue: 1_350_000, expectedShortfall: 1_650_000, calculatedAt: '2025-01-15T12:00:00Z', delta: 1650.0, gamma: 68.0, vega: 5300.0, theta: -138.0 },
+  { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', confidenceLevel: 'CL_95', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
+  { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', confidenceLevel: 'CL_95', delta: 1600.2, gamma: 65.5, vega: 5200.3, theta: -135.2 },
+  { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', confidenceLevel: 'CL_95', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
+  { varValue: 1_400_000, expectedShortfall: 1_700_000, calculatedAt: '2025-01-15T11:30:00Z', confidenceLevel: 'CL_95', delta: 1700.5, gamma: 70.2, vega: 5400.8, theta: -142.8 },
+  { varValue: 1_350_000, expectedShortfall: 1_650_000, calculatedAt: '2025-01-15T12:00:00Z', confidenceLevel: 'CL_95', delta: 1650.0, gamma: 68.0, vega: 5300.0, theta: -138.0 },
 ]
 
 describe('GreeksTrendChart', () => {
@@ -215,9 +215,9 @@ describe('GreeksTrendChart', () => {
 
   it('renders chart when entries have theta but some are missing theta', () => {
     const mixedHistory: VaRHistoryEntry[] = [
-      { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
-      { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', delta: 1600.2, gamma: 65.5, vega: 5200.3 },
-      { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
+      { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', confidenceLevel: 'CL_95', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
+      { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', confidenceLevel: 'CL_95', delta: 1600.2, gamma: 65.5, vega: 5200.3 },
+      { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', confidenceLevel: 'CL_95', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
     ]
 
     render(<GreeksTrendChart history={mixedHistory} />)
@@ -231,8 +231,8 @@ describe('GreeksTrendChart', () => {
 
   it('handles entries without Greeks data gracefully', () => {
     const historyWithoutGreeks: VaRHistoryEntry[] = [
-      { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z' },
-      { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z' },
+      { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', confidenceLevel: 'CL_95' },
+      { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', confidenceLevel: 'CL_95' },
     ]
 
     render(<GreeksTrendChart history={historyWithoutGreeks} />)
