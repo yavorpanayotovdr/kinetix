@@ -273,10 +273,20 @@ describe('PositionRiskTable', () => {
   })
 
   describe('empty state', () => {
-    it('shows an empty message when data is empty and not loading', () => {
+    it('shows contextual empty message when data is empty and no error', () => {
       render(<PositionRiskTable data={[]} loading={false} />)
 
-      expect(screen.getByTestId('position-risk-empty')).toBeInTheDocument()
+      const empty = screen.getByTestId('position-risk-empty')
+      expect(empty).toBeInTheDocument()
+      expect(empty).toHaveTextContent('Positions will appear after the next VaR calculation')
+    })
+
+    it('shows error detail and retry message when data is empty with error', () => {
+      render(<PositionRiskTable data={[]} loading={false} error="Connection timeout" />)
+
+      const errorEl = screen.getByTestId('position-risk-error')
+      expect(errorEl).toHaveTextContent('Unable to load position risk')
+      expect(errorEl).toHaveTextContent('Connection timeout')
     })
   })
 })

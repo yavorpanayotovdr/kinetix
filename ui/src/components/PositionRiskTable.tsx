@@ -102,13 +102,13 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
 
         {!loading && error && (
           <div data-testid="position-risk-error" className="text-sm text-red-600 py-6 text-center px-4">
-            {error}
+            Unable to load position risk — {error}
           </div>
         )}
 
         {!loading && !error && data.length === 0 && (
           <div data-testid="position-risk-empty" className="text-sm text-slate-400 py-6 text-center">
-            No position risk data available.
+            No position risk data — Positions will appear after the next VaR calculation.
           </div>
         )}
 

@@ -45,17 +45,12 @@ describe('GreeksTrendChart', () => {
     expect(screen.getByTestId('greeks-trend-chart')).toHaveTextContent('Collecting data...')
   })
 
-  it('renders a single data point as a dot', () => {
+  it('shows message instead of chart for single data point', () => {
     render(<GreeksTrendChart history={[history[0]]} />)
 
     const panel = screen.getByTestId('greeks-trend-chart')
-    expect(panel).not.toHaveTextContent('Collecting data...')
-
-    const svg = panel.querySelector('svg')
-    expect(svg).toBeInTheDocument()
-
-    const dot = svg!.querySelector('circle[data-testid="single-point-dot"]')
-    expect(dot).toBeInTheDocument()
+    expect(panel).toHaveTextContent('Trend data requires at least 2 calculations')
+    expect(panel.querySelector('svg')).not.toBeInTheDocument()
   })
 
   it('renders the chart panel with header', () => {

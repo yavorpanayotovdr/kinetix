@@ -121,7 +121,9 @@ describe('VaRDashboard', () => {
       />,
     )
 
-    expect(screen.getByTestId('var-empty')).toBeInTheDocument()
+    const empty = screen.getByTestId('var-empty')
+    expect(empty).toBeInTheDocument()
+    expect(empty).toHaveTextContent('No VaR results yet')
   })
 
   it('renders the VaR gauge with data', () => {
@@ -176,7 +178,7 @@ describe('VaRDashboard', () => {
     expect(trend.querySelector('svg')).toBeInTheDocument()
   })
 
-  it('renders a single-point dot with exactly 1 data point', () => {
+  it('shows message instead of chart for single data point', () => {
     render(
       <VaRDashboard
         varResult={varResult}
@@ -190,8 +192,8 @@ describe('VaRDashboard', () => {
     )
 
     const trend = screen.getByTestId('var-trend-chart')
-    expect(trend).not.toHaveTextContent('Collecting data...')
-    expect(trend.querySelector('[data-testid="single-point-dot"]')).toBeInTheDocument()
+    expect(trend).toHaveTextContent('Trend data requires at least 2 calculations')
+    expect(trend.querySelector('svg')).not.toBeInTheDocument()
   })
 
   it('uses a 4-column grid with full-width trend chart below', () => {

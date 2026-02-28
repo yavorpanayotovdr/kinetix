@@ -45,18 +45,12 @@ describe('VaRTrendChart', () => {
     expect(screen.getByTestId('var-trend-chart')).toHaveTextContent('Collecting data...')
   })
 
-  it('renders a single data point as a dot instead of showing collecting message', () => {
+  it('shows message instead of chart for single data point', () => {
     render(<VaRTrendChart history={[history[0]]} />)
 
     const panel = screen.getByTestId('var-trend-chart')
-    expect(panel).not.toHaveTextContent('Collecting data...')
-
-    const svg = panel.querySelector('svg')
-    expect(svg).toBeInTheDocument()
-
-    const dot = svg!.querySelector('circle[data-testid="single-point-dot"]')
-    expect(dot).toBeInTheDocument()
-    expect(dot).toHaveAttribute('fill', '#6366f1')
+    expect(panel).toHaveTextContent('Trend data requires at least 2 calculations')
+    expect(panel.querySelector('svg')).not.toBeInTheDocument()
   })
 
   it('renders the chart panel with header', () => {

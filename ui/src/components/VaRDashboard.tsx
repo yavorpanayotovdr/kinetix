@@ -73,7 +73,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
   if (!varResult) {
     return (
       <Card data-testid="var-empty" className="mb-4">
-        <p className="text-slate-500">No VaR data available.</p>
+        <p className="text-slate-500">No VaR results yet. Run a calculation to see risk metrics.</p>
       </Card>
     )
   }

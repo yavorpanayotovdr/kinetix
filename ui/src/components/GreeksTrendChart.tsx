@@ -258,39 +258,13 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
 
   if (greeksHistory.length === 1) {
     return (
-      <div ref={containerRef} data-testid="greeks-trend-chart" className="relative rounded bg-slate-800 p-4 pb-14">
-        <div className="flex items-center justify-between mb-1">
+      <div data-testid="greeks-trend-chart" className="rounded bg-slate-800 p-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-slate-300">Greeks Trend</h3>
         </div>
-        <svg width="100%" height={CHART_HEIGHT}>
-          {gridLines.map((v) => {
-            const y = toY(v)
-            return (
-              <g key={v}>
-                <line
-                  x1={PADDING.left}
-                  y1={y}
-                  x2={containerWidth - PADDING.right}
-                  y2={y}
-                  stroke="#334155"
-                  strokeDasharray="4 2"
-                />
-                <text x={PADDING.left - 6} y={y + 3} textAnchor="end" fill="#94a3b8" fontSize={10}>
-                  {formatCompactNumber(v)}
-                </text>
-              </g>
-            )
-          })}
-          <circle
-            data-testid="single-point-dot"
-            cx={PADDING.left + plotWidth / 2}
-            cy={PADDING.top + plotHeight / 2}
-            r={5}
-            fill="#3b82f6"
-            stroke="white"
-            strokeWidth={2}
-          />
-        </svg>
+        <div className="flex items-center justify-center text-sm text-slate-400" style={{ height: CHART_HEIGHT }}>
+          Trend data requires at least 2 calculations. Current values shown in the table above.
+        </div>
       </div>
     )
   }
