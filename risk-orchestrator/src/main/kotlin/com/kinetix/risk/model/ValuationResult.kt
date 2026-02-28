@@ -14,4 +14,5 @@ data class ValuationResult(
     val calculatedAt: Instant,
     val computedOutputs: Set<ValuationOutput>,
     val pvValue: Double? = null,
+    val positionRisk: List<PositionRisk> = emptyList(),
 )

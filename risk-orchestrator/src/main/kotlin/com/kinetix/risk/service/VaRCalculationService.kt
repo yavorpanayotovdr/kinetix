@@ -217,7 +217,8 @@ class VaRCalculationService(
 
             val calcDuration = java.time.Duration.between(calcStart, Instant.now()).toMillis()
 
-            val positionBreakdown = computePositionBreakdown(positions, result)
+            val positionRiskList = computePositionRisk(positions, result)
+            val positionBreakdown = serializePositionBreakdown(positionRiskList, result.greeks)
 
             val calcDetails = buildMap<String, Any> {
                 put("varValue", result.varValue ?: 0.0)
@@ -257,6 +258,8 @@ class VaRCalculationService(
                 )
             )
 
+            val enrichedResult = result.copy(positionRisk = positionRiskList)
+
             logger.info(
                 "VaR calculation complete for portfolio {}: VaR={}, ES={}",
                 request.portfolioId.value, result.varValue, result.expectedShortfall,
@@ -280,7 +283,7 @@ class VaRCalculationService(
             )
             updateJobSafely(job)
 
-            return result
+            return enrichedResult
         } catch (e: Exception) {
             jobError = e.message ?: e.javaClass.simpleName
             val jobCompletedAt = Instant.now()
@@ -302,48 +305,67 @@ class VaRCalculationService(
         }
     }
 
-    private fun computePositionBreakdown(positions: List<com.kinetix.common.model.Position>, result: ValuationResult): String {
+    internal fun computePositionRisk(
+        positions: List<com.kinetix.common.model.Position>,
+        result: ValuationResult,
+    ): List<PositionRisk> {
         val breakdownByAssetClass = result.componentBreakdown.associateBy { it.assetClass }
         val greeksByAssetClass = result.greeks?.assetClassGreeks?.associateBy { it.assetClass }
-        val marketValueByAssetClass = positions.groupBy { it.assetClass }
-            .mapValues { (_, poses) -> poses.fold(BigDecimal.ZERO) { acc, p -> acc + p.marketValue.amount } }
+        val absMarketValueByAssetClass = positions.groupBy { it.assetClass }
+            .mapValues { (_, poses) -> poses.fold(BigDecimal.ZERO) { acc, p -> acc + p.marketValue.amount.abs() } }
 
         val varVal = result.varValue ?: 0.0
         val esVal = result.expectedShortfall ?: 0.0
+        val totalVaR = BigDecimal(varVal)
 
-        val items = positions.map { pos ->
+        return positions.map { pos ->
             val breakdown = breakdownByAssetClass[pos.assetClass]
-            val assetClassTotal = marketValueByAssetClass[pos.assetClass] ?: BigDecimal.ONE
-            val weight = if (assetClassTotal.compareTo(BigDecimal.ZERO) != 0) {
-                pos.marketValue.amount.divide(assetClassTotal, 10, RoundingMode.HALF_UP)
+            val assetClassAbsTotal = absMarketValueByAssetClass[pos.assetClass] ?: BigDecimal.ONE
+            val signedWeight = if (assetClassAbsTotal.compareTo(BigDecimal.ZERO) != 0) {
+                pos.marketValue.amount.divide(assetClassAbsTotal, 10, RoundingMode.HALF_UP)
             } else {
                 BigDecimal.ZERO
             }
-            val varContribution = BigDecimal(breakdown?.varContribution ?: 0.0) * weight
-            val varValue = BigDecimal(varVal)
-            val percentageOfTotal = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
-                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(100)
+            val varContribution = BigDecimal(breakdown?.varContribution ?: 0.0) * signedWeight
+            val percentageOfTotal = if (totalVaR.compareTo(BigDecimal.ZERO) != 0) {
+                varContribution.divide(totalVaR, 10, RoundingMode.HALF_UP) * BigDecimal(100)
             } else {
                 BigDecimal.ZERO
             }
-            val esContribution = if (varValue.compareTo(BigDecimal.ZERO) != 0) {
-                varContribution.divide(varValue, 10, RoundingMode.HALF_UP) * BigDecimal(esVal)
+            val esContribution = if (totalVaR.compareTo(BigDecimal.ZERO) != 0) {
+                varContribution.divide(totalVaR, 10, RoundingMode.HALF_UP) * BigDecimal(esVal)
             } else {
                 BigDecimal.ZERO
             }
 
+            val greeks = greeksByAssetClass?.get(pos.assetClass)
+
+            PositionRisk(
+                instrumentId = pos.instrumentId,
+                assetClass = pos.assetClass,
+                marketValue = pos.marketValue.amount,
+                delta = greeks?.delta,
+                gamma = greeks?.gamma,
+                vega = greeks?.vega,
+                varContribution = varContribution.setScale(2, RoundingMode.HALF_UP),
+                esContribution = esContribution.setScale(2, RoundingMode.HALF_UP),
+                percentageOfTotal = percentageOfTotal.setScale(2, RoundingMode.HALF_UP),
+            )
+        }
+    }
+
+    private fun serializePositionBreakdown(positionRiskList: List<PositionRisk>, greeks: GreeksResult?): String {
+        val items = positionRiskList.map { risk ->
             buildMap {
-                put("instrumentId", pos.instrumentId.value)
-                put("assetClass", pos.assetClass.name)
-                put("marketValue", pos.marketValue.amount.setScale(2, RoundingMode.HALF_UP).toPlainString())
-                put("varContribution", varContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
-                put("esContribution", esContribution.setScale(2, RoundingMode.HALF_UP).toPlainString())
-                put("percentageOfTotal", percentageOfTotal.setScale(2, RoundingMode.HALF_UP).toPlainString())
-                greeksByAssetClass?.get(pos.assetClass)?.let { greeks ->
-                    put("delta", "%.6f".format(greeks.delta))
-                    put("gamma", "%.6f".format(greeks.gamma))
-                    put("vega", "%.6f".format(greeks.vega))
-                }
+                put("instrumentId", risk.instrumentId.value)
+                put("assetClass", risk.assetClass.name)
+                put("marketValue", risk.marketValue.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                put("varContribution", risk.varContribution.toPlainString())
+                put("esContribution", risk.esContribution.toPlainString())
+                put("percentageOfTotal", risk.percentageOfTotal.toPlainString())
+                if (risk.delta != null) put("delta", "%.6f".format(risk.delta))
+                if (risk.gamma != null) put("gamma", "%.6f".format(risk.gamma))
+                if (risk.vega != null) put("vega", "%.6f".format(risk.vega))
             }
         }
         return Json.encodeToString(items)

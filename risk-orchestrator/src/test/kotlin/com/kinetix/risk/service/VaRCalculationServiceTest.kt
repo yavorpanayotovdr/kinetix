@@ -12,6 +12,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.doubles.shouldBeExactly
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -91,7 +93,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
 
         coVerify(ordering = Ordering.ORDERED) {
             positionProvider.getPositions(PortfolioId("port-1"))
@@ -293,7 +295,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
     }
 
     test("does not fail the calculation if job recorder update throws") {
@@ -313,7 +315,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
     }
 
     test("passes trigger type through to the recorded job") {
@@ -803,5 +805,173 @@ class VaRCalculationServiceTest : FunSpec({
         calcStep.details["greeksAssetClassCount"] shouldBe 1
         calcStep.details["theta"] shouldBe -45.0
         calcStep.details["rho"] shouldBe 120.0
+    }
+
+    test("calculateVaR returns positionRisk in the ValuationResult") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        val result = serviceNoRecorder.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        result.positionRisk shouldHaveSize 1
+
+        val risk = result.positionRisk[0]
+        risk.instrumentId shouldBe InstrumentId("AAPL")
+        risk.assetClass shouldBe AssetClass.EQUITY
+        risk.varContribution.toDouble() shouldBe 5000.0
+        risk.percentageOfTotal.toDouble() shouldBe 100.0
+    }
+
+    test("positionRisk allocates VaR proportionally by absolute market value within asset class") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", marketPrice = "200.00"),
+            position(instrumentId = "TSLA", marketPrice = "100.00"),
+        )
+        val expectedResult = varResult(
+            varValue = 6000.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 6000.0, 100.0),
+            ),
+        )
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        val result = serviceNoRecorder.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        result.positionRisk shouldHaveSize 2
+
+        val aapl = result.positionRisk.first { it.instrumentId == InstrumentId("AAPL") }
+        aapl.varContribution.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe 4000.0
+        aapl.percentageOfTotal.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe 66.67
+
+        val tsla = result.positionRisk.first { it.instrumentId == InstrumentId("TSLA") }
+        tsla.varContribution.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe 2000.0
+        tsla.percentageOfTotal.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe 33.33
+    }
+
+    test("positionRisk includes per-position greeks when greeks are present") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", assetClass = AssetClass.EQUITY),
+            position(instrumentId = "UST10Y", assetClass = AssetClass.FIXED_INCOME),
+        )
+        val greeks = GreeksResult(
+            assetClassGreeks = listOf(
+                GreekValues(AssetClass.EQUITY, delta = 0.85, gamma = 0.02, vega = 1500.0),
+                GreekValues(AssetClass.FIXED_INCOME, delta = -0.30, gamma = 0.01, vega = 200.0),
+            ),
+            theta = -45.0,
+            rho = 120.0,
+        )
+        val expectedResult = varResult(
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 3000.0, 60.0),
+                ComponentBreakdown(AssetClass.FIXED_INCOME, 2000.0, 40.0),
+            ),
+        ).copy(greeks = greeks)
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        val result = serviceNoRecorder.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        result.positionRisk shouldHaveSize 2
+
+        val equity = result.positionRisk.first { it.instrumentId == InstrumentId("AAPL") }
+        equity.delta shouldBe 0.85
+        equity.gamma shouldBe 0.02
+        equity.vega shouldBe 1500.0
+
+        val fi = result.positionRisk.first { it.instrumentId == InstrumentId("UST10Y") }
+        fi.delta shouldBe -0.30
+        fi.gamma shouldBe 0.01
+        fi.vega shouldBe 200.0
+    }
+
+    test("positionRisk has null greeks when greeks are not computed") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        val result = serviceNoRecorder.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        val risk = result.positionRisk[0]
+        risk.delta.shouldBeNull()
+        risk.gamma.shouldBeNull()
+        risk.vega.shouldBeNull()
+    }
+
+    test("positionRisk uses absolute market value for weighting when positions have mixed directions") {
+        val positions = listOf(
+            position(instrumentId = "AAPL", marketPrice = "200.00", quantity = "100"),
+            position(instrumentId = "TSLA", marketPrice = "100.00", quantity = "-50"),
+        )
+        val expectedResult = varResult(
+            varValue = 6000.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 6000.0, 100.0),
+            ),
+        )
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        val result = serviceNoRecorder.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        result.positionRisk shouldHaveSize 2
+
+        // AAPL: |100 * 200| = 20000, TSLA: |-50 * 100| = 5000
+        // AAPL weight: 20000/25000 = 0.8, TSLA weight: 5000/25000 = 0.2
+        val aapl = result.positionRisk.first { it.instrumentId == InstrumentId("AAPL") }
+        aapl.varContribution.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe 4800.0
+
+        val tsla = result.positionRisk.first { it.instrumentId == InstrumentId("TSLA") }
+        // Short position gets negative VaR contribution (it's a hedge)
+        tsla.varContribution.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe -1200.0
     }
 })
