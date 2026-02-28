@@ -186,6 +186,56 @@ describe('PositionRiskTable', () => {
     })
   })
 
+  describe('expandable rows', () => {
+    it('expands a row when clicked', async () => {
+      const user = userEvent.setup()
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      await user.click(screen.getByTestId('position-risk-row-AAPL'))
+
+      expect(screen.getByTestId('position-risk-detail-AAPL')).toBeInTheDocument()
+    })
+
+    it('collapses an expanded row when clicked again', async () => {
+      const user = userEvent.setup()
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      await user.click(screen.getByTestId('position-risk-row-AAPL'))
+      expect(screen.getByTestId('position-risk-detail-AAPL')).toBeInTheDocument()
+
+      await user.click(screen.getByTestId('position-risk-row-AAPL'))
+      expect(screen.queryByTestId('position-risk-detail-AAPL')).not.toBeInTheDocument()
+    })
+
+    it('shows position detail information in expanded row', async () => {
+      const user = userEvent.setup()
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      await user.click(screen.getByTestId('position-risk-row-AAPL'))
+
+      const detail = screen.getByTestId('position-risk-detail-AAPL')
+      expect(detail).toHaveTextContent('Market Value')
+      expect(detail).toHaveTextContent('VaR Contribution')
+      expect(detail).toHaveTextContent('ES Contribution')
+    })
+
+    it('only expands one row at a time', async () => {
+      const user = userEvent.setup()
+      const data = [
+        makeRisk({ instrumentId: 'AAPL', varContribution: '800.00', percentageOfTotal: '60.00' }),
+        makeRisk({ instrumentId: 'MSFT', varContribution: '500.00', percentageOfTotal: '40.00' }),
+      ]
+      render(<PositionRiskTable data={data} loading={false} />)
+
+      await user.click(screen.getByTestId('position-risk-row-AAPL'))
+      expect(screen.getByTestId('position-risk-detail-AAPL')).toBeInTheDocument()
+
+      await user.click(screen.getByTestId('position-risk-row-MSFT'))
+      expect(screen.queryByTestId('position-risk-detail-AAPL')).not.toBeInTheDocument()
+      expect(screen.getByTestId('position-risk-detail-MSFT')).toBeInTheDocument()
+    })
+  })
+
   describe('loading state', () => {
     it('shows a loading spinner when loading is true', () => {
       render(<PositionRiskTable data={[]} loading={true} />)

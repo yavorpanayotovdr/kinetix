@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { PositionRiskDto } from '../types'
 import { formatNum } from '../utils/format'
@@ -48,6 +48,7 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
   const [sortField, setSortField] = useState<SortField>('varContribution')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [useAbsoluteSort, setUseAbsoluteSort] = useState(true)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
   const sorted = useMemo(() => {
     return [...data].sort((a, b) => {
@@ -128,33 +129,68 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
               <tbody>
                 {sorted.map((row) => {
                   const pct = Number(row.percentageOfTotal)
+                  const isExpanded = expandedRow === row.instrumentId
                   return (
-                    <tr
-                      key={row.instrumentId}
-                      data-testid={`position-risk-row-${row.instrumentId}`}
-                      className="hover:bg-slate-50 transition-colors border-b border-slate-100"
-                    >
-                      <td className="py-2 pr-3 pl-4 font-medium">{row.instrumentId}</td>
-                      <td className="py-2 pr-3 text-slate-600">{row.assetClass}</td>
-                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.marketValue)}</td>
-                      <td className="py-2 pr-3 text-right font-mono">
-                        {row.delta != null ? formatNum(row.delta) : '\u2014'}
-                      </td>
-                      <td className="py-2 pr-3 text-right font-mono">
-                        {row.gamma != null ? formatNum(row.gamma) : '\u2014'}
-                      </td>
-                      <td className="py-2 pr-3 text-right font-mono">
-                        {row.vega != null ? formatNum(row.vega) : '\u2014'}
-                      </td>
-                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.varContribution)}</td>
-                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.esContribution)}</td>
-                      <td
-                        data-testid={`pct-total-${row.instrumentId}`}
-                        className={`py-2 pr-3 text-right font-mono font-medium ${pctColorClass(pct)}`}
+                    <React.Fragment key={row.instrumentId}>
+                      <tr
+                        data-testid={`position-risk-row-${row.instrumentId}`}
+                        className={`hover:bg-slate-50 transition-colors border-b border-slate-100 cursor-pointer ${isExpanded ? 'bg-slate-50' : ''}`}
+                        onClick={() => setExpandedRow(isExpanded ? null : row.instrumentId)}
                       >
-                        {formatNum(row.percentageOfTotal)}%
-                      </td>
-                    </tr>
+                        <td className="py-2 pr-3 pl-4 font-medium">{row.instrumentId}</td>
+                        <td className="py-2 pr-3 text-slate-600">{row.assetClass}</td>
+                        <td className="py-2 pr-3 text-right font-mono">{formatNum(row.marketValue)}</td>
+                        <td className="py-2 pr-3 text-right font-mono">
+                          {row.delta != null ? formatNum(row.delta) : '\u2014'}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono">
+                          {row.gamma != null ? formatNum(row.gamma) : '\u2014'}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono">
+                          {row.vega != null ? formatNum(row.vega) : '\u2014'}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono">{formatNum(row.varContribution)}</td>
+                        <td className="py-2 pr-3 text-right font-mono">{formatNum(row.esContribution)}</td>
+                        <td
+                          data-testid={`pct-total-${row.instrumentId}`}
+                          className={`py-2 pr-3 text-right font-mono font-medium ${pctColorClass(pct)}`}
+                        >
+                          {formatNum(row.percentageOfTotal)}%
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr data-testid={`position-risk-detail-${row.instrumentId}`}>
+                          <td colSpan={9} className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                            <div className="grid grid-cols-3 gap-4 text-xs">
+                              <div>
+                                <span className="text-slate-500">Market Value</span>
+                                <p className="font-mono font-medium">{formatNum(row.marketValue)}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">VaR Contribution</span>
+                                <p className="font-mono font-medium">{formatNum(row.varContribution)}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">ES Contribution</span>
+                                <p className="font-mono font-medium">{formatNum(row.esContribution)}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Delta</span>
+                                <p className="font-mono font-medium">{row.delta != null ? formatNum(row.delta) : '\u2014'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Gamma</span>
+                                <p className="font-mono font-medium">{row.gamma != null ? formatNum(row.gamma) : '\u2014'}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Vega</span>
+                                <p className="font-mono font-medium">{row.vega != null ? formatNum(row.vega) : '\u2014'}</p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   )
                 })}
               </tbody>
