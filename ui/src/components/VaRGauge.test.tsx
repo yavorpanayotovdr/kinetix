@@ -308,4 +308,59 @@ describe('VaRGauge', () => {
       expect(screen.queryByTestId('var-popover')).not.toBeInTheDocument()
     })
   })
+
+  describe('VaR change indicator', () => {
+    it('shows increase with red text and up arrow when VaR rises', () => {
+      render(
+        <VaRGauge varValue={1050000} expectedShortfall={1300000} confidenceLevel="CL_95" previousVaR={1000000} />,
+      )
+
+      const change = screen.getByTestId('var-change')
+      expect(change).toBeInTheDocument()
+      expect(change).toHaveTextContent('$50,000.00')
+      expect(change).toHaveTextContent('+5.0%')
+      expect(change.className).toContain('text-red-600')
+    })
+
+    it('shows decrease with green text and down arrow when VaR falls', () => {
+      render(
+        <VaRGauge varValue={950000} expectedShortfall={1200000} confidenceLevel="CL_95" previousVaR={1000000} />,
+      )
+
+      const change = screen.getByTestId('var-change')
+      expect(change).toBeInTheDocument()
+      expect(change).toHaveTextContent('$50,000.00')
+      expect(change).toHaveTextContent('-5.0%')
+      expect(change.className).toContain('text-green-600')
+    })
+
+    it('shows neutral grey when VaR is unchanged', () => {
+      render(
+        <VaRGauge varValue={1000000} expectedShortfall={1300000} confidenceLevel="CL_95" previousVaR={1000000} />,
+      )
+
+      const change = screen.getByTestId('var-change')
+      expect(change).toHaveTextContent('$0.00')
+      expect(change).toHaveTextContent('0.0%')
+      expect(change.className).toContain('text-slate-400')
+    })
+
+    it('hides change indicator when previousVaR is not provided', () => {
+      render(
+        <VaRGauge varValue={1000000} expectedShortfall={1300000} confidenceLevel="CL_95" />,
+      )
+
+      expect(screen.queryByTestId('var-change')).not.toBeInTheDocument()
+    })
+
+    it('shows only absolute change when previousVaR is zero', () => {
+      render(
+        <VaRGauge varValue={50000} expectedShortfall={70000} confidenceLevel="CL_95" previousVaR={0} />,
+      )
+
+      const change = screen.getByTestId('var-change')
+      expect(change).toHaveTextContent('$50,000.00')
+      expect(change).not.toHaveTextContent('%')
+    })
+  })
 })

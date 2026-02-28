@@ -16,6 +16,7 @@ interface VaRGaugeProps {
   confidenceLevel: string
   varLimit?: number | null
   pvValue?: string
+  previousVaR?: number | null
 }
 
 function gaugeColorEsBased(ratio: number): string {
@@ -35,7 +36,7 @@ function confidenceLabel(level: string): string {
   return 'VaR (95%)'
 }
 
-export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue }: VaRGaugeProps) {
+export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue, previousVaR }: VaRGaugeProps) {
   const [openPopover, setOpenPopover] = useState<Metric | null>(null)
   const gaugeRef = useRef<HTMLDivElement>(null)
 
@@ -93,6 +94,23 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
           style={{ backgroundColor: color }}
         />
       </div>
+
+      {previousVaR != null && (() => {
+        const change = varValue - previousVaR
+        const absChange = Math.abs(change)
+        const formattedChange = formatMoney(absChange.toFixed(2), 'USD')
+        const hasPct = previousVaR !== 0
+        const pct = hasPct ? (change / previousVaR) * 100 : 0
+        const arrow = change > 0 ? '\u2191' : change < 0 ? '\u2193' : '\u2014'
+        const colorClass = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-slate-400'
+        const sign = change > 0 ? '+' : change < 0 ? '-' : ''
+
+        return (
+          <div data-testid="var-change" className={`text-xs ${colorClass}`}>
+            {arrow} {formattedChange}{hasPct ? ` (${sign}${Math.abs(pct).toFixed(1)}%)` : ''}
+          </div>
+        )
+      })()}
 
       <div className="relative">
         <div data-testid="es-value" className="text-sm text-slate-600 inline-flex items-center gap-1">

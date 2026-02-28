@@ -83,6 +83,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
 
   const varValue = Number(varResult.varValue)
   const expectedShortfall = Number(varResult.expectedShortfall)
+  const previousVaR = filteredHistory.length >= 2 ? filteredHistory[filteredHistory.length - 2].varValue : null
 
   return (
     <Card data-testid="var-dashboard" className="mb-4">
@@ -92,6 +93,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           expectedShortfall={expectedShortfall}
           confidenceLevel={varResult.confidenceLevel}
           varLimit={varLimit}
+          previousVaR={previousVaR}
         />
 
         <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">
