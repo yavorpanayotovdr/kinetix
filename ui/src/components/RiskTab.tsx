@@ -2,9 +2,11 @@ import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
+import { useAlerts } from '../hooks/useAlerts'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { JobHistory } from './JobHistory'
+import { RiskAlertBanner } from './RiskAlertBanner'
 
 interface RiskTabProps {
   portfolioId: string | null
@@ -34,6 +36,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
   } = usePositionRisk(portfolioId)
 
   const { varLimit } = useVarLimit()
+  const { alerts, dismissAlert } = useAlerts()
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
@@ -44,6 +47,11 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
 
   return (
     <div>
+      {alerts.length > 0 && (
+        <div className="mb-4">
+          <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
+        </div>
+      )}
       <VaRDashboard
         varResult={varResult}
         filteredHistory={filteredHistory}

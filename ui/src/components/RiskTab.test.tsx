@@ -6,17 +6,20 @@ vi.mock('../hooks/useVaR')
 vi.mock('../hooks/useJobHistory')
 vi.mock('../hooks/usePositionRisk')
 vi.mock('../hooks/useVarLimit')
+vi.mock('../hooks/useAlerts')
 
 import { RiskTab } from './RiskTab'
 import { useVaR } from '../hooks/useVaR'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
+import { useAlerts } from '../hooks/useAlerts'
 
 const mockUseVaR = vi.mocked(useVaR)
 const mockUseJobHistory = vi.mocked(useJobHistory)
 const mockUsePositionRisk = vi.mocked(usePositionRisk)
 const mockUseVarLimit = vi.mocked(useVarLimit)
+const mockUseAlerts = vi.mocked(useAlerts)
 
 describe('RiskTab', () => {
   beforeEach(() => {
@@ -72,6 +75,10 @@ describe('RiskTab', () => {
     mockUseVarLimit.mockReturnValue({
       varLimit: null,
       loading: false,
+    })
+    mockUseAlerts.mockReturnValue({
+      alerts: [],
+      dismissAlert: vi.fn(),
     })
   })
 
@@ -150,7 +157,46 @@ describe('RiskTab', () => {
 
     render(<RiskTab portfolioId="port-1" />)
 
-    expect(screen.getByTestId('var-limit')).toHaveTextContent('Limit $2,000,000.00')
+    const limitLabel = screen.getByTestId('var-limit')
+    expect(limitLabel).toHaveTextContent('Limit: $2,000,000.00')
+    // VaR is 1,000,000 / 2,000,000 = 50%
+    expect(limitLabel).toHaveTextContent('50%')
+  })
+
+  it('renders risk alert banner when alerts are present', () => {
+    mockUseAlerts.mockReturnValue({
+      alerts: [
+        {
+          id: 'alert-1',
+          ruleId: 'rule-1',
+          ruleName: 'VaR Limit',
+          type: 'VAR_BREACH',
+          severity: 'CRITICAL',
+          message: 'VaR exceeds limit',
+          currentValue: 2300000,
+          threshold: 2000000,
+          portfolioId: 'port-1',
+          triggeredAt: '2026-02-28T10:00:00Z',
+        },
+      ],
+      dismissAlert: vi.fn(),
+    })
+
+    render(<RiskTab portfolioId="port-1" />)
+
+    expect(screen.getByTestId('risk-alert-banner')).toBeInTheDocument()
+    expect(screen.getByText('VaR exceeds limit')).toBeInTheDocument()
+  })
+
+  it('does not render risk alert banner when no alerts', () => {
+    mockUseAlerts.mockReturnValue({
+      alerts: [],
+      dismissAlert: vi.fn(),
+    })
+
+    render(<RiskTab portfolioId="port-1" />)
+
+    expect(screen.queryByTestId('risk-alert-banner')).not.toBeInTheDocument()
   })
 
   it('refreshes position risk data when VaR dashboard is refreshed', async () => {
