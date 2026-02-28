@@ -43,7 +43,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             confidence_level=confidence,
             time_horizon_days=request.time_horizon_days or 1,
             num_simulations=request.num_simulations or 10_000,
-            volatility_provider=bundle.volatility_provider or VolatilityProvider.with_jitter(),
+            volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
             correlation_matrix=bundle.correlation_matrix,
         )
 
@@ -72,7 +72,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             confidence_level=confidence,
             time_horizon_days=request.time_horizon_days or 1,
             num_simulations=request.num_simulations or 10_000,
-            volatility_provider=bundle.volatility_provider or VolatilityProvider.with_jitter(),
+            volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
             correlation_matrix=bundle.correlation_matrix,
             requested_outputs=requested_outputs,
             portfolio_id=request.portfolio_id.value,

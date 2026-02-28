@@ -43,7 +43,7 @@ def calculate_valuation(
             confidence_level=confidence_level,
             time_horizon_days=time_horizon_days,
             num_simulations=num_simulations,
-            volatility_provider=volatility_provider or VolatilityProvider.with_jitter(),
+            volatility_provider=volatility_provider or VolatilityProvider.static(),
             correlation_matrix=correlation_matrix,
         )
         if "VAR" in outputs:
