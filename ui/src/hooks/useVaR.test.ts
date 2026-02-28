@@ -270,6 +270,7 @@ describe('useVaR', () => {
     expect(entry.delta).toBeCloseTo(1500.8)
     expect(entry.gamma).toBeCloseTo(61.0)
     expect(entry.vega).toBeCloseTo(5001.0)
+    expect(entry.theta).toBeCloseTo(-100)
   })
 
   it('leaves Greeks fields undefined when VaR result has no greeks', async () => {
@@ -295,5 +296,6 @@ describe('useVaR', () => {
     expect(entry.delta).toBeUndefined()
     expect(entry.gamma).toBeUndefined()
     expect(entry.vega).toBeUndefined()
+    expect(entry.theta).toBeUndefined()
   })
 })

@@ -31,11 +31,11 @@ beforeEach(() => {
 })
 
 const history: VaRHistoryEntry[] = [
-  { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', delta: 1500.8, gamma: 61.0, vega: 5001.0 },
-  { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', delta: 1600.2, gamma: 65.5, vega: 5200.3 },
-  { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', delta: 1550.0, gamma: 63.0, vega: 5100.0 },
-  { varValue: 1_400_000, expectedShortfall: 1_700_000, calculatedAt: '2025-01-15T11:30:00Z', delta: 1700.5, gamma: 70.2, vega: 5400.8 },
-  { varValue: 1_350_000, expectedShortfall: 1_650_000, calculatedAt: '2025-01-15T12:00:00Z', delta: 1650.0, gamma: 68.0, vega: 5300.0 },
+  { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
+  { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', delta: 1600.2, gamma: 65.5, vega: 5200.3, theta: -135.2 },
+  { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
+  { varValue: 1_400_000, expectedShortfall: 1_700_000, calculatedAt: '2025-01-15T11:30:00Z', delta: 1700.5, gamma: 70.2, vega: 5400.8, theta: -142.8 },
+  { varValue: 1_350_000, expectedShortfall: 1_650_000, calculatedAt: '2025-01-15T12:00:00Z', delta: 1650.0, gamma: 68.0, vega: 5300.0, theta: -138.0 },
 ]
 
 describe('GreeksTrendChart', () => {
@@ -66,7 +66,7 @@ describe('GreeksTrendChart', () => {
     expect(panel).toHaveTextContent('Greeks Trend')
   })
 
-  it('renders three polylines for delta, gamma, and vega', () => {
+  it('renders four polylines for delta, gamma, vega, and theta', () => {
     render(<GreeksTrendChart history={history} />)
 
     const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
@@ -82,15 +82,20 @@ describe('GreeksTrendChart', () => {
     // Vega = purple (#a855f7")
     const vegaLine = svg.querySelector('polyline[stroke="#a855f7"]')
     expect(vegaLine).toBeInTheDocument()
+
+    // Theta = amber (#f59e0b)
+    const thetaLine = svg.querySelector('polyline[stroke="#f59e0b"]')
+    expect(thetaLine).toBeInTheDocument()
   })
 
-  it('renders a legend with delta, gamma, and vega labels', () => {
+  it('renders a legend with delta, gamma, vega, and theta labels', () => {
     render(<GreeksTrendChart history={history} />)
 
     const chart = screen.getByTestId('greeks-trend-chart')
     expect(chart).toHaveTextContent('Delta')
     expect(chart).toHaveTextContent('Gamma')
     expect(chart).toHaveTextContent('Vega')
+    expect(chart).toHaveTextContent('Theta')
   })
 
   it('shows crosshair and tooltip on hover', () => {
@@ -106,7 +111,7 @@ describe('GreeksTrendChart', () => {
     expect(tooltip).toBeInTheDocument()
   })
 
-  it('tooltip shows delta, gamma, and vega values', () => {
+  it('tooltip shows delta, gamma, vega, and theta values', () => {
     render(<GreeksTrendChart history={history} />)
 
     const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
@@ -116,6 +121,7 @@ describe('GreeksTrendChart', () => {
     expect(tooltip).toHaveTextContent(/Delta/)
     expect(tooltip).toHaveTextContent(/Gamma/)
     expect(tooltip).toHaveTextContent(/Vega/)
+    expect(tooltip).toHaveTextContent(/Theta/)
   })
 
   it('hides crosshair and tooltip on mouse leave', () => {
@@ -200,6 +206,32 @@ describe('GreeksTrendChart', () => {
       const zoomRange = onZoom.mock.calls[0][0] as TimeRange
       expect(zoomRange.label).toBe('Custom')
     })
+  })
+
+  it('renders hover dot for theta on mouse move', () => {
+    render(<GreeksTrendChart history={history} />)
+
+    const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+    fireEvent.mouseMove(svg, { clientX: 200, clientY: 100 })
+
+    const thetaDot = svg.querySelector('circle[data-testid="hover-dot-theta"]')
+    expect(thetaDot).toBeInTheDocument()
+  })
+
+  it('renders chart when entries have theta but some are missing theta', () => {
+    const mixedHistory: VaRHistoryEntry[] = [
+      { varValue: 1_200_000, expectedShortfall: 1_500_000, calculatedAt: '2025-01-15T10:00:00Z', delta: 1500.8, gamma: 61.0, vega: 5001.0, theta: -120.5 },
+      { varValue: 1_300_000, expectedShortfall: 1_600_000, calculatedAt: '2025-01-15T10:30:00Z', delta: 1600.2, gamma: 65.5, vega: 5200.3 },
+      { varValue: 1_250_000, expectedShortfall: 1_550_000, calculatedAt: '2025-01-15T11:00:00Z', delta: 1550.0, gamma: 63.0, vega: 5100.0, theta: -128.0 },
+    ]
+
+    render(<GreeksTrendChart history={mixedHistory} />)
+
+    const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+    // Should still render delta/gamma/vega lines
+    expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toBeInTheDocument()
+    expect(svg.querySelector('polyline[stroke="#22c55e"]')).toBeInTheDocument()
+    expect(svg.querySelector('polyline[stroke="#a855f7"]')).toBeInTheDocument()
   })
 
   it('handles entries without Greeks data gracefully', () => {

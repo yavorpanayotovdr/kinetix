@@ -11,6 +11,7 @@ export interface VaRHistoryEntry {
   delta?: number
   gamma?: number
   vega?: number
+  theta?: number
 }
 
 export interface UseVaRResult {
@@ -32,7 +33,7 @@ export interface UseVaRResult {
 const POLL_INTERVAL = 30_000
 const MAX_HISTORY = 60
 
-function aggregateGreeks(greeks: GreeksResultDto | undefined): { delta: number; gamma: number; vega: number } | undefined {
+function aggregateGreeks(greeks: GreeksResultDto | undefined): { delta: number; gamma: number; vega: number; theta: number } | undefined {
   if (!greeks) return undefined
   let delta = 0
   let gamma = 0
@@ -42,7 +43,8 @@ function aggregateGreeks(greeks: GreeksResultDto | undefined): { delta: number; 
     gamma += Number(ac.gamma)
     vega += Number(ac.vega)
   }
-  return { delta, gamma, vega }
+  const theta = Number(greeks.theta)
+  return { delta, gamma, vega, theta }
 }
 
 function defaultTimeRange(): TimeRange {

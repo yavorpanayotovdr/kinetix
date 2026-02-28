@@ -23,6 +23,7 @@ const SERIES = [
   { key: 'delta' as const, color: '#3b82f6', label: 'Delta' },
   { key: 'gamma' as const, color: '#22c55e', label: 'Gamma' },
   { key: 'vega' as const, color: '#a855f7', label: 'Vega' },
+  { key: 'theta' as const, color: '#f59e0b', label: 'Theta' },
 ]
 
 function computeNiceGridLines(min: number, max: number, count: number): number[] {
@@ -98,7 +99,11 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
 
   const { min, max } = useMemo(() => {
-    const values = greeksHistory.flatMap((e) => [e.delta!, e.gamma!, e.vega!])
+    const values = greeksHistory.flatMap((e) => {
+      const v = [e.delta!, e.gamma!, e.vega!]
+      if (e.theta !== undefined) v.push(e.theta)
+      return v
+    })
     if (values.length === 0) return { min: 0, max: 1 }
     const minVal = Math.min(...values)
     const maxVal = Math.max(...values)
@@ -186,12 +191,15 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
 
     return SERIES.map((s) => ({
       ...s,
-      points: greeksHistory.map((entry) => ({
-        x: timeExtent
-          ? toX(new Date(entry.calculatedAt).getTime())
-          : PADDING.left + plotWidth / 2,
-        y: toY(entry[s.key]!),
-      })),
+      points: greeksHistory.map((entry) => {
+        const value = entry[s.key]
+        return {
+          x: timeExtent
+            ? toX(new Date(entry.calculatedAt).getTime())
+            : PADDING.left + plotWidth / 2,
+          y: value !== undefined ? toY(value) : null,
+        }
+      }),
     }))
   }, [greeksHistory, plotWidth, timeExtent, toX, toY])
 
@@ -357,7 +365,9 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
 
         {/* Series lines */}
         {seriesPoints?.map((s) => {
-          const polyline = s.points.map((p) => `${p.x},${p.y}`).join(' ')
+          const validPoints = s.points.filter((p): p is { x: number; y: number } => p.y !== null)
+          if (validPoints.length < 2) return null
+          const polyline = validPoints.map((p) => `${p.x},${p.y}`).join(' ')
           return (
             <polyline
               key={s.key}
@@ -383,18 +393,22 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
               strokeDasharray="4 2"
               strokeWidth={1}
             />
-            {seriesPoints.map((s) => (
-              <circle
-                key={s.key}
-                data-testid={`hover-dot-${s.key}`}
-                cx={s.points[hoveredIndex].x}
-                cy={s.points[hoveredIndex].y}
-                r={4}
-                fill={s.color}
-                stroke="white"
-                strokeWidth={2}
-              />
-            ))}
+            {seriesPoints.map((s) => {
+              const point = s.points[hoveredIndex]
+              if (point.y === null) return null
+              return (
+                <circle
+                  key={s.key}
+                  data-testid={`hover-dot-${s.key}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r={4}
+                  fill={s.color}
+                  stroke="white"
+                  strokeWidth={2}
+                />
+              )
+            })}
           </>
         )}
 
@@ -432,6 +446,11 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
               <span style={{ color: '#a855f7' }}>
                 Vega: {greeksHistory[hoveredIndex].vega?.toFixed(2)}
               </span>
+              {greeksHistory[hoveredIndex].theta !== undefined && (
+                <span style={{ color: '#f59e0b' }}>
+                  Theta: {greeksHistory[hoveredIndex].theta?.toFixed(2)}
+                </span>
+              )}
             </div>
           </div>
         </div>
