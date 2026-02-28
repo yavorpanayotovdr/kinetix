@@ -1,12 +1,15 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../hooks/usePnlAttribution')
+vi.mock('../hooks/useSodBaseline')
 
 import { PnlTab } from './PnlTab'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
+import { useSodBaseline } from '../hooks/useSodBaseline'
 
 const mockUsePnlAttribution = vi.mocked(usePnlAttribution)
+const mockUseSodBaseline = vi.mocked(useSodBaseline)
 
 const pnlAttributionData = {
   portfolioId: 'port-1',
@@ -34,9 +37,23 @@ const pnlAttributionData = {
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 
+const defaultSodBaseline = {
+  status: null,
+  loading: false,
+  error: null,
+  creating: false,
+  resetting: false,
+  computing: false,
+  createSnapshot: vi.fn(),
+  resetBaseline: vi.fn(),
+  computeAttribution: vi.fn().mockResolvedValue(null),
+  refresh: vi.fn(),
+}
+
 describe('PnlTab', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockUseSodBaseline.mockReturnValue(defaultSodBaseline)
   })
 
   it('calls usePnlAttribution with the given portfolioId', () => {
@@ -57,6 +74,15 @@ describe('PnlTab', () => {
       loading: false,
       error: null,
     })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: true,
+        baselineDate: '2025-01-15',
+        snapshotType: 'MANUAL',
+        createdAt: '2025-01-15T08:00:00Z',
+      },
+    })
 
     render(<PnlTab portfolioId="port-1" />)
 
@@ -69,6 +95,10 @@ describe('PnlTab', () => {
       data: null,
       loading: true,
       error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      loading: true,
     })
 
     render(<PnlTab portfolioId="port-1" />)
@@ -89,15 +119,94 @@ describe('PnlTab', () => {
     expect(screen.getByText('Failed to load')).toBeInTheDocument()
   })
 
-  it('shows empty state when no data', () => {
+  it('shows SOD baseline warning when no baseline exists', () => {
     mockUsePnlAttribution.mockReturnValue({
       data: null,
       loading: false,
       error: null,
     })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: false,
+        baselineDate: null,
+        snapshotType: null,
+        createdAt: null,
+      },
+    })
 
     render(<PnlTab portfolioId="port-1" />)
 
+    expect(screen.getByTestId('sod-baseline-warning')).toBeInTheDocument()
     expect(screen.getByTestId('pnl-empty')).toBeInTheDocument()
+  })
+
+  it('shows compute prompt when baseline exists but no P&L data', () => {
+    mockUsePnlAttribution.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: true,
+        baselineDate: '2025-01-15',
+        snapshotType: 'MANUAL',
+        createdAt: '2025-01-15T08:00:00Z',
+      },
+    })
+
+    render(<PnlTab portfolioId="port-1" />)
+
+    expect(screen.getByTestId('sod-baseline-active')).toBeInTheDocument()
+    expect(screen.getByTestId('pnl-compute-button')).toBeInTheDocument()
+  })
+
+  it('shows confirmation dialog when reset button is clicked', () => {
+    mockUsePnlAttribution.mockReturnValue({
+      data: pnlAttributionData,
+      loading: false,
+      error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: true,
+        baselineDate: '2025-01-15',
+        snapshotType: 'MANUAL',
+        createdAt: '2025-01-15T08:00:00Z',
+      },
+    })
+
+    render(<PnlTab portfolioId="port-1" />)
+
+    fireEvent.click(screen.getByTestId('sod-reset-button'))
+
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('confirm-dialog-confirm')).toBeInTheDocument()
+  })
+
+  it('shows SOD error when sod hook returns an error', () => {
+    mockUsePnlAttribution.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: false,
+        baselineDate: null,
+        snapshotType: null,
+        createdAt: null,
+      },
+      error: 'SOD service unavailable',
+    })
+
+    render(<PnlTab portfolioId="port-1" />)
+
+    expect(screen.getByTestId('sod-error')).toBeInTheDocument()
+    expect(screen.getByText('SOD service unavailable')).toBeInTheDocument()
   })
 })

@@ -271,6 +271,21 @@ export interface PnlAttributionDto {
   calculatedAt: string
 }
 
+export interface SodBaselineStatusDto {
+  exists: boolean
+  baselineDate: string | null
+  snapshotType: string | null
+  createdAt: string | null
+}
+
+export interface SodSnapshotResultDto {
+  portfolioId: string
+  baselineDate: string
+  snapshotType: string
+  createdAt: string
+  snapshotCount: number
+}
+
 export interface ValuationJobDetailDto {
   jobId: string
   portfolioId: string

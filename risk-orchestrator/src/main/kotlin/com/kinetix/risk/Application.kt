@@ -20,14 +20,20 @@ import com.kinetix.risk.client.ResilientRiskEngineClient
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
+import com.kinetix.risk.persistence.ExposedDailyRiskSnapshotRepository
+import com.kinetix.risk.persistence.ExposedSodBaselineRepository
 import com.kinetix.risk.persistence.ExposedValuationJobRecorder
 import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
+import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.MarketDataFetcher
+import com.kinetix.risk.service.PnlAttributionService
+import com.kinetix.risk.service.PnlComputationService
+import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.simulation.*
 import io.grpc.ManagedChannelBuilder
@@ -199,6 +205,8 @@ fun Application.moduleWithRoutes() {
     )
     val jobRecorder = ExposedValuationJobRecorder(riskDb)
     val pnlAttributionRepository = com.kinetix.risk.persistence.ExposedPnlAttributionRepository(riskDb)
+    val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
+    val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
@@ -219,6 +227,23 @@ fun Application.moduleWithRoutes() {
         jobRecorder = jobRecorder,
     )
     val varCache = LatestVaRCache()
+
+    val sodSnapshotService = SodSnapshotService(
+        sodBaselineRepository = sodBaselineRepository,
+        dailyRiskSnapshotRepository = dailyRiskSnapshotRepository,
+        varCache = varCache,
+        varCalculationService = varCalculationService,
+        positionProvider = effectivePositionProvider,
+    )
+    val pnlAttributionService = PnlAttributionService()
+    val pnlComputationService = PnlComputationService(
+        sodSnapshotService = sodSnapshotService,
+        dailyRiskSnapshotRepository = dailyRiskSnapshotRepository,
+        pnlAttributionService = pnlAttributionService,
+        pnlAttributionRepository = pnlAttributionRepository,
+        varCache = varCache,
+        positionProvider = effectivePositionProvider,
+    )
 
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)
     val regulatoryStub = RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub(channel)
@@ -242,7 +267,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, pnlAttributionRepository = pnlAttributionRepository)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService)
         jobHistoryRoutes(jobRecorder)
     }
 
@@ -277,6 +302,12 @@ fun Application.moduleWithRoutes() {
         ScheduledVaRCalculator(
             varCalculationService = varCalculationService,
             varCache = varCache,
+            portfolioIds = { positionRepository.findDistinctPortfolioIds() },
+        ).start()
+    }
+    launch {
+        ScheduledSodSnapshotJob(
+            sodSnapshotService = sodSnapshotService,
             portfolioIds = { positionRepository.findDistinctPortfolioIds() },
         ).start()
     }

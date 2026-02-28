@@ -12,6 +12,9 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.persistence.PnlAttributionRepository
+import com.kinetix.risk.service.NoSodBaselineException
+import com.kinetix.risk.service.PnlComputationService
+import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
@@ -22,6 +25,8 @@ import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.ReportFormat
 import com.kinetix.proto.risk.StressTestRequest
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
+import com.kinetix.risk.model.SnapshotType
+import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
@@ -29,6 +34,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.time.Instant
+import java.time.LocalDate
 
 fun Route.riskRoutes(
     varCalculationService: VaRCalculationService,
@@ -39,6 +45,8 @@ fun Route.riskRoutes(
     riskEngineClient: RiskEngineClient? = null,
     whatIfAnalysisService: WhatIfAnalysisService? = null,
     pnlAttributionRepository: PnlAttributionRepository? = null,
+    sodSnapshotService: SodSnapshotService? = null,
+    pnlComputationService: PnlComputationService? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -139,6 +147,78 @@ fun Route.riskRoutes(
                 call.respond(attribution.toResponse())
             } else {
                 call.respond(HttpStatusCode.NotFound)
+            }
+        }
+    }
+
+    // SOD snapshot routes
+    if (sodSnapshotService != null) {
+        get("/api/v1/risk/sod-snapshot/{portfolioId}/status", {
+            summary = "Get SOD baseline status for a portfolio"
+            tags = listOf("SOD Snapshot")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
+            val portfolioId = call.requirePathParam("portfolioId")
+            val status = sodSnapshotService.getBaselineStatus(
+                PortfolioId(portfolioId),
+                LocalDate.now(),
+            )
+            call.respond(status.toResponse())
+        }
+
+        post("/api/v1/risk/sod-snapshot/{portfolioId}", {
+            summary = "Create manual SOD snapshot"
+            tags = listOf("SOD Snapshot")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
+            val portfolioId = call.requirePathParam("portfolioId")
+            val today = LocalDate.now()
+            sodSnapshotService.createSnapshot(
+                PortfolioId(portfolioId),
+                SnapshotType.MANUAL,
+                date = today,
+            )
+            val status = sodSnapshotService.getBaselineStatus(PortfolioId(portfolioId), today)
+            call.response.status(HttpStatusCode.Created)
+            call.respond(status.toResponse())
+        }
+
+        delete("/api/v1/risk/sod-snapshot/{portfolioId}", {
+            summary = "Reset SOD baseline for a portfolio"
+            tags = listOf("SOD Snapshot")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
+            val portfolioId = call.requirePathParam("portfolioId")
+            sodSnapshotService.resetBaseline(PortfolioId(portfolioId), LocalDate.now())
+            call.response.status(HttpStatusCode.NoContent)
+            call.respond("")
+        }
+    }
+
+    // P&L computation route
+    if (pnlComputationService != null) {
+        post("/api/v1/risk/pnl-attribution/{portfolioId}/compute", {
+            summary = "Trigger P&L attribution computation"
+            tags = listOf("P&L Attribution")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            }
+        }) {
+            val portfolioId = call.requirePathParam("portfolioId")
+            try {
+                val attribution = pnlComputationService.compute(PortfolioId(portfolioId))
+                call.respond(attribution.toResponse())
+            } catch (e: NoSodBaselineException) {
+                call.response.status(HttpStatusCode.PreconditionFailed)
+                call.respond(
+                    mapOf("error" to "no_sod_baseline", "message" to (e.message ?: "")),
+                )
             }
         }
     }

@@ -8,6 +8,8 @@ import com.kinetix.risk.model.HypotheticalTrade
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import com.kinetix.risk.model.PositionRisk
+import com.kinetix.risk.model.SodBaseline
+import com.kinetix.risk.model.SodBaselineStatus
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.WhatIfResult
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
@@ -17,6 +19,8 @@ import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
 import com.kinetix.risk.routes.dtos.PnlAttributionResponse
 import com.kinetix.risk.routes.dtos.PositionPnlAttributionDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
+import com.kinetix.risk.routes.dtos.SodBaselineStatusResponse
+import com.kinetix.risk.routes.dtos.SodSnapshotResponse
 import com.kinetix.risk.routes.dtos.VaRResultResponse
 import com.kinetix.risk.routes.dtos.WhatIfResponse
 import com.kinetix.proto.risk.FrtbRiskClass
@@ -168,6 +172,21 @@ internal val ASSET_CLASS_TO_PROTO = mapOf(
 )
 
 internal val PROTO_ASSET_CLASS_TO_DOMAIN = ASSET_CLASS_TO_PROTO.entries.associate { (k, v) -> v to k }
+
+internal fun SodBaselineStatus.toResponse() = SodBaselineStatusResponse(
+    exists = exists,
+    baselineDate = baselineDate,
+    snapshotType = snapshotType?.name,
+    createdAt = createdAt?.toString(),
+)
+
+internal fun SodBaseline.toSnapshotResponse(snapshotCount: Int) = SodSnapshotResponse(
+    portfolioId = portfolioId.value,
+    baselineDate = baselineDate.toString(),
+    snapshotType = snapshotType.name,
+    createdAt = createdAt.toString(),
+    snapshotCount = snapshotCount,
+)
 
 internal val MARKET_DATA_TYPE_NAMES = mapOf(
     MarketDataType.SPOT_PRICE to "SPOT_PRICE",
