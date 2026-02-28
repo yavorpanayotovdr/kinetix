@@ -20,6 +20,7 @@ import com.kinetix.gateway.routes.priceRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
+import com.kinetix.gateway.routes.sodSnapshotRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.varRoutes
@@ -128,6 +129,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
+        sodSnapshotRoutes(riskClient)
     }
 }
 
@@ -160,6 +162,7 @@ fun Application.module(
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
+        sodSnapshotRoutes(riskClient)
     }
 }
 
@@ -277,6 +280,7 @@ fun Application.module(
                 requirePermission(Permission.CALCULATE_RISK) {
                     varRoutes(riskClient)
                     dependenciesRoutes(riskClient)
+                    sodSnapshotRoutes(riskClient)
                 }
                 requirePermission(Permission.READ_RISK) {
                     stressTestRoutes(riskClient)

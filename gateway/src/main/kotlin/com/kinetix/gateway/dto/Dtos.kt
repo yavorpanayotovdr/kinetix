@@ -17,9 +17,12 @@ import com.kinetix.gateway.client.CreateAlertRuleParams
 import com.kinetix.gateway.client.FrtbResultSummary
 import com.kinetix.gateway.client.GreekValuesItem
 import com.kinetix.gateway.client.GreeksResultSummary
+import com.kinetix.gateway.client.PnlAttributionSummary
 import com.kinetix.gateway.client.PortfolioSummary
+import com.kinetix.gateway.client.PositionPnlAttributionSummary
 import com.kinetix.gateway.client.ReportResult
 import com.kinetix.gateway.client.RiskClassChargeItem
+import com.kinetix.gateway.client.SodBaselineStatusSummary
 import com.kinetix.gateway.client.StressTestParams
 import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
@@ -522,6 +525,83 @@ fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRulePa
     operator = operator,
     severity = severity,
     channels = channels,
+)
+
+// --- SOD Snapshot DTOs ---
+
+@Serializable
+data class SodBaselineStatusResponse(
+    val exists: Boolean,
+    val baselineDate: String? = null,
+    val snapshotType: String? = null,
+    val createdAt: String? = null,
+)
+
+// --- SOD Snapshot mappers ---
+
+fun SodBaselineStatusSummary.toResponse(): SodBaselineStatusResponse = SodBaselineStatusResponse(
+    exists = exists,
+    baselineDate = baselineDate,
+    snapshotType = snapshotType,
+    createdAt = createdAt,
+)
+
+// --- P&L Attribution DTOs ---
+
+@Serializable
+data class PositionPnlAttributionResponse(
+    val instrumentId: String,
+    val assetClass: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+)
+
+@Serializable
+data class PnlAttributionResponse(
+    val portfolioId: String,
+    val date: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+    val positionAttributions: List<PositionPnlAttributionResponse>,
+    val calculatedAt: String,
+)
+
+// --- P&L Attribution mappers ---
+
+fun PositionPnlAttributionSummary.toResponse(): PositionPnlAttributionResponse = PositionPnlAttributionResponse(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    totalPnl = totalPnl,
+    deltaPnl = deltaPnl,
+    gammaPnl = gammaPnl,
+    vegaPnl = vegaPnl,
+    thetaPnl = thetaPnl,
+    rhoPnl = rhoPnl,
+    unexplainedPnl = unexplainedPnl,
+)
+
+fun PnlAttributionSummary.toResponse(): PnlAttributionResponse = PnlAttributionResponse(
+    portfolioId = portfolioId,
+    date = date,
+    totalPnl = totalPnl,
+    deltaPnl = deltaPnl,
+    gammaPnl = gammaPnl,
+    vegaPnl = vegaPnl,
+    thetaPnl = thetaPnl,
+    rhoPnl = rhoPnl,
+    unexplainedPnl = unexplainedPnl,
+    positionAttributions = positionAttributions.map { it.toResponse() },
+    calculatedAt = calculatedAt,
 )
 
 // --- Job History DTOs ---

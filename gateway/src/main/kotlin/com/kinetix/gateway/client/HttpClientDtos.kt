@@ -293,6 +293,46 @@ data class PaginatedJobsClientDto(
     val totalCount: Long,
 )
 
+// --- SOD Snapshot DTOs ---
+
+@Serializable
+data class SodBaselineStatusClientDto(
+    val exists: Boolean,
+    val baselineDate: String? = null,
+    val snapshotType: String? = null,
+    val createdAt: String? = null,
+)
+
+// --- P&L Attribution DTOs ---
+
+@Serializable
+data class PositionPnlAttributionClientDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+)
+
+@Serializable
+data class PnlAttributionClientDto(
+    val portfolioId: String,
+    val date: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+    val positionAttributions: List<PositionPnlAttributionClientDto>,
+    val calculatedAt: String,
+)
+
 // --- Domain mappers ---
 
 fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
@@ -486,4 +526,37 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     pvValue = pvValue,
     steps = steps.map { it.toDomain() },
     error = error,
+)
+
+fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(
+    exists = exists,
+    baselineDate = baselineDate,
+    snapshotType = snapshotType,
+    createdAt = createdAt,
+)
+
+fun PositionPnlAttributionClientDto.toDomain() = PositionPnlAttributionSummary(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    totalPnl = totalPnl,
+    deltaPnl = deltaPnl,
+    gammaPnl = gammaPnl,
+    vegaPnl = vegaPnl,
+    thetaPnl = thetaPnl,
+    rhoPnl = rhoPnl,
+    unexplainedPnl = unexplainedPnl,
+)
+
+fun PnlAttributionClientDto.toDomain() = PnlAttributionSummary(
+    portfolioId = portfolioId,
+    date = date,
+    totalPnl = totalPnl,
+    deltaPnl = deltaPnl,
+    gammaPnl = gammaPnl,
+    vegaPnl = vegaPnl,
+    thetaPnl = thetaPnl,
+    rhoPnl = rhoPnl,
+    unexplainedPnl = unexplainedPnl,
+    positionAttributions = positionAttributions.map { it.toDomain() },
+    calculatedAt = calculatedAt,
 )

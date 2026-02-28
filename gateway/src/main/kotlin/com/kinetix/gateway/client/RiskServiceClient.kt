@@ -161,6 +161,39 @@ data class ValuationJobDetailItem(
     val error: String?,
 )
 
+data class SodBaselineStatusSummary(
+    val exists: Boolean,
+    val baselineDate: String?,
+    val snapshotType: String?,
+    val createdAt: String?,
+)
+
+data class PositionPnlAttributionSummary(
+    val instrumentId: String,
+    val assetClass: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+)
+
+data class PnlAttributionSummary(
+    val portfolioId: String,
+    val date: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+    val positionAttributions: List<PositionPnlAttributionSummary>,
+    val calculatedAt: String,
+)
+
 interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
     suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary?
@@ -172,4 +205,9 @@ interface RiskServiceClient {
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
     suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null): Pair<List<ValuationJobSummaryItem>, Long>
     suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
+    suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary?
+    suspend fun createSodSnapshot(portfolioId: String): SodBaselineStatusSummary
+    suspend fun resetSodBaseline(portfolioId: String)
+    suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
+    suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
 }

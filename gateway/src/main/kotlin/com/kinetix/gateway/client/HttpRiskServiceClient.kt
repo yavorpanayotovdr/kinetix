@@ -3,8 +3,8 @@ package com.kinetix.gateway.client
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import java.time.Instant
 import io.ktor.http.*
+import java.time.Instant
 
 class HttpRiskServiceClient(
     private val httpClient: HttpClient,
@@ -119,6 +119,44 @@ class HttpRiskServiceClient(
         val response = httpClient.get("$baseUrl/api/v1/risk/jobs/detail/$jobId")
         if (response.status == HttpStatusCode.NotFound) return null
         val dto: ValuationJobDetailClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId/status")
+        if (response.status == HttpStatusCode.NotFound) return null
+        val dto: SodBaselineStatusClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun createSodSnapshot(portfolioId: String): SodBaselineStatusSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId") {
+            contentType(ContentType.Application.Json)
+        }
+        val dto: SodBaselineStatusClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun resetSodBaseline(portfolioId: String) {
+        httpClient.delete("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId")
+    }
+
+    override suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId/compute") {
+            contentType(ContentType.Application.Json)
+        }
+        val dto: PnlAttributionClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun getPnlAttribution(portfolioId: String, date: String?): PnlAttributionSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId") {
+            if (date != null) {
+                url { parameters.append("date", date) }
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        val dto: PnlAttributionClientDto = response.body()
         return dto.toDomain()
     }
 }
