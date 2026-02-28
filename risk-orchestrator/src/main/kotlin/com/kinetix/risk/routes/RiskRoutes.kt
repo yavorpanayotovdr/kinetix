@@ -177,11 +177,19 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val today = LocalDate.now()
-            sodSnapshotService.createSnapshot(
-                PortfolioId(portfolioId),
-                SnapshotType.MANUAL,
-                date = today,
-            )
+            try {
+                sodSnapshotService.createSnapshot(
+                    PortfolioId(portfolioId),
+                    SnapshotType.MANUAL,
+                    date = today,
+                )
+            } catch (e: IllegalStateException) {
+                call.response.status(HttpStatusCode.UnprocessableEntity)
+                call.respond(
+                    mapOf("error" to "no_valuation_data", "message" to (e.message ?: "Cannot create snapshot")),
+                )
+                return@post
+            }
             val status = sodSnapshotService.getBaselineStatus(PortfolioId(portfolioId), today)
             call.response.status(HttpStatusCode.Created)
             call.respond(status.toResponse())

@@ -1,6 +1,7 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.dto.ErrorResponse
 import com.kinetix.gateway.dto.toResponse
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
@@ -34,9 +35,16 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
-        val status = client.createSodSnapshot(portfolioId)
-        call.response.status(HttpStatusCode.Created)
-        call.respond(status.toResponse())
+        try {
+            val status = client.createSodSnapshot(portfolioId)
+            call.response.status(HttpStatusCode.Created)
+            call.respond(status.toResponse())
+        } catch (e: IllegalStateException) {
+            call.respond(
+                HttpStatusCode.UnprocessableEntity,
+                ErrorResponse("no_valuation_data", e.message ?: "Cannot create snapshot"),
+            )
+        }
     }
 
     delete("/api/v1/risk/sod-snapshot/{portfolioId}", {
@@ -80,7 +88,14 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
-        val result = client.computePnlAttribution(portfolioId)
-        call.respond(result.toResponse())
+        try {
+            val result = client.computePnlAttribution(portfolioId)
+            call.respond(result.toResponse())
+        } catch (e: IllegalStateException) {
+            call.respond(
+                HttpStatusCode.UnprocessableEntity,
+                ErrorResponse("computation_failed", e.message ?: "Cannot compute P&L attribution"),
+            )
+        }
     }
 }

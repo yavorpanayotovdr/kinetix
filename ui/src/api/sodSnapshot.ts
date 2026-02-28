@@ -25,9 +25,9 @@ export async function createSodSnapshot(
     { method: 'POST' },
   )
   if (!response.ok) {
-    throw new Error(
-      `Failed to create SOD snapshot: ${response.status} ${response.statusText}`,
-    )
+    const body = await response.json().catch(() => null)
+    const message = body?.message ?? `Failed to create SOD snapshot: ${response.status} ${response.statusText}`
+    throw new Error(message)
   }
   return response.json()
 }

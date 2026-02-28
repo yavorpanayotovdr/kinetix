@@ -133,6 +133,10 @@ class HttpRiskServiceClient(
         val response = httpClient.post("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId") {
             contentType(ContentType.Application.Json)
         }
+        if (!response.status.isSuccess()) {
+            val errorBody: Map<String, String> = try { response.body() } catch (_: Exception) { emptyMap() }
+            throw IllegalStateException(errorBody["message"] ?: "Failed to create SOD snapshot: ${response.status}")
+        }
         val dto: SodBaselineStatusClientDto = response.body()
         return dto.toDomain()
     }
@@ -144,6 +148,10 @@ class HttpRiskServiceClient(
     override suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary {
         val response = httpClient.post("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId/compute") {
             contentType(ContentType.Application.Json)
+        }
+        if (!response.status.isSuccess()) {
+            val errorBody: Map<String, String> = try { response.body() } catch (_: Exception) { emptyMap() }
+            throw IllegalStateException(errorBody["message"] ?: "Failed to compute P&L attribution: ${response.status}")
         }
         val dto: PnlAttributionClientDto = response.body()
         return dto.toDomain()

@@ -102,15 +102,29 @@ describe('sodSnapshot API', () => {
       )
     })
 
-    it('throws on error', async () => {
+    it('throws with server error message when available', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        json: () => Promise.resolve({ error: 'no_valuation_data', message: 'No valuation data available' }),
+      })
+
+      await expect(createSodSnapshot('port-1')).rejects.toThrow(
+        'No valuation data available',
+      )
+    })
+
+    it('throws with fallback message when body has no message', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
+        json: () => Promise.reject(new Error('not json')),
       })
 
       await expect(createSodSnapshot('port-1')).rejects.toThrow(
-        'Failed to create SOD snapshot',
+        'Failed to create SOD snapshot: 500 Internal Server Error',
       )
     })
   })
