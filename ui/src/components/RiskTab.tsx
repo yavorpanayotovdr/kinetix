@@ -3,12 +3,15 @@ import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
+import { useSodBaseline } from '../hooks/useSodBaseline'
+import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
+import { PnlSummaryCard } from './PnlSummaryCard'
 
 interface RiskTabProps {
   portfolioId: string | null
@@ -50,6 +53,9 @@ export function RiskTab({
   const { varLimit } = useVarLimit()
   const { alerts, dismissAlert } = useAlerts()
 
+  const sod = useSodBaseline(portfolioId)
+  const { data: pnlData } = usePnlAttribution(portfolioId)
+
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
   const handleRefresh = useCallback(async () => {
@@ -82,7 +88,13 @@ export function RiskTab({
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
       </div>
-      <div className="mt-4">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <PnlSummaryCard
+          sodStatus={sod.status}
+          pnlData={pnlData}
+          computing={sod.computing}
+          onComputePnl={sod.computeAttribution}
+        />
         <StressSummaryCard
           result={stressResult}
           loading={stressLoading}

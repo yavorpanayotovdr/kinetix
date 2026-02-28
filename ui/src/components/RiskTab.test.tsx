@@ -1,13 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { StressTestResultDto } from '../types'
+import type { PnlAttributionDto, StressTestResultDto } from '../types'
 
 vi.mock('../hooks/useVaR')
 vi.mock('../hooks/useJobHistory')
 vi.mock('../hooks/usePositionRisk')
 vi.mock('../hooks/useVarLimit')
 vi.mock('../hooks/useAlerts')
+vi.mock('../hooks/useSodBaseline')
+vi.mock('../hooks/usePnlAttribution')
 
 import { RiskTab } from './RiskTab'
 import { useVaR } from '../hooks/useVaR'
@@ -15,12 +17,16 @@ import { useJobHistory } from '../hooks/useJobHistory'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
+import { useSodBaseline } from '../hooks/useSodBaseline'
+import { usePnlAttribution } from '../hooks/usePnlAttribution'
 
 const mockUseVaR = vi.mocked(useVaR)
 const mockUseJobHistory = vi.mocked(useJobHistory)
 const mockUsePositionRisk = vi.mocked(usePositionRisk)
 const mockUseVarLimit = vi.mocked(useVarLimit)
 const mockUseAlerts = vi.mocked(useAlerts)
+const mockUseSodBaseline = vi.mocked(useSodBaseline)
+const mockUsePnlAttribution = vi.mocked(usePnlAttribution)
 
 const stressResult: StressTestResultDto = {
   scenarioName: 'MARKET_CRASH',
@@ -96,6 +102,23 @@ describe('RiskTab', () => {
     mockUseAlerts.mockReturnValue({
       alerts: [],
       dismissAlert: vi.fn(),
+    })
+    mockUseSodBaseline.mockReturnValue({
+      status: null,
+      loading: false,
+      error: null,
+      creating: false,
+      resetting: false,
+      computing: false,
+      createSnapshot: vi.fn(),
+      resetBaseline: vi.fn(),
+      computeAttribution: vi.fn().mockResolvedValue(null),
+      refresh: vi.fn(),
+    })
+    mockUsePnlAttribution.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
     })
   })
 
@@ -318,5 +341,99 @@ describe('RiskTab', () => {
 
     await user.click(screen.getByTestId('stress-summary-view-details'))
     expect(onViewStressDetails).toHaveBeenCalledOnce()
+  })
+
+  it('calls useSodBaseline with the given portfolioId', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(mockUseSodBaseline).toHaveBeenCalledWith('port-1')
+  })
+
+  it('calls usePnlAttribution with the given portfolioId', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(mockUsePnlAttribution).toHaveBeenCalledWith('port-1')
+  })
+
+  it('renders PnlSummaryCard', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('pnl-summary-card')).toBeInTheDocument()
+  })
+
+  it('renders PnlSummaryCard and StressSummaryCard in a two-column grid', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    const pnlCard = screen.getByTestId('pnl-summary-card')
+    const stressCard = screen.getByTestId('stress-summary-card')
+    const gridContainer = pnlCard.parentElement!
+    expect(gridContainer).toBe(stressCard.parentElement)
+    expect(gridContainer.className).toContain('grid')
+    expect(gridContainer.className).toContain('md:grid-cols-2')
+  })
+
+  it('shows no-baseline state when SOD status has no baseline', () => {
+    mockUseSodBaseline.mockReturnValue({
+      status: { exists: false, baselineDate: null, snapshotType: null, createdAt: null, sourceJobId: null, calculationType: null },
+      loading: false,
+      error: null,
+      creating: false,
+      resetting: false,
+      computing: false,
+      createSnapshot: vi.fn(),
+      resetBaseline: vi.fn(),
+      computeAttribution: vi.fn().mockResolvedValue(null),
+      refresh: vi.fn(),
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('pnl-no-baseline')).toBeInTheDocument()
+  })
+
+  it('shows compute prompt when SOD baseline exists but no P&L data', () => {
+    mockUseSodBaseline.mockReturnValue({
+      status: { exists: true, baselineDate: '2026-02-28', snapshotType: 'MANUAL', createdAt: '2026-02-28T08:00:00Z', sourceJobId: null, calculationType: 'HISTORICAL' },
+      loading: false,
+      error: null,
+      creating: false,
+      resetting: false,
+      computing: false,
+      createSnapshot: vi.fn(),
+      resetBaseline: vi.fn(),
+      computeAttribution: vi.fn().mockResolvedValue(null),
+      refresh: vi.fn(),
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('pnl-compute-prompt')).toBeInTheDocument()
+  })
+
+  it('shows P&L summary data when attribution data is available', () => {
+    const pnlData: PnlAttributionDto = {
+      portfolioId: 'port-1',
+      date: '2026-02-28',
+      totalPnl: '12500.50',
+      deltaPnl: '8000.00',
+      gammaPnl: '-1200.00',
+      vegaPnl: '3500.00',
+      thetaPnl: '-2000.00',
+      rhoPnl: '500.50',
+      unexplainedPnl: '3700.00',
+      positionAttributions: [],
+      calculatedAt: '2026-02-28T10:30:00Z',
+    }
+
+    mockUsePnlAttribution.mockReturnValue({
+      data: pnlData,
+      loading: false,
+      error: null,
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('pnl-summary-data')).toBeInTheDocument()
+    expect(screen.getByTestId('pnl-total-value')).toHaveTextContent('12,500.50')
   })
 })
