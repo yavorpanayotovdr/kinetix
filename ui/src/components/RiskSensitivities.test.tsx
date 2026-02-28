@@ -63,6 +63,27 @@ describe('RiskSensitivities', () => {
     expect(screen.queryByTestId('pv-display')).not.toBeInTheDocument()
   })
 
+  it('renders a portfolio total row summing delta, gamma, and vega', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} />)
+
+    const totalRow = screen.getByTestId('greeks-row-TOTAL')
+    expect(totalRow).toBeInTheDocument()
+    expect(totalRow).toHaveTextContent('Total')
+    // delta: 1234.56 + 567.89 = 1802.45
+    expect(totalRow).toHaveTextContent('1,802.45')
+    // gamma: 78.90 + 12.34 = 91.24
+    expect(totalRow).toHaveTextContent('91.24')
+    // vega: 5678.12 + 2345.67 = 8023.79
+    expect(totalRow).toHaveTextContent('8,023.79')
+  })
+
+  it('renders total row with bold styling', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} />)
+
+    const totalRow = screen.getByTestId('greeks-row-TOTAL')
+    expect(totalRow.className).toContain('font-semibold')
+  })
+
   describe('Greek info popovers', () => {
     it('shows delta explanation when info icon is clicked', () => {
       render(<RiskSensitivities greeksResult={greeksResult} />)

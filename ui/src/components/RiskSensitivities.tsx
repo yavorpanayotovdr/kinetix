@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Info, X } from 'lucide-react'
 import type { GreeksResultDto } from '../types'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -62,6 +62,18 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
     </th>
   )
 
+  const totals = useMemo(() => {
+    let delta = 0
+    let gamma = 0
+    let vega = 0
+    for (const g of greeksResult.assetClassGreeks) {
+      delta += Number(g.delta)
+      gamma += Number(g.gamma)
+      vega += Number(g.vega)
+    }
+    return { delta: delta.toFixed(2), gamma: gamma.toFixed(2), vega: vega.toFixed(2) }
+  }, [greeksResult])
+
   return (
     <div ref={containerRef} data-testid="risk-sensitivities">
       {pvValue != null && (
@@ -88,6 +100,12 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
               <td className="py-1 pl-4 text-right">{formatNum(g.vega)}</td>
             </tr>
           ))}
+          <tr data-testid="greeks-row-TOTAL" className="border-t border-slate-300 font-semibold">
+            <td className="py-1 pr-5">Total</td>
+            <td className="py-1 px-4 text-right">{formatNum(totals.delta)}</td>
+            <td className="py-1 px-4 text-right">{formatNum(totals.gamma)}</td>
+            <td className="py-1 pl-4 text-right">{formatNum(totals.vega)}</td>
+          </tr>
         </tbody>
       </table>
 
