@@ -3,6 +3,7 @@ package com.kinetix.audit.routes
 import com.kinetix.audit.model.AuditEvent
 import com.kinetix.audit.module
 import com.kinetix.audit.persistence.AuditEventRepository
+import com.kinetix.audit.persistence.AuditHasher
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -100,6 +101,64 @@ class AuditRoutesTest : FunSpec({
 
             coVerify(exactly = 1) { repository.findByPortfolioId("port-1") }
             coVerify(exactly = 0) { repository.findAll() }
+        }
+    }
+
+    test("GET /api/v1/audit/verify returns valid true for valid chain") {
+        val event1 = AuditEvent(
+            id = 1,
+            tradeId = "t-1",
+            portfolioId = "port-1",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+            receivedAt = Instant.parse("2025-01-15T10:00:01Z"),
+        )
+        val hash1 = AuditHasher.computeHash(event1, null)
+        val chained1 = event1.copy(previousHash = null, recordHash = hash1)
+
+        val event2 = AuditEvent(
+            id = 2,
+            tradeId = "t-2",
+            portfolioId = "port-1",
+            instrumentId = "MSFT",
+            assetClass = "EQUITY",
+            side = "SELL",
+            quantity = "50",
+            priceAmount = "300.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T11:00:00Z",
+            receivedAt = Instant.parse("2025-01-15T11:00:01Z"),
+        )
+        val hash2 = AuditHasher.computeHash(event2, hash1)
+        val chained2 = event2.copy(previousHash = hash1, recordHash = hash2)
+
+        coEvery { repository.findAll() } returns listOf(chained1, chained2)
+
+        testApplication {
+            application { module(repository) }
+            val response = client.get("/api/v1/audit/verify")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["valid"]?.jsonPrimitive?.boolean shouldBe true
+            body["eventCount"]?.jsonPrimitive?.int shouldBe 2
+        }
+    }
+
+    test("GET /api/v1/audit/verify returns valid true for empty chain") {
+        coEvery { repository.findAll() } returns emptyList()
+
+        testApplication {
+            application { module(repository) }
+            val response = client.get("/api/v1/audit/verify")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["valid"]?.jsonPrimitive?.boolean shouldBe true
+            body["eventCount"]?.jsonPrimitive?.int shouldBe 0
         }
     }
 

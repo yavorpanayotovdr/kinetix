@@ -2,6 +2,7 @@ package com.kinetix.audit.persistence
 
 import com.kinetix.audit.model.AuditEvent
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.Database
@@ -12,6 +13,16 @@ import java.time.ZoneOffset
 class ExposedAuditEventRepository(private val db: Database? = null) : AuditEventRepository {
 
     override suspend fun save(event: AuditEvent): Unit = newSuspendedTransaction(db = db) {
+        val latestHash = AuditEventsTable
+            .select(AuditEventsTable.recordHash)
+            .orderBy(AuditEventsTable.id, SortOrder.DESC)
+            .limit(1)
+            .map { it[AuditEventsTable.recordHash] }
+            .firstOrNull()
+            ?.takeIf { it.isNotEmpty() }
+
+        val recordHash = AuditHasher.computeHash(event, latestHash)
+
         AuditEventsTable.insert {
             it[tradeId] = event.tradeId
             it[portfolioId] = event.portfolioId
@@ -23,6 +34,11 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             it[priceCurrency] = event.priceCurrency
             it[tradedAt] = event.tradedAt
             it[receivedAt] = OffsetDateTime.ofInstant(event.receivedAt, ZoneOffset.UTC)
+            it[AuditEventsTable.previousHash] = latestHash
+            it[AuditEventsTable.recordHash] = recordHash
+            it[userId] = event.userId
+            it[userRole] = event.userRole
+            it[eventType] = event.eventType
         }
     }
 
@@ -53,5 +69,10 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         priceCurrency = this[AuditEventsTable.priceCurrency],
         tradedAt = this[AuditEventsTable.tradedAt],
         receivedAt = this[AuditEventsTable.receivedAt].toInstant(),
+        previousHash = this[AuditEventsTable.previousHash],
+        recordHash = this[AuditEventsTable.recordHash],
+        userId = this[AuditEventsTable.userId],
+        userRole = this[AuditEventsTable.userRole],
+        eventType = this[AuditEventsTable.eventType],
     )
 }

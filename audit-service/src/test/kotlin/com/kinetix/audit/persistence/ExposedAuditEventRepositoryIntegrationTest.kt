@@ -4,7 +4,6 @@ import com.kinetix.audit.model.AuditEvent
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
@@ -40,7 +39,9 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
     val repository: AuditEventRepository = ExposedAuditEventRepository()
 
     beforeEach {
-        newSuspendedTransaction { AuditEventsTable.deleteAll() }
+        newSuspendedTransaction {
+            exec("TRUNCATE TABLE audit_events RESTART IDENTITY")
+        }
     }
 
     test("save and findAll returns the event") {

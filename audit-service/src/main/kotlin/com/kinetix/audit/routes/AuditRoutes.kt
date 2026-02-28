@@ -2,6 +2,7 @@ package com.kinetix.audit.routes
 
 import com.kinetix.audit.dto.toResponse
 import com.kinetix.audit.persistence.AuditEventRepository
+import com.kinetix.audit.persistence.AuditHasher
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.*
@@ -26,6 +27,15 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
                 repository.findAll()
             }
             call.respond(events.map { it.toResponse() })
+        }
+
+        get("/verify", {
+            summary = "Verify audit chain integrity"
+            tags = listOf("Audit")
+        }) {
+            val events = repository.findAll()
+            val result = AuditHasher.verifyChain(events)
+            call.respond(result)
         }
     }
 }

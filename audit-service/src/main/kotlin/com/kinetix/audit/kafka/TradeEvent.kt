@@ -15,6 +15,9 @@ data class TradeEvent(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val userId: String? = null,
+    val userRole: String? = null,
+    val eventType: String = "TRADE_BOOKED",
 ) {
     fun toAuditEvent(receivedAt: Instant = Instant.now()): AuditEvent = AuditEvent(
         tradeId = tradeId,
@@ -27,5 +30,8 @@ data class TradeEvent(
         priceCurrency = priceCurrency,
         tradedAt = tradedAt,
         receivedAt = receivedAt,
+        userId = userId,
+        userRole = userRole,
+        eventType = eventType,
     )
 }

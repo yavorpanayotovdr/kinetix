@@ -15,6 +15,11 @@ object AuditEventsTable : Table("audit_events") {
     val priceCurrency = varchar("price_currency", 3)
     val tradedAt = varchar("traded_at", 50)
     val receivedAt = timestampWithTimeZone("received_at")
+    val previousHash = varchar("previous_hash", 64).nullable()
+    val recordHash = varchar("record_hash", 64).default("")
+    val userId = varchar("user_id", 255).nullable()
+    val userRole = varchar("user_role", 100).nullable()
+    val eventType = varchar("event_type", 100).default("TRADE_BOOKED")
 
     override val primaryKey = PrimaryKey(id)
 }
