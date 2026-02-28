@@ -20,6 +20,7 @@ interface RiskTabProps {
   onRunStress: () => void
   onViewStressDetails: () => void
   onWhatIf?: () => void
+  onViewPnlTab?: () => void
 }
 
 export function RiskTab({
@@ -29,6 +30,7 @@ export function RiskTab({
   onRunStress,
   onViewStressDetails,
   onWhatIf,
+  onViewPnlTab,
 }: RiskTabProps) {
   const {
     varResult,
@@ -97,6 +99,7 @@ export function RiskTab({
           pnlData={pnlData}
           computing={sod.computing}
           onComputePnl={sod.computeAttribution}
+          onViewFullAttribution={onViewPnlTab}
         />
         <StressSummaryCard
           result={stressResult}

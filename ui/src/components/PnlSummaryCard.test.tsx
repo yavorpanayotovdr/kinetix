@@ -170,10 +170,34 @@ describe('PnlSummaryCard', () => {
       expect(gammaValue.className).toContain('text-red-600')
     })
 
-    it('renders View Full Attribution link', () => {
-      render(<PnlSummaryCard {...defaultProps} pnlData={pnlData} />)
+    it('renders View Full Attribution link when callback is provided', () => {
+      render(
+        <PnlSummaryCard {...defaultProps} pnlData={pnlData} onViewFullAttribution={vi.fn()} />,
+      )
 
       expect(screen.getByText('View Full Attribution')).toBeInTheDocument()
+    })
+
+    it('calls onViewFullAttribution when View Full Attribution is clicked', async () => {
+      const user = userEvent.setup()
+      const onViewFullAttribution = vi.fn()
+
+      render(
+        <PnlSummaryCard
+          {...defaultProps}
+          pnlData={pnlData}
+          onViewFullAttribution={onViewFullAttribution}
+        />,
+      )
+
+      await user.click(screen.getByTestId('pnl-view-full-attribution'))
+      expect(onViewFullAttribution).toHaveBeenCalledOnce()
+    })
+
+    it('does not render View Full Attribution link when callback is not provided', () => {
+      render(<PnlSummaryCard {...defaultProps} pnlData={pnlData} />)
+
+      expect(screen.queryByTestId('pnl-view-full-attribution')).not.toBeInTheDocument()
     })
   })
 })

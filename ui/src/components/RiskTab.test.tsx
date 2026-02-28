@@ -470,6 +470,34 @@ describe('RiskTab', () => {
     expect(screen.queryByTestId('var-whatif-button')).not.toBeInTheDocument()
   })
 
+  it('passes onViewPnlTab to PnlSummaryCard as onViewFullAttribution', async () => {
+    const user = userEvent.setup()
+    const onViewPnlTab = vi.fn()
+
+    mockUsePnlAttribution.mockReturnValue({
+      data: {
+        portfolioId: 'port-1',
+        date: '2026-02-28',
+        totalPnl: '5000.00',
+        deltaPnl: '3000.00',
+        gammaPnl: '-500.00',
+        vegaPnl: '1000.00',
+        thetaPnl: '-800.00',
+        rhoPnl: '300.00',
+        unexplainedPnl: '0',
+        positionAttributions: [],
+        calculatedAt: '2026-02-28T10:30:00Z',
+      },
+      loading: false,
+      error: null,
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} onViewPnlTab={onViewPnlTab} />)
+
+    await user.click(screen.getByTestId('pnl-view-full-attribution'))
+    expect(onViewPnlTab).toHaveBeenCalledOnce()
+  })
+
   it('shows P&L summary data when attribution data is available', () => {
     const pnlData: PnlAttributionDto = {
       portfolioId: 'port-1',

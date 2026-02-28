@@ -8,6 +8,7 @@ interface PnlSummaryCardProps {
   pnlData: PnlAttributionDto | null
   computing: boolean
   onComputePnl: () => void
+  onViewFullAttribution?: () => void
 }
 
 interface Factor {
@@ -16,7 +17,7 @@ interface Factor {
   value: string
 }
 
-export function PnlSummaryCard({ sodStatus, pnlData, computing, onComputePnl }: PnlSummaryCardProps) {
+export function PnlSummaryCard({ sodStatus, pnlData, computing, onComputePnl, onViewFullAttribution }: PnlSummaryCardProps) {
   const hasBaseline = sodStatus?.exists === true
   const showNoBaseline = !hasBaseline && !pnlData
   const showComputePrompt = hasBaseline && !pnlData
@@ -89,15 +90,18 @@ export function PnlSummaryCard({ sodStatus, pnlData, computing, onComputePnl }: 
             ))}
           </div>
 
-          <div className="mt-3 flex justify-end">
-            <button
-              data-testid="pnl-view-full-attribution"
-              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              View Full Attribution
-              <ExternalLink className="h-3 w-3" />
-            </button>
-          </div>
+          {onViewFullAttribution && (
+            <div className="mt-3 flex justify-end">
+              <button
+                data-testid="pnl-view-full-attribution"
+                onClick={onViewFullAttribution}
+                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                View Full Attribution
+                <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </Card>
