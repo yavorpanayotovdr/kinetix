@@ -122,6 +122,11 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
             onClick={() => togglePopover('es')}
           />
           {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+          {varValue > 0 && (
+            <span data-testid="es-var-ratio" className="text-xs text-slate-400">
+              ({(expectedShortfall / varValue).toFixed(2)}x)
+            </span>
+          )}
         </div>
         {openPopover === 'es' && (
           <span

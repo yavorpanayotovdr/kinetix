@@ -363,4 +363,23 @@ describe('VaRGauge', () => {
       expect(change).not.toHaveTextContent('%')
     })
   })
+
+  describe('ES/VaR ratio', () => {
+    it('displays ES/VaR ratio next to ES value', () => {
+      render(
+        <VaRGauge varValue={1000000} expectedShortfall={1250000} confidenceLevel="CL_95" />,
+      )
+
+      const ratio = screen.getByTestId('es-var-ratio')
+      expect(ratio).toHaveTextContent('1.25x')
+    })
+
+    it('hides ratio when VaR is zero', () => {
+      render(
+        <VaRGauge varValue={0} expectedShortfall={0} confidenceLevel="CL_95" />,
+      )
+
+      expect(screen.queryByTestId('es-var-ratio')).not.toBeInTheDocument()
+    })
+  })
 })
