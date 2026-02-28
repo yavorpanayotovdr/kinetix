@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
 
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
@@ -49,7 +49,26 @@ function jobMatchesSearch(
   return tokens.every((t) => text.includes(t))
 }
 
+function formatJobTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function buildSummaryText(runs: ValuationJobSummaryDto[]): string {
+  if (runs.length === 0) return 'No calculations today'
+  const last = runs[0]
+  const time = formatJobTime(last.startedAt)
+  const status = last.status === 'COMPLETED' ? 'success' : last.status
+  return `Last calc: ${time} (${status}) · ${runs.length} job${runs.length !== 1 ? 's' : ''} today`
+}
+
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      return localStorage.getItem('kinetix:job-history-expanded') === 'true'
+    } catch {
+      return false
+    }
+  })
   const [search, setSearch] = useState('')
   const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     portfolioId,
@@ -106,6 +125,14 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
     goToPage(clamped - 1)
   }
 
+  const toggleExpanded = () => {
+    setExpanded((prev) => {
+      const next = !prev
+      try { localStorage.setItem('kinetix:job-history-expanded', String(next)) } catch { /* noop */ }
+      return next
+    })
+  }
+
   const buckets = useTimeBuckets(runs, timeRange)
 
   const filteredRuns = search.trim()
@@ -114,8 +141,9 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
 
   return (
     <Card data-testid="job-history">
-      <div
+      <button
         data-testid="job-history-header"
+        onClick={toggleExpanded}
         className="flex items-center gap-2 w-full text-left"
       >
         <History className="h-4 w-4 text-slate-500" />
@@ -123,21 +151,31 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
         {filteredRuns.length > 0 && (
           <Badge variant="neutral">{totalPages > 1 ? `Page ${page + 1} of ${totalPages}` : filteredRuns.length}</Badge>
         )}
-      </div>
+        <span className="ml-auto">
+          {expanded
+            ? <ChevronUp className="h-4 w-4 text-slate-400" />
+            : <ChevronDown className="h-4 w-4 text-slate-400" />}
+        </span>
+      </button>
 
-      <div className="mt-3">
-          {loading && !runs.length && (
-            <div data-testid="job-history-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2">
-              <Spinner size="sm" />
-              Loading jobs...
-            </div>
-          )}
+      {loading && !runs.length && (
+        <div data-testid="job-history-loading" className="flex items-center gap-2 text-sm text-slate-500 py-2 mt-2">
+          <Spinner size="sm" />
+          Loading jobs...
+        </div>
+      )}
 
-          {error && (
-            <p data-testid="job-history-error" className="text-sm text-red-600 py-2">{error}</p>
-          )}
+      {error && (
+        <p data-testid="job-history-error" className="text-sm text-red-600 py-2 mt-2">{error}</p>
+      )}
 
-          {!error && !(loading && runs.length === 0) && (
+      {!expanded && !loading && !error && (
+        <div data-testid="job-history-summary" className="mt-2 text-xs text-slate-500">
+          {buildSummaryText(runs)}
+        </div>
+      )}
+
+      {expanded && !error && !(loading && runs.length === 0) && <div className="mt-3">
             <>
               <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               {runs.length > 0 && (
@@ -275,8 +313,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
                 </div>
               )}
             </>
-          )}
-        </div>
+        </div>}
     </Card>
   )
 }

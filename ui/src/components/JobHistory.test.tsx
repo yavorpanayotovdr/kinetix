@@ -40,10 +40,12 @@ const defaultHookResult = {
 describe('JobHistory', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    localStorage.setItem('kinetix:job-history-expanded', 'true')
     mockUseJobHistory.mockReturnValue(defaultHookResult)
   })
 
-  it('renders expanded by default', () => {
+  it('renders collapsed by default with summary', () => {
+    localStorage.removeItem('kinetix:job-history-expanded')
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -67,7 +69,45 @@ describe('JobHistory', () => {
 
     expect(screen.getByTestId('job-history')).toBeInTheDocument()
     expect(screen.getByText('Valuation Jobs')).toBeInTheDocument()
+    expect(screen.getByTestId('job-history-summary')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-history-table')).not.toBeInTheDocument()
+  })
+
+  it('expands table when header is clicked', () => {
+    localStorage.removeItem('kinetix:job-history-expanded')
+    mockUseJobHistory.mockReturnValue({
+      ...defaultHookResult,
+      runs: [
+        {
+          jobId: 'job-1',
+          portfolioId: 'port-1',
+          triggerType: 'ON_DEMAND',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:00:00.150Z',
+          durationMs: 150,
+          calculationType: 'PARAMETRIC',
+          varValue: 5000.0,
+          expectedShortfall: 6250.0,
+          pvValue: 1800000.0,
+        },
+      ],
+    })
+
+    render(<JobHistory portfolioId="port-1" />)
+
+    fireEvent.click(screen.getByTestId('job-history-header'))
+
     expect(screen.getByTestId('job-history-table')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-history-summary')).not.toBeInTheDocument()
+  })
+
+  it('shows empty summary when no jobs exist', () => {
+    localStorage.removeItem('kinetix:job-history-expanded')
+    render(<JobHistory portfolioId="port-1" />)
+
+    const summary = screen.getByTestId('job-history-summary')
+    expect(summary).toHaveTextContent('No calculations today')
   })
 
   it('passes portfolioId to hook on initial render', () => {
