@@ -1,15 +1,14 @@
 package com.kinetix.risk
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.resilience.CircuitBreaker
-import com.kinetix.position.persistence.DatabaseConfig as PositionDatabaseConfig
-import com.kinetix.position.persistence.DatabaseFactory as PositionDatabaseFactory
-import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.client.GrpcRiskEngineClient
+import com.kinetix.risk.client.HttpPositionServiceClient
 import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.HttpRatesServiceClient
 import com.kinetix.risk.client.HttpReferenceDataServiceClient
@@ -96,15 +95,6 @@ fun Application.module() {
 private data class ErrorBody(val error: String, val message: String)
 
 fun Application.moduleWithRoutes() {
-    val dbConfig = environment.config.config("database")
-    val db = PositionDatabaseFactory.init(
-        PositionDatabaseConfig(
-            jdbcUrl = dbConfig.property("jdbcUrl").getString(),
-            username = dbConfig.property("username").getString(),
-            password = dbConfig.property("password").getString(),
-        )
-    )
-
     val grpcConfig = environment.config.config("grpc")
     val grpcHost = grpcConfig.property("host").getString()
     val grpcPort = grpcConfig.property("port").getString().toInt()
@@ -123,8 +113,6 @@ fun Application.moduleWithRoutes() {
             .build()
     }
 
-    val positionRepository = ExposedPositionRepository(db)
-    val positionProvider = PositionServicePositionProvider(positionRepository)
     val dependenciesStub = MarketDataDependenciesServiceGrpcKt.MarketDataDependenciesServiceCoroutineStub(channel)
     val grpcRiskEngineClient = GrpcRiskEngineClient(
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
@@ -150,6 +138,10 @@ fun Application.moduleWithRoutes() {
     val correlationServiceBaseUrl = environment.config
         .propertyOrNull("correlationService.baseUrl")?.getString() ?: "http://localhost:8091"
     val correlationServiceClient = HttpCorrelationServiceClient(priceHttpClient, correlationServiceBaseUrl)
+    val positionServiceBaseUrl = environment.config
+        .propertyOrNull("positionService.baseUrl")?.getString() ?: "http://localhost:8081"
+    val positionServiceClient = HttpPositionServiceClient(priceHttpClient, positionServiceBaseUrl)
+    val positionProvider = PositionServicePositionProvider(positionServiceClient)
 
     val simulationDelays = SimulationDelays.from(environment.config)
     if (simulationDelays != null) {
@@ -279,9 +271,14 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val tradeRetryableConsumer = RetryableConsumer(
+        topic = "trades.lifecycle",
+        dlqProducer = kafkaProducer,
+    )
     val tradeEventConsumer = TradeEventConsumer(
         KafkaConsumer<String, String>(tradeConsumerProps),
         varCalculationService,
+        retryableConsumer = tradeRetryableConsumer,
     )
 
     val priceConsumerProps = Properties().apply {
@@ -291,10 +288,18 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val priceRetryableConsumer = RetryableConsumer(
+        topic = "price.updates",
+        dlqProducer = kafkaProducer,
+    )
     val priceEventConsumer = PriceEventConsumer(
         KafkaConsumer<String, String>(priceConsumerProps),
         varCalculationService,
-        affectedPortfolios = { positionRepository.findDistinctPortfolioIds() },
+        affectedPortfolios = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+                is com.kinetix.risk.client.ClientResponse.Success -> r.value
+                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+            } },
+        retryableConsumer = priceRetryableConsumer,
     )
 
     launch { tradeEventConsumer.start() }
@@ -303,13 +308,19 @@ fun Application.moduleWithRoutes() {
         ScheduledVaRCalculator(
             varCalculationService = varCalculationService,
             varCache = varCache,
-            portfolioIds = { positionRepository.findDistinctPortfolioIds() },
+            portfolioIds = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+                is com.kinetix.risk.client.ClientResponse.Success -> r.value
+                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+            } },
         ).start()
     }
     launch {
         ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { positionRepository.findDistinctPortfolioIds() },
+            portfolioIds = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+                is com.kinetix.risk.client.ClientResponse.Success -> r.value
+                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+            } },
         ).start()
     }
 }

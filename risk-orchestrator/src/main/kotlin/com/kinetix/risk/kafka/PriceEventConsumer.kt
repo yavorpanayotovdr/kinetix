@@ -1,5 +1,6 @@
 package com.kinetix.risk.kafka
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
@@ -20,6 +21,7 @@ class PriceEventConsumer(
     private val varCalculationService: VaRCalculationService,
     private val affectedPortfolios: suspend () -> List<PortfolioId>,
     private val topic: String = "price.updates",
+    private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
     private val logger = LoggerFactory.getLogger(PriceEventConsumer::class.java)
 
@@ -42,18 +44,20 @@ class PriceEventConsumer(
 
             for (portfolioId in portfolioIds) {
                 try {
-                    logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
-                    varCalculationService.calculateVaR(
-                        VaRCalculationRequest(
-                            portfolioId = portfolioId,
-                            calculationType = CalculationType.PARAMETRIC,
-                            confidenceLevel = ConfidenceLevel.CL_95,
-                        ),
-                        triggerType = TriggerType.PRICE_EVENT,
-                    )
+                    retryableConsumer.process(portfolioId.value, "") {
+                        logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
+                        varCalculationService.calculateVaR(
+                            VaRCalculationRequest(
+                                portfolioId = portfolioId,
+                                calculationType = CalculationType.PARAMETRIC,
+                                confidenceLevel = ConfidenceLevel.CL_95,
+                            ),
+                            triggerType = TriggerType.PRICE_EVENT,
+                        )
+                    }
                 } catch (e: Exception) {
                     logger.error(
-                        "Failed to recalculate VaR for portfolio {} after price update",
+                        "Failed to recalculate VaR for portfolio {} after price update and retries",
                         portfolioId.value, e,
                     )
                 }
