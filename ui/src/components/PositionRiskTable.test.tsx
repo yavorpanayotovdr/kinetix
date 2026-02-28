@@ -1,0 +1,210 @@
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
+import type { PositionRiskDto } from '../types'
+import { PositionRiskTable } from './PositionRiskTable'
+
+const makeRisk = (overrides: Partial<PositionRiskDto> = {}): PositionRiskDto => ({
+  instrumentId: 'AAPL',
+  assetClass: 'EQUITY',
+  marketValue: '15500.00',
+  delta: '1234.56',
+  gamma: '45.67',
+  vega: '89.01',
+  varContribution: '800.00',
+  esContribution: '1000.00',
+  percentageOfTotal: '64.85',
+  ...overrides,
+})
+
+describe('PositionRiskTable', () => {
+  describe('rendering', () => {
+    it('renders all column headers', () => {
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      const expectedHeaders = [
+        'Instrument',
+        'Asset Class',
+        'Market Value',
+        'Delta',
+        'Gamma',
+        'Vega',
+        'VaR Contribution',
+        'ES Contribution',
+        '% of Total',
+      ]
+      expectedHeaders.forEach((header) => {
+        expect(screen.getByRole('columnheader', { name: new RegExp(header) })).toBeInTheDocument()
+      })
+    })
+
+    it('renders row data with formatted numbers', () => {
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      const row = screen.getByTestId('position-risk-row-AAPL')
+      expect(within(row).getByText('AAPL')).toBeInTheDocument()
+      expect(within(row).getByText('EQUITY')).toBeInTheDocument()
+      expect(within(row).getByText('15,500.00')).toBeInTheDocument()
+      expect(within(row).getByText('1,234.56')).toBeInTheDocument()
+      expect(within(row).getByText('45.67')).toBeInTheDocument()
+      expect(within(row).getByText('89.01')).toBeInTheDocument()
+      expect(within(row).getByText('800.00')).toBeInTheDocument()
+      expect(within(row).getByText('1,000.00')).toBeInTheDocument()
+      expect(within(row).getByText('64.85%')).toBeInTheDocument()
+    })
+
+    it('shows dash for null greek values', () => {
+      render(
+        <PositionRiskTable
+          data={[makeRisk({ delta: null, gamma: null, vega: null })]}
+          loading={false}
+        />,
+      )
+
+      const row = screen.getByTestId('position-risk-row-AAPL')
+      const cells = within(row).getAllByText('\u2014')
+      expect(cells).toHaveLength(3)
+    })
+  })
+
+  describe('default sorting', () => {
+    it('sorts by absolute varContribution descending by default', () => {
+      const data = [
+        makeRisk({ instrumentId: 'SMALL', varContribution: '100.00', percentageOfTotal: '10.00' }),
+        makeRisk({ instrumentId: 'LARGE', varContribution: '-900.00', percentageOfTotal: '60.00' }),
+        makeRisk({ instrumentId: 'MED', varContribution: '500.00', percentageOfTotal: '30.00' }),
+      ]
+      render(<PositionRiskTable data={data} loading={false} />)
+
+      const rows = screen.getAllByTestId(/^position-risk-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-risk-row-LARGE')
+      expect(rows[1]).toHaveAttribute('data-testid', 'position-risk-row-MED')
+      expect(rows[2]).toHaveAttribute('data-testid', 'position-risk-row-SMALL')
+    })
+  })
+
+  describe('sortable columns', () => {
+    it('sorts by clicked column header descending on first click', async () => {
+      const user = userEvent.setup()
+      const data = [
+        makeRisk({ instrumentId: 'A', marketValue: '100.00', varContribution: '50.00', percentageOfTotal: '10.00' }),
+        makeRisk({ instrumentId: 'B', marketValue: '300.00', varContribution: '30.00', percentageOfTotal: '20.00' }),
+        makeRisk({ instrumentId: 'C', marketValue: '200.00', varContribution: '20.00', percentageOfTotal: '70.00' }),
+      ]
+      render(<PositionRiskTable data={data} loading={false} />)
+
+      await user.click(screen.getByTestId('sort-marketValue'))
+
+      const rows = screen.getAllByTestId(/^position-risk-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-risk-row-B')
+      expect(rows[1]).toHaveAttribute('data-testid', 'position-risk-row-C')
+      expect(rows[2]).toHaveAttribute('data-testid', 'position-risk-row-A')
+    })
+
+    it('toggles to ascending on second click of the same column', async () => {
+      const user = userEvent.setup()
+      const data = [
+        makeRisk({ instrumentId: 'A', marketValue: '100.00', varContribution: '50.00', percentageOfTotal: '10.00' }),
+        makeRisk({ instrumentId: 'B', marketValue: '300.00', varContribution: '30.00', percentageOfTotal: '20.00' }),
+      ]
+      render(<PositionRiskTable data={data} loading={false} />)
+
+      const header = screen.getByTestId('sort-marketValue')
+      await user.click(header)
+      await user.click(header)
+
+      const rows = screen.getAllByTestId(/^position-risk-row-/)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-risk-row-A')
+      expect(rows[1]).toHaveAttribute('data-testid', 'position-risk-row-B')
+    })
+  })
+
+  describe('colour-coding % of Total', () => {
+    it('applies red text when percentage is above 30', () => {
+      render(
+        <PositionRiskTable
+          data={[makeRisk({ instrumentId: 'HIGH', percentageOfTotal: '35.00', varContribution: '900.00' })]}
+          loading={false}
+        />,
+      )
+
+      const cell = screen.getByTestId('pct-total-HIGH')
+      expect(cell).toHaveClass('text-red-600')
+    })
+
+    it('applies amber text when percentage is above 15 but at or below 30', () => {
+      render(
+        <PositionRiskTable
+          data={[makeRisk({ instrumentId: 'MED', percentageOfTotal: '20.00', varContribution: '500.00' })]}
+          loading={false}
+        />,
+      )
+
+      const cell = screen.getByTestId('pct-total-MED')
+      expect(cell).toHaveClass('text-amber-600')
+    })
+
+    it('applies neutral text when percentage is at or below 15', () => {
+      render(
+        <PositionRiskTable
+          data={[makeRisk({ instrumentId: 'LOW', percentageOfTotal: '10.00', varContribution: '100.00' })]}
+          loading={false}
+        />,
+      )
+
+      const cell = screen.getByTestId('pct-total-LOW')
+      expect(cell).not.toHaveClass('text-red-600')
+      expect(cell).not.toHaveClass('text-amber-600')
+    })
+  })
+
+  describe('collapsible', () => {
+    it('starts expanded with table visible', () => {
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      expect(screen.getByTestId('position-risk-table')).toBeInTheDocument()
+    })
+
+    it('collapses the table when the header toggle is clicked', async () => {
+      const user = userEvent.setup()
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      await user.click(screen.getByTestId('position-risk-toggle'))
+
+      expect(screen.queryByTestId('position-risk-table')).not.toBeInTheDocument()
+    })
+
+    it('expands the table again when toggled a second time', async () => {
+      const user = userEvent.setup()
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      const toggle = screen.getByTestId('position-risk-toggle')
+      await user.click(toggle)
+      await user.click(toggle)
+
+      expect(screen.getByTestId('position-risk-table')).toBeInTheDocument()
+    })
+  })
+
+  describe('loading state', () => {
+    it('shows a loading spinner when loading is true', () => {
+      render(<PositionRiskTable data={[]} loading={true} />)
+
+      expect(screen.getByTestId('position-risk-loading')).toBeInTheDocument()
+    })
+
+    it('does not show the table when loading', () => {
+      render(<PositionRiskTable data={[]} loading={true} />)
+
+      expect(screen.queryByTestId('position-risk-table')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('empty state', () => {
+    it('shows an empty message when data is empty and not loading', () => {
+      render(<PositionRiskTable data={[]} loading={false} />)
+
+      expect(screen.getByTestId('position-risk-empty')).toBeInTheDocument()
+    })
+  })
+})
