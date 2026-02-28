@@ -1,5 +1,6 @@
 package com.kinetix.position
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.kafka.PriceConsumer
 import com.kinetix.position.persistence.DatabaseConfig
@@ -107,7 +108,11 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
     val priceKafkaConsumer = KafkaConsumer<String, String>(consumerProps)
-    val priceConsumer = PriceConsumer(priceKafkaConsumer, priceUpdateService)
+    val retryableConsumer = RetryableConsumer(
+        topic = "price.updates",
+        dlqProducer = kafkaProducer,
+    )
+    val priceConsumer = PriceConsumer(priceKafkaConsumer, priceUpdateService, retryableConsumer = retryableConsumer)
 
     module()
 

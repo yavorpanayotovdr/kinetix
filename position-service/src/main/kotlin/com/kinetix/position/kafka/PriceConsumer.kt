@@ -1,5 +1,6 @@
 package com.kinetix.position.kafka
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.position.service.PriceUpdateService
@@ -18,6 +19,7 @@ class PriceConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val priceUpdateService: PriceUpdateService,
     private val topic: String = "price.updates",
+    private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
     private val logger = LoggerFactory.getLogger(PriceConsumer::class.java)
 
@@ -31,13 +33,15 @@ class PriceConsumer(
             }
             for (record in records) {
                 try {
-                    val event = Json.decodeFromString<PriceEvent>(record.value())
-                    val instrumentId = InstrumentId(event.instrumentId)
-                    val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
-                    priceUpdateService.handle(instrumentId, price)
+                    retryableConsumer.process(record.key() ?: "", record.value()) {
+                        val event = Json.decodeFromString<PriceEvent>(record.value())
+                        val instrumentId = InstrumentId(event.instrumentId)
+                        val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
+                        priceUpdateService.handle(instrumentId, price)
+                    }
                 } catch (e: Exception) {
                     logger.error(
-                        "Failed to process price event: offset={}, partition={}, instrumentId={}",
+                        "Failed to process price event after retries: offset={}, partition={}, instrumentId={}",
                         record.offset(), record.partition(), record.key(), e,
                     )
                 }
