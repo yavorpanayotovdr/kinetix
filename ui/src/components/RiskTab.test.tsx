@@ -410,6 +410,66 @@ describe('RiskTab', () => {
     expect(screen.getByTestId('pnl-compute-prompt')).toBeInTheDocument()
   })
 
+  it('passes onWhatIf to VaRDashboard and renders What-If button', () => {
+    mockUseVaR.mockReturnValue({
+      varResult: {
+        portfolioId: 'port-1',
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: '1000000',
+        expectedShortfall: '1500000',
+        componentBreakdown: [],
+        calculatedAt: '2025-01-15T10:00:00Z',
+      },
+      greeksResult: null,
+      history: [],
+      filteredHistory: [],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+      refreshing: false,
+      timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
+      setTimeRange: vi.fn(),
+      zoomIn: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomDepth: 0,
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} onWhatIf={() => {}} />)
+
+    expect(screen.getByTestId('var-whatif-button')).toBeInTheDocument()
+  })
+
+  it('does not render What-If button when onWhatIf is not provided', () => {
+    mockUseVaR.mockReturnValue({
+      varResult: {
+        portfolioId: 'port-1',
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: '1000000',
+        expectedShortfall: '1500000',
+        componentBreakdown: [],
+        calculatedAt: '2025-01-15T10:00:00Z',
+      },
+      greeksResult: null,
+      history: [],
+      filteredHistory: [],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+      refreshing: false,
+      timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
+      setTimeRange: vi.fn(),
+      zoomIn: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomDepth: 0,
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.queryByTestId('var-whatif-button')).not.toBeInTheDocument()
+  })
+
   it('shows P&L summary data when attribution data is available', () => {
     const pnlData: PnlAttributionDto = {
       portfolioId: 'port-1',

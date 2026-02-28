@@ -19,6 +19,7 @@ interface RiskTabProps {
   stressLoading: boolean
   onRunStress: () => void
   onViewStressDetails: () => void
+  onWhatIf?: () => void
 }
 
 export function RiskTab({
@@ -27,6 +28,7 @@ export function RiskTab({
   stressLoading,
   onRunStress,
   onViewStressDetails,
+  onWhatIf,
 }: RiskTabProps) {
   const {
     varResult,
@@ -84,6 +86,7 @@ export function RiskTab({
         zoomDepth={varZoomDepth}
         greeksResult={greeksResult}
         varLimit={varLimit}
+        onWhatIf={onWhatIf}
       />
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

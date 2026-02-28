@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Info, RefreshCw, X } from 'lucide-react'
+import { FlaskRound, Info, RefreshCw, X } from 'lucide-react'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -30,9 +30,10 @@ interface VaRDashboardProps {
   zoomDepth: number
   greeksResult?: GreeksResultDto | null
   varLimit?: number | null
+  onWhatIf?: () => void
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const calcTypeRef = useRef<HTMLSpanElement>(null)
 
@@ -130,16 +131,28 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           {' '}&middot;{' '}
           {new Date(varResult.calculatedAt).toLocaleString()}
         </span>
-        <Button
-          data-testid="var-recalculate"
-          variant="primary"
-          size="sm"
-          icon={<RefreshCw className={`h-3 w-3${refreshing ? ' animate-spin' : ''}`} />}
-          onClick={onRefresh}
-          disabled={refreshing}
-        >
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {onWhatIf && (
+            <button
+              data-testid="var-whatif-button"
+              onClick={onWhatIf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
+            >
+              <FlaskRound className="h-4 w-4" />
+              What-If
+            </button>
+          )}
+          <Button
+            data-testid="var-recalculate"
+            variant="primary"
+            size="sm"
+            icon={<RefreshCw className={`h-3 w-3${refreshing ? ' animate-spin' : ''}`} />}
+            onClick={onRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
       </div>
     </Card>
   )

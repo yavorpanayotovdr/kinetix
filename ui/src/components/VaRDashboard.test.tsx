@@ -428,7 +428,9 @@ describe('VaRDashboard', () => {
     )
 
     const limitLabel = screen.getByTestId('var-limit')
-    expect(limitLabel).toHaveTextContent('Limit $2,000,000.00')
+    expect(limitLabel).toHaveTextContent('Limit: $2,000,000.00')
+    // VaR is 1,234,567.89 / 2,000,000 = ~62%
+    expect(limitLabel).toHaveTextContent('62%')
   })
 
   it('does not show limit label when varLimit is not provided', () => {
@@ -461,6 +463,76 @@ describe('VaRDashboard', () => {
 
     expect(screen.getByTestId('sensitivities-placeholder')).toBeInTheDocument()
     expect(screen.queryByTestId('risk-sensitivities')).not.toBeInTheDocument()
+  })
+
+  it('does not render What-If button when onWhatIf is not provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    expect(screen.queryByTestId('var-whatif-button')).not.toBeInTheDocument()
+  })
+
+  it('renders What-If button when onWhatIf is provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        onWhatIf={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    const button = screen.getByTestId('var-whatif-button')
+    expect(button).toBeInTheDocument()
+    expect(button).toHaveTextContent('What-If')
+  })
+
+  it('calls onWhatIf when What-If button is clicked', () => {
+    const onWhatIf = vi.fn()
+
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        onWhatIf={onWhatIf}
+        {...defaultZoomProps}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('var-whatif-button'))
+    expect(onWhatIf).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders What-If button before Refresh button in footer', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        onWhatIf={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    const whatIfButton = screen.getByTestId('var-whatif-button')
+    const refreshButton = screen.getByTestId('var-recalculate')
+    expect(whatIfButton.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
 })

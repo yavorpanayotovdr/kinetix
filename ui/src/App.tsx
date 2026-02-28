@@ -136,6 +136,7 @@ function App() {
                     stressLoading={stress.loading}
                     onRunStress={stress.run}
                     onViewStressDetails={() => setActiveTab('scenarios')}
+                    onWhatIf={() => setWhatIfOpen(true)}
                   />
                 )}
 
