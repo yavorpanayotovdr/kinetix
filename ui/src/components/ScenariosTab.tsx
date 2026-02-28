@@ -1,22 +1,34 @@
-import { useStressTest } from '../hooks/useStressTest'
+import type { StressTestResultDto } from '../types'
 import { StressTestPanel } from './StressTestPanel'
 
 interface ScenariosTabProps {
-  portfolioId: string | null
+  scenarios: string[]
+  result: StressTestResultDto | null
+  loading: boolean
+  error: string | null
+  selectedScenario: string
+  onScenarioChange: (scenario: string) => void
+  onRun: () => void
 }
 
-export function ScenariosTab({ portfolioId }: ScenariosTabProps) {
-  const stress = useStressTest(portfolioId)
-
+export function ScenariosTab({
+  scenarios,
+  result,
+  loading,
+  error,
+  selectedScenario,
+  onScenarioChange,
+  onRun,
+}: ScenariosTabProps) {
   return (
     <StressTestPanel
-      scenarios={stress.scenarios}
-      result={stress.result}
-      loading={stress.loading}
-      error={stress.error}
-      selectedScenario={stress.selectedScenario}
-      onScenarioChange={stress.setSelectedScenario}
-      onRun={stress.run}
+      scenarios={scenarios}
+      result={result}
+      loading={loading}
+      error={error}
+      selectedScenario={selectedScenario}
+      onScenarioChange={onScenarioChange}
+      onRun={onRun}
     />
   )
 }

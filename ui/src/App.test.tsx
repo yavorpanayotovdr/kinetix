@@ -6,6 +6,7 @@ vi.mock('./hooks/usePositions')
 vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useSystemHealth')
+vi.mock('./hooks/useStressTest')
 vi.mock('./components/RiskTab', () => ({
   RiskTab: () => <div data-testid="risk-tab-wrapper" />,
 }))
@@ -21,11 +22,13 @@ import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { useSystemHealth } from './hooks/useSystemHealth'
+import { useStressTest } from './hooks/useStressTest'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
+const mockUseStressTest = vi.mocked(useStressTest)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -72,6 +75,15 @@ function setupDefaults() {
     loading: false,
     error: null,
     refresh: vi.fn(),
+  })
+  mockUseStressTest.mockReturnValue({
+    scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
+    selectedScenario: 'MARKET_CRASH',
+    setSelectedScenario: vi.fn(),
+    result: null,
+    loading: false,
+    error: null,
+    run: vi.fn(),
   })
 }
 

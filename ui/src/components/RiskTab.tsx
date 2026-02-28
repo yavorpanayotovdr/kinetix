@@ -3,16 +3,28 @@ import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
+import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
+import { StressSummaryCard } from './StressSummaryCard'
 
 interface RiskTabProps {
   portfolioId: string | null
+  stressResult: StressTestResultDto | null
+  stressLoading: boolean
+  onRunStress: () => void
+  onViewStressDetails: () => void
 }
 
-export function RiskTab({ portfolioId }: RiskTabProps) {
+export function RiskTab({
+  portfolioId,
+  stressResult,
+  stressLoading,
+  onRunStress,
+  onViewStressDetails,
+}: RiskTabProps) {
   const {
     varResult,
     greeksResult,
@@ -69,6 +81,14 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
       />
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
+      </div>
+      <div className="mt-4">
+        <StressSummaryCard
+          result={stressResult}
+          loading={stressLoading}
+          onRun={onRunStress}
+          onViewDetails={onViewStressDetails}
+        />
       </div>
       <div className="mt-4">
         <JobHistory portfolioId={portfolioId} refreshSignal={jobRefreshSignal} />

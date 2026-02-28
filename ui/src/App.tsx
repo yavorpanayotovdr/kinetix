@@ -14,6 +14,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
+import { useStressTest } from './hooks/useStressTest'
 
 type Tab = 'positions' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -37,6 +38,7 @@ function App() {
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(portfolioId)
+  const stress = useStressTest(portfolioId)
 
   return (
     <div className="min-h-screen bg-surface-50 flex flex-col">
@@ -128,11 +130,25 @@ function App() {
                 )}
 
                 {activeTab === 'risk' && (
-                  <RiskTab portfolioId={portfolioId} />
+                  <RiskTab
+                    portfolioId={portfolioId}
+                    stressResult={stress.result}
+                    stressLoading={stress.loading}
+                    onRunStress={stress.run}
+                    onViewStressDetails={() => setActiveTab('scenarios')}
+                  />
                 )}
 
                 {activeTab === 'scenarios' && (
-                  <ScenariosTab portfolioId={portfolioId} />
+                  <ScenariosTab
+                    scenarios={stress.scenarios}
+                    result={stress.result}
+                    loading={stress.loading}
+                    error={stress.error}
+                    selectedScenario={stress.selectedScenario}
+                    onScenarioChange={stress.setSelectedScenario}
+                    onRun={stress.run}
+                  />
                 )}
 
                 {activeTab === 'regulatory' && (

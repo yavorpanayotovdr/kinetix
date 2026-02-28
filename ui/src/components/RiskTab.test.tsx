@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { StressTestResultDto } from '../types'
 
 vi.mock('../hooks/useVaR')
 vi.mock('../hooks/useJobHistory')
@@ -20,6 +21,22 @@ const mockUseJobHistory = vi.mocked(useJobHistory)
 const mockUsePositionRisk = vi.mocked(usePositionRisk)
 const mockUseVarLimit = vi.mocked(useVarLimit)
 const mockUseAlerts = vi.mocked(useAlerts)
+
+const stressResult: StressTestResultDto = {
+  scenarioName: 'MARKET_CRASH',
+  baseVar: '1000000',
+  stressedVar: '2500000',
+  pnlImpact: '-1500000',
+  assetClassImpacts: [],
+  calculatedAt: '2025-01-15T10:30:00Z',
+}
+
+const defaultStressProps = {
+  stressResult: null as StressTestResultDto | null,
+  stressLoading: false,
+  onRunStress: vi.fn(),
+  onViewStressDetails: vi.fn(),
+}
 
 describe('RiskTab', () => {
   beforeEach(() => {
@@ -83,20 +100,20 @@ describe('RiskTab', () => {
   })
 
   it('calls useVaR with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(mockUseVaR).toHaveBeenCalledWith('port-1')
   })
 
   it('renders VaR dashboard and job history', () => {
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('var-empty')).toBeInTheDocument()
     expect(screen.getByTestId('job-history')).toBeInTheDocument()
   })
 
   it('calls usePositionRisk with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(mockUsePositionRisk).toHaveBeenCalledWith('port-1')
   })
@@ -121,7 +138,7 @@ describe('RiskTab', () => {
       refresh: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('position-risk-section')).toBeInTheDocument()
   })
@@ -155,7 +172,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
     })
 
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     const limitLabel = screen.getByTestId('var-limit')
     expect(limitLabel).toHaveTextContent('Limit: $2,000,000.00')
@@ -182,7 +199,7 @@ describe('RiskTab', () => {
       dismissAlert: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('risk-alert-banner')).toBeInTheDocument()
     expect(screen.getByText('VaR exceeds limit')).toBeInTheDocument()
@@ -194,7 +211,7 @@ describe('RiskTab', () => {
       dismissAlert: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(screen.queryByTestId('risk-alert-banner')).not.toBeInTheDocument()
   })
@@ -234,12 +251,72 @@ describe('RiskTab', () => {
       refresh: mockRefreshPositionRisk,
     })
 
-    render(<RiskTab portfolioId="port-1" />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     const refreshButton = screen.getByTestId('var-recalculate')
     await user.click(refreshButton)
 
     expect(mockRefreshVaR).toHaveBeenCalled()
     expect(mockRefreshPositionRisk).toHaveBeenCalled()
+  })
+
+  it('renders StressSummaryCard', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('stress-summary-card')).toBeInTheDocument()
+  })
+
+  it('renders StressSummaryCard between PositionRiskTable and JobHistory', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} stressResult={stressResult} />)
+
+    const card = screen.getByTestId('stress-summary-card')
+    const jobHistory = screen.getByTestId('job-history')
+    expect(card.compareDocumentPosition(jobHistory) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('passes stress result to StressSummaryCard', () => {
+    render(
+      <RiskTab
+        portfolioId="port-1"
+        {...defaultStressProps}
+        stressResult={stressResult}
+      />,
+    )
+
+    expect(screen.getByTestId('stress-summary-table')).toBeInTheDocument()
+    expect(screen.getByText('MARKET CRASH')).toBeInTheDocument()
+  })
+
+  it('calls onRunStress when Run Stress Tests button is clicked', async () => {
+    const user = userEvent.setup()
+    const onRunStress = vi.fn()
+
+    render(
+      <RiskTab
+        portfolioId="port-1"
+        {...defaultStressProps}
+        onRunStress={onRunStress}
+      />,
+    )
+
+    await user.click(screen.getByTestId('stress-summary-run-btn'))
+    expect(onRunStress).toHaveBeenCalledOnce()
+  })
+
+  it('calls onViewStressDetails when View Details is clicked', async () => {
+    const user = userEvent.setup()
+    const onViewStressDetails = vi.fn()
+
+    render(
+      <RiskTab
+        portfolioId="port-1"
+        {...defaultStressProps}
+        stressResult={stressResult}
+        onViewStressDetails={onViewStressDetails}
+      />,
+    )
+
+    await user.click(screen.getByTestId('stress-summary-view-details'))
+    expect(onViewStressDetails).toHaveBeenCalledOnce()
   })
 })
