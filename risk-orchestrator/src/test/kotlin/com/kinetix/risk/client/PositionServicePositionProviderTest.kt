@@ -1,7 +1,6 @@
 package com.kinetix.risk.client
 
 import com.kinetix.common.model.*
-import com.kinetix.position.persistence.PositionRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -15,10 +14,10 @@ private val USD = Currency.getInstance("USD")
 
 class PositionServicePositionProviderTest : FunSpec({
 
-    val repository = mockk<PositionRepository>()
-    val provider = PositionServicePositionProvider(repository)
+    val client = mockk<PositionServiceClient>()
+    val provider = PositionServicePositionProvider(client)
 
-    test("delegates to PositionRepository.findByPortfolioId") {
+    test("delegates to PositionServiceClient.getPositions") {
         val portfolioId = PortfolioId("port-1")
         val positions = listOf(
             Position(
@@ -31,18 +30,27 @@ class PositionServicePositionProviderTest : FunSpec({
             ),
         )
 
-        coEvery { repository.findByPortfolioId(portfolioId) } returns positions
+        coEvery { client.getPositions(portfolioId) } returns ClientResponse.Success(positions)
 
         val result = provider.getPositions(portfolioId)
 
         result shouldHaveSize 1
         result[0].instrumentId shouldBe InstrumentId("AAPL")
-        coVerify(exactly = 1) { repository.findByPortfolioId(portfolioId) }
+        coVerify(exactly = 1) { client.getPositions(portfolioId) }
     }
 
     test("returns empty list when no positions exist") {
         val portfolioId = PortfolioId("empty-port")
-        coEvery { repository.findByPortfolioId(portfolioId) } returns emptyList()
+        coEvery { client.getPositions(portfolioId) } returns ClientResponse.Success(emptyList())
+
+        val result = provider.getPositions(portfolioId)
+
+        result shouldHaveSize 0
+    }
+
+    test("returns empty list when client returns NotFound") {
+        val portfolioId = PortfolioId("missing-port")
+        coEvery { client.getPositions(portfolioId) } returns ClientResponse.NotFound(404)
 
         val result = provider.getPositions(portfolioId)
 
