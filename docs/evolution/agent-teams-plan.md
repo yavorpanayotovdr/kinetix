@@ -71,7 +71,7 @@ varContribution, esContribution, percentageOfTotal
 ---
 
 ### Step 1.3 — Frontend: Types, API function, and usePositionRisk hook
-- [ ] **Done**
+- [x] **Done** (commit cb0e851)
 
 **What:** Add TypeScript types for position risk data, API function to fetch it, and a hook to manage the data.
 
@@ -91,7 +91,7 @@ varContribution, esContribution, percentageOfTotal
 ---
 
 ### Step 1.4 — Frontend: Risk columns in PositionGrid
-- [ ] **Done**
+- [x] **Done** (commit cb0e851)
 
 **What:** Add delta, gamma, vega, VaR contribution, and % of portfolio VaR columns to the positions table. Add summary cards for Portfolio Delta and Portfolio VaR.
 
@@ -120,7 +120,7 @@ varContribution, esContribution, percentageOfTotal
 ## Phase 2: P&L Attribution
 
 ### Step 2.1 — Backend: PnlAttribution domain models and service
-- [ ] **Done**
+- [x] **Done** (commit cb0e851)
 
 **What:** Create domain models and a pure computation service for P&L attribution using Taylor expansion.
 
@@ -151,7 +151,7 @@ unexplained = totalPnl - sum(explained components)
 ---
 
 ### Step 2.2 — Backend: Database tables, snapshot job, and API endpoint
-- [ ] **Done**
+- [x] **Done**
 
 **What:** Add database tables for daily risk snapshots and P&L attribution history. Create a snapshot service and REST endpoints.
 
@@ -212,7 +212,7 @@ unexplained = totalPnl - sum(explained components)
 ## Phase 3: What-If / Pre-Trade Analysis
 
 ### Step 3.1 — Backend: WhatIf domain models and analysis service
-- [ ] **Done**
+- [x] **Done** (commit cb0e851)
 
 **What:** Create domain models for hypothetical trades and a service that applies them to the current portfolio and runs comparative VaR calculations.
 
@@ -243,7 +243,7 @@ unexplained = totalPnl - sum(explained components)
 ---
 
 ### Step 3.2 — Backend: WhatIf DTOs and API endpoint
-- [ ] **Done**
+- [x] **Done** (commit cb0e851)
 
 **What:** Create request/response DTOs and the REST endpoint for what-if analysis.
 

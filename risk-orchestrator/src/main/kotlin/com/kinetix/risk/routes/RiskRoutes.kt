@@ -11,6 +11,7 @@ import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.persistence.PnlAttributionRepository
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
@@ -37,6 +38,7 @@ fun Route.riskRoutes(
     regulatoryStub: RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub,
     riskEngineClient: RiskEngineClient? = null,
     whatIfAnalysisService: WhatIfAnalysisService? = null,
+    pnlAttributionRepository: PnlAttributionRepository? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -102,6 +104,42 @@ fun Route.riskRoutes(
             call.respond(cached.positionRisk.map { it.toDto() })
         } else {
             call.respond(HttpStatusCode.NotFound)
+        }
+    }
+
+    // P&L attribution routes
+    if (pnlAttributionRepository != null) {
+        get("/api/v1/risk/pnl-attribution/{portfolioId}", {
+            summary = "Get P&L attribution for a portfolio"
+            tags = listOf("P&L Attribution")
+            request {
+                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                queryParameter<String>("date") {
+                    description = "Attribution date (ISO-8601 date, e.g. 2025-01-15). Defaults to latest available."
+                    required = false
+                }
+            }
+        }) {
+            val portfolioId = call.requirePathParam("portfolioId")
+            val dateParam = call.request.queryParameters["date"]
+
+            val attribution = if (dateParam != null) {
+                val date = try {
+                    java.time.LocalDate.parse(dateParam)
+                } catch (_: java.time.format.DateTimeParseException) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid 'date' parameter")
+                    return@get
+                }
+                pnlAttributionRepository.findByPortfolioIdAndDate(PortfolioId(portfolioId), date)
+            } else {
+                pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+            }
+
+            if (attribution != null) {
+                call.respond(attribution.toResponse())
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
     }
 

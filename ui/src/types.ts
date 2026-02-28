@@ -201,6 +201,50 @@ export interface ValuationJobSummaryDto {
   pvValue: number | null
 }
 
+export interface HypotheticalTradeDto {
+  instrumentId: string
+  assetClass: string
+  side: string
+  quantity: string
+  priceAmount: string
+  priceCurrency: string
+}
+
+export interface WhatIfRequestDto {
+  hypotheticalTrades: HypotheticalTradeDto[]
+  calculationType?: string
+  confidenceLevel?: string
+}
+
+export interface WhatIfSnapshotDto {
+  var: string
+  expectedShortfall: string
+  greeks: GreeksResultDto | null
+  positionRisk: PositionRiskDto[]
+}
+
+export interface WhatIfImpactDto {
+  varChange: string
+  esChange: string
+  deltaChange: number
+  gammaChange: number
+  vegaChange: number
+}
+
+export interface WhatIfResponseDto {
+  baseVaR: string
+  baseExpectedShortfall: string
+  baseGreeks: GreeksResultDto | null
+  basePositionRisk: PositionRiskDto[]
+  hypotheticalVaR: string
+  hypotheticalExpectedShortfall: string
+  hypotheticalGreeks: GreeksResultDto | null
+  hypotheticalPositionRisk: PositionRiskDto[]
+  varChange: string
+  esChange: string
+  calculatedAt: string
+}
+
 export interface ValuationJobDetailDto {
   jobId: string
   portfolioId: string

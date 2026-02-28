@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Activity, BarChart3, Shield, FlaskConical, Scale, Bell, Server } from 'lucide-react'
+import { Activity, BarChart3, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { NotificationCenter } from './components/NotificationCenter'
 import { SystemDashboard } from './components/SystemDashboard'
 import { RiskTab } from './components/RiskTab'
 import { ScenariosTab } from './components/ScenariosTab'
 import { RegulatoryTab } from './components/RegulatoryTab'
+import { WhatIfPanel } from './components/WhatIfPanel'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
+import { useWhatIf } from './hooks/useWhatIf'
 
 type Tab = 'positions' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -25,12 +27,14 @@ const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('positions')
+  const [whatIfOpen, setWhatIfOpen] = useState(false)
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
   const { positionRisk } = usePositionRisk(portfolioId)
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
+  const whatIf = useWhatIf(portfolioId)
 
   return (
     <div className="min-h-screen bg-surface-50 flex flex-col">
@@ -101,7 +105,20 @@ function App() {
             {!loading && !error && (
               <>
                 {activeTab === 'positions' && (
-                  <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div />
+                      <button
+                        data-testid="whatif-open-button"
+                        onClick={() => setWhatIfOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
+                      >
+                        <FlaskRound className="h-4 w-4" />
+                        What-If
+                      </button>
+                    </div>
+                    <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
+                  </div>
                 )}
 
                 {activeTab === 'risk' && (
@@ -131,6 +148,21 @@ function App() {
           </>
         )}
       </main>
+
+      <WhatIfPanel
+        open={whatIfOpen}
+        onClose={() => setWhatIfOpen(false)}
+        trades={whatIf.trades}
+        onAddTrade={whatIf.addTrade}
+        onRemoveTrade={whatIf.removeTrade}
+        onUpdateTrade={whatIf.updateTrade}
+        onSubmit={whatIf.submit}
+        onReset={whatIf.reset}
+        result={whatIf.result}
+        impact={whatIf.impact}
+        loading={whatIf.loading}
+        error={whatIf.error}
+      />
     </div>
   )
 }

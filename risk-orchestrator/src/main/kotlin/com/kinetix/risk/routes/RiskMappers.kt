@@ -5,6 +5,8 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.common.model.Side
 import com.kinetix.risk.model.HypotheticalTrade
+import com.kinetix.risk.model.PnlAttribution
+import com.kinetix.risk.model.PositionPnlAttribution
 import com.kinetix.risk.model.PositionRisk
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.WhatIfResult
@@ -12,6 +14,8 @@ import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.GreekValuesDto
 import com.kinetix.risk.routes.dtos.GreeksResponse
 import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
+import com.kinetix.risk.routes.dtos.PnlAttributionResponse
+import com.kinetix.risk.routes.dtos.PositionPnlAttributionDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
 import com.kinetix.risk.routes.dtos.VaRResultResponse
 import com.kinetix.risk.routes.dtos.WhatIfResponse
@@ -117,6 +121,32 @@ internal fun WhatIfResult.toResponse() = WhatIfResponse(
     varChange = "%.2f".format(varChange),
     esChange = "%.2f".format(esChange),
     calculatedAt = calculatedAt.toString(),
+)
+
+internal fun PnlAttribution.toResponse() = PnlAttributionResponse(
+    portfolioId = portfolioId.value,
+    date = date.toString(),
+    totalPnl = totalPnl.toPlainString(),
+    deltaPnl = deltaPnl.toPlainString(),
+    gammaPnl = gammaPnl.toPlainString(),
+    vegaPnl = vegaPnl.toPlainString(),
+    thetaPnl = thetaPnl.toPlainString(),
+    rhoPnl = rhoPnl.toPlainString(),
+    unexplainedPnl = unexplainedPnl.toPlainString(),
+    positionAttributions = positionAttributions.map { it.toDto() },
+    calculatedAt = calculatedAt.toString(),
+)
+
+internal fun PositionPnlAttribution.toDto() = PositionPnlAttributionDto(
+    instrumentId = instrumentId.value,
+    assetClass = assetClass.name,
+    totalPnl = totalPnl.toPlainString(),
+    deltaPnl = deltaPnl.toPlainString(),
+    gammaPnl = gammaPnl.toPlainString(),
+    vegaPnl = vegaPnl.toPlainString(),
+    thetaPnl = thetaPnl.toPlainString(),
+    rhoPnl = rhoPnl.toPlainString(),
+    unexplainedPnl = unexplainedPnl.toPlainString(),
 )
 
 internal val FRTB_RISK_CLASS_NAMES = mapOf(
