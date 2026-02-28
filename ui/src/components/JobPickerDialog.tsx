@@ -21,6 +21,17 @@ export function JobPickerDialog({
   const [jobs, setJobs] = useState<ValuationJobSummaryDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [prevFetchKey, setPrevFetchKey] = useState('')
+
+  const fetchKey = open ? portfolioId : ''
+  if (fetchKey !== prevFetchKey) {
+    setPrevFetchKey(fetchKey)
+    if (open) {
+      setLoading(true)
+      setError(null)
+      setJobs([])
+    }
+  }
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -38,8 +49,6 @@ export function JobPickerDialog({
 
   useEffect(() => {
     if (!open) return
-    setLoading(true)
-    setError(null)
     fetchValuationJobs(portfolioId, 20)
       .then(({ items }) => {
         setJobs(items.filter((j) => j.status === 'COMPLETED'))

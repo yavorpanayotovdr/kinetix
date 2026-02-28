@@ -93,7 +93,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList(), jobId = null) shouldBe expectedResult
 
         coVerify(ordering = Ordering.ORDERED) {
             positionProvider.getPositions(PortfolioId("port-1"))
@@ -295,7 +295,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList(), jobId = null) shouldBe expectedResult
     }
 
     test("does not fail the calculation if job recorder update throws") {
@@ -315,7 +315,7 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        result!!.copy(positionRisk = emptyList()) shouldBe expectedResult
+        result!!.copy(positionRisk = emptyList(), jobId = null) shouldBe expectedResult
     }
 
     test("passes trigger type through to the recorded job") {

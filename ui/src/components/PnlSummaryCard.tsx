@@ -1,7 +1,6 @@
 import { TrendingUp, ExternalLink } from 'lucide-react'
 import type { PnlAttributionDto, SodBaselineStatusDto } from '../types'
 import { Card, Button } from './ui'
-import { Spinner } from './ui/Spinner'
 import { formatNum, pnlColorClass } from '../utils/format'
 
 interface PnlSummaryCardProps {

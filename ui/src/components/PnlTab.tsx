@@ -19,7 +19,7 @@ interface PnlTabProps {
 }
 
 export function PnlTab({ portfolioId }: PnlTabProps) {
-  const { data: pnlData, loading: pnlLoading, error: pnlError } = usePnlAttribution(portfolioId)
+  const { data: pnlData, loading: pnlLoading } = usePnlAttribution(portfolioId)
   const sod = useSodBaseline(portfolioId)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showJobPicker, setShowJobPicker] = useState(false)
