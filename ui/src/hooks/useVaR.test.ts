@@ -236,4 +236,64 @@ describe('useVaR', () => {
     expect(result.current.history).toHaveLength(0)
     expect(result.current.error).toBeNull()
   })
+
+  it('accumulates aggregate Greeks into history entry when VaR result includes greeks', async () => {
+    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchVaR.mockResolvedValue({
+      portfolioId: 'port-1',
+      calculationType: 'HISTORICAL',
+      confidenceLevel: 'CL_95',
+      varValue: '1400000',
+      expectedShortfall: '1700000',
+      componentBreakdown: [],
+      calculatedAt: '2025-01-15T10:30:00Z',
+      greeks: {
+        portfolioId: 'port-1',
+        assetClassGreeks: [
+          { assetClass: 'EQUITY', delta: '1000.5', gamma: '50.25', vega: '3000.1' },
+          { assetClass: 'COMMODITY', delta: '500.3', gamma: '10.75', vega: '2000.9' },
+        ],
+        theta: '-100',
+        rho: '200',
+        calculatedAt: '2025-01-15T10:30:00Z',
+      },
+    })
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history).toHaveLength(1)
+    const entry = result.current.history[0]
+    expect(entry.delta).toBeCloseTo(1500.8)
+    expect(entry.gamma).toBeCloseTo(61.0)
+    expect(entry.vega).toBeCloseTo(5001.0)
+  })
+
+  it('leaves Greeks fields undefined when VaR result has no greeks', async () => {
+    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchVaR.mockResolvedValue({
+      portfolioId: 'port-1',
+      calculationType: 'HISTORICAL',
+      confidenceLevel: 'CL_95',
+      varValue: '1400000',
+      expectedShortfall: '1700000',
+      componentBreakdown: [],
+      calculatedAt: '2025-01-15T10:30:00Z',
+    })
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history).toHaveLength(1)
+    const entry = result.current.history[0]
+    expect(entry.delta).toBeUndefined()
+    expect(entry.gamma).toBeUndefined()
+    expect(entry.vega).toBeUndefined()
+  })
 })

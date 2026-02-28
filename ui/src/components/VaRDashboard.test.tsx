@@ -535,4 +535,96 @@ describe('VaRDashboard', () => {
     expect(whatIfButton.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  describe('chart toggle', () => {
+    it('renders toggle buttons for VaR/ES and Greeks', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      expect(screen.getByTestId('chart-toggle-var')).toBeInTheDocument()
+      expect(screen.getByTestId('chart-toggle-greeks')).toBeInTheDocument()
+    })
+
+    it('defaults to VaR/ES chart view', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      expect(screen.getByTestId('var-trend-chart')).toBeInTheDocument()
+      expect(screen.queryByTestId('greeks-trend-chart')).not.toBeInTheDocument()
+    })
+
+    it('switches to Greeks chart when Greeks toggle is clicked', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('chart-toggle-greeks'))
+
+      expect(screen.getByTestId('greeks-trend-chart')).toBeInTheDocument()
+      expect(screen.queryByTestId('var-trend-chart')).not.toBeInTheDocument()
+    })
+
+    it('switches back to VaR/ES chart when VaR toggle is clicked', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('chart-toggle-greeks'))
+      expect(screen.getByTestId('greeks-trend-chart')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByTestId('chart-toggle-var'))
+      expect(screen.getByTestId('var-trend-chart')).toBeInTheDocument()
+      expect(screen.queryByTestId('greeks-trend-chart')).not.toBeInTheDocument()
+    })
+
+    it('highlights the active toggle button', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      const varToggle = screen.getByTestId('chart-toggle-var')
+      const greeksToggle = screen.getByTestId('chart-toggle-greeks')
+
+      // VaR/ES active by default
+      expect(varToggle.className).toContain('bg-primary-100')
+      expect(greeksToggle.className).not.toContain('bg-primary-100')
+
+      fireEvent.click(greeksToggle)
+
+      expect(greeksToggle.className).toContain('bg-primary-100')
+      expect(varToggle.className).not.toContain('bg-primary-100')
+    })
+  })
+
 })

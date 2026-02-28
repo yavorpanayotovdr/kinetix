@@ -7,6 +7,7 @@ import { VaRGauge } from './VaRGauge'
 import { RiskSensitivities } from './RiskSensitivities'
 import { ComponentBreakdown } from './ComponentBreakdown'
 import { VaRTrendChart } from './VaRTrendChart'
+import { GreeksTrendChart } from './GreeksTrendChart'
 import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Button, Spinner } from './ui'
 
@@ -35,6 +36,7 @@ interface VaRDashboardProps {
 
 export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
+  const [chartView, setChartView] = useState<'var' | 'greeks'>('var')
   const calcTypeRef = useRef<HTMLSpanElement>(null)
 
   const closeTooltip = useCallback(() => setTooltipOpen(false), [])
@@ -106,14 +108,42 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
       </div>
 
       <div className="mt-4">
-        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-        <VaRTrendChart
-          history={filteredHistory}
-          timeRange={timeRange}
-          onZoom={zoomIn}
-          zoomDepth={zoomDepth}
-          onResetZoom={resetZoom}
-        />
+        <div className="flex items-center justify-between mb-2">
+          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+          <div className="inline-flex rounded-md border border-slate-200" role="group">
+            <button
+              data-testid="chart-toggle-var"
+              onClick={() => setChartView('var')}
+              className={`px-3 py-1 text-xs font-medium rounded-l-md transition-colors ${chartView === 'var' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              VaR / ES
+            </button>
+            <button
+              data-testid="chart-toggle-greeks"
+              onClick={() => setChartView('greeks')}
+              className={`px-3 py-1 text-xs font-medium rounded-r-md transition-colors ${chartView === 'greeks' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              Greeks
+            </button>
+          </div>
+        </div>
+        {chartView === 'var' ? (
+          <VaRTrendChart
+            history={filteredHistory}
+            timeRange={timeRange}
+            onZoom={zoomIn}
+            zoomDepth={zoomDepth}
+            onResetZoom={resetZoom}
+          />
+        ) : (
+          <GreeksTrendChart
+            history={filteredHistory}
+            timeRange={timeRange}
+            onZoom={zoomIn}
+            zoomDepth={zoomDepth}
+            onResetZoom={resetZoom}
+          />
+        )}
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">

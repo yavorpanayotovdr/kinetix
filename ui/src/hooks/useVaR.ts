@@ -8,6 +8,9 @@ export interface VaRHistoryEntry {
   varValue: number
   expectedShortfall: number
   calculatedAt: string
+  delta?: number
+  gamma?: number
+  vega?: number
 }
 
 export interface UseVaRResult {
@@ -28,6 +31,19 @@ export interface UseVaRResult {
 
 const POLL_INTERVAL = 30_000
 const MAX_HISTORY = 60
+
+function aggregateGreeks(greeks: GreeksResultDto | undefined): { delta: number; gamma: number; vega: number } | undefined {
+  if (!greeks) return undefined
+  let delta = 0
+  let gamma = 0
+  let vega = 0
+  for (const ac of greeks.assetClassGreeks) {
+    delta += Number(ac.delta)
+    gamma += Number(ac.gamma)
+    vega += Number(ac.vega)
+  }
+  return { delta, gamma, vega }
+}
 
 function defaultTimeRange(): TimeRange {
   const now = new Date()
@@ -86,10 +102,12 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
           if (prev.some((e) => e.calculatedAt === result.calculatedAt)) {
             return prev
           }
+          const greeks = aggregateGreeks(result.greeks)
           const entry: VaRHistoryEntry = {
             varValue: Number(result.varValue),
             expectedShortfall: Number(result.expectedShortfall),
             calculatedAt: result.calculatedAt,
+            ...greeks,
           }
           const next = [...prev, entry]
           return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
@@ -128,10 +146,12 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
           if (prev.some((e) => e.calculatedAt === result.calculatedAt)) {
             return prev
           }
+          const greeks = aggregateGreeks(result.greeks)
           const entry: VaRHistoryEntry = {
             varValue: Number(result.varValue),
             expectedShortfall: Number(result.expectedShortfall),
             calculatedAt: result.calculatedAt,
+            ...greeks,
           }
           const next = [...prev, entry]
           return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
