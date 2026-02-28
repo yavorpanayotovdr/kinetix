@@ -5,10 +5,12 @@ plugins {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
+    compileOnly(libs.kafka.clients)
     compileOnly(libs.logback.classic)
     compileOnly(libs.opentelemetry.sdk.autoconfigure)
     compileOnly(libs.opentelemetry.logback.appender)
 
+    testImplementation(libs.kafka.clients)
     testImplementation(libs.opentelemetry.sdk)
     testImplementation(libs.opentelemetry.sdk.testing)
     testImplementation(libs.opentelemetry.logback.appender)
