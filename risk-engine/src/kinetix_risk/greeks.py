@@ -9,6 +9,7 @@ from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider
 PRICE_BUMP = 0.01       # 1% price bump for delta/gamma
 VOL_BUMP = 0.01         # 1 percentage point vol bump for vega
 RATE_BUMP = 0.0001      # 1 basis point for rho
+DEFAULT_RISK_FREE_RATE = 0.05
 
 
 def _bump_positions(positions: list[PositionRisk], asset_class: AssetClass, bump: float) -> list[PositionRisk]:
@@ -27,10 +28,11 @@ def _bump_positions(positions: list[PositionRisk], asset_class: AssetClass, bump
 
 
 def _var_value(positions, calculation_type, confidence_level, time_horizon_days,
-               volatility_provider=None) -> float:
+               volatility_provider=None, risk_free_rate: float = 0.0) -> float:
     return calculate_portfolio_var(
         positions, calculation_type, confidence_level, time_horizon_days,
         volatility_provider=volatility_provider,
+        risk_free_rate=risk_free_rate,
     ).var_value
 
 
@@ -88,12 +90,12 @@ def calculate_greeks(
 
     theta = var_t_minus_1 - base_var
 
-    # Rho: shift all vols by +1bp as rate sensitivity proxy
-    rate_bumped_vols = {ac: v + RATE_BUMP for ac, v in DEFAULT_VOLATILITIES.items()}
-    rate_vol_provider = VolatilityProvider.from_dict(rate_bumped_vols)
-    var_rate_shifted = _var_value(positions, calculation_type, confidence_level, time_horizon_days,
-                                  volatility_provider=rate_vol_provider)
-    rho = (var_rate_shifted - base_var) / RATE_BUMP
+    # Rho: bump risk-free rate by 1bp and measure VaR change
+    var_base_rate = _var_value(positions, calculation_type, confidence_level, time_horizon_days,
+                               risk_free_rate=DEFAULT_RISK_FREE_RATE)
+    var_bumped_rate = _var_value(positions, calculation_type, confidence_level, time_horizon_days,
+                                 risk_free_rate=DEFAULT_RISK_FREE_RATE + RATE_BUMP)
+    rho = (var_bumped_rate - var_base_rate) / RATE_BUMP
 
     return GreeksResult(
         portfolio_id=portfolio_id,
