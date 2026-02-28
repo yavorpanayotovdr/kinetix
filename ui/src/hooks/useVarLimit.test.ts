@@ -80,6 +80,29 @@ describe('useVarLimit', () => {
     expect(result.current.varLimit).toBeNull()
   })
 
+  it('returns null when VAR_BREACH rule has threshold of zero', async () => {
+    mockFetchRules.mockResolvedValue([
+      {
+        id: 'rule-1',
+        name: 'VaR Breach',
+        type: 'VAR_BREACH',
+        threshold: 0,
+        operator: 'GREATER_THAN',
+        severity: 'CRITICAL',
+        channels: ['IN_APP'],
+        enabled: true,
+      },
+    ])
+
+    const { result } = renderHook(() => useVarLimit())
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.varLimit).toBe(0)
+  })
+
   it('returns null when fetch fails', async () => {
     mockFetchRules.mockRejectedValue(new Error('Network error'))
 

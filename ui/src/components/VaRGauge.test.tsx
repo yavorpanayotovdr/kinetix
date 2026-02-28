@@ -185,6 +185,15 @@ describe('VaRGauge', () => {
       expect(screen.queryByTestId('var-limit-bar')).not.toBeInTheDocument()
     })
 
+    it('does not render a progress bar when varLimit is zero', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" varLimit={0} />,
+      )
+
+      expect(screen.queryByTestId('var-limit-bar')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('var-limit')).not.toBeInTheDocument()
+    })
+
     it('fills the progress bar based on utilisation percentage', () => {
       render(
         <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" varLimit={1000000} />,
