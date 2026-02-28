@@ -132,7 +132,7 @@ function App() {
                 {activeTab === 'risk' && (
                   <RiskTab
                     portfolioId={portfolioId}
-                    stressResult={stress.result}
+                    stressResults={stress.results}
                     stressLoading={stress.loading}
                     onRunStress={stress.run}
                     onViewStressDetails={() => setActiveTab('scenarios')}

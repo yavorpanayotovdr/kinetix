@@ -19,15 +19,42 @@ const stressResult: StressTestResultDto = {
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 
+const stressResult2: StressTestResultDto = {
+  scenarioName: 'RATES_SPIKE',
+  baseVar: '1000000',
+  stressedVar: '1800000',
+  pnlImpact: '-800000',
+  assetClassImpacts: [],
+  calculatedAt: '2025-01-15T10:35:00Z',
+}
+
+const stressResult3: StressTestResultDto = {
+  scenarioName: 'VOL_SPIKE',
+  baseVar: '1000000',
+  stressedVar: '2100000',
+  pnlImpact: '-1100000',
+  assetClassImpacts: [],
+  calculatedAt: '2025-01-15T10:40:00Z',
+}
+
+const stressResult4: StressTestResultDto = {
+  scenarioName: 'EM_BLOWOUT',
+  baseVar: '1000000',
+  stressedVar: '1500000',
+  pnlImpact: '-500000',
+  assetClassImpacts: [],
+  calculatedAt: '2025-01-15T10:45:00Z',
+}
+
 const defaultProps = {
-  result: null as StressTestResultDto | null,
+  results: [] as StressTestResultDto[],
   loading: false,
   onRun: vi.fn(),
   onViewDetails: vi.fn(),
 }
 
 describe('StressSummaryCard', () => {
-  it('renders empty state when no result and not loading', () => {
+  it('renders empty state when no results and not loading', () => {
     render(<StressSummaryCard {...defaultProps} />)
 
     expect(screen.getByTestId('stress-summary-card')).toBeInTheDocument()
@@ -56,75 +83,141 @@ describe('StressSummaryCard', () => {
     expect(btn).toHaveTextContent('Running...')
   })
 
-  it('renders the results table when result is present', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
+  describe('single result', () => {
+    it('renders the results table when one result is present', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
 
-    expect(screen.getByTestId('stress-summary-table')).toBeInTheDocument()
+      expect(screen.getByTestId('stress-summary-table')).toBeInTheDocument()
+    })
+
+    it('displays scenario name in the table', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
+
+      expect(screen.getByText('MARKET CRASH')).toBeInTheDocument()
+    })
+
+    it('displays Base VaR formatted as currency', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
+
+      expect(screen.getByText('$1,000,000.00')).toBeInTheDocument()
+    })
+
+    it('displays Stressed VaR formatted as currency', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
+
+      expect(screen.getByText('$2,500,000.00')).toBeInTheDocument()
+    })
+
+    it('displays P&L Impact with red text for losses', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
+
+      const pnlCells = screen.getAllByTestId('stress-summary-pnl-impact')
+      expect(pnlCells[0]).toHaveTextContent('-$1,500,000.00')
+      expect(pnlCells[0].className).toContain('text-red-600')
+    })
+
+    it('does not apply red text to positive P&L impact', () => {
+      const positiveResult: StressTestResultDto = {
+        ...stressResult,
+        pnlImpact: '500000',
+      }
+
+      render(<StressSummaryCard {...defaultProps} results={[positiveResult]} />)
+
+      const pnlCells = screen.getAllByTestId('stress-summary-pnl-impact')
+      expect(pnlCells[0]).toHaveTextContent('$500,000.00')
+      expect(pnlCells[0].className).not.toContain('text-red-600')
+    })
+
+    it('renders View Details link when results are present', () => {
+      render(<StressSummaryCard {...defaultProps} results={[stressResult]} />)
+
+      expect(screen.getByTestId('stress-summary-view-details')).toBeInTheDocument()
+    })
+
+    it('calls onViewDetails when View Details link is clicked', () => {
+      const onViewDetails = vi.fn()
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult]}
+          onViewDetails={onViewDetails}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('stress-summary-view-details'))
+
+      expect(onViewDetails).toHaveBeenCalledOnce()
+    })
+
+    it('does not render View Details link when no results', () => {
+      render(<StressSummaryCard {...defaultProps} />)
+
+      expect(screen.queryByTestId('stress-summary-view-details')).not.toBeInTheDocument()
+    })
   })
 
-  it('displays scenario name in the table', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
+  describe('multiple results', () => {
+    it('sorts results by absolute P&L impact descending', () => {
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult2, stressResult, stressResult3]}
+        />,
+      )
 
-    expect(screen.getByText('MARKET CRASH')).toBeInTheDocument()
-  })
+      const rows = screen.getAllByTestId('stress-summary-row')
+      expect(rows[0]).toHaveTextContent('MARKET CRASH')
+      expect(rows[1]).toHaveTextContent('VOL SPIKE')
+      expect(rows[2]).toHaveTextContent('RATES SPIKE')
+    })
 
-  it('displays Base VaR formatted as currency', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
+    it('shows only top 3 results when more than 3 are provided', () => {
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult, stressResult2, stressResult3, stressResult4]}
+        />,
+      )
 
-    expect(screen.getByText('$1,000,000.00')).toBeInTheDocument()
-  })
+      const rows = screen.getAllByTestId('stress-summary-row')
+      expect(rows).toHaveLength(3)
+    })
 
-  it('displays Stressed VaR formatted as currency', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
+    it('shows "View all N scenarios" when more than 3 results', () => {
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult, stressResult2, stressResult3, stressResult4]}
+        />,
+      )
 
-    expect(screen.getByText('$2,500,000.00')).toBeInTheDocument()
-  })
+      expect(screen.getByText(/View all 4 scenarios/)).toBeInTheDocument()
+    })
 
-  it('displays P&L Impact formatted as currency with red text for losses', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
+    it('does not show "View all" when 3 or fewer results', () => {
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult, stressResult2, stressResult3]}
+        />,
+      )
 
-    const pnlCell = screen.getByTestId('stress-summary-pnl-impact')
-    expect(pnlCell).toHaveTextContent('-$1,500,000.00')
-    expect(pnlCell.className).toContain('text-red-600')
-  })
+      expect(screen.queryByText(/View all/)).not.toBeInTheDocument()
+    })
 
-  it('does not apply red text to positive P&L impact', () => {
-    const positiveResult: StressTestResultDto = {
-      ...stressResult,
-      pnlImpact: '500000',
-    }
+    it('renders P&L impact for each row with colour coding', () => {
+      render(
+        <StressSummaryCard
+          {...defaultProps}
+          results={[stressResult, stressResult3]}
+        />,
+      )
 
-    render(<StressSummaryCard {...defaultProps} result={positiveResult} />)
-
-    const pnlCell = screen.getByTestId('stress-summary-pnl-impact')
-    expect(pnlCell).toHaveTextContent('$500,000.00')
-    expect(pnlCell.className).not.toContain('text-red-600')
-  })
-
-  it('renders View Details link when result is present', () => {
-    render(<StressSummaryCard {...defaultProps} result={stressResult} />)
-
-    expect(screen.getByTestId('stress-summary-view-details')).toBeInTheDocument()
-  })
-
-  it('calls onViewDetails when View Details link is clicked', () => {
-    const onViewDetails = vi.fn()
-    render(
-      <StressSummaryCard
-        {...defaultProps}
-        result={stressResult}
-        onViewDetails={onViewDetails}
-      />,
-    )
-
-    fireEvent.click(screen.getByTestId('stress-summary-view-details'))
-
-    expect(onViewDetails).toHaveBeenCalledOnce()
-  })
-
-  it('does not render View Details link when no result', () => {
-    render(<StressSummaryCard {...defaultProps} />)
-
-    expect(screen.queryByTestId('stress-summary-view-details')).not.toBeInTheDocument()
+      const pnlCells = screen.getAllByTestId('stress-summary-pnl-impact')
+      expect(pnlCells).toHaveLength(2)
+      expect(pnlCells[0]).toHaveTextContent('-$1,500,000.00')
+      expect(pnlCells[0].className).toContain('text-red-600')
+    })
   })
 })

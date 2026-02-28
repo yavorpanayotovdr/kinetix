@@ -1,9 +1,10 @@
+import { useMemo } from 'react'
 import { Zap, ExternalLink } from 'lucide-react'
 import type { StressTestResultDto } from '../types'
 import { Card, Button } from './ui'
 
 interface StressSummaryCardProps {
-  result: StressTestResultDto | null
+  results: StressTestResultDto[]
   loading: boolean
   onRun: () => void
   onViewDetails: () => void
@@ -14,9 +15,16 @@ function formatCurrency(value: string | number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num)
 }
 
-export function StressSummaryCard({ result, loading, onRun, onViewDetails }: StressSummaryCardProps) {
-  const pnlValue = result ? Number(result.pnlImpact) : 0
-  const isLoss = pnlValue < 0
+const MAX_ROWS = 3
+
+export function StressSummaryCard({ results, loading, onRun, onViewDetails }: StressSummaryCardProps) {
+  const sorted = useMemo(
+    () => [...results].sort((a, b) => Math.abs(Number(b.pnlImpact)) - Math.abs(Number(a.pnlImpact))),
+    [results],
+  )
+
+  const visible = sorted.slice(0, MAX_ROWS)
+  const hasMore = results.length > MAX_ROWS
 
   return (
     <Card
@@ -40,11 +48,11 @@ export function StressSummaryCard({ result, loading, onRun, onViewDetails }: Str
         </div>
       }
     >
-      {!result && !loading && (
+      {results.length === 0 && !loading && (
         <p className="text-sm text-slate-500">No stress test results yet. Run a stress test to see the summary.</p>
       )}
 
-      {result && !loading && (
+      {visible.length > 0 && !loading && (
         <>
           <table data-testid="stress-summary-table" className="w-full text-sm">
             <thead>
@@ -56,29 +64,49 @@ export function StressSummaryCard({ result, loading, onRun, onViewDetails }: Str
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b hover:bg-slate-50 transition-colors">
-                <td className="py-1.5 font-medium">{result.scenarioName.replace(/_/g, ' ')}</td>
-                <td className="py-1.5 text-right">{formatCurrency(result.baseVar)}</td>
-                <td className="py-1.5 text-right font-medium">{formatCurrency(result.stressedVar)}</td>
-                <td
-                  data-testid="stress-summary-pnl-impact"
-                  className={`py-1.5 text-right font-medium ${isLoss ? 'text-red-600' : ''}`}
-                >
-                  {formatCurrency(result.pnlImpact)}
-                </td>
-              </tr>
+              {visible.map((r) => {
+                const pnlValue = Number(r.pnlImpact)
+                const isLoss = pnlValue < 0
+                return (
+                  <tr
+                    key={r.scenarioName}
+                    data-testid="stress-summary-row"
+                    className="border-b hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="py-1.5 font-medium">{r.scenarioName.replace(/_/g, ' ')}</td>
+                    <td className="py-1.5 text-right">{formatCurrency(r.baseVar)}</td>
+                    <td className="py-1.5 text-right font-medium">{formatCurrency(r.stressedVar)}</td>
+                    <td
+                      data-testid="stress-summary-pnl-impact"
+                      className={`py-1.5 text-right font-medium ${isLoss ? 'text-red-600' : ''}`}
+                    >
+                      {formatCurrency(r.pnlImpact)}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
 
-          <div className="mt-3 flex justify-end">
-            <button
-              data-testid="stress-summary-view-details"
-              onClick={onViewDetails}
-              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              View Details
-              <ExternalLink className="h-3 w-3" />
-            </button>
+          <div className="mt-3 flex items-center justify-between">
+            {hasMore && (
+              <button
+                onClick={onViewDetails}
+                className="text-xs text-slate-500 hover:text-slate-700"
+              >
+                View all {results.length} scenarios
+              </button>
+            )}
+            <div className={hasMore ? '' : 'ml-auto'}>
+              <button
+                data-testid="stress-summary-view-details"
+                onClick={onViewDetails}
+                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                View Details
+                <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         </>
       )}

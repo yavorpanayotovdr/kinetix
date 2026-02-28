@@ -15,7 +15,7 @@ import { PnlSummaryCard } from './PnlSummaryCard'
 
 interface RiskTabProps {
   portfolioId: string | null
-  stressResult: StressTestResultDto | null
+  stressResults: StressTestResultDto[]
   stressLoading: boolean
   onRunStress: () => void
   onViewStressDetails: () => void
@@ -25,7 +25,7 @@ interface RiskTabProps {
 
 export function RiskTab({
   portfolioId,
-  stressResult,
+  stressResults,
   stressLoading,
   onRunStress,
   onViewStressDetails,
@@ -102,7 +102,7 @@ export function RiskTab({
           onViewFullAttribution={onViewPnlTab}
         />
         <StressSummaryCard
-          result={stressResult}
+          results={stressResults}
           loading={stressLoading}
           onRun={onRunStress}
           onViewDetails={onViewStressDetails}

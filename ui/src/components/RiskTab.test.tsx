@@ -38,7 +38,7 @@ const stressResult: StressTestResultDto = {
 }
 
 const defaultStressProps = {
-  stressResult: null as StressTestResultDto | null,
+  stressResults: [] as StressTestResultDto[],
   stressLoading: false,
   onRunStress: vi.fn(),
   onViewStressDetails: vi.fn(),
@@ -290,7 +290,7 @@ describe('RiskTab', () => {
   })
 
   it('renders StressSummaryCard between PositionRiskTable and JobHistory', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} stressResult={stressResult} />)
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} stressResults={[stressResult]} />)
 
     const card = screen.getByTestId('stress-summary-card')
     const jobHistory = screen.getByTestId('job-history')
@@ -302,7 +302,7 @@ describe('RiskTab', () => {
       <RiskTab
         portfolioId="port-1"
         {...defaultStressProps}
-        stressResult={stressResult}
+        stressResults={[stressResult]}
       />,
     )
 
@@ -334,7 +334,7 @@ describe('RiskTab', () => {
       <RiskTab
         portfolioId="port-1"
         {...defaultStressProps}
-        stressResult={stressResult}
+        stressResults={[stressResult]}
         onViewStressDetails={onViewStressDetails}
       />,
     )

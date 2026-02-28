@@ -7,6 +7,7 @@ export interface UseStressTestResult {
   selectedScenario: string
   setSelectedScenario: (scenario: string) => void
   result: StressTestResultDto | null
+  results: StressTestResultDto[]
   loading: boolean
   error: string | null
   run: () => void
@@ -16,6 +17,7 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
   const [scenarios, setScenarios] = useState<string[]>([])
   const [selectedScenario, setSelectedScenario] = useState('')
   const [result, setResult] = useState<StressTestResultDto | null>(null)
+  const [results, setResults] = useState<StressTestResultDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,6 +47,7 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
 
   useEffect(() => {
     setResult(null)
+    setResults([])
     setError(null)
   }, [portfolioId])
 
@@ -55,6 +58,10 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
     try {
       const data = await runStressTest(portfolioId, selectedScenario)
       setResult(data)
+      setResults((prev) => {
+        const filtered = prev.filter((r) => r.scenarioName !== data.scenarioName)
+        return [...filtered, data]
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -62,5 +69,5 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
     }
   }, [portfolioId, selectedScenario])
 
-  return { scenarios, selectedScenario, setSelectedScenario, result, loading, error, run }
+  return { scenarios, selectedScenario, setSelectedScenario, result, results, loading, error, run }
 }
