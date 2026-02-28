@@ -1,5 +1,6 @@
 import { AlertTriangle, X, XCircle } from 'lucide-react'
 import type { AlertEventDto } from '../types'
+import { formatAlertMessage } from '../utils/alertMessageFormatter'
 
 interface RiskAlertBannerProps {
   alerts: AlertEventDto[]
@@ -56,10 +57,12 @@ export function RiskAlertBanner({ alerts, onDismiss }: RiskAlertBannerProps) {
           <div
             key={alert.id}
             data-testid={`alert-item-${alert.id}`}
+            role={alert.severity === 'CRITICAL' ? 'alert' : undefined}
+            aria-label={formatAlertMessage(alert)}
             className={`flex items-center gap-3 rounded-lg border px-4 py-2 ${styles.container}`}
           >
             {styles.icon}
-            <span className="flex-1 text-sm">{alert.message}</span>
+            <span className="flex-1 text-sm">{formatAlertMessage(alert)}</span>
             <span className="text-xs text-slate-500 shrink-0">
               {formatRelativeTime(alert.triggeredAt)}
             </span>

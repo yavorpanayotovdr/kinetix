@@ -225,7 +225,7 @@ describe('RiskTab', () => {
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('risk-alert-banner')).toBeInTheDocument()
-    expect(screen.getByText('VaR exceeds limit')).toBeInTheDocument()
+    expect(screen.getByText('CRITICAL: VaR breached $2,000,000 limit — current: $2,300,000 (port-1)')).toBeInTheDocument()
   })
 
   it('does not render risk alert banner when no alerts', () => {

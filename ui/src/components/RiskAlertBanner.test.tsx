@@ -39,7 +39,7 @@ describe('RiskAlertBanner', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders a critical alert with red styling and XCircle icon', () => {
+  it('renders a critical alert with red styling and formatted message', () => {
     const alert = makeAlert({ severity: 'CRITICAL' })
 
     render(<RiskAlertBanner alerts={[alert]} onDismiss={vi.fn()} />)
@@ -48,14 +48,18 @@ describe('RiskAlertBanner', () => {
     expect(item).toBeInTheDocument()
     expect(item.className).toContain('border-red-200')
     expect(item.className).toContain('bg-red-50')
-    expect(screen.getByText('VaR exceeds limit by 15%')).toBeInTheDocument()
+    expect(item).toHaveTextContent('CRITICAL: VaR breached $2,000,000 limit')
   })
 
-  it('renders a warning alert with amber styling and AlertTriangle icon', () => {
+  it('renders a warning alert with amber styling and formatted message', () => {
     const alert = makeAlert({
       id: 'alert-2',
       severity: 'WARNING',
-      message: 'Position concentration high',
+      type: 'PNL_THRESHOLD',
+      threshold: 100000,
+      currentValue: 120000,
+      portfolioId: 'equity-book',
+      message: 'PNL_THRESHOLD GREATER_THAN 100000',
     })
 
     render(<RiskAlertBanner alerts={[alert]} onDismiss={vi.fn()} />)
@@ -63,12 +67,14 @@ describe('RiskAlertBanner', () => {
     const item = screen.getByTestId('alert-item-alert-2')
     expect(item.className).toContain('border-amber-200')
     expect(item.className).toContain('bg-amber-50')
+    expect(item).toHaveTextContent('WARNING: Daily P&L exceeded $100,000 limit — current: $120,000 (equity-book)')
   })
 
-  it('renders other severity alerts with slate styling', () => {
+  it('renders other severity alerts with slate styling and no severity prefix', () => {
     const alert = makeAlert({
       id: 'alert-3',
       severity: 'INFO',
+      type: 'SYSTEM_INFO',
       message: 'Informational alert',
     })
 
@@ -77,6 +83,26 @@ describe('RiskAlertBanner', () => {
     const item = screen.getByTestId('alert-item-alert-3')
     expect(item.className).toContain('border-slate-200')
     expect(item.className).toContain('bg-slate-50')
+    expect(item).toHaveTextContent('Informational alert')
+    expect(item).not.toHaveTextContent('INFO:')
+  })
+
+  it('adds role=alert to critical alerts for accessibility', () => {
+    const alert = makeAlert({ severity: 'CRITICAL' })
+
+    render(<RiskAlertBanner alerts={[alert]} onDismiss={vi.fn()} />)
+
+    const item = screen.getByTestId('alert-item-alert-1')
+    expect(item).toHaveAttribute('role', 'alert')
+  })
+
+  it('does not add role=alert to non-critical alerts', () => {
+    const alert = makeAlert({ id: 'a-warn', severity: 'WARNING' })
+
+    render(<RiskAlertBanner alerts={[alert]} onDismiss={vi.fn()} />)
+
+    const item = screen.getByTestId('alert-item-a-warn')
+    expect(item).not.toHaveAttribute('role')
   })
 
   it('shows relative time for triggeredAt', () => {
