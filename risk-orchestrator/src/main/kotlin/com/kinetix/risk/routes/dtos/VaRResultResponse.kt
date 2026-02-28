@@ -14,4 +14,5 @@ data class VaRResultResponse(
     val greeks: GreeksResponse? = null,
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
+    val positionRisk: List<PositionRiskDto>? = null,
 )

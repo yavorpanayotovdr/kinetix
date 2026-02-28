@@ -1,12 +1,14 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.routes.dtos.*
 import com.kinetix.risk.cache.LatestVaRCache
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -19,6 +21,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.*
 import kotlinx.serialization.json.Json
+import java.math.BigDecimal
 import java.time.Instant
 
 private val TEST_INSTANT = Instant.parse("2025-01-15T10:30:00Z")
@@ -55,6 +58,19 @@ private fun ValuationResult.toResponse() = VaRResultResponse(
         )
     },
     calculatedAt = calculatedAt.toString(),
+    positionRisk = positionRisk.takeIf { it.isNotEmpty() }?.map { it.toDto() },
+)
+
+private fun PositionRisk.toDto() = PositionRiskDto(
+    instrumentId = instrumentId.value,
+    assetClass = assetClass.name,
+    marketValue = marketValue.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+    delta = delta?.let { "%.6f".format(it) },
+    gamma = gamma?.let { "%.6f".format(it) },
+    vega = vega?.let { "%.6f".format(it) },
+    varContribution = varContribution.toPlainString(),
+    esContribution = esContribution.toPlainString(),
+    percentageOfTotal = percentageOfTotal.toPlainString(),
 )
 
 class RiskRoutesTest : FunSpec({
@@ -200,6 +216,117 @@ class RiskRoutesTest : FunSpec({
             }
 
             response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("GET /api/v1/risk/positions/{portfolioId} returns position-level risk from cache") {
+        val posRisk = listOf(
+            PositionRisk(
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                marketValue = BigDecimal("17000.00"),
+                delta = 0.85,
+                gamma = 0.02,
+                vega = 1500.0,
+                varContribution = BigDecimal("3000.00"),
+                esContribution = BigDecimal("3750.00"),
+                percentageOfTotal = BigDecimal("60.00"),
+            ),
+        )
+        val result = valuationResult().copy(positionRisk = posRisk)
+        varCache.put("port-1", result)
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing {
+                get("/api/v1/risk/positions/{portfolioId}") {
+                    val portfolioId = call.parameters["portfolioId"]!!
+                    val cached = varCache.get(portfolioId)
+                    if (cached != null && cached.positionRisk.isNotEmpty()) {
+                        call.respond(cached.positionRisk.map { it.toDto() })
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
+                }
+            }
+
+            val response = client.get("/api/v1/risk/positions/port-1")
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.decodeFromString<List<PositionRiskDto>>(response.bodyAsText())
+            body.size shouldBe 1
+            body[0].instrumentId shouldBe "AAPL"
+            body[0].assetClass shouldBe "EQUITY"
+            body[0].delta shouldBe "0.850000"
+            body[0].gamma shouldBe "0.020000"
+            body[0].vega shouldBe "1500.000000"
+            body[0].varContribution shouldBe "3000.00"
+            body[0].percentageOfTotal shouldBe "60.00"
+        }
+    }
+
+    test("GET /api/v1/risk/positions/{portfolioId} returns 404 when no cached data") {
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing {
+                get("/api/v1/risk/positions/{portfolioId}") {
+                    val portfolioId = call.parameters["portfolioId"]!!
+                    val cached = varCache.get(portfolioId)
+                    if (cached != null && cached.positionRisk.isNotEmpty()) {
+                        call.respond(cached.positionRisk.map { it.toDto() })
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
+                }
+            }
+
+            val response = client.get("/api/v1/risk/positions/unknown")
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("VaRResultResponse includes positionRisk when present") {
+        val posRisk = listOf(
+            PositionRisk(
+                instrumentId = InstrumentId("MSFT"),
+                assetClass = AssetClass.EQUITY,
+                marketValue = BigDecimal("10000.00"),
+                delta = null,
+                gamma = null,
+                vega = null,
+                varContribution = BigDecimal("5000.00"),
+                esContribution = BigDecimal("6250.00"),
+                percentageOfTotal = BigDecimal("100.00"),
+            ),
+        )
+        val result = valuationResult().copy(positionRisk = posRisk)
+        varCache.put("port-1", result)
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing {
+                route("/api/v1/risk/var/{portfolioId}") {
+                    get {
+                        val portfolioId = call.parameters["portfolioId"]!!
+                        val cached = varCache.get(portfolioId)
+                        if (cached != null) {
+                            call.respond(cached.toResponse())
+                        } else {
+                            call.respond(HttpStatusCode.NotFound)
+                        }
+                    }
+                }
+            }
+
+            val response = client.get("/api/v1/risk/var/port-1")
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.decodeFromString<VaRResultResponse>(response.bodyAsText())
+            body.positionRisk.shouldNotBeNull()
+            body.positionRisk!!.size shouldBe 1
+            body.positionRisk!![0].instrumentId shouldBe "MSFT"
+            body.positionRisk!![0].delta shouldBe null
+            body.positionRisk!![0].varContribution shouldBe "5000.00"
         }
     }
 })

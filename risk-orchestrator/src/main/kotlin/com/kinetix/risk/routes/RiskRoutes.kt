@@ -86,6 +86,23 @@ fun Route.riskRoutes(
         }
     }
 
+    // Position-level risk routes
+    get("/api/v1/risk/positions/{portfolioId}", {
+        summary = "Get position-level risk breakdown"
+        tags = listOf("Position Risk")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+        val cached = varCache.get(portfolioId)
+        if (cached != null && cached.positionRisk.isNotEmpty()) {
+            call.respond(cached.positionRisk.map { it.toDto() })
+        } else {
+            call.respond(HttpStatusCode.NotFound)
+        }
+    }
+
     // Stress test routes
     route("/api/v1/risk/stress/{portfolioId}") {
         post({

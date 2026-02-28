@@ -1,10 +1,12 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
+import com.kinetix.risk.model.PositionRisk
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.GreekValuesDto
 import com.kinetix.risk.routes.dtos.GreeksResponse
+import com.kinetix.risk.routes.dtos.PositionRiskDto
 import com.kinetix.risk.routes.dtos.VaRResultResponse
 import com.kinetix.proto.risk.FrtbRiskClass
 import com.kinetix.proto.risk.MarketDataType
@@ -41,6 +43,19 @@ internal fun ValuationResult.toResponse() = VaRResultResponse(
     },
     computedOutputs = computedOutputs.map { it.name },
     pvValue = pvValue?.let { "%.2f".format(it) },
+    positionRisk = positionRisk.takeIf { it.isNotEmpty() }?.map { it.toDto() },
+)
+
+internal fun PositionRisk.toDto() = PositionRiskDto(
+    instrumentId = instrumentId.value,
+    assetClass = assetClass.name,
+    marketValue = marketValue.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+    delta = delta?.let { "%.6f".format(it) },
+    gamma = gamma?.let { "%.6f".format(it) },
+    vega = vega?.let { "%.6f".format(it) },
+    varContribution = varContribution.toPlainString(),
+    esContribution = esContribution.toPlainString(),
+    percentageOfTotal = percentageOfTotal.toPlainString(),
 )
 
 internal val FRTB_RISK_CLASS_NAMES = mapOf(
