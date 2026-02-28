@@ -198,6 +198,7 @@ fun Application.moduleWithRoutes() {
         )
     )
     val jobRecorder = ExposedValuationJobRecorder(riskDb)
+    val pnlAttributionRepository = com.kinetix.risk.persistence.ExposedPnlAttributionRepository(riskDb)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
@@ -241,7 +242,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, pnlAttributionRepository = pnlAttributionRepository)
         jobHistoryRoutes(jobRecorder)
     }
 
