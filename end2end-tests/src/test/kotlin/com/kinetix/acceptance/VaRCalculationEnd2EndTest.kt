@@ -5,6 +5,8 @@ import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.service.*
+import com.kinetix.risk.client.ClientResponse
+import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
@@ -35,6 +37,16 @@ import java.util.Properties
 import kotlin.math.sqrt
 
 private val USD = Currency.getInstance("USD")
+
+private class RepositoryBackedPositionServiceClient(
+    private val repository: com.kinetix.position.persistence.PositionRepository,
+) : PositionServiceClient {
+    override suspend fun getPositions(portfolioId: PortfolioId): ClientResponse<List<Position>> =
+        ClientResponse.Success(repository.findByPortfolioId(portfolioId))
+
+    override suspend fun getDistinctPortfolioIds(): ClientResponse<List<PortfolioId>> =
+        ClientResponse.Success(repository.findDistinctPortfolioIds())
+}
 
 private class StubRiskEngineClient : RiskEngineClient {
 
@@ -170,7 +182,8 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
         bookingService = TradeBookingService(tradeEventRepo, positionRepo, transactional, tradePublisher)
 
         // Wire risk-orchestrator
-        val positionProvider = PositionServicePositionProvider(positionRepo)
+        val positionClient = RepositoryBackedPositionServiceClient(positionRepo)
+        val positionProvider = PositionServicePositionProvider(positionClient)
         val stubRiskEngine = StubRiskEngineClient()
         val riskResultPublisher = KafkaRiskResultPublisher(kafkaProducer)
 
