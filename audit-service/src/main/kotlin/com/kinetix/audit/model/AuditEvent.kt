@@ -14,4 +14,9 @@ data class AuditEvent(
     val priceCurrency: String,
     val tradedAt: String,
     val receivedAt: Instant,
+    val previousHash: String? = null,
+    val recordHash: String = "",
+    val userId: String? = null,
+    val userRole: String? = null,
+    val eventType: String = "TRADE_BOOKED",
 )
