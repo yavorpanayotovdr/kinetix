@@ -101,16 +101,16 @@ export function PositionRiskTable({ data, loading }: PositionRiskTableProps) {
 
         {!loading && data.length > 0 && expanded && (
           <div data-testid="position-risk-table" className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-slate-50">
-                  <th className="px-4 py-2 text-left font-semibold text-slate-700">Instrument</th>
-                  <th className="px-4 py-2 text-left font-semibold text-slate-700">Asset Class</th>
+                <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                  <th className="py-2 pr-3 pl-4">Instrument</th>
+                  <th className="py-2 pr-3">Asset Class</th>
                   {COLUMNS.map((col) => (
                     <th
                       key={col.field}
                       data-testid={`sort-${col.field}`}
-                      className="px-4 py-2 text-right font-semibold text-slate-700 cursor-pointer select-none"
+                      className="py-2 pr-3 text-right cursor-pointer select-none"
                       onClick={() => handleSort(col.field)}
                     >
                       {col.label} {sortIcon(col.field)}
@@ -118,32 +118,32 @@ export function PositionRiskTable({ data, loading }: PositionRiskTableProps) {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {sorted.map((row) => {
                   const pct = Number(row.percentageOfTotal)
                   return (
                     <tr
                       key={row.instrumentId}
                       data-testid={`position-risk-row-${row.instrumentId}`}
-                      className="hover:bg-slate-50 transition-colors"
+                      className="hover:bg-slate-50 transition-colors border-b border-slate-100"
                     >
-                      <td className="px-4 py-2 font-medium">{row.instrumentId}</td>
-                      <td className="px-4 py-2 text-slate-600">{row.assetClass}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{formatNum(row.marketValue)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">
+                      <td className="py-2 pr-3 pl-4 font-medium">{row.instrumentId}</td>
+                      <td className="py-2 pr-3 text-slate-600">{row.assetClass}</td>
+                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.marketValue)}</td>
+                      <td className="py-2 pr-3 text-right font-mono">
                         {row.delta != null ? formatNum(row.delta) : '\u2014'}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums">
+                      <td className="py-2 pr-3 text-right font-mono">
                         {row.gamma != null ? formatNum(row.gamma) : '\u2014'}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums">
+                      <td className="py-2 pr-3 text-right font-mono">
                         {row.vega != null ? formatNum(row.vega) : '\u2014'}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums">{formatNum(row.varContribution)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{formatNum(row.esContribution)}</td>
+                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.varContribution)}</td>
+                      <td className="py-2 pr-3 text-right font-mono">{formatNum(row.esContribution)}</td>
                       <td
                         data-testid={`pct-total-${row.instrumentId}`}
-                        className={`px-4 py-2 text-right tabular-nums font-medium ${pctColorClass(pct)}`}
+                        className={`py-2 pr-3 text-right font-mono font-medium ${pctColorClass(pct)}`}
                       >
                         {formatNum(row.percentageOfTotal)}%
                       </td>
