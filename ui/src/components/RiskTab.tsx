@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
+import { useVarLimit } from '../hooks/useVarLimit'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { JobHistory } from './JobHistory'
@@ -32,6 +33,8 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
     refresh: refreshPositionRisk,
   } = usePositionRisk(portfolioId)
 
+  const { varLimit } = useVarLimit()
+
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
   const handleRefresh = useCallback(async () => {
@@ -54,6 +57,7 @@ export function RiskTab({ portfolioId }: RiskTabProps) {
         resetZoom={varResetZoom}
         zoomDepth={varZoomDepth}
         greeksResult={greeksResult}
+        varLimit={varLimit}
       />
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

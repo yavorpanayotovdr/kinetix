@@ -48,6 +48,67 @@ describe('VaRGauge', () => {
     expect(esEl).toHaveTextContent('$1,567,890.12')
   })
 
+  describe('limit-aware colouring', () => {
+    it('uses green colour when VaR is below 60% of the limit', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" varLimit={1000000} />,
+      )
+
+      const gauge = screen.getByTestId('var-gauge')
+      const arc = gauge.querySelectorAll('path')[1]
+      expect(arc.getAttribute('stroke')).toBe('#22c55e')
+    })
+
+    it('uses amber colour when VaR is between 60% and 85% of the limit', () => {
+      render(
+        <VaRGauge varValue={700000} expectedShortfall={900000} confidenceLevel="CL_95" varLimit={1000000} />,
+      )
+
+      const gauge = screen.getByTestId('var-gauge')
+      const arc = gauge.querySelectorAll('path')[1]
+      expect(arc.getAttribute('stroke')).toBe('#f59e0b')
+    })
+
+    it('uses red colour when VaR is above 85% of the limit', () => {
+      render(
+        <VaRGauge varValue={900000} expectedShortfall={1100000} confidenceLevel="CL_95" varLimit={1000000} />,
+      )
+
+      const gauge = screen.getByTestId('var-gauge')
+      const arc = gauge.querySelectorAll('path')[1]
+      expect(arc.getAttribute('stroke')).toBe('#ef4444')
+    })
+
+    it('displays the limit label when varLimit is provided', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" varLimit={1000000} />,
+      )
+
+      const limitLabel = screen.getByTestId('var-limit')
+      expect(limitLabel).toHaveTextContent('Limit $1,000,000.00')
+    })
+
+    it('does not display the limit label when varLimit is not provided', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" />,
+      )
+
+      expect(screen.queryByTestId('var-limit')).not.toBeInTheDocument()
+    })
+
+    it('falls back to ES-based colouring when varLimit is not provided', () => {
+      // With ES-based colouring: ratio = varValue / (expectedShortfall * 1.5)
+      // 500000 / (700000 * 1.5) = 500000 / 1050000 = 0.476 -> green
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" />,
+      )
+
+      const gauge = screen.getByTestId('var-gauge')
+      const arc = gauge.querySelectorAll('path')[1]
+      expect(arc.getAttribute('stroke')).toBe('#22c55e')
+    })
+  })
+
   describe('info popovers', () => {
     it('shows VaR explanation when info icon is clicked', () => {
       render(

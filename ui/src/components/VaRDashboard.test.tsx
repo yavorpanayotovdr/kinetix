@@ -414,6 +414,38 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('pv-display')).toHaveTextContent('$1.8M')
   })
 
+  it('passes varLimit to VaRGauge when provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        varLimit={2000000}
+      />,
+    )
+
+    const limitLabel = screen.getByTestId('var-limit')
+    expect(limitLabel).toHaveTextContent('Limit $2,000,000.00')
+  })
+
+  it('does not show limit label when varLimit is not provided', () => {
+    render(
+      <VaRDashboard
+        varResult={varResult}
+
+        loading={false}
+        error={null}
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+      />,
+    )
+
+    expect(screen.queryByTestId('var-limit')).not.toBeInTheDocument()
+  })
+
   it('renders placeholder when greeksResult is null', () => {
     render(
       <VaRDashboard

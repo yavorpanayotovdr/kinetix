@@ -14,11 +14,18 @@ interface VaRGaugeProps {
   varValue: number
   expectedShortfall: number
   confidenceLevel: string
+  varLimit?: number | null
 }
 
-function gaugeColor(ratio: number): string {
+function gaugeColorEsBased(ratio: number): string {
   if (ratio < 0.5) return '#22c55e'
   if (ratio < 0.8) return '#f59e0b'
+  return '#ef4444'
+}
+
+function gaugeColorLimitBased(ratio: number): string {
+  if (ratio < 0.6) return '#22c55e'
+  if (ratio < 0.85) return '#f59e0b'
   return '#ef4444'
 }
 
@@ -27,7 +34,7 @@ function confidenceLabel(level: string): string {
   return 'VaR (95%)'
 }
 
-export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGaugeProps) {
+export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit }: VaRGaugeProps) {
   const [openPopover, setOpenPopover] = useState<Metric | null>(null)
   const gaugeRef = useRef<HTMLDivElement>(null)
 
@@ -47,9 +54,10 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
     setOpenPopover(prev => prev === metric ? null : metric)
   }
 
-  const maxValue = expectedShortfall * 1.5
+  const hasLimit = varLimit != null && varLimit > 0
+  const maxValue = hasLimit ? varLimit : expectedShortfall * 1.5
   const ratio = Math.min(varValue / maxValue, 1)
-  const color = gaugeColor(ratio)
+  const color = hasLimit ? gaugeColorLimitBased(ratio) : gaugeColorEsBased(ratio)
 
   const radius = 80
   const circumference = Math.PI * radius
@@ -118,6 +126,11 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel }: VaRGa
             </span>
           )}
         </div>
+        {hasLimit && (
+          <div data-testid="var-limit" className="text-xs text-slate-500 mt-1">
+            Limit {formatMoney(varLimit.toFixed(2), 'USD')}
+          </div>
+        )}
       </div>
     </div>
   )

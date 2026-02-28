@@ -29,9 +29,10 @@ interface VaRDashboardProps {
   resetZoom: () => void
   zoomDepth: number
   greeksResult?: GreeksResultDto | null
+  varLimit?: number | null
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const calcTypeRef = useRef<HTMLSpanElement>(null)
 
@@ -87,6 +88,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
           varValue={varValue}
           expectedShortfall={expectedShortfall}
           confidenceLevel={varResult.confidenceLevel}
+          varLimit={varLimit}
         />
 
         <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">

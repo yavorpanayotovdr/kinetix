@@ -5,15 +5,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../hooks/useVaR')
 vi.mock('../hooks/useJobHistory')
 vi.mock('../hooks/usePositionRisk')
+vi.mock('../hooks/useVarLimit')
 
 import { RiskTab } from './RiskTab'
 import { useVaR } from '../hooks/useVaR'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { usePositionRisk } from '../hooks/usePositionRisk'
+import { useVarLimit } from '../hooks/useVarLimit'
 
 const mockUseVaR = vi.mocked(useVaR)
 const mockUseJobHistory = vi.mocked(useJobHistory)
 const mockUsePositionRisk = vi.mocked(usePositionRisk)
+const mockUseVarLimit = vi.mocked(useVarLimit)
 
 describe('RiskTab', () => {
   beforeEach(() => {
@@ -66,6 +69,10 @@ describe('RiskTab', () => {
       error: null,
       refresh: vi.fn(),
     })
+    mockUseVarLimit.mockReturnValue({
+      varLimit: null,
+      loading: false,
+    })
   })
 
   it('calls useVaR with the given portfolioId', () => {
@@ -110,6 +117,40 @@ describe('RiskTab', () => {
     render(<RiskTab portfolioId="port-1" />)
 
     expect(screen.getByTestId('position-risk-section')).toBeInTheDocument()
+  })
+
+  it('passes varLimit from useVarLimit to VaRDashboard', () => {
+    mockUseVarLimit.mockReturnValue({
+      varLimit: 2000000,
+      loading: false,
+    })
+    mockUseVaR.mockReturnValue({
+      varResult: {
+        portfolioId: 'port-1',
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: '1000000',
+        expectedShortfall: '1500000',
+        componentBreakdown: [],
+        calculatedAt: '2025-01-15T10:00:00Z',
+      },
+      greeksResult: null,
+      history: [],
+      filteredHistory: [],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+      refreshing: false,
+      timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
+      setTimeRange: vi.fn(),
+      zoomIn: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomDepth: 0,
+    })
+
+    render(<RiskTab portfolioId="port-1" />)
+
+    expect(screen.getByTestId('var-limit')).toHaveTextContent('Limit $2,000,000.00')
   })
 
   it('refreshes position risk data when VaR dashboard is refreshed', async () => {
