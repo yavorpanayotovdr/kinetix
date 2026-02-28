@@ -41,6 +41,23 @@ describe('sodSnapshot API', () => {
       )
     })
 
+    it('returns exists false on 404', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      })
+
+      const result = await fetchSodBaselineStatus('port-1')
+
+      expect(result).toEqual({
+        exists: false,
+        baselineDate: null,
+        snapshotType: null,
+        createdAt: null,
+      })
+    })
+
     it('throws on 500', async () => {
       mockFetch.mockResolvedValue({
         ok: false,

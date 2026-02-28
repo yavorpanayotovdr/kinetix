@@ -6,6 +6,9 @@ export async function fetchSodBaselineStatus(
   const response = await fetch(
     `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}/status`,
   )
+  if (response.status === 404) {
+    return { exists: false, baselineDate: null, snapshotType: null, createdAt: null }
+  }
   if (!response.ok) {
     throw new Error(
       `Failed to fetch SOD baseline status: ${response.status} ${response.statusText}`,
