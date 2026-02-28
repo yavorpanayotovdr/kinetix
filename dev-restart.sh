@@ -166,19 +166,21 @@ for target in "${TARGETS[@]}"; do
   fi
 done
 
-# ── Build targeted Kotlin services ───────────────────────────────────────────
+# ── Rebuild targeted Kotlin services ─────────────────────────────────────────
 
+COMPILE_TASKS=()
 INSTALL_TASKS=()
 for target in "${TARGETS[@]}"; do
   port=$(port_for_service "$target" 2>/dev/null || true)
   if [[ -n "$port" ]]; then
+    COMPILE_TASKS+=(":${target}:compileKotlin")
     INSTALL_TASKS+=(":${target}:installDist")
   fi
 done
 
 if [[ ${#INSTALL_TASKS[@]} -gt 0 ]]; then
-  echo "==> Building services: ${INSTALL_TASKS[*]}"
-  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" "${INSTALL_TASKS[@]}"
+  echo "==> Compiling and repackaging: ${INSTALL_TASKS[*]}"
+  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" "${COMPILE_TASKS[@]}" "${INSTALL_TASKS[@]}" --no-build-cache
 fi
 
 # ── Launch services ──────────────────────────────────────────────────────────
