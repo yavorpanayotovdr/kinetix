@@ -12,6 +12,7 @@ import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
 import { PnlSummaryCard } from './PnlSummaryCard'
+import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 
 interface RiskTabProps {
   portfolioId: string | null
@@ -67,13 +68,20 @@ export function RiskTab({
     setJobRefreshSignal((prev) => prev + 1)
   }, [refresh, refreshPositionRisk])
 
+  const lastUpdated = varResult?.calculatedAt ?? null
+
   return (
     <div>
-      {alerts.length > 0 && (
-        <div className="mb-4">
-          <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
-        </div>
-      )}
+      <div className="flex items-center justify-between mb-2">
+        {alerts.length > 0 ? (
+          <div className="flex-1 mr-4">
+            <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
+          </div>
+        ) : (
+          <div />
+        )}
+        <LastUpdatedIndicator timestamp={lastUpdated} />
+      </div>
       <VaRDashboard
         varResult={varResult}
         filteredHistory={filteredHistory}

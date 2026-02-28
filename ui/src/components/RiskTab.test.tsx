@@ -498,6 +498,43 @@ describe('RiskTab', () => {
     expect(onViewPnlTab).toHaveBeenCalledOnce()
   })
 
+  it('renders LastUpdatedIndicator with VaR calculatedAt timestamp', () => {
+    mockUseVaR.mockReturnValue({
+      varResult: {
+        portfolioId: 'port-1',
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: '1000000',
+        expectedShortfall: '1500000',
+        componentBreakdown: [],
+        calculatedAt: '2026-02-28T14:32:00Z',
+      },
+      greeksResult: null,
+      history: [],
+      filteredHistory: [],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+      refreshing: false,
+      timeRange: { from: '2025-01-14T10:30:00Z', to: '2025-01-15T10:30:00Z', label: 'Last 24h' },
+      setTimeRange: vi.fn(),
+      zoomIn: vi.fn(),
+      resetZoom: vi.fn(),
+      zoomDepth: 0,
+    })
+
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.getByTestId('last-updated')).toBeInTheDocument()
+    expect(screen.getByTestId('last-updated')).toHaveTextContent('Last refreshed')
+  })
+
+  it('does not render LastUpdatedIndicator when no VaR data', () => {
+    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+
+    expect(screen.queryByTestId('last-updated')).not.toBeInTheDocument()
+  })
+
   it('shows P&L summary data when attribution data is available', () => {
     const pnlData: PnlAttributionDto = {
       portfolioId: 'port-1',
