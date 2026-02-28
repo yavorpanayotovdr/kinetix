@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import type { ComponentBreakdownDto } from '../types'
 import { formatMoney } from '../utils/format'
 
 interface ComponentBreakdownProps {
   breakdown: ComponentBreakdownDto[]
+  portfolioVaR?: string
 }
 
 const ASSET_CLASS_COLORS: Record<string, string> = {
@@ -21,7 +23,7 @@ function formatAssetClassLabel(assetClass: string): string {
     .join(' ')
 }
 
-export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
+export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdownProps) {
   const sorted = [...breakdown].sort(
     (a, b) => Number(b.percentageOfTotal) - Number(a.percentageOfTotal),
   )
@@ -38,6 +40,15 @@ export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
     },
     [],
   )
+
+  const diversification = useMemo(() => {
+    if (!portfolioVaR || breakdown.length === 0) return null
+    const sumComponentVaR = breakdown.reduce((sum, c) => sum + Number(c.varContribution), 0)
+    const portfolioValue = Number(portfolioVaR)
+    const benefit = sumComponentVaR - portfolioValue
+    const pct = sumComponentVaR !== 0 ? (benefit / sumComponentVaR) * 100 : 0
+    return { benefit, pct }
+  }, [breakdown, portfolioVaR])
 
   return (
     <div>
@@ -97,6 +108,18 @@ export function ComponentBreakdown({ breakdown }: ComponentBreakdownProps) {
           </svg>
         </div>
       </div>
+
+      {diversification && (
+        <div data-testid="diversification-benefit" className="mt-3 text-xs">
+          <span className="text-slate-500">Diversification </span>
+          <span data-testid="diversification-amount" className="font-medium text-green-600 tabular-nums">
+            -{formatMoney(diversification.benefit.toFixed(2), 'USD')}
+          </span>
+          <span className="text-slate-400 ml-1 tabular-nums">
+            ({diversification.pct.toFixed(2)}%)
+          </span>
+        </div>
+      )}
     </div>
   )
 }

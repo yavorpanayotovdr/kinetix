@@ -103,7 +103,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
         </div>
 
         <div data-testid="var-breakdown" className="flex flex-col justify-center">
-          <ComponentBreakdown breakdown={varResult.componentBreakdown} />
+          <ComponentBreakdown breakdown={varResult.componentBreakdown} portfolioVaR={varResult.varValue} />
         </div>
       </div>
 
