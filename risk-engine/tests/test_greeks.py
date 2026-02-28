@@ -4,6 +4,7 @@ from kinetix_risk.greeks import calculate_greeks
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, GreeksResult, PositionRisk,
 )
+from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider
 
 
 def _sample_positions() -> list[PositionRisk]:
@@ -89,3 +90,57 @@ class TestGreeksCalculation:
         assert isinstance(result, GreeksResult)
         assert result.delta[AssetClass.EQUITY] != 0
         assert result.theta != 0.0
+
+    def test_rho_measures_rate_sensitivity_not_vol_sensitivity(self):
+        """Rho should be computed by bumping the risk-free rate, not volatilities.
+
+        We verify that calculate_greeks passes a risk_free_rate to the VaR
+        calculation (via _var_value). The function signature must accept and
+        use a risk_free_rate parameter — the old code bumped vols instead.
+        """
+        positions = _sample_positions()
+
+        from kinetix_risk.greeks import _var_value
+        import inspect
+        sig = inspect.signature(_var_value)
+        assert "risk_free_rate" in sig.parameters, (
+            "_var_value must accept a risk_free_rate parameter for proper rho computation"
+        )
+
+        # Compute greeks — rho should reflect rate sensitivity
+        result = calculate_greeks(
+            positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
+        )
+
+        # With the fixed implementation, rho comes from bumping risk_free_rate,
+        # which discounts market values via exp(-rate * T/252). For a 1-day
+        # horizon the discount effect is small but nonzero.
+        assert result.rho != 0.0
+
+    def test_rho_increases_with_time_horizon(self):
+        """Longer-dated positions have more rate sensitivity, so rho should
+        increase (in absolute value) as the time horizon grows.
+
+        This also validates that calculate_portfolio_var accepts a risk_free_rate
+        parameter, since proper rho computation requires discounting market
+        values by the risk-free rate.
+        """
+        import inspect
+        from kinetix_risk.portfolio_risk import calculate_portfolio_var
+        sig = inspect.signature(calculate_portfolio_var)
+        assert "risk_free_rate" in sig.parameters, (
+            "calculate_portfolio_var must accept a risk_free_rate parameter"
+        )
+
+        positions = _sample_positions()
+
+        result_1d = calculate_greeks(
+            positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
+        )
+        result_10d = calculate_greeks(
+            positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 10,
+        )
+
+        assert abs(result_10d.rho) > abs(result_1d.rho), (
+            "Rho should increase in absolute value with longer time horizon"
+        )
