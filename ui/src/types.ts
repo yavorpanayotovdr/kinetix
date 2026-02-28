@@ -245,6 +245,32 @@ export interface WhatIfResponseDto {
   calculatedAt: string
 }
 
+export interface PositionPnlAttributionDto {
+  instrumentId: string
+  assetClass: string
+  totalPnl: string
+  deltaPnl: string
+  gammaPnl: string
+  vegaPnl: string
+  thetaPnl: string
+  rhoPnl: string
+  unexplainedPnl: string
+}
+
+export interface PnlAttributionDto {
+  portfolioId: string
+  date: string
+  totalPnl: string
+  deltaPnl: string
+  gammaPnl: string
+  vegaPnl: string
+  thetaPnl: string
+  rhoPnl: string
+  unexplainedPnl: string
+  positionAttributions: PositionPnlAttributionDto[]
+  calculatedAt: string
+}
+
 export interface ValuationJobDetailDto {
   jobId: string
   portfolioId: string

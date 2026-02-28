@@ -277,7 +277,7 @@ unexplained = totalPnl - sum(explained components)
 ---
 
 ### Step 3.3 — Frontend: Types, API, hook, and WhatIf drawer panel
-- [ ] **Done**
+- [x] **Done** (commit 8c63522)
 
 **What:** Create the what-if analysis UI as a right-side sliding drawer accessible from the Positions tab.
 

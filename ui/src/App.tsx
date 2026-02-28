@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Activity, BarChart3, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
+import { Activity, BarChart3, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { NotificationCenter } from './components/NotificationCenter'
 import { SystemDashboard } from './components/SystemDashboard'
 import { RiskTab } from './components/RiskTab'
 import { ScenariosTab } from './components/ScenariosTab'
 import { RegulatoryTab } from './components/RegulatoryTab'
+import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
@@ -14,10 +15,11 @@ import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 
-type Tab = 'positions' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
+type Tab = 'positions' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'positions', label: 'Positions', icon: BarChart3 },
+  { key: 'pnl', label: 'P&L', icon: TrendingUp },
   { key: 'risk', label: 'Risk', icon: Shield },
   { key: 'scenarios', label: 'Scenarios', icon: FlaskConical },
   { key: 'regulatory', label: 'Regulatory', icon: Scale },
@@ -119,6 +121,10 @@ function App() {
                     </div>
                     <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
                   </div>
+                )}
+
+                {activeTab === 'pnl' && (
+                  <PnlTab portfolioId={portfolioId} />
                 )}
 
                 {activeTab === 'risk' && (
