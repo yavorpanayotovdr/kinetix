@@ -258,7 +258,7 @@ class VaRCalculationService(
                 )
             )
 
-            val enrichedResult = result.copy(positionRisk = positionRiskList)
+            val enrichedResult = result.copy(positionRisk = positionRiskList, jobId = jobId)
 
             logger.info(
                 "VaR calculation complete for portfolio {}: VaR={}, ES={}",

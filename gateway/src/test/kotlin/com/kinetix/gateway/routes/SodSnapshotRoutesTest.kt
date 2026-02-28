@@ -16,6 +16,8 @@ private val sampleSodStatus = SodBaselineStatusSummary(
     baselineDate = "2025-01-15",
     snapshotType = "MANUAL",
     createdAt = "2025-01-15T08:00:00Z",
+    sourceJobId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    calculationType = "PARAMETRIC",
 )
 
 private val samplePnlAttribution = PnlAttributionSummary(
@@ -66,6 +68,8 @@ class SodSnapshotRoutesTest : FunSpec({
             body["baselineDate"]?.jsonPrimitive?.content shouldBe "2025-01-15"
             body["snapshotType"]?.jsonPrimitive?.content shouldBe "MANUAL"
             body["createdAt"]?.jsonPrimitive?.content shouldBe "2025-01-15T08:00:00Z"
+            body["sourceJobId"]?.jsonPrimitive?.content shouldBe "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+            body["calculationType"]?.jsonPrimitive?.content shouldBe "PARAMETRIC"
         }
     }
 
@@ -80,7 +84,7 @@ class SodSnapshotRoutesTest : FunSpec({
     }
 
     test("POST /api/v1/risk/sod-snapshot/{portfolioId} returns 201 with created baseline") {
-        coEvery { riskClient.createSodSnapshot("port-1") } returns sampleSodStatus
+        coEvery { riskClient.createSodSnapshot("port-1", null) } returns sampleSodStatus
 
         testApplication {
             application { module(riskClient) }
@@ -89,6 +93,18 @@ class SodSnapshotRoutesTest : FunSpec({
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["exists"]?.jsonPrimitive?.boolean shouldBe true
             body["snapshotType"]?.jsonPrimitive?.content shouldBe "MANUAL"
+        }
+    }
+
+    test("POST /api/v1/risk/sod-snapshot/{portfolioId} forwards jobId query parameter") {
+        val jobId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        coEvery { riskClient.createSodSnapshot("port-1", jobId) } returns sampleSodStatus
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post("/api/v1/risk/sod-snapshot/port-1?jobId=$jobId")
+            response.status shouldBe HttpStatusCode.Created
+            coVerify { riskClient.createSodSnapshot("port-1", jobId) }
         }
     }
 

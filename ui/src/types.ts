@@ -276,6 +276,8 @@ export interface SodBaselineStatusDto {
   baselineDate: string | null
   snapshotType: string | null
   createdAt: string | null
+  sourceJobId: string | null
+  calculationType: string | null
 }
 
 export interface SodSnapshotResultDto {

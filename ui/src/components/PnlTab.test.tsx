@@ -81,6 +81,8 @@ describe('PnlTab', () => {
         baselineDate: '2025-01-15',
         snapshotType: 'MANUAL',
         createdAt: '2025-01-15T08:00:00Z',
+        sourceJobId: null,
+        calculationType: null,
       },
     })
 
@@ -131,6 +133,8 @@ describe('PnlTab', () => {
         baselineDate: null,
         snapshotType: null,
         createdAt: null,
+        sourceJobId: null,
+        calculationType: null,
       },
     })
 
@@ -153,6 +157,8 @@ describe('PnlTab', () => {
         baselineDate: '2025-01-15',
         snapshotType: 'MANUAL',
         createdAt: '2025-01-15T08:00:00Z',
+        sourceJobId: null,
+        calculationType: null,
       },
     })
 
@@ -175,6 +181,8 @@ describe('PnlTab', () => {
         baselineDate: '2025-01-15',
         snapshotType: 'MANUAL',
         createdAt: '2025-01-15T08:00:00Z',
+        sourceJobId: null,
+        calculationType: null,
       },
     })
 
@@ -184,6 +192,33 @@ describe('PnlTab', () => {
 
     expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
     expect(screen.getByTestId('confirm-dialog-confirm')).toBeInTheDocument()
+  })
+
+  it('shows job metadata in reset dialog when available', () => {
+    mockUsePnlAttribution.mockReturnValue({
+      data: pnlAttributionData,
+      loading: false,
+      error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: true,
+        baselineDate: '2025-01-15',
+        snapshotType: 'MANUAL',
+        createdAt: '2025-01-15T08:00:00Z',
+        sourceJobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        calculationType: 'PARAMETRIC',
+      },
+    })
+
+    render(<PnlTab portfolioId="port-1" />)
+
+    fireEvent.click(screen.getByTestId('sod-reset-button'))
+
+    expect(screen.getByTestId('reset-dialog-metadata')).toBeInTheDocument()
+    expect(screen.getByText('Type: PARAMETRIC')).toBeInTheDocument()
+    expect(screen.getByText('aaaaaaaa')).toBeInTheDocument()
   })
 
   it('shows SOD error when sod hook returns an error', () => {
@@ -199,6 +234,8 @@ describe('PnlTab', () => {
         baselineDate: null,
         snapshotType: null,
         createdAt: null,
+        sourceJobId: null,
+        calculationType: null,
       },
       error: 'SOD service unavailable',
     })

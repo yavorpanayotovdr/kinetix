@@ -301,6 +301,8 @@ data class SodBaselineStatusClientDto(
     val baselineDate: String? = null,
     val snapshotType: String? = null,
     val createdAt: String? = null,
+    val sourceJobId: String? = null,
+    val calculationType: String? = null,
 )
 
 // --- P&L Attribution DTOs ---
@@ -533,6 +535,8 @@ fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(
     baselineDate = baselineDate,
     snapshotType = snapshotType,
     createdAt = createdAt,
+    sourceJobId = sourceJobId,
+    calculationType = calculationType,
 )
 
 fun PositionPnlAttributionClientDto.toDomain() = PositionPnlAttributionSummary(

@@ -7,7 +7,9 @@ import com.kinetix.risk.model.DailyRiskSnapshot
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
@@ -83,6 +85,16 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             .where { DailyRiskSnapshotsTable.portfolioId eq portfolioId.value }
             .orderBy(DailyRiskSnapshotsTable.snapshotDate, SortOrder.DESC)
             .map { it.toDailyRiskSnapshot() }
+    }
+
+    override suspend fun deleteByPortfolioIdAndDate(
+        portfolioId: PortfolioId,
+        date: LocalDate,
+    ): Unit = newSuspendedTransaction(db = db) {
+        DailyRiskSnapshotsTable.deleteWhere {
+            (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
+                (DailyRiskSnapshotsTable.snapshotDate eq date.toKotlinxDate())
+        }
     }
 
     private fun ResultRow.toDailyRiskSnapshot(): DailyRiskSnapshot = DailyRiskSnapshot(

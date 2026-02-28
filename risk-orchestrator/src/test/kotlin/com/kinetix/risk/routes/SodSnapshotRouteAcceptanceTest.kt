@@ -39,6 +39,8 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
             baselineDate = "2025-01-15",
             snapshotType = SnapshotType.MANUAL,
             createdAt = Instant.parse("2025-01-15T08:00:00Z"),
+            sourceJobId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            calculationType = "PARAMETRIC",
         )
 
         testApplication {
@@ -62,6 +64,8 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
             body.baselineDate shouldBe "2025-01-15"
             body.snapshotType shouldBe "MANUAL"
             body.createdAt shouldBe "2025-01-15T08:00:00Z"
+            body.sourceJobId shouldBe "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+            body.calculationType shouldBe "PARAMETRIC"
         }
     }
 

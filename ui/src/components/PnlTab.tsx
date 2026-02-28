@@ -5,11 +5,13 @@ import { useSodBaseline } from '../hooks/useSodBaseline'
 import { PnlWaterfallChart } from './PnlWaterfallChart'
 import { PnlAttributionTable } from './PnlAttributionTable'
 import { SodBaselineIndicator } from './SodBaselineIndicator'
+import { JobPickerDialog } from './JobPickerDialog'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 import { Button } from './ui/Button'
 import { Card } from './ui/Card'
 import { EmptyState } from './ui/EmptyState'
 import { Spinner } from './ui/Spinner'
+import { formatTimestamp } from '../utils/format'
 import type { PnlAttributionDto } from '../types'
 
 interface PnlTabProps {
@@ -20,6 +22,7 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
   const { data: pnlData, loading: pnlLoading, error: pnlError } = usePnlAttribution(portfolioId)
   const sod = useSodBaseline(portfolioId)
   const [showResetDialog, setShowResetDialog] = useState(false)
+  const [showJobPicker, setShowJobPicker] = useState(false)
   const [computedData, setComputedData] = useState<PnlAttributionDto | null>(null)
 
   const data = computedData ?? pnlData
@@ -29,6 +32,11 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
     if (result) {
       setComputedData(result)
     }
+  }, [sod])
+
+  const handleJobSelect = useCallback(async (jobId: string) => {
+    setShowJobPicker(false)
+    await sod.createSnapshot(jobId)
   }, [sod])
 
   const handleResetConfirm = useCallback(async () => {
@@ -54,6 +62,7 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
         resetting={sod.resetting}
         onCreateSnapshot={sod.createSnapshot}
         onResetBaseline={() => setShowResetDialog(true)}
+        onPickFromHistory={() => setShowJobPicker(true)}
       />
 
       {sod.error && (
@@ -117,10 +126,43 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
         </>
       )}
 
+      {portfolioId && (
+        <JobPickerDialog
+          open={showJobPicker}
+          portfolioId={portfolioId}
+          onSelect={handleJobSelect}
+          onCancel={() => setShowJobPicker(false)}
+        />
+      )}
+
       <ConfirmDialog
         open={showResetDialog}
         title="Reset SOD Baseline"
-        message="This will remove the current SOD baseline. You will need to set a new baseline to compute P&L attribution. Are you sure?"
+        message={
+          <div>
+            <p>This will remove the current SOD baseline and its snapshot data. You can immediately set a new baseline using the current market state.</p>
+            {sod.status && (sod.status.sourceJobId || sod.status.calculationType || sod.status.createdAt) && (
+              <div data-testid="reset-dialog-metadata" className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs">
+                <p className="font-medium text-slate-700 mb-1">Current baseline</p>
+                {sod.status.sourceJobId && (
+                  <p className="text-slate-600">
+                    Job ID: <span className="font-mono">{sod.status.sourceJobId.slice(0, 8)}</span>
+                  </p>
+                )}
+                {sod.status.calculationType && (
+                  <p className="text-slate-600">
+                    Type: {sod.status.calculationType}
+                  </p>
+                )}
+                {sod.status.createdAt && (
+                  <p className="text-slate-600">
+                    Created: {formatTimestamp(sod.status.createdAt)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        }
         confirmLabel="Reset Baseline"
         cancelLabel="Cancel"
         variant="danger"

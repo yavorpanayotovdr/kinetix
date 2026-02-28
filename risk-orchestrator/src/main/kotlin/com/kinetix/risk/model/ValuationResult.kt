@@ -2,6 +2,7 @@ package com.kinetix.risk.model
 
 import com.kinetix.common.model.PortfolioId
 import java.time.Instant
+import java.util.UUID
 
 data class ValuationResult(
     val portfolioId: PortfolioId,
@@ -15,4 +16,5 @@ data class ValuationResult(
     val computedOutputs: Set<ValuationOutput>,
     val pvValue: Double? = null,
     val positionRisk: List<PositionRisk> = emptyList(),
+    val jobId: UUID? = null,
 )

@@ -23,6 +23,8 @@ describe('sodSnapshot API', () => {
     baselineDate: '2025-01-15',
     snapshotType: 'MANUAL',
     createdAt: '2025-01-15T08:00:00Z',
+    sourceJobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    calculationType: 'PARAMETRIC',
   }
 
   describe('fetchSodBaselineStatus', () => {
@@ -55,6 +57,8 @@ describe('sodSnapshot API', () => {
         baselineDate: null,
         snapshotType: null,
         createdAt: null,
+        sourceJobId: null,
+        calculationType: null,
       })
     })
 

@@ -129,9 +129,12 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun createSodSnapshot(portfolioId: String): SodBaselineStatusSummary {
+    override suspend fun createSodSnapshot(portfolioId: String, jobId: String?): SodBaselineStatusSummary {
         val response = httpClient.post("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId") {
             contentType(ContentType.Application.Json)
+            if (jobId != null) {
+                url.parameters.append("jobId", jobId)
+            }
         }
         if (!response.status.isSuccess()) {
             val errorBody: Map<String, String> = try { response.body() } catch (_: Exception) { emptyMap() }

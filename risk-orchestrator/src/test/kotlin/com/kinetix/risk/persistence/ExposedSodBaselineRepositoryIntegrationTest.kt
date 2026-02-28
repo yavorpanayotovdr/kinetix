@@ -11,6 +11,7 @@ import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 private val PORTFOLIO = PortfolioId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
@@ -92,5 +93,25 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
 
         repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
         repository.findByPortfolioIdAndDate(other, TODAY).shouldNotBeNull()
+    }
+
+    test("saves and retrieves baseline with job metadata") {
+        val jobId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+        val bl = baseline().copy(sourceJobId = jobId, calculationType = "PARAMETRIC")
+        repository.save(bl)
+
+        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        found.shouldNotBeNull()
+        found.sourceJobId shouldBe jobId
+        found.calculationType shouldBe "PARAMETRIC"
+    }
+
+    test("saves and retrieves baseline with null job metadata") {
+        repository.save(baseline())
+
+        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        found.shouldNotBeNull()
+        found.sourceJobId shouldBe null
+        found.calculationType shouldBe null
     }
 })

@@ -9,6 +9,7 @@ import com.kinetix.risk.persistence.SodBaselineRepository
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 class SodSnapshotService(
     private val sodBaselineRepository: SodBaselineRepository,
@@ -16,6 +17,7 @@ class SodSnapshotService(
     private val varCache: LatestVaRCache,
     private val varCalculationService: VaRCalculationService,
     private val positionProvider: PositionProvider,
+    private val jobRecorder: ValuationJobRecorder? = null,
 ) {
     private val logger = LoggerFactory.getLogger(SodSnapshotService::class.java)
 
@@ -53,6 +55,8 @@ class SodSnapshotService(
             baselineDate = date,
             snapshotType = snapshotType,
             createdAt = Instant.now(),
+            sourceJobId = result.jobId,
+            calculationType = result.calculationType.name,
         )
         sodBaselineRepository.save(baseline)
 
@@ -70,13 +74,46 @@ class SodSnapshotService(
                 baselineDate = baseline.baselineDate.toString(),
                 snapshotType = baseline.snapshotType,
                 createdAt = baseline.createdAt,
+                sourceJobId = baseline.sourceJobId?.toString(),
+                calculationType = baseline.calculationType,
             )
         } else {
             SodBaselineStatus(exists = false)
         }
     }
 
+    suspend fun createSnapshotFromJob(
+        portfolioId: PortfolioId,
+        jobId: UUID,
+        date: LocalDate = LocalDate.now(),
+    ) {
+        val recorder = jobRecorder
+            ?: throw IllegalStateException("Job recorder is not configured")
+        val job = recorder.findByJobId(jobId)
+            ?: throw IllegalArgumentException("Valuation job $jobId not found")
+        require(job.status == RunStatus.COMPLETED) {
+            "Valuation job $jobId is not completed (status: ${job.status})"
+        }
+        require(job.portfolioId == portfolioId.value) {
+            "Valuation job $jobId belongs to portfolio ${job.portfolioId}, not ${portfolioId.value}"
+        }
+
+        val calcType = CalculationType.valueOf(job.calculationType ?: "PARAMETRIC")
+        val confLevel = ConfidenceLevel.valueOf(job.confidenceLevel ?: "CL_95")
+        val request = VaRCalculationRequest(
+            portfolioId = portfolioId,
+            calculationType = calcType,
+            confidenceLevel = confLevel,
+            requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
+        )
+        val result = varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
+            ?: throw IllegalStateException("Re-calculation failed for job $jobId parameters")
+
+        createSnapshot(portfolioId, SnapshotType.MANUAL, result, date)
+    }
+
     suspend fun resetBaseline(portfolioId: PortfolioId, date: LocalDate) {
+        dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(portfolioId, date)
         sodBaselineRepository.deleteByPortfolioIdAndDate(portfolioId, date)
         logger.info("SOD baseline reset for portfolio {} on {}", portfolioId.value, date)
     }

@@ -535,6 +535,8 @@ data class SodBaselineStatusResponse(
     val baselineDate: String? = null,
     val snapshotType: String? = null,
     val createdAt: String? = null,
+    val sourceJobId: String? = null,
+    val calculationType: String? = null,
 )
 
 // --- SOD Snapshot mappers ---
@@ -544,6 +546,8 @@ fun SodBaselineStatusSummary.toResponse(): SodBaselineStatusResponse = SodBaseli
     baselineDate = baselineDate,
     snapshotType = snapshotType,
     createdAt = createdAt,
+    sourceJobId = sourceJobId,
+    calculationType = calculationType,
 )
 
 // --- P&L Attribution DTOs ---

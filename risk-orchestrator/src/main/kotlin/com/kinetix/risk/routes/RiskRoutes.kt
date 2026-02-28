@@ -173,20 +173,39 @@ fun Route.riskRoutes(
             tags = listOf("SOD Snapshot")
             request {
                 pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                queryParameter<String>("jobId") {
+                    description = "Optional VaR job ID to use as baseline source"
+                    required = false
+                }
             }
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val today = LocalDate.now()
+            val jobIdParam = call.request.queryParameters["jobId"]
             try {
-                sodSnapshotService.createSnapshot(
-                    PortfolioId(portfolioId),
-                    SnapshotType.MANUAL,
-                    date = today,
-                )
+                if (jobIdParam != null) {
+                    sodSnapshotService.createSnapshotFromJob(
+                        PortfolioId(portfolioId),
+                        java.util.UUID.fromString(jobIdParam),
+                        today,
+                    )
+                } else {
+                    sodSnapshotService.createSnapshot(
+                        PortfolioId(portfolioId),
+                        SnapshotType.MANUAL,
+                        date = today,
+                    )
+                }
             } catch (e: IllegalStateException) {
                 call.response.status(HttpStatusCode.UnprocessableEntity)
                 call.respond(
                     mapOf("error" to "no_valuation_data", "message" to (e.message ?: "Cannot create snapshot")),
+                )
+                return@post
+            } catch (e: IllegalArgumentException) {
+                call.response.status(HttpStatusCode.UnprocessableEntity)
+                call.respond(
+                    mapOf("error" to "invalid_job", "message" to (e.message ?: "Invalid job")),
                 )
                 return@post
             }

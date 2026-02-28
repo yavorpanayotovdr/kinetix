@@ -32,11 +32,16 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         tags = listOf("SOD Snapshot")
         request {
             pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("jobId") {
+                description = "Optional VaR job ID to use as baseline source"
+                required = false
+            }
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
+        val jobId = call.request.queryParameters["jobId"]
         try {
-            val status = client.createSodSnapshot(portfolioId)
+            val status = client.createSodSnapshot(portfolioId, jobId)
             call.response.status(HttpStatusCode.Created)
             call.respond(status.toResponse())
         } catch (e: IllegalStateException) {

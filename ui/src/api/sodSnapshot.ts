@@ -7,7 +7,7 @@ export async function fetchSodBaselineStatus(
     `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}/status`,
   )
   if (response.status === 404) {
-    return { exists: false, baselineDate: null, snapshotType: null, createdAt: null }
+    return { exists: false, baselineDate: null, snapshotType: null, createdAt: null, sourceJobId: null, calculationType: null }
   }
   if (!response.ok) {
     throw new Error(
@@ -19,11 +19,12 @@ export async function fetchSodBaselineStatus(
 
 export async function createSodSnapshot(
   portfolioId: string,
+  jobId?: string,
 ): Promise<SodBaselineStatusDto> {
-  const response = await fetch(
-    `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}`,
-    { method: 'POST' },
-  )
+  const url = jobId
+    ? `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}?jobId=${encodeURIComponent(jobId)}`
+    : `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}`
+  const response = await fetch(url, { method: 'POST' })
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     const message = body?.message ?? `Failed to create SOD snapshot: ${response.status} ${response.statusText}`

@@ -10,6 +10,7 @@ interface SodBaselineIndicatorProps {
   resetting: boolean
   onCreateSnapshot: () => void
   onResetBaseline: () => void
+  onPickFromHistory?: () => void
 }
 
 export function SodBaselineIndicator({
@@ -19,6 +20,7 @@ export function SodBaselineIndicator({
   resetting,
   onCreateSnapshot,
   onResetBaseline,
+  onPickFromHistory,
 }: SodBaselineIndicatorProps) {
   if (loading) {
     return null
@@ -39,15 +41,27 @@ export function SodBaselineIndicator({
             Set a baseline to enable P&L attribution computation.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onCreateSnapshot}
-          loading={creating}
-          data-testid="sod-create-button"
-        >
-          Set as SOD Baseline
-        </Button>
+        <div className="flex gap-2">
+          {onPickFromHistory && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onPickFromHistory}
+              data-testid="sod-pick-history-button"
+            >
+              Pick from History
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onCreateSnapshot}
+            loading={creating}
+            data-testid="sod-create-button"
+          >
+            Set as SOD Baseline
+          </Button>
+        </div>
       </div>
     )
   }
@@ -69,6 +83,16 @@ export function SodBaselineIndicator({
           <span className="font-medium">
             {status.snapshotType === 'AUTO' ? 'Auto' : 'Manual'}
           </span>
+          {status.calculationType && (
+            <span data-testid="sod-calculation-type" className="ml-1">
+              · {status.calculationType}
+            </span>
+          )}
+          {status.sourceJobId && (
+            <span data-testid="sod-source-job-id" className="ml-1 font-mono">
+              · {status.sourceJobId.slice(0, 8)}
+            </span>
+          )}
         </p>
       </div>
       <Button

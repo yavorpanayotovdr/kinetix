@@ -166,6 +166,8 @@ data class SodBaselineStatusSummary(
     val baselineDate: String?,
     val snapshotType: String?,
     val createdAt: String?,
+    val sourceJobId: String?,
+    val calculationType: String?,
 )
 
 data class PositionPnlAttributionSummary(
@@ -206,7 +208,7 @@ interface RiskServiceClient {
     suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null): Pair<List<ValuationJobSummaryItem>, Long>
     suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
     suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary?
-    suspend fun createSodSnapshot(portfolioId: String): SodBaselineStatusSummary
+    suspend fun createSodSnapshot(portfolioId: String, jobId: String? = null): SodBaselineStatusSummary
     suspend fun resetSodBaseline(portfolioId: String)
     suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
     suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?

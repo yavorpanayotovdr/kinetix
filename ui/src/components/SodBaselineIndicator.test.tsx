@@ -37,6 +37,8 @@ describe('SodBaselineIndicator', () => {
           baselineDate: null,
           snapshotType: null,
           createdAt: null,
+          sourceJobId: null,
+          calculationType: null,
         }}
       />,
     )
@@ -55,6 +57,8 @@ describe('SodBaselineIndicator', () => {
           baselineDate: '2025-01-15',
           snapshotType: 'MANUAL',
           createdAt: '2025-01-15T08:00:00Z',
+          sourceJobId: null,
+          calculationType: null,
         }}
       />,
     )
@@ -74,6 +78,8 @@ describe('SodBaselineIndicator', () => {
           baselineDate: '2025-01-15',
           snapshotType: 'AUTO',
           createdAt: '2025-01-15T06:00:00Z',
+          sourceJobId: null,
+          calculationType: null,
         }}
       />,
     )
@@ -91,6 +97,8 @@ describe('SodBaselineIndicator', () => {
           baselineDate: null,
           snapshotType: null,
           createdAt: null,
+          sourceJobId: null,
+          calculationType: null,
         }}
         onCreateSnapshot={onCreateSnapshot}
       />,
@@ -111,6 +119,8 @@ describe('SodBaselineIndicator', () => {
           baselineDate: '2025-01-15',
           snapshotType: 'MANUAL',
           createdAt: '2025-01-15T08:00:00Z',
+          sourceJobId: null,
+          calculationType: null,
         }}
         onResetBaseline={onResetBaseline}
       />,
@@ -119,5 +129,64 @@ describe('SodBaselineIndicator', () => {
     fireEvent.click(screen.getByTestId('sod-reset-button'))
 
     expect(onResetBaseline).toHaveBeenCalledOnce()
+  })
+
+  it('displays job metadata when available', () => {
+    render(
+      <SodBaselineIndicator
+        {...defaultProps}
+        status={{
+          exists: true,
+          baselineDate: '2025-01-15',
+          snapshotType: 'MANUAL',
+          createdAt: '2025-01-15T08:00:00Z',
+          sourceJobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          calculationType: 'PARAMETRIC',
+        }}
+      />,
+    )
+
+    expect(screen.getByTestId('sod-calculation-type')).toHaveTextContent('PARAMETRIC')
+    expect(screen.getByTestId('sod-source-job-id')).toHaveTextContent('aaaaaaaa')
+  })
+
+  it('renders Pick from History button when callback is provided', () => {
+    const onPickFromHistory = vi.fn()
+    render(
+      <SodBaselineIndicator
+        {...defaultProps}
+        status={{
+          exists: false,
+          baselineDate: null,
+          snapshotType: null,
+          createdAt: null,
+          sourceJobId: null,
+          calculationType: null,
+        }}
+        onPickFromHistory={onPickFromHistory}
+      />,
+    )
+
+    expect(screen.getByTestId('sod-pick-history-button')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('sod-pick-history-button'))
+    expect(onPickFromHistory).toHaveBeenCalledOnce()
+  })
+
+  it('does not render Pick from History button when callback is not provided', () => {
+    render(
+      <SodBaselineIndicator
+        {...defaultProps}
+        status={{
+          exists: false,
+          baselineDate: null,
+          snapshotType: null,
+          createdAt: null,
+          sourceJobId: null,
+          calculationType: null,
+        }}
+      />,
+    )
+
+    expect(screen.queryByTestId('sod-pick-history-button')).not.toBeInTheDocument()
   })
 })

@@ -234,6 +234,7 @@ fun Application.moduleWithRoutes() {
         varCache = varCache,
         varCalculationService = varCalculationService,
         positionProvider = effectivePositionProvider,
+        jobRecorder = jobRecorder,
     )
     val pnlAttributionService = PnlAttributionService()
     val pnlComputationService = PnlComputationService(

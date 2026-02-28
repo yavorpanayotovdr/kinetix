@@ -10,6 +10,8 @@ object SodBaselinesTable : Table("sod_baselines") {
     val baselineDate = date("baseline_date")
     val snapshotType = varchar("snapshot_type", 16)
     val createdAt = timestampWithTimeZone("created_at")
+    val sourceJobId = uuid("source_job_id").nullable()
+    val calculationType = varchar("calculation_type", 50).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

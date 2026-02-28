@@ -10,16 +10,20 @@ import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.*
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.SodBaselineRepository
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.mockk.*
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
+import java.util.UUID
 
 private val PORTFOLIO = PortfolioId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
+private val JOB_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
 private fun position(
     instrumentId: String = "AAPL",
@@ -37,6 +41,7 @@ private fun position(
 
 private fun valuationResult(
     portfolioId: PortfolioId = PORTFOLIO,
+    jobId: UUID? = JOB_ID,
     positionRisk: List<PositionRisk> = listOf(
         PositionRisk(
             instrumentId = InstrumentId("AAPL"),
@@ -67,6 +72,7 @@ private fun valuationResult(
     calculatedAt = Instant.parse("2025-01-15T08:00:00Z"),
     computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.GREEKS),
     positionRisk = positionRisk,
+    jobId = jobId,
 )
 
 class SodSnapshotServiceTest : FunSpec({
@@ -112,6 +118,8 @@ class SodSnapshotServiceTest : FunSpec({
                 baseline.portfolioId shouldBe PORTFOLIO
                 baseline.baselineDate shouldBe TODAY
                 baseline.snapshotType shouldBe SnapshotType.MANUAL
+                baseline.sourceJobId shouldBe JOB_ID
+                baseline.calculationType shouldBe "PARAMETRIC"
             })
         }
     }
@@ -161,6 +169,8 @@ class SodSnapshotServiceTest : FunSpec({
             baselineDate = TODAY,
             snapshotType = SnapshotType.MANUAL,
             createdAt = Instant.parse("2025-01-15T08:00:00Z"),
+            sourceJobId = JOB_ID,
+            calculationType = "PARAMETRIC",
         )
         coEvery { sodBaselineRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns baseline
 
@@ -170,6 +180,8 @@ class SodSnapshotServiceTest : FunSpec({
         status.snapshotType shouldBe SnapshotType.MANUAL
         status.createdAt shouldBe Instant.parse("2025-01-15T08:00:00Z")
         status.baselineDate shouldBe "2025-01-15"
+        status.sourceJobId shouldBe JOB_ID.toString()
+        status.calculationType shouldBe "PARAMETRIC"
     }
 
     test("getBaselineStatus returns status with exists=false when no baseline") {
@@ -184,11 +196,111 @@ class SodSnapshotServiceTest : FunSpec({
     }
 
     test("resetBaseline deletes baseline and snapshot rows") {
+        coEvery { dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) } just Runs
         coEvery { sodBaselineRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) } just Runs
 
         service.resetBaseline(PORTFOLIO, TODAY)
 
+        coVerify { dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) }
         coVerify { sodBaselineRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) }
+    }
+
+    test("creates snapshot with null jobId for backward compatibility") {
+        val result = valuationResult(jobId = null)
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.MANUAL, result, TODAY)
+
+        coVerify {
+            sodBaselineRepository.save(withArg { baseline ->
+                baseline.sourceJobId shouldBe null
+                baseline.calculationType shouldBe "PARAMETRIC"
+            })
+        }
+    }
+
+    test("createSnapshotFromJob creates snapshot from specific completed job") {
+        val jobRecorder = mockk<ValuationJobRecorder>()
+        val serviceWithRecorder = SodSnapshotService(
+            sodBaselineRepository, dailyRiskSnapshotRepository,
+            varCache, varCalculationService, positionProvider, jobRecorder,
+        )
+        val job = ValuationJob(
+            jobId = JOB_ID,
+            portfolioId = PORTFOLIO.value,
+            triggerType = TriggerType.ON_DEMAND,
+            status = RunStatus.COMPLETED,
+            startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+            completedAt = Instant.parse("2025-01-15T07:01:00Z"),
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+        )
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+        coEvery { varCalculationService.calculateVaR(any(), any()) } returns valuationResult()
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        serviceWithRecorder.createSnapshotFromJob(PORTFOLIO, JOB_ID, TODAY)
+
+        coVerify { varCalculationService.calculateVaR(any(), TriggerType.SCHEDULED) }
+        coVerify { sodBaselineRepository.save(any()) }
+    }
+
+    test("createSnapshotFromJob throws when job not found") {
+        val jobRecorder = mockk<ValuationJobRecorder>()
+        val serviceWithRecorder = SodSnapshotService(
+            sodBaselineRepository, dailyRiskSnapshotRepository,
+            varCache, varCalculationService, positionProvider, jobRecorder,
+        )
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns null
+
+        val ex = shouldThrow<IllegalArgumentException> {
+            serviceWithRecorder.createSnapshotFromJob(PORTFOLIO, JOB_ID, TODAY)
+        }
+        ex.message shouldContain "not found"
+    }
+
+    test("createSnapshotFromJob throws when job not completed") {
+        val jobRecorder = mockk<ValuationJobRecorder>()
+        val serviceWithRecorder = SodSnapshotService(
+            sodBaselineRepository, dailyRiskSnapshotRepository,
+            varCache, varCalculationService, positionProvider, jobRecorder,
+        )
+        val job = ValuationJob(
+            jobId = JOB_ID,
+            portfolioId = PORTFOLIO.value,
+            triggerType = TriggerType.ON_DEMAND,
+            status = RunStatus.RUNNING,
+            startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+        )
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+
+        val ex = shouldThrow<IllegalArgumentException> {
+            serviceWithRecorder.createSnapshotFromJob(PORTFOLIO, JOB_ID, TODAY)
+        }
+        ex.message shouldContain "not completed"
+    }
+
+    test("createSnapshotFromJob throws when job belongs to different portfolio") {
+        val jobRecorder = mockk<ValuationJobRecorder>()
+        val serviceWithRecorder = SodSnapshotService(
+            sodBaselineRepository, dailyRiskSnapshotRepository,
+            varCache, varCalculationService, positionProvider, jobRecorder,
+        )
+        val job = ValuationJob(
+            jobId = JOB_ID,
+            portfolioId = "other-portfolio",
+            triggerType = TriggerType.ON_DEMAND,
+            status = RunStatus.COMPLETED,
+            startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+        )
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+
+        val ex = shouldThrow<IllegalArgumentException> {
+            serviceWithRecorder.createSnapshotFromJob(PORTFOLIO, JOB_ID, TODAY)
+        }
+        ex.message shouldContain "belongs to portfolio"
     }
 
     test("creates snapshot with multiple position risks from ValuationResult") {

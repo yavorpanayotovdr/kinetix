@@ -144,4 +144,29 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
     test("findByPortfolioId returns empty for unknown portfolio") {
         repository.findByPortfolioId(PortfolioId("unknown")) shouldHaveSize 0
     }
+
+    test("deleteByPortfolioIdAndDate deletes all snapshots for portfolio and date") {
+        repository.save(snapshot(instrumentId = AAPL))
+        repository.save(snapshot(instrumentId = MSFT, marketPrice = "300.00"))
+
+        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+
+        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+    }
+
+    test("deleteByPortfolioIdAndDate does not affect other dates") {
+        repository.save(snapshot(snapshotDate = TODAY))
+        repository.save(snapshot(snapshotDate = YESTERDAY))
+
+        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+
+        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+        repository.findByPortfolioIdAndDate(PORTFOLIO, YESTERDAY) shouldHaveSize 1
+    }
+
+    test("deleteByPortfolioIdAndDate is safe no-op when no snapshots exist") {
+        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+
+        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+    }
 })

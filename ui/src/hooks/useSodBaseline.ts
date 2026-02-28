@@ -14,7 +14,7 @@ export interface UseSodBaselineResult {
   creating: boolean
   resetting: boolean
   computing: boolean
-  createSnapshot: () => Promise<void>
+  createSnapshot: (jobId?: string) => Promise<void>
   resetBaseline: () => Promise<void>
   computeAttribution: () => Promise<PnlAttributionDto | null>
   refresh: () => Promise<void>
@@ -54,12 +54,12 @@ export function useSodBaseline(
     loadStatus()
   }, [portfolioId, loadStatus])
 
-  const handleCreateSnapshot = useCallback(async () => {
+  const handleCreateSnapshot = useCallback(async (jobId?: string) => {
     if (!portfolioId) return
     setCreating(true)
     setError(null)
     try {
-      const result = await createSodSnapshot(portfolioId)
+      const result = await createSodSnapshot(portfolioId, jobId)
       setStatus(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -74,7 +74,7 @@ export function useSodBaseline(
     setError(null)
     try {
       await resetSodBaseline(portfolioId)
-      setStatus({ exists: false, baselineDate: null, snapshotType: null, createdAt: null })
+      setStatus({ exists: false, baselineDate: null, snapshotType: null, createdAt: null, sourceJobId: null, calculationType: null })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

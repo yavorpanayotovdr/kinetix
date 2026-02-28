@@ -114,6 +114,38 @@ describe('useSodBaseline', () => {
     expect(result.current.resetting).toBe(false)
   })
 
+  it('createSnapshot forwards jobId parameter to API', async () => {
+    const initialStatus = {
+      exists: false,
+      baselineDate: null,
+      snapshotType: null,
+      createdAt: null,
+    }
+    const updatedStatus = {
+      exists: true,
+      baselineDate: '2025-01-15',
+      snapshotType: 'MANUAL',
+      createdAt: '2025-01-15T09:30:00Z',
+      sourceJobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      calculationType: 'PARAMETRIC',
+    }
+    mockFetchStatus.mockResolvedValue(initialStatus)
+    mockCreateSnapshot.mockResolvedValue(updatedStatus)
+
+    const { result } = renderHook(() => useSodBaseline('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.createSnapshot('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+    })
+
+    expect(mockCreateSnapshot).toHaveBeenCalledWith('port-1', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+    expect(result.current.status).toEqual(updatedStatus)
+  })
+
   it('computeAttribution calls API and returns result', async () => {
     const statusData = {
       exists: true,

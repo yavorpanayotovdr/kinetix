@@ -83,4 +83,21 @@ describe('ConfirmDialog', () => {
     expect(screen.getByText('Yes, Reset')).toBeInTheDocument()
     expect(screen.getByText('No, Keep')).toBeInTheDocument()
   })
+
+  it('renders ReactNode as message', () => {
+    render(
+      <ConfirmDialog
+        {...defaultProps}
+        message={
+          <div>
+            <p>Plain text</p>
+            <span data-testid="custom-content">Extra info</span>
+          </div>
+        }
+      />,
+    )
+
+    expect(screen.getByText('Plain text')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-content')).toHaveTextContent('Extra info')
+  })
 })

@@ -8,4 +8,6 @@ data class SodBaselineStatusResponse(
     val baselineDate: String? = null,
     val snapshotType: String? = null,
     val createdAt: String? = null,
+    val sourceJobId: String? = null,
+    val calculationType: String? = null,
 )

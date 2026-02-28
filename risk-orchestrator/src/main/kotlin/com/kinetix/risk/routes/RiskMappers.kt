@@ -178,6 +178,8 @@ internal fun SodBaselineStatus.toResponse() = SodBaselineStatusResponse(
     baselineDate = baselineDate,
     snapshotType = snapshotType?.name,
     createdAt = createdAt?.toString(),
+    sourceJobId = sourceJobId,
+    calculationType = calculationType,
 )
 
 internal fun SodBaseline.toSnapshotResponse(snapshotCount: Int) = SodSnapshotResponse(

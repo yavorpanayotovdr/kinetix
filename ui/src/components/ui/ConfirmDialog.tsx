@@ -1,10 +1,10 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, type ReactNode } from 'react'
 import { Button } from './Button'
 
 interface ConfirmDialogProps {
   open: boolean
   title: string
-  message: string
+  message: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'danger' | 'primary'
@@ -52,7 +52,7 @@ export function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
-        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <div className="mt-2 text-sm text-slate-600">{message}</div>
         <div className="mt-6 flex justify-end gap-3">
           <Button
             variant="secondary"

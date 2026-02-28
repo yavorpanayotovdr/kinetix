@@ -26,6 +26,8 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
             it[baselineDate] = baseline.baselineDate.toKotlinxDate()
             it[snapshotType] = baseline.snapshotType.name
             it[createdAt] = OffsetDateTime.ofInstant(baseline.createdAt, ZoneOffset.UTC)
+            it[sourceJobId] = baseline.sourceJobId
+            it[calculationType] = baseline.calculationType
         }
     }
 
@@ -59,5 +61,7 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
         baselineDate = this[SodBaselinesTable.baselineDate].toJavaDate(),
         snapshotType = SnapshotType.valueOf(this[SodBaselinesTable.snapshotType]),
         createdAt = this[SodBaselinesTable.createdAt].toInstant(),
+        sourceJobId = this[SodBaselinesTable.sourceJobId],
+        calculationType = this[SodBaselinesTable.calculationType],
     )
 }

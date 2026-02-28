@@ -9,4 +9,5 @@ interface DailyRiskSnapshotRepository {
     suspend fun saveAll(snapshots: List<DailyRiskSnapshot>)
     suspend fun findByPortfolioIdAndDate(portfolioId: PortfolioId, date: LocalDate): List<DailyRiskSnapshot>
     suspend fun findByPortfolioId(portfolioId: PortfolioId): List<DailyRiskSnapshot>
+    suspend fun deleteByPortfolioIdAndDate(portfolioId: PortfolioId, date: LocalDate)
 }
