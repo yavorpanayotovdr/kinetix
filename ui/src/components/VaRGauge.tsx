@@ -15,6 +15,7 @@ interface VaRGaugeProps {
   expectedShortfall: number
   confidenceLevel: string
   varLimit?: number | null
+  pvValue?: string
 }
 
 function gaugeColorEsBased(ratio: number): string {
@@ -34,7 +35,7 @@ function confidenceLabel(level: string): string {
   return 'VaR (95%)'
 }
 
-export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit }: VaRGaugeProps) {
+export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue }: VaRGaugeProps) {
   const [openPopover, setOpenPopover] = useState<Metric | null>(null)
   const gaugeRef = useRef<HTMLDivElement>(null)
 
@@ -58,80 +59,84 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
   const maxValue = hasLimit ? varLimit : expectedShortfall * 1.5
   const ratio = Math.min(varValue / maxValue, 1)
   const color = hasLimit ? gaugeColorLimitBased(ratio) : gaugeColorEsBased(ratio)
-
-  const radius = 80
-  const circumference = Math.PI * radius
-  const dashOffset = circumference * (1 - ratio)
+  const utilisationPct = Math.round(ratio * 100)
 
   return (
-    <div data-testid="var-gauge" className="flex flex-col items-center">
-      <svg viewBox="0 0 200 120" className="w-48 h-28">
-        <path
-          d="M 20 90 A 80 80 0 0 1 180 90"
-          fill="none"
-          stroke="#e2e8f0"
-          strokeWidth="12"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 20 90 A 80 80 0 0 1 180 90"
-          fill="none"
-          stroke={color}
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-        />
-      </svg>
-      <div ref={gaugeRef} className="flex flex-col items-center">
-        <div className="relative">
-          <div data-testid="var-confidence" className="text-xs text-slate-500 -mt-2 inline-flex items-center gap-1">
-            {confidenceLabel(confidenceLevel)}
-            <Info
-              data-testid="var-info"
-              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-              onClick={() => togglePopover('var')}
-            />
-          </div>
-          {openPopover === 'var' && (
-            <span
-              data-testid="var-popover"
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-            >
-              <button data-testid="var-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-              {metricDescriptions.var}
-            </span>
-          )}
+    <div data-testid="var-gauge" ref={gaugeRef} className="flex flex-col gap-1">
+      <div className="relative">
+        <div data-testid="var-confidence" className="text-xs text-slate-500 inline-flex items-center gap-1">
+          {confidenceLabel(confidenceLevel)}
+          <Info
+            data-testid="var-info"
+            className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => togglePopover('var')}
+          />
         </div>
-        <div data-testid="var-value" className="text-lg font-bold mt-1">
-          {formatMoney(varValue.toFixed(2), 'USD')}
-        </div>
-        <div className="relative">
-          <div data-testid="es-value" className="text-xs text-slate-500 mt-1 inline-flex items-center gap-1">
-            ES
-            <Info
-              data-testid="es-info"
-              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-              onClick={() => togglePopover('es')}
-            />
-            {formatMoney(expectedShortfall.toFixed(2), 'USD')}
-          </div>
-          {openPopover === 'es' && (
-            <span
-              data-testid="es-popover"
-              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-            >
-              <button data-testid="es-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-              {metricDescriptions.es}
-            </span>
-          )}
-        </div>
-        {hasLimit && (
-          <div data-testid="var-limit" className="text-xs text-slate-500 mt-1">
-            Limit {formatMoney(varLimit.toFixed(2), 'USD')}
-          </div>
+        {openPopover === 'var' && (
+          <span
+            data-testid="var-popover"
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+          >
+            <button data-testid="var-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+            {metricDescriptions.var}
+          </span>
         )}
       </div>
+
+      <div className="flex items-center gap-2">
+        <div data-testid="var-value" className="text-2xl font-bold">
+          {formatMoney(varValue.toFixed(2), 'USD')}
+        </div>
+        <span
+          data-testid="var-status-dot"
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+
+      <div className="relative">
+        <div data-testid="es-value" className="text-sm text-slate-600 inline-flex items-center gap-1">
+          ES
+          <Info
+            data-testid="es-info"
+            className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => togglePopover('es')}
+          />
+          {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+        </div>
+        {openPopover === 'es' && (
+          <span
+            data-testid="es-popover"
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+          >
+            <button data-testid="es-popover-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+            {metricDescriptions.es}
+          </span>
+        )}
+      </div>
+
+      {pvValue && (
+        <div data-testid="var-pv" className="text-sm text-slate-600">
+          PV {pvValue}
+        </div>
+      )}
+
+      {hasLimit && (
+        <>
+          <div className="border-t border-slate-100 mt-1 pt-1" />
+          <div data-testid="var-limit" className="flex items-center justify-between text-xs text-slate-500">
+            <span>Limit</span>
+            <span>{utilisationPct}%</span>
+          </div>
+          <div data-testid="var-limit-bar" className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+            <div
+              data-testid="var-limit-bar-fill"
+              className="h-full rounded-full transition-all"
+              style={{ width: `${utilisationPct}%`, backgroundColor: color }}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -198,7 +198,7 @@ describe('RiskTab', () => {
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
     const limitLabel = screen.getByTestId('var-limit')
-    expect(limitLabel).toHaveTextContent('Limit: $2,000,000.00')
+    expect(limitLabel).toHaveTextContent('Limit')
     // VaR is 1,000,000 / 2,000,000 = 50%
     expect(limitLabel).toHaveTextContent('50%')
   })

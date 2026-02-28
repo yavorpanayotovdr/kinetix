@@ -428,7 +428,7 @@ describe('VaRDashboard', () => {
     )
 
     const limitLabel = screen.getByTestId('var-limit')
-    expect(limitLabel).toHaveTextContent('Limit: $2,000,000.00')
+    expect(limitLabel).toHaveTextContent('Limit')
     // VaR is 1,234,567.89 / 2,000,000 = ~62%
     expect(limitLabel).toHaveTextContent('62%')
   })
