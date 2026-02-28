@@ -106,7 +106,7 @@ describe('PnlTab', () => {
     expect(screen.getByTestId('pnl-loading')).toBeInTheDocument()
   })
 
-  it('shows error state', () => {
+  it('shows SOD baseline warning even when P&L fetch fails', () => {
     mockUsePnlAttribution.mockReturnValue({
       data: null,
       loading: false,
@@ -115,8 +115,7 @@ describe('PnlTab', () => {
 
     render(<PnlTab portfolioId="port-1" />)
 
-    expect(screen.getByTestId('pnl-error')).toBeInTheDocument()
-    expect(screen.getByText('Failed to load')).toBeInTheDocument()
+    expect(screen.getByTestId('sod-baseline-warning')).toBeInTheDocument()
   })
 
   it('shows SOD baseline warning when no baseline exists', () => {

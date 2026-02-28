@@ -20,11 +20,11 @@ export function SodBaselineIndicator({
   onCreateSnapshot,
   onResetBaseline,
 }: SodBaselineIndicatorProps) {
-  if (loading || !status) {
+  if (loading) {
     return null
   }
 
-  if (!status.exists) {
+  if (!status || !status.exists) {
     return (
       <div
         data-testid="sod-baseline-warning"

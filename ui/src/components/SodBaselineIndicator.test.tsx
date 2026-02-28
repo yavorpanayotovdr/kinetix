@@ -20,12 +20,12 @@ describe('SodBaselineIndicator', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders nothing when status is null', () => {
-    const { container } = render(
+  it('renders warning when status is null (API not yet responded or error)', () => {
+    render(
       <SodBaselineIndicator {...defaultProps} status={null} />,
     )
 
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByTestId('sod-baseline-warning')).toBeInTheDocument()
   })
 
   it('renders warning when no baseline exists', () => {

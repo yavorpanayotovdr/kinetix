@@ -45,14 +45,6 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
     )
   }
 
-  if (pnlError && !sod.status) {
-    return (
-      <div data-testid="pnl-error" className="text-center py-12">
-        <p className="text-red-600 text-sm">{pnlError}</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4">
       <SodBaselineIndicator
