@@ -1,5 +1,6 @@
 package com.kinetix.notification
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
@@ -39,7 +40,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 import java.util.UUID
 
@@ -112,6 +116,14 @@ fun Application.moduleWithRoutes() {
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
 
+    val dlqProducerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val dlqProducer = KafkaProducer<String, String>(dlqProducerProps)
+
     val riskConsumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service-risk-group")
@@ -123,6 +135,7 @@ fun Application.moduleWithRoutes() {
         KafkaConsumer<String, String>(riskConsumerProps),
         rulesEngine,
         deliveryRouter,
+        retryableConsumer = RetryableConsumer(topic = "risk.results", dlqProducer = dlqProducer),
     )
 
     val anomalyConsumerProps = Properties().apply {
@@ -134,6 +147,7 @@ fun Application.moduleWithRoutes() {
     }
     val anomalyEventConsumer = AnomalyEventConsumer(
         KafkaConsumer<String, String>(anomalyConsumerProps),
+        retryableConsumer = RetryableConsumer(topic = "risk.anomalies", dlqProducer = dlqProducer),
     )
 
     launch { riskResultConsumer.start() }

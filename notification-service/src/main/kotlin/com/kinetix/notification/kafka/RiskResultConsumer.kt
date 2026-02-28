@@ -1,5 +1,6 @@
 package com.kinetix.notification.kafka
 
+import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.model.RiskResultEvent
@@ -17,6 +18,7 @@ class RiskResultConsumer(
     private val rulesEngine: RulesEngine,
     private val deliveryRouter: DeliveryRouter,
     private val topic: String = "risk.results",
+    private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
     private val logger = LoggerFactory.getLogger(RiskResultConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
@@ -32,20 +34,22 @@ class RiskResultConsumer(
             }
             for (record in records) {
                 try {
-                    val event = json.decodeFromString<RiskResultEvent>(record.value())
-                    val alerts = rulesEngine.evaluate(event)
-                    for (alert in alerts) {
-                        val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
-                        val channels = rule?.channels ?: emptyList()
-                        deliveryRouter.route(alert, channels)
-                        logger.info(
-                            "Alert triggered: rule={}, severity={}, portfolio={}",
-                            alert.ruleName, alert.severity, alert.portfolioId,
-                        )
+                    retryableConsumer.process(record.key() ?: "", record.value()) {
+                        val event = json.decodeFromString<RiskResultEvent>(record.value())
+                        val alerts = rulesEngine.evaluate(event)
+                        for (alert in alerts) {
+                            val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
+                            val channels = rule?.channels ?: emptyList()
+                            deliveryRouter.route(alert, channels)
+                            logger.info(
+                                "Alert triggered: rule={}, severity={}, portfolio={}",
+                                alert.ruleName, alert.severity, alert.portfolioId,
+                            )
+                        }
                     }
                 } catch (e: Exception) {
                     logger.error(
-                        "Failed to process risk result event: offset={}, partition={}",
+                        "Failed to process risk result event after retries: offset={}, partition={}",
                         record.offset(), record.partition(), e,
                     )
                 }
