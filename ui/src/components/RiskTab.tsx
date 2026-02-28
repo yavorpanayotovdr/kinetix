@@ -46,6 +46,8 @@ export function RiskTab({
     zoomIn: varZoomIn,
     resetZoom: varResetZoom,
     zoomDepth: varZoomDepth,
+    selectedConfidenceLevel,
+    setSelectedConfidenceLevel,
   } = useVaR(portfolioId)
 
   const {
@@ -97,6 +99,8 @@ export function RiskTab({
         greeksResult={greeksResult}
         varLimit={varLimit}
         onWhatIf={onWhatIf}
+        selectedConfidenceLevel={selectedConfidenceLevel}
+        onConfidenceLevelChange={setSelectedConfidenceLevel}
       />
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

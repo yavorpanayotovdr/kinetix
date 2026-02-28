@@ -78,6 +78,7 @@ class JobHistoryRoutesTest : FunSpec({
             body shouldContain JOB_ID_2.toString()
             body shouldContain "ON_DEMAND"
             body shouldContain "COMPLETED"
+            body shouldContain "\"confidenceLevel\":\"CL_95\""
         }
     }
 

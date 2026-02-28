@@ -8,6 +8,7 @@ export interface VaRHistoryEntry {
   varValue: number
   expectedShortfall: number
   calculatedAt: string
+  confidenceLevel: string
   delta?: number
   gamma?: number
   vega?: number
@@ -25,6 +26,8 @@ export interface UseVaRResult {
   refresh: () => Promise<void>
   timeRange: TimeRange
   setTimeRange: (range: TimeRange) => void
+  selectedConfidenceLevel: string
+  setSelectedConfidenceLevel: (level: string) => void
   zoomIn: (range: TimeRange) => void
   resetZoom: () => void
   zoomDepth: number
@@ -61,6 +64,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
+  const [selectedConfidenceLevel, setSelectedConfidenceLevelInternal] = useState('CL_95')
   const initialLoadDone = useRef(false)
   const isPolling = useRef(false)
   const timeRangeRef = useRef(timeRange)
@@ -87,6 +91,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
               varValue: job.varValue!,
               expectedShortfall: job.expectedShortfall ?? 0,
               calculatedAt: job.completedAt!,
+              confidenceLevel: job.confidenceLevel ?? 'CL_95',
             }))
             .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
 
@@ -112,6 +117,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
             varValue: Number(result.varValue),
             expectedShortfall: Number(result.expectedShortfall),
             calculatedAt: result.calculatedAt,
+            confidenceLevel: result.confidenceLevel,
             ...greeks,
           }
           const next = [...prev, entry]
@@ -144,7 +150,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     setError(null)
 
     try {
-      const result = await triggerVaRCalculation(portfolioId)
+      const result = await triggerVaRCalculation(portfolioId, { confidenceLevel: selectedConfidenceLevel })
       setVarResult(result)
 
       if (result) {
@@ -157,6 +163,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
             varValue: Number(result.varValue),
             expectedShortfall: Number(result.expectedShortfall),
             calculatedAt: result.calculatedAt,
+            confidenceLevel: result.confidenceLevel,
             ...greeks,
           }
           const next = [...prev, entry]
@@ -168,7 +175,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     } finally {
       setRefreshing(false)
     }
-  }, [portfolioId])
+  }, [portfolioId, selectedConfidenceLevel])
 
   const filteredHistory = useMemo(() => {
     const { from, to } = resolveTimeRange(timeRange)
@@ -176,9 +183,14 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     const toMs = new Date(to).getTime()
     return history.filter((e) => {
       const t = new Date(e.calculatedAt).getTime()
-      return t >= fromMs && t <= toMs
+      return t >= fromMs && t <= toMs && e.confidenceLevel === selectedConfidenceLevel
     })
-  }, [history, timeRange])
+  }, [history, timeRange, selectedConfidenceLevel])
+
+  const setSelectedConfidenceLevel = useCallback((level: string) => {
+    setSelectedConfidenceLevelInternal(level)
+    setZoomStack([])
+  }, [])
 
   const setTimeRange = useCallback((range: TimeRange) => {
     setZoomStack([])
@@ -199,5 +211,5 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
 
   const greeksResult = varResult?.greeks ?? null
 
-  return { varResult, greeksResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth: zoomStack.length }
+  return { varResult, greeksResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length }
 }

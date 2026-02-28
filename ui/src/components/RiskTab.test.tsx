@@ -61,6 +61,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
     mockUseJobHistory.mockReturnValue({
       runs: [],
@@ -193,6 +195,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
@@ -266,6 +270,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
     mockUsePositionRisk.mockReturnValue({
       positionRisk: [],
@@ -433,6 +439,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} onWhatIf={() => {}} />)
@@ -463,6 +471,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
@@ -521,6 +531,8 @@ describe('RiskTab', () => {
       zoomIn: vi.fn(),
       resetZoom: vi.fn(),
       zoomDepth: 0,
+      selectedConfidenceLevel: 'CL_95',
+      setSelectedConfidenceLevel: vi.fn(),
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)

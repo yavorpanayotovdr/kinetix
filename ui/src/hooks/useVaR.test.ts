@@ -299,6 +299,194 @@ describe('useVaR', () => {
     expect(entry.theta).toBeUndefined()
   })
 
+  it('history entries include confidenceLevel from job history', async () => {
+    mockFetchValuationJobs.mockResolvedValue({
+      items: [
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:01:00Z',
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_99',
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          pvValue: 10000000,
+        },
+      ],
+      totalCount: 1,
+    })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history[0].confidenceLevel).toBe('CL_99')
+  })
+
+  it('defaults confidenceLevel to CL_95 for old jobs without confidenceLevel', async () => {
+    mockFetchValuationJobs.mockResolvedValue({
+      items: [
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:01:00Z',
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: null,
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          pvValue: 10000000,
+        },
+      ],
+      totalCount: 1,
+    })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history[0].confidenceLevel).toBe('CL_95')
+  })
+
+  it('history entry from polled VaR result includes confidenceLevel', async () => {
+    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchVaR.mockResolvedValue({
+      portfolioId: 'port-1',
+      calculationType: 'HISTORICAL',
+      confidenceLevel: 'CL_99',
+      varValue: '1400000',
+      expectedShortfall: '1700000',
+      componentBreakdown: [],
+      calculatedAt: '2025-01-15T10:30:00Z',
+    })
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history[0].confidenceLevel).toBe('CL_99')
+  })
+
+  it('selectedConfidenceLevel defaults to CL_95', async () => {
+    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.selectedConfidenceLevel).toBe('CL_95')
+  })
+
+  it('filteredHistory filters by selected confidence level', async () => {
+    const now = new Date()
+    const recentTime1 = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+    const recentTime2 = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
+
+    mockFetchValuationJobs.mockResolvedValue({
+      items: [
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: recentTime1,
+          completedAt: recentTime1,
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_95',
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          pvValue: 10000000,
+        },
+        {
+          jobId: 'j2',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: recentTime2,
+          completedAt: recentTime2,
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_99',
+          varValue: 2500000,
+          expectedShortfall: 3000000,
+          pvValue: 10000000,
+        },
+      ],
+      totalCount: 2,
+    })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // Default is CL_95 — should only show CL_95 entries
+    expect(result.current.filteredHistory).toHaveLength(1)
+    expect(result.current.filteredHistory[0].confidenceLevel).toBe('CL_95')
+
+    // Switch to CL_99
+    act(() => {
+      result.current.setSelectedConfidenceLevel('CL_99')
+    })
+
+    expect(result.current.filteredHistory).toHaveLength(1)
+    expect(result.current.filteredHistory[0].confidenceLevel).toBe('CL_99')
+  })
+
+  it('changing confidence level resets zoom stack', async () => {
+    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchVaR.mockResolvedValue({
+      portfolioId: 'port-1',
+      calculationType: 'HISTORICAL',
+      confidenceLevel: 'CL_95',
+      varValue: '1400000',
+      expectedShortfall: '1700000',
+      componentBreakdown: [],
+      calculatedAt: '2025-01-15T10:30:00Z',
+    })
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // Zoom in first
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T10:30:00Z', label: 'Zoom' })
+    })
+
+    expect(result.current.zoomDepth).toBe(1)
+
+    // Change confidence level — should reset zoom
+    act(() => {
+      result.current.setSelectedConfidenceLevel('CL_99')
+    })
+
+    expect(result.current.zoomDepth).toBe(0)
+  })
+
   describe('polling overlap guard', () => {
     beforeEach(() => {
       vi.useFakeTimers()

@@ -537,6 +537,61 @@ describe('VaRDashboard', () => {
     expect(whatIfButton.compareDocumentPosition(refreshButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  describe('confidence toggle', () => {
+    it('renders confidence toggle in VaRGauge when handler is provided', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          selectedConfidenceLevel="CL_95"
+          onConfidenceLevelChange={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-95')).toBeInTheDocument()
+      expect(screen.getByTestId('confidence-toggle-99')).toBeInTheDocument()
+    })
+
+    it('calls onConfidenceLevelChange when toggle is clicked', () => {
+      const onChange = vi.fn()
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          selectedConfidenceLevel="CL_95"
+          onConfidenceLevelChange={onChange}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('confidence-toggle-99'))
+      expect(onChange).toHaveBeenCalledWith('CL_99')
+    })
+
+    it('disables confidence toggle during refresh', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          refreshing={true}
+          selectedConfidenceLevel="CL_95"
+          onConfidenceLevelChange={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-95')).toBeDisabled()
+      expect(screen.getByTestId('confidence-toggle-99')).toBeDisabled()
+    })
+  })
+
   describe('chart toggle', () => {
     it('renders toggle buttons for VaR/ES and Greeks', () => {
       render(

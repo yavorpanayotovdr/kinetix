@@ -198,6 +198,7 @@ export interface ValuationJobSummaryDto {
   completedAt: string | null
   durationMs: number | null
   calculationType: string | null
+  confidenceLevel: string | null
   varValue: number | null
   expectedShortfall: number | null
   pvValue: number | null

@@ -15,6 +15,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     completedAt = completedAt?.toString(),
     durationMs = durationMs,
     calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,

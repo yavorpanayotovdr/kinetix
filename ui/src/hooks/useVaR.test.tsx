@@ -107,6 +107,7 @@ describe('useVaR', () => {
         varValue: 1234567.89,
         expectedShortfall: 1567890.12,
         calculatedAt: '2025-01-15T10:30:00Z',
+        confidenceLevel: 'CL_95',
       },
     ])
   })
@@ -160,6 +161,7 @@ describe('useVaR', () => {
       varValue: 999999.0,
       expectedShortfall: 1567890.12,
       calculatedAt: '2025-01-15T11:00:00Z',
+      confidenceLevel: 'CL_95',
     })
   })
 
@@ -216,7 +218,7 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockTriggerVaR).toHaveBeenCalledWith('port-1')
+    expect(mockTriggerVaR).toHaveBeenCalledWith('port-1', { confidenceLevel: 'CL_95' })
     expect(result.current.varResult).toEqual(freshResult)
     expect(result.current.history).toHaveLength(2)
   })

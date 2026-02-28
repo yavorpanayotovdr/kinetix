@@ -32,9 +32,11 @@ interface VaRDashboardProps {
   greeksResult?: GreeksResultDto | null
   varLimit?: number | null
   onWhatIf?: () => void
+  selectedConfidenceLevel?: string
+  onConfidenceLevelChange?: (level: string) => void
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [chartView, setChartView] = useState<'var' | 'greeks'>('var')
   const calcTypeRef = useRef<HTMLSpanElement>(null)
@@ -91,9 +93,11 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
         <VaRGauge
           varValue={varValue}
           expectedShortfall={expectedShortfall}
-          confidenceLevel={varResult.confidenceLevel}
+          confidenceLevel={selectedConfidenceLevel ?? varResult.confidenceLevel}
           varLimit={varLimit}
           previousVaR={previousVaR}
+          onConfidenceLevelChange={onConfidenceLevelChange}
+          disabled={refreshing}
         />
 
         <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">

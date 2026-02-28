@@ -364,6 +364,73 @@ describe('VaRGauge', () => {
     })
   })
 
+  describe('confidence toggle', () => {
+    it('renders 95% and 99% toggle buttons', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" onConfidenceLevelChange={() => {}} />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-95')).toBeInTheDocument()
+      expect(screen.getByTestId('confidence-toggle-99')).toBeInTheDocument()
+    })
+
+    it('highlights 95% button when confidence level is CL_95', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" onConfidenceLevelChange={() => {}} />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-95').className).toContain('bg-primary-100')
+      expect(screen.getByTestId('confidence-toggle-99').className).not.toContain('bg-primary-100')
+    })
+
+    it('highlights 99% button when confidence level is CL_99', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_99" onConfidenceLevelChange={() => {}} />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-99').className).toContain('bg-primary-100')
+      expect(screen.getByTestId('confidence-toggle-95').className).not.toContain('bg-primary-100')
+    })
+
+    it('calls onConfidenceLevelChange with CL_99 when 99% is clicked', () => {
+      const onChange = vi.fn()
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" onConfidenceLevelChange={onChange} />,
+      )
+
+      fireEvent.click(screen.getByTestId('confidence-toggle-99'))
+      expect(onChange).toHaveBeenCalledWith('CL_99')
+    })
+
+    it('calls onConfidenceLevelChange with CL_95 when 95% is clicked', () => {
+      const onChange = vi.fn()
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_99" onConfidenceLevelChange={onChange} />,
+      )
+
+      fireEvent.click(screen.getByTestId('confidence-toggle-95'))
+      expect(onChange).toHaveBeenCalledWith('CL_95')
+    })
+
+    it('disables toggle buttons when disabled prop is true', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" onConfidenceLevelChange={() => {}} disabled />,
+      )
+
+      expect(screen.getByTestId('confidence-toggle-95')).toBeDisabled()
+      expect(screen.getByTestId('confidence-toggle-99')).toBeDisabled()
+    })
+
+    it('does not render toggle when onConfidenceLevelChange is not provided', () => {
+      render(
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" />,
+      )
+
+      expect(screen.queryByTestId('confidence-toggle-95')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('confidence-toggle-99')).not.toBeInTheDocument()
+    })
+  })
+
   describe('ES/VaR ratio', () => {
     it('displays ES/VaR ratio next to ES value', () => {
       render(

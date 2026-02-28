@@ -12,6 +12,7 @@ data class ValuationJobSummaryResponse(
     val completedAt: String? = null,
     val durationMs: Long? = null,
     val calculationType: String? = null,
+    val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,

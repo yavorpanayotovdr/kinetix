@@ -18,6 +18,8 @@ interface VaRGaugeProps {
   varLimit?: number | null
   pvValue?: string
   previousVaR?: number | null
+  onConfidenceLevelChange?: (level: string) => void
+  disabled?: boolean
 }
 
 function gaugeColorEsBased(ratio: number): string {
@@ -37,7 +39,7 @@ function confidenceLabel(level: string): string {
   return 'VaR (95%)'
 }
 
-export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue, previousVaR }: VaRGaugeProps) {
+export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue, previousVaR, onConfidenceLevelChange, disabled }: VaRGaugeProps) {
   const [openPopover, setOpenPopover] = useState<Metric | null>(null)
   const gaugeRef = useRef<HTMLDivElement>(null)
 
@@ -67,7 +69,31 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
     <div data-testid="var-gauge" ref={gaugeRef} className="flex flex-col gap-1">
       <div className="relative">
         <div data-testid="var-confidence" className="text-xs text-slate-500 inline-flex items-center gap-1">
-          {confidenceLabel(confidenceLevel)}
+          {onConfidenceLevelChange ? (
+            <>
+              <span className="mr-0.5">VaR</span>
+              <span className="inline-flex rounded border border-slate-200" role="group">
+                <button
+                  data-testid="confidence-toggle-95"
+                  onClick={() => onConfidenceLevelChange('CL_95')}
+                  disabled={disabled}
+                  className={`px-1.5 py-0.5 text-xs font-medium rounded-l transition-colors ${confidenceLevel === 'CL_95' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                  95%
+                </button>
+                <button
+                  data-testid="confidence-toggle-99"
+                  onClick={() => onConfidenceLevelChange('CL_99')}
+                  disabled={disabled}
+                  className={`px-1.5 py-0.5 text-xs font-medium rounded-r transition-colors ${confidenceLevel === 'CL_99' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                  99%
+                </button>
+              </span>
+            </>
+          ) : (
+            confidenceLabel(confidenceLevel)
+          )}
           <Info
             data-testid="var-info"
             className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
