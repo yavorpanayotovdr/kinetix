@@ -27,6 +27,8 @@ describe('useSodBaseline', () => {
       baselineDate: '2025-01-15',
       snapshotType: 'MANUAL',
       createdAt: '2025-01-15T08:00:00Z',
+      sourceJobId: null,
+      calculationType: null,
     }
     mockFetchStatus.mockResolvedValue(statusData)
 
@@ -66,12 +68,16 @@ describe('useSodBaseline', () => {
       baselineDate: null,
       snapshotType: null,
       createdAt: null,
+      sourceJobId: null,
+      calculationType: null,
     }
     const updatedStatus = {
       exists: true,
       baselineDate: '2025-01-15',
       snapshotType: 'MANUAL',
       createdAt: '2025-01-15T09:30:00Z',
+      sourceJobId: null,
+      calculationType: null,
     }
     mockFetchStatus.mockResolvedValue(initialStatus)
     mockCreateSnapshot.mockResolvedValue(updatedStatus)
@@ -96,6 +102,8 @@ describe('useSodBaseline', () => {
       baselineDate: '2025-01-15',
       snapshotType: 'MANUAL',
       createdAt: '2025-01-15T08:00:00Z',
+      sourceJobId: null,
+      calculationType: null,
     }
     mockFetchStatus.mockResolvedValue(initialStatus)
     mockResetBaseline.mockResolvedValue(undefined)
@@ -120,6 +128,8 @@ describe('useSodBaseline', () => {
       baselineDate: null,
       snapshotType: null,
       createdAt: null,
+      sourceJobId: null,
+      calculationType: null,
     }
     const updatedStatus = {
       exists: true,
@@ -152,6 +162,8 @@ describe('useSodBaseline', () => {
       baselineDate: '2025-01-15',
       snapshotType: 'MANUAL',
       createdAt: '2025-01-15T08:00:00Z',
+      sourceJobId: null,
+      calculationType: null,
     }
     const pnlData = {
       portfolioId: 'port-1',
