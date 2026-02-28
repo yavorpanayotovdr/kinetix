@@ -28,17 +28,19 @@ describe('PositionRiskTable', () => {
         'Instrument',
         'Asset Class',
         'Market Value',
-        'Delta',
+        'Delta ($/1%)',
         'Gamma',
-        'Vega',
-        'Theta',
-        'Rho',
+        'Vega ($/1pp)',
+        'Theta ($/day)',
+        'Rho ($/bp)',
         'VaR Contribution',
         'ES Contribution',
         '% of Total',
       ]
+      const allHeaders = screen.getAllByRole('columnheader')
+      const headerTexts = allHeaders.map((h) => h.textContent?.trim() ?? '')
       expectedHeaders.forEach((header) => {
-        expect(screen.getByRole('columnheader', { name: new RegExp(header) })).toBeInTheDocument()
+        expect(headerTexts.some((t) => t.includes(header))).toBe(true)
       })
     })
 

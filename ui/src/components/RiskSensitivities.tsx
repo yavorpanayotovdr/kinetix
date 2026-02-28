@@ -87,11 +87,11 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
         <thead>
           <tr className="border-b text-left text-slate-600">
             <th className="py-1 pr-5">Asset Class</th>
-            {renderHeader('Delta', 'delta', 'py-1 px-4 text-right')}
+            {renderHeader('Delta ($/1%)', 'delta', 'py-1 px-4 text-right')}
             {renderHeader('Gamma', 'gamma', 'py-1 px-4 text-right')}
-            {renderHeader('Vega', 'vega', 'py-1 px-4 text-right')}
-            {renderHeader('Theta', 'theta', 'py-1 px-4 text-right')}
-            {renderHeader('Rho', 'rho', 'py-1 pl-4 text-right')}
+            {renderHeader('Vega ($/1pp)', 'vega', 'py-1 px-4 text-right')}
+            {renderHeader('Theta ($/day)', 'theta', 'py-1 px-4 text-right')}
+            {renderHeader('Rho ($/bp)', 'rho', 'py-1 pl-4 text-right')}
           </tr>
         </thead>
         <tbody>
@@ -115,6 +115,9 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
           </tr>
         </tbody>
       </table>
+      <p data-testid="greeks-footnote" className="text-[10px] text-slate-400 mt-1">
+        Sensitivities show change in VaR per unit bump. Hover headers for details.
+      </p>
     </div>
   )
 }

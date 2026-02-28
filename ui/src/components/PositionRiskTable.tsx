@@ -38,11 +38,11 @@ function pctColorClass(pct: number): string {
 
 const COLUMNS: { label: string; field: SortField; sortable: true }[] = [
   { label: 'Market Value', field: 'marketValue', sortable: true },
-  { label: 'Delta', field: 'delta', sortable: true },
+  { label: 'Delta ($/1%)', field: 'delta', sortable: true },
   { label: 'Gamma', field: 'gamma', sortable: true },
-  { label: 'Vega', field: 'vega', sortable: true },
-  { label: 'Theta', field: 'theta', sortable: true },
-  { label: 'Rho', field: 'rho', sortable: true },
+  { label: 'Vega ($/1pp)', field: 'vega', sortable: true },
+  { label: 'Theta ($/day)', field: 'theta', sortable: true },
+  { label: 'Rho ($/bp)', field: 'rho', sortable: true },
   { label: 'VaR Contribution', field: 'varContribution', sortable: true },
   { label: 'ES Contribution', field: 'esContribution', sortable: true },
   { label: '% of Total', field: 'percentageOfTotal', sortable: true },

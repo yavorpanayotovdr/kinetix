@@ -94,6 +94,35 @@ describe('RiskSensitivities', () => {
     expect(totalRow.className).toContain('font-semibold')
   })
 
+  describe('Greek unit labels', () => {
+    it('displays unit labels on Delta, Vega, Theta, and Rho column headers', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      const table = screen.getByTestId('greeks-heatmap')
+      expect(table).toHaveTextContent('Delta ($/1%)')
+      expect(table).toHaveTextContent('Vega ($/1pp)')
+      expect(table).toHaveTextContent('Theta ($/day)')
+      expect(table).toHaveTextContent('Rho ($/bp)')
+    })
+
+    it('displays Gamma header without inline unit label', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      const table = screen.getByTestId('greeks-heatmap')
+      const headers = table.querySelectorAll('th')
+      const gammaHeader = Array.from(headers).find((h) => h.textContent?.includes('Gamma'))
+      expect(gammaHeader).toBeDefined()
+      expect(gammaHeader!.textContent).not.toContain('$/')
+    })
+
+    it('renders a footnote below the table explaining sensitivities', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      const footnote = screen.getByTestId('greeks-footnote')
+      expect(footnote).toHaveTextContent('Sensitivities show change in VaR per unit bump')
+    })
+  })
+
   describe('Greek info popovers', () => {
     it('shows delta explanation when info icon is clicked', () => {
       render(<RiskSensitivities greeksResult={greeksResult} />)
