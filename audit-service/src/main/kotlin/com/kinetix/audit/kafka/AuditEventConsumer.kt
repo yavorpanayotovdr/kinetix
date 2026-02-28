@@ -1,6 +1,7 @@
 package com.kinetix.audit.kafka
 
 import com.kinetix.audit.persistence.AuditEventRepository
+import com.kinetix.common.kafka.RetryableConsumer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -15,6 +16,7 @@ class AuditEventConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val repository: AuditEventRepository,
     private val topic: String = "trades.lifecycle",
+    private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
     private val logger = LoggerFactory.getLogger(AuditEventConsumer::class.java)
 
@@ -28,12 +30,14 @@ class AuditEventConsumer(
             }
             for (record in records) {
                 try {
-                    val event = Json.decodeFromString<TradeEvent>(record.value())
-                    val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
-                    repository.save(auditEvent)
+                    retryableConsumer.process(record.key() ?: "", record.value()) {
+                        val event = Json.decodeFromString<TradeEvent>(record.value())
+                        val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
+                        repository.save(auditEvent)
+                    }
                 } catch (e: Exception) {
                     logger.error(
-                        "Failed to process audit event: offset={}, partition={}",
+                        "Failed to process audit event after retries: offset={}, partition={}",
                         record.offset(), record.partition(), e,
                     )
                 }

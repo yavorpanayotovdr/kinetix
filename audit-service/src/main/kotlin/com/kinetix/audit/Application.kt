@@ -22,11 +22,15 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import com.kinetix.common.kafka.RetryableConsumer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -101,8 +105,20 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val producerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val dlqProducer = KafkaProducer<String, String>(producerProps)
+
     val kafkaConsumer = KafkaConsumer<String, String>(consumerProps)
-    val auditEventConsumer = AuditEventConsumer(kafkaConsumer, repository)
+    val retryableConsumer = RetryableConsumer(
+        topic = "trades.lifecycle",
+        dlqProducer = dlqProducer,
+    )
+    val auditEventConsumer = AuditEventConsumer(kafkaConsumer, repository, retryableConsumer = retryableConsumer)
 
     launch {
         auditEventConsumer.start()
