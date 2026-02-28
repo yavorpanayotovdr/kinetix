@@ -46,7 +46,7 @@ describe('ComponentBreakdown', () => {
     render(<ComponentBreakdown breakdown={single} />)
 
     expect(screen.getByTestId('breakdown-segment-FX')).toBeInTheDocument()
-    expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('Fx')
+    expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('FX')
     expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('$500,000.00')
     expect(screen.getByTestId('breakdown-FX')).toHaveTextContent('100.00%')
   })

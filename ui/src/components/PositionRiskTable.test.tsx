@@ -47,7 +47,7 @@ describe('PositionRiskTable', () => {
 
       const row = screen.getByTestId('position-risk-row-AAPL')
       expect(within(row).getByText('AAPL')).toBeInTheDocument()
-      expect(within(row).getByText('EQUITY')).toBeInTheDocument()
+      expect(within(row).getByText('Equity')).toBeInTheDocument()
       expect(within(row).getByText('15,500.00')).toBeInTheDocument()
       expect(within(row).getByText('1,234.56')).toBeInTheDocument()
       expect(within(row).getByText('45.67')).toBeInTheDocument()

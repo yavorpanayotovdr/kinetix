@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { ComponentBreakdownDto } from '../types'
+import { formatAssetClassLabel } from '../utils/formatAssetClass'
 import { formatMoney } from '../utils/format'
 
 interface ComponentBreakdownProps {
@@ -15,13 +16,6 @@ const ASSET_CLASS_COLORS: Record<string, string> = {
 }
 
 const DEFAULT_COLOR = '#9ca3af'
-
-function formatAssetClassLabel(assetClass: string): string {
-  return assetClass
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
-}
 
 export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdownProps) {
   const sorted = [...breakdown].sort(

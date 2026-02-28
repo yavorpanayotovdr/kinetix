@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { PositionRiskDto } from '../types'
 import { formatNum } from '../utils/format'
+import { formatAssetClassLabel } from '../utils/formatAssetClass'
 import { Card, Spinner } from './ui'
 
 type SortField =
@@ -142,7 +143,7 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                         onClick={() => setExpandedRow(isExpanded ? null : row.instrumentId)}
                       >
                         <td className="py-2 pr-3 pl-4 font-medium">{row.instrumentId}</td>
-                        <td className="py-2 pr-3 text-slate-600">{row.assetClass}</td>
+                        <td className="py-2 pr-3 text-slate-600">{formatAssetClassLabel(row.assetClass)}</td>
                         <td className="py-2 pr-3 text-right font-mono">{formatNum(row.marketValue)}</td>
                         <td className="py-2 pr-3 text-right font-mono">
                           {row.delta != null ? formatNum(row.delta) : '\u2014'}

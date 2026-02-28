@@ -3,6 +3,7 @@ import { Info, X } from 'lucide-react'
 import type { GreeksResultDto } from '../types'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { formatNum } from '../utils/format'
+import { formatAssetClassLabel } from '../utils/formatAssetClass'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 
 type Greek = 'delta' | 'gamma' | 'vega' | 'theta' | 'rho'
@@ -94,7 +95,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
         <tbody>
           {greeksResult.assetClassGreeks.map((g) => (
             <tr key={g.assetClass} data-testid={`greeks-row-${g.assetClass}`} className="border-b hover:bg-slate-50 transition-colors">
-              <td className="py-1 pr-5 font-medium">{g.assetClass}</td>
+              <td className="py-1 pr-5 font-medium">{formatAssetClassLabel(g.assetClass)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.delta)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.gamma)}</td>
               <td className="py-1 pl-4 text-right">{formatNum(g.vega)}</td>
