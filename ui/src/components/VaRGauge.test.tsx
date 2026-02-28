@@ -92,7 +92,7 @@ describe('VaRGauge', () => {
   describe('PV display', () => {
     it('displays PV value when pvValue is provided', () => {
       render(
-        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" pvValue="$12.4M" />,
+        <VaRGauge varValue={500000} expectedShortfall={700000} confidenceLevel="CL_95" pvValue="12400000" />,
       )
 
       const pvEl = screen.getByTestId('var-pv')

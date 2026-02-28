@@ -3,7 +3,7 @@ import { Info, Search } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { JobTimeline } from './JobTimeline'
-import { formatTimeOnly, formatDuration } from '../utils/format'
+import { formatTimeOnly, formatDuration, formatMoney } from '../utils/format'
 
 interface JobHistoryTableProps {
   runs: ValuationJobSummaryDto[]
@@ -122,16 +122,16 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                       : run.durationMs != null ? formatDuration(run.durationMs) : '-'}
                   </td>
                   <td className="py-2 pr-3 text-slate-700 font-mono">
-                    {run.varValue != null ? run.varValue.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}
+                    {run.varValue != null ? formatMoney(run.varValue.toFixed(2), 'USD') : '-'}
                   </td>
                   <td className="py-2 pr-3 text-slate-700 font-mono">
                     {run.expectedShortfall != null
-                      ? run.expectedShortfall.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      ? formatMoney(run.expectedShortfall.toFixed(2), 'USD')
                       : '-'}
                   </td>
                   <td className="py-2 text-slate-700 font-mono">
                     {run.pvValue != null
-                      ? run.pvValue.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      ? formatMoney(run.pvValue.toFixed(2), 'USD')
                       : '-'}
                   </td>
                 </tr>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Info, X } from 'lucide-react'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { formatMoney } from '../utils/format'
+import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 
 type Metric = 'var' | 'es'
 
@@ -135,7 +136,7 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
 
       {pvValue && (
         <div data-testid="var-pv" className="text-sm text-slate-600">
-          PV {pvValue}
+          PV {formatCompactCurrency(Number(pvValue))}
         </div>
       )}
 
