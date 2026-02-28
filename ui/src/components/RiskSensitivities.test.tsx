@@ -24,13 +24,23 @@ describe('RiskSensitivities', () => {
     expect(screen.getByTestId('greeks-row-COMMODITY')).toBeInTheDocument()
   })
 
-  it('renders theta and rho summary', () => {
+  it('renders theta and rho in the total row of the heatmap', () => {
     render(<RiskSensitivities greeksResult={greeksResult} />)
 
-    const summary = screen.getByTestId('greeks-summary')
-    expect(summary).toBeInTheDocument()
-    expect(summary).toHaveTextContent('Theta')
-    expect(summary).toHaveTextContent('Rho')
+    const totalRow = screen.getByTestId('greeks-row-TOTAL')
+    expect(totalRow).toHaveTextContent('-123.45')
+    expect(totalRow).toHaveTextContent('456.78')
+  })
+
+  it('renders dashes for theta and rho in asset class rows', () => {
+    render(<RiskSensitivities greeksResult={greeksResult} />)
+
+    const equityRow = screen.getByTestId('greeks-row-EQUITY')
+    const cells = equityRow.querySelectorAll('td')
+    const thetaCell = cells[4]
+    const rhoCell = cells[5]
+    expect(thetaCell).toHaveTextContent('\u2014')
+    expect(rhoCell).toHaveTextContent('\u2014')
   })
 
   it('formats greek values with commas and decimals', () => {

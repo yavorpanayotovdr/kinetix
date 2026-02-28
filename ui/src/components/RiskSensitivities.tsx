@@ -83,13 +83,15 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
           <span className="font-medium">{formatCompactCurrency(Number(pvValue))}</span>
         </div>
       )}
-      <table data-testid="greeks-heatmap" className="text-xs mb-2">
+      <table data-testid="greeks-heatmap" className="text-xs">
         <thead>
           <tr className="border-b text-left text-slate-600">
             <th className="py-1 pr-5">Asset Class</th>
             {renderHeader('Delta', 'delta', 'py-1 px-4 text-right')}
             {renderHeader('Gamma', 'gamma', 'py-1 px-4 text-right')}
-            {renderHeader('Vega', 'vega', 'py-1 pl-4 text-right')}
+            {renderHeader('Vega', 'vega', 'py-1 px-4 text-right')}
+            {renderHeader('Theta', 'theta', 'py-1 px-4 text-right')}
+            {renderHeader('Rho', 'rho', 'py-1 pl-4 text-right')}
           </tr>
         </thead>
         <tbody>
@@ -98,60 +100,21 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
               <td className="py-1 pr-5 font-medium">{formatAssetClassLabel(g.assetClass)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.delta)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.gamma)}</td>
-              <td className="py-1 pl-4 text-right">{formatNum(g.vega)}</td>
+              <td className="py-1 px-4 text-right">{formatNum(g.vega)}</td>
+              <td className="py-1 px-4 text-right text-slate-400">{'\u2014'}</td>
+              <td className="py-1 pl-4 text-right text-slate-400">{'\u2014'}</td>
             </tr>
           ))}
           <tr data-testid="greeks-row-TOTAL" className="border-t border-slate-300 font-semibold">
             <td className="py-1 pr-5">Total</td>
             <td className="py-1 px-4 text-right">{formatNum(totals.delta)}</td>
             <td className="py-1 px-4 text-right">{formatNum(totals.gamma)}</td>
-            <td className="py-1 pl-4 text-right">{formatNum(totals.vega)}</td>
+            <td className="py-1 px-4 text-right">{formatNum(totals.vega)}</td>
+            <td className="py-1 px-4 text-right">{formatNum(greeksResult.theta)}</td>
+            <td className="py-1 pl-4 text-right">{formatNum(greeksResult.rho)}</td>
           </tr>
         </tbody>
       </table>
-
-      <div data-testid="greeks-summary" className="flex flex-col gap-1 text-xs">
-        <div className="relative flex items-center">
-          <span className="text-slate-600 inline-flex items-center gap-1 w-16">
-            Theta
-            <Info
-              data-testid="greek-info-theta"
-              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-              onClick={() => togglePopover('theta')}
-            />
-          </span>
-          <span className="font-medium">{formatNum(greeksResult.theta, 4)}</span>
-          {openPopover === 'theta' && (
-            <span
-              data-testid="greek-popover-theta"
-              className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-            >
-              <button data-testid="greek-popover-theta-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-              {greekDescriptions.theta}
-            </span>
-          )}
-        </div>
-        <div className="relative flex items-center">
-          <span className="text-slate-600 inline-flex items-center gap-1 w-16">
-            Rho
-            <Info
-              data-testid="greek-info-rho"
-              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
-              onClick={() => togglePopover('rho')}
-            />
-          </span>
-          <span className="font-medium">{formatNum(greeksResult.rho, 4)}</span>
-          {openPopover === 'rho' && (
-            <span
-              data-testid="greek-popover-rho"
-              className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
-            >
-              <button data-testid="greek-popover-rho-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
-              {greekDescriptions.rho}
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
