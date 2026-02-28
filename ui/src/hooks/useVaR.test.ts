@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { renderHook, waitFor, act } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useVaR } from './useVaR'
 
 vi.mock('../api/risk', () => ({
@@ -297,5 +297,64 @@ describe('useVaR', () => {
     expect(entry.gamma).toBeUndefined()
     expect(entry.vega).toBeUndefined()
     expect(entry.theta).toBeUndefined()
+  })
+
+  describe('polling overlap guard', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('skips poll when a previous request is still in flight', async () => {
+      mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+
+      let resolveSlowFetch: (value: null) => void
+      const slowPromise = new Promise<null>((resolve) => {
+        resolveSlowFetch = resolve
+      })
+
+      // Initial load resolves quickly, second call will be slow
+      mockFetchVaR.mockResolvedValueOnce(null).mockReturnValueOnce(slowPromise)
+
+      renderHook(() => useVaR('port-1'))
+
+      // Flush the initial load (microtasks for resolved promises)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+
+      expect(mockFetchVaR).toHaveBeenCalledTimes(1)
+
+      // Trigger first poll — starts the slow request (call #2)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000)
+      })
+
+      expect(mockFetchVaR).toHaveBeenCalledTimes(2)
+
+      // Another poll fires while slow request is still pending — should be skipped
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000)
+      })
+
+      // Still only 2 calls — the guard prevented call #3
+      expect(mockFetchVaR).toHaveBeenCalledTimes(2)
+
+      // Resolve the slow request and set up the next one
+      mockFetchVaR.mockResolvedValue(null)
+      await act(async () => {
+        resolveSlowFetch!(null)
+      })
+
+      // Next poll should now proceed (call #3)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000)
+      })
+
+      expect(mockFetchVaR).toHaveBeenCalledTimes(3)
+    })
   })
 })

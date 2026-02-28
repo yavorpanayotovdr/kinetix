@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 interface LastUpdatedIndicatorProps {
   timestamp: string | null
 }
@@ -29,6 +31,14 @@ function formatTime(timestamp: string): string {
 }
 
 export function LastUpdatedIndicator({ timestamp }: LastUpdatedIndicatorProps) {
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    if (!timestamp) return
+    const id = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [timestamp])
+
   if (!timestamp) return null
 
   return (

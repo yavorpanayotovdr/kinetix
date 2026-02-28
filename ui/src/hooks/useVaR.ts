@@ -62,11 +62,14 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const initialLoadDone = useRef(false)
+  const isPolling = useRef(false)
   const timeRangeRef = useRef(timeRange)
   timeRangeRef.current = timeRange
 
   const load = useCallback(async () => {
     if (!portfolioId) return
+    if (isPolling.current) return
+    isPolling.current = true
 
     const isFirstLoad = !initialLoadDone.current
     if (isFirstLoad) {
@@ -120,6 +123,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     } finally {
       setLoading(false)
       initialLoadDone.current = true
+      isPolling.current = false
     }
   }, [portfolioId])
 

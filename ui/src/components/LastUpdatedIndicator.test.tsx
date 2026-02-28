@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 
@@ -65,5 +65,46 @@ describe('LastUpdatedIndicator', () => {
     render(<LastUpdatedIndicator timestamp="2026-02-28T12:30:00Z" />)
 
     expect(screen.getByTestId('last-updated')).toHaveTextContent('2 hours ago')
+  })
+
+  describe('real-time ticking', () => {
+    it('updates relative text after 30 seconds', () => {
+      vi.setSystemTime(new Date('2026-02-28T14:32:30Z'))
+      render(<LastUpdatedIndicator timestamp="2026-02-28T14:32:00Z" />)
+
+      expect(screen.getByTestId('last-updated')).toHaveTextContent('just now')
+
+      act(() => {
+        vi.advanceTimersByTime(30_000)
+      })
+
+      expect(screen.getByTestId('last-updated')).toHaveTextContent('1 min ago')
+    })
+
+    it('updates staleness colour from neutral to amber after time passes', () => {
+      vi.setSystemTime(new Date('2026-02-28T14:32:00Z'))
+      render(<LastUpdatedIndicator timestamp="2026-02-28T14:30:00Z" />)
+
+      const el = screen.getByTestId('last-updated')
+      expect(el.className).not.toContain('text-amber')
+
+      act(() => {
+        vi.advanceTimersByTime(3 * 60_000)
+      })
+
+      expect(el.className).toContain('text-amber-600')
+    })
+
+    it('cleans up interval on unmount', () => {
+      const { unmount } = render(<LastUpdatedIndicator timestamp="2026-02-28T14:32:00Z" />)
+
+      unmount()
+
+      expect(() => {
+        act(() => {
+          vi.advanceTimersByTime(30_000)
+        })
+      }).not.toThrow()
+    })
   })
 })
