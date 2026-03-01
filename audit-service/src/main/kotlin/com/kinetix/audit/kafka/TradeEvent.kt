@@ -18,6 +18,7 @@ data class TradeEvent(
     val userId: String? = null,
     val userRole: String? = null,
     val eventType: String = "TRADE_BOOKED",
+    val correlationId: String? = null,
 ) {
     fun toAuditEvent(receivedAt: Instant = Instant.now()): AuditEvent = AuditEvent(
         tradeId = tradeId,

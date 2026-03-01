@@ -12,9 +12,10 @@ data class RiskResultEvent(
     val expectedShortfall: String,
     val componentBreakdown: List<ComponentBreakdownEvent>,
     val calculatedAt: String,
+    val correlationId: String? = null,
 ) {
     companion object {
-        fun from(result: ValuationResult): RiskResultEvent = RiskResultEvent(
+        fun from(result: ValuationResult, correlationId: String? = null): RiskResultEvent = RiskResultEvent(
             portfolioId = result.portfolioId.value,
             calculationType = result.calculationType.name,
             confidenceLevel = result.confidenceLevel.name,
@@ -28,6 +29,7 @@ data class RiskResultEvent(
                 )
             },
             calculatedAt = result.calculatedAt.toString(),
+            correlationId = correlationId,
         )
     }
 }

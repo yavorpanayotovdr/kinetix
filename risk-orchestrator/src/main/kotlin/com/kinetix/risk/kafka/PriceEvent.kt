@@ -9,4 +9,5 @@ data class PriceEvent(
     val priceCurrency: String,
     val timestamp: String,
     val source: String,
+    val correlationId: String? = null,
 )

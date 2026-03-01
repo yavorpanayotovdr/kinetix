@@ -9,4 +9,5 @@ data class RiskResultEvent(
     val expectedShortfall: Double,
     val calculationType: String,
     val calculatedAt: String,
+    val correlationId: String? = null,
 )

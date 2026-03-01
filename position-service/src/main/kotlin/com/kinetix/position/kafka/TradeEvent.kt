@@ -2,6 +2,7 @@ package com.kinetix.position.kafka
 
 import com.kinetix.common.model.Trade
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 @Serializable
 data class TradeEvent(
@@ -17,9 +18,10 @@ data class TradeEvent(
     val type: String = "NEW",
     val status: String = "LIVE",
     val originalTradeId: String? = null,
+    val correlationId: String? = null,
 ) {
     companion object {
-        fun from(trade: Trade): TradeEvent = TradeEvent(
+        fun from(trade: Trade, correlationId: String? = null): TradeEvent = TradeEvent(
             tradeId = trade.tradeId.value,
             portfolioId = trade.portfolioId.value,
             instrumentId = trade.instrumentId.value,
@@ -32,6 +34,7 @@ data class TradeEvent(
             type = trade.type.name,
             status = trade.status.name,
             originalTradeId = trade.originalTradeId?.value,
+            correlationId = correlationId ?: UUID.randomUUID().toString(),
         )
     }
 }
