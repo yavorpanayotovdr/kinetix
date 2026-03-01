@@ -9,8 +9,10 @@ import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
+import com.kinetix.position.routes.counterpartyRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
+import com.kinetix.position.service.CounterpartyExposureService
 import com.kinetix.position.seed.DevDataSeeder
 import com.kinetix.common.model.Money
 import com.kinetix.position.model.TradeLimits
@@ -136,6 +138,7 @@ fun Application.moduleWithRoutes() {
     )
     val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
     val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
+    val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
     val portfolioAggregationService = PortfolioAggregationService(positionRepository, fxRateProvider)
 
     val priceUpdateService = PriceUpdateService(positionRepository)
@@ -180,6 +183,7 @@ fun Application.moduleWithRoutes() {
     routing {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
         limitRoutes(limitDefinitionRepo, temporaryLimitIncreaseRepo)
+        counterpartyRoutes(counterpartyExposureService)
     }
 
     launch {
