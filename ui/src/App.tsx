@@ -9,6 +9,7 @@ import { ScenariosTab } from './components/ScenariosTab'
 import { RegulatoryTab } from './components/RegulatoryTab'
 import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
+import { PortfolioSummaryCard } from './components/PortfolioSummaryCard'
 import { usePositions } from './hooks/usePositions'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
@@ -16,6 +17,7 @@ import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
+import { usePortfolioSummary } from './hooks/usePortfolioSummary'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -41,6 +43,7 @@ function App() {
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(portfolioId)
   const stress = useStressTest(portfolioId)
+  const portfolioSummary = usePortfolioSummary(portfolioId)
 
   return (
     <div className="min-h-screen bg-surface-50 flex flex-col">
@@ -122,6 +125,14 @@ function App() {
                         <FlaskRound className="h-4 w-4" />
                         What-If
                       </button>
+                    </div>
+                    <div className="mb-4">
+                      <PortfolioSummaryCard
+                        summary={portfolioSummary.summary}
+                        baseCurrency={portfolioSummary.baseCurrency}
+                        onBaseCurrencyChange={portfolioSummary.setBaseCurrency}
+                        loading={portfolioSummary.loading}
+                      />
                     </div>
                     <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
                   </div>
