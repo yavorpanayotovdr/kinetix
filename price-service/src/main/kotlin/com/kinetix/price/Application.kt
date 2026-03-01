@@ -2,6 +2,7 @@ package com.kinetix.price
 
 import com.kinetix.price.cache.RedisPriceCache
 import com.kinetix.price.kafka.KafkaPricePublisher
+import com.kinetix.price.metrics.PriceMetrics
 import com.kinetix.price.metrics.PriceStalenessTracker
 import com.kinetix.price.persistence.DatabaseConfig
 import com.kinetix.price.persistence.DatabaseFactory
@@ -114,7 +115,8 @@ fun Application.moduleWithRoutes() {
     val publisher = KafkaPricePublisher(kafkaProducer)
 
     val stalenessTracker = PriceStalenessTracker(appMicrometerRegistry)
-    val ingestionService = PriceIngestionService(repository, cache, publisher, stalenessTracker)
+    val priceMetrics = PriceMetrics(appMicrometerRegistry)
+    val ingestionService = PriceIngestionService(repository, cache, publisher, stalenessTracker, priceMetrics)
 
     module(appMicrometerRegistry)
     install(StatusPages) {
