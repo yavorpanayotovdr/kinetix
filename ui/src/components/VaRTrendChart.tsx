@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { RotateCcw } from 'lucide-react'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import type { TimeRange } from '../types'
-import { formatTimeOnly, formatChartTime } from '../utils/format'
+import { formatTimeOnly, formatChartTime, formatCurrency } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { clampTooltipLeft } from '../utils/clampTooltipLeft'
 import { useBrushSelection } from '../hooks/useBrushSelection'
@@ -246,9 +246,9 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   }, [hoveredIndex, points, containerWidth])
 
   const latestValue = history.length > 0 ? history[history.length - 1].varValue : 0
-  const formattedLatest = latestValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const formattedLatest = formatCurrency(latestValue)
   const latestES = history.length > 0 ? history[history.length - 1].expectedShortfall : 0
-  const formattedLatestES = latestES.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const formattedLatestES = formatCurrency(latestES)
 
   if (history.length === 0) {
     return (
@@ -429,10 +429,10 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
             <div className="font-medium mb-1">{formatTimeOnly(history[hoveredIndex].calculatedAt)}</div>
             <div className="flex gap-3">
               <span className="text-indigo-400">
-                VaR: {history[hoveredIndex].varValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                VaR: {formatCurrency(history[hoveredIndex].varValue)}
               </span>
               <span className="text-amber-400">
-                ES: {history[hoveredIndex].expectedShortfall.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                ES: {formatCurrency(history[hoveredIndex].expectedShortfall)}
               </span>
             </div>
           </div>

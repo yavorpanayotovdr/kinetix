@@ -1,5 +1,6 @@
 import { Calculator, Download, FileText } from 'lucide-react'
 import type { FrtbResultDto } from '../types'
+import { formatCurrency } from '../utils/format'
 import { Card, Button, Spinner } from './ui'
 
 interface RegulatoryDashboardProps {
@@ -9,11 +10,6 @@ interface RegulatoryDashboardProps {
   onCalculate: () => void
   onDownloadCsv: () => void
   onDownloadXbrl: () => void
-}
-
-function formatCurrency(value: string | number): string {
-  const num = typeof value === 'string' ? Number(value) : value
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num)
 }
 
 export function RegulatoryDashboard({

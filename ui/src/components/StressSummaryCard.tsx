@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Zap, ExternalLink } from 'lucide-react'
 import type { StressTestResultDto } from '../types'
+import { formatCurrency } from '../utils/format'
 import { Card, Button } from './ui'
 
 interface StressSummaryCardProps {
@@ -8,11 +9,6 @@ interface StressSummaryCardProps {
   loading: boolean
   onRun: () => void
   onViewDetails: () => void
-}
-
-function formatCurrency(value: string | number): string {
-  const num = typeof value === 'string' ? Number(value) : value
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num)
 }
 
 const MAX_ROWS = 3

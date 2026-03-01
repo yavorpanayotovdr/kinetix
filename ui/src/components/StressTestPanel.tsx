@@ -1,5 +1,6 @@
 import { Zap } from 'lucide-react'
 import type { StressTestResultDto } from '../types'
+import { formatCurrency } from '../utils/format'
 import { Card, Button, Select, Spinner } from './ui'
 
 interface StressTestPanelProps {
@@ -18,11 +19,6 @@ const ASSET_CLASS_COLORS: Record<string, string> = {
   COMMODITY: 'bg-amber-500',
   FX: 'bg-purple-500',
   DERIVATIVE: 'bg-red-500',
-}
-
-function formatCurrency(value: string | number): string {
-  const num = typeof value === 'string' ? Number(value) : value
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num)
 }
 
 export function StressTestPanel({
