@@ -104,6 +104,7 @@ redis-lettuce = { module = "io.lettuce:lettuce-core", version.ref = "redis-lettu
 
 # Logging
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.0" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 
 # Testing

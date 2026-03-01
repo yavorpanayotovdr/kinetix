@@ -1,7 +1,7 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{ISO8601} [%thread] %-5level %logger{36} [correlationId=%X{correlationId}] - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
         </encoder>
     </appender>
 
@@ -9,6 +9,13 @@
         <captureExperimentalAttributes>true</captureExperimentalAttributes>
         <captureCodeAttributes>true</captureCodeAttributes>
     </appender>
+
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="io.grpc" level="WARN"/>
+    <logger name="org.eclipse.jetty" level="WARN"/>
+    <logger name="io.ktor" level="INFO"/>
+    <logger name="com.kinetix" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

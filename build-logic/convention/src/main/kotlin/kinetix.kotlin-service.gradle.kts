@@ -11,6 +11,7 @@ dependencies {
     "implementation"(libs.findLibrary("ktor-openapi").get())
     "implementation"(libs.findLibrary("ktor-swagger-ui").get())
     "implementation"(libs.findLibrary("logback-classic").get())
+    "implementation"(libs.findLibrary("logstash-logback-encoder").get())
     "implementation"(libs.findBundle("opentelemetry-logging").get())
 
     "testImplementation"(libs.findLibrary("ktor-server-test-host").get())
