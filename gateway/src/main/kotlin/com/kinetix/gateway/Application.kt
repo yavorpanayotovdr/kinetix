@@ -14,6 +14,7 @@ import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
 import com.kinetix.gateway.routes.priceRoutes
@@ -173,6 +174,20 @@ fun Application.module(notificationClient: NotificationServiceClient) {
     }
 }
 
+fun Application.moduleWithDataQuality(
+    positionClient: PositionServiceClient,
+    priceClient: PriceServiceClient,
+    riskClient: RiskServiceClient,
+) {
+    module()
+    routing {
+        positionRoutes(positionClient)
+        priceRoutes(priceClient)
+        varRoutes(riskClient)
+        dataQualityRoutes()
+    }
+}
+
 fun Application.devModule() {
     val servicesConfig = environment.config.config("services")
     val positionUrl = servicesConfig.property("position.url").getString()
@@ -200,6 +215,7 @@ fun Application.devModule() {
     module(positionClient, priceClient, broadcaster, riskClient)
     routing {
         notificationRoutes(notificationClient)
+        dataQualityRoutes()
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(
                 "position-service" to positionUrl,

@@ -642,6 +642,22 @@ fun PnlAttributionSummary.toResponse(): PnlAttributionResponse = PnlAttributionR
     calculatedAt = calculatedAt,
 )
 
+// --- Data Quality DTOs ---
+
+@Serializable
+data class DataQualityCheckResponse(
+    val name: String,
+    val status: String,
+    val message: String,
+    val lastChecked: String,
+)
+
+@Serializable
+data class DataQualityStatusResponse(
+    val overall: String,
+    val checks: List<DataQualityCheckResponse>,
+)
+
 // --- Job History DTOs ---
 
 @Serializable
