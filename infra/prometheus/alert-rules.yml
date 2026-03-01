@@ -40,3 +40,72 @@ groups:
         annotations:
           summary: "Kafka consumer lag is high for {{ $labels.group }}"
           description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
+
+      - alert: DLQMessagesPresent
+        expr: sum by (topic) (kafka_topic_partition_current_offset{topic=~".*\\.dlq"}) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DLQ has messages on {{ $labels.topic }}"
+          description: "Dead letter queue {{ $labels.topic }} has accumulated messages"
+
+  - name: kinetix-services
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: sum by (job) (rate(ktor_http_server_requests_seconds_count{status=~"5.."}[5m])) / sum by (job) (rate(ktor_http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has a 5xx error rate of {{ $value | humanizePercentage }}"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(ktor_http_server_requests_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency on {{ $labels.job }}"
+          description: "{{ $labels.job }} P95 latency is {{ $value }}s"
+
+      - alert: JVMMemoryHigh
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap usage above 90% on {{ $labels.job }}"
+          description: "{{ $labels.job }} heap usage is {{ $value | humanizePercentage }}"
+
+  - name: kinetix-database
+    rules:
+      - alert: DBPoolExhausted
+        expr: hikaricp_connections_pending > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DB connection pool exhausted on {{ $labels.pool }}"
+          description: "{{ $labels.pool }} has {{ $value }} pending connection requests"
+
+  - name: kinetix-grpc
+    rules:
+      - alert: GRPCHighLatency
+        expr: histogram_quantile(0.95, rate(risk_var_calculation_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Risk engine gRPC P95 latency exceeds 60s"
+          description: "VaR calculation P95 duration is {{ $value }}s"
