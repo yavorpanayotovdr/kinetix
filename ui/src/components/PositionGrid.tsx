@@ -245,7 +245,15 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
         )}
       </div>
 
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <button
+          data-testid="csv-export-button"
+          onClick={handleExportCsv}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
         <div ref={settingsRef} className="relative">
           <button
             data-testid="column-settings-button"
