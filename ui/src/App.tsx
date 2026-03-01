@@ -20,6 +20,8 @@ import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
 import { usePortfolioSummary } from './hooks/usePortfolioSummary'
 import { useTheme } from './hooks/useTheme'
+import { useDataQuality } from './hooks/useDataQuality'
+import { DataQualityIndicator } from './components/DataQualityIndicator'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -96,6 +98,7 @@ function App() {
   const stress = useStressTest(portfolioId)
   const portfolioSummary = usePortfolioSummary(portfolioId)
   const { isDark, toggle: toggleTheme } = useTheme()
+  const dataQuality = useDataQuality()
 
   return (
     <div className="min-h-screen bg-surface-50 dark:bg-surface-900 dark:text-slate-100 flex flex-col">
@@ -120,6 +123,7 @@ function App() {
               ))}
             </select>
           )}
+          <DataQualityIndicator status={dataQuality.status} loading={dataQuality.loading} />
           <button
             data-testid="dark-mode-toggle"
             onClick={toggleTheme}
