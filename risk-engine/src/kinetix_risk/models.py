@@ -149,10 +149,28 @@ class SbmResult:
 
 
 @dataclass(frozen=True)
+class CreditPositionRisk(PositionRisk):
+    credit_rating: str = "UNRATED"
+    seniority: str = "SENIOR_UNSECURED"
+    maturity_years: float = 1.0
+    sector: str = "OTHER"
+
+
+@dataclass(frozen=True)
 class DrcResult:
     gross_jtd: float
     hedge_benefit: float
     net_drc: float
+
+
+@dataclass(frozen=True)
+class EnhancedDrcResult:
+    gross_jtd: float
+    hedge_benefit: float
+    sector_concentration_charge: float
+    net_drc: float
+    jtd_by_rating: dict[str, float]
+    jtd_by_seniority: dict[str, float]
 
 
 @dataclass(frozen=True)
