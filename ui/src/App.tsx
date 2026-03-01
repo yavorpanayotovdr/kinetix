@@ -78,7 +78,7 @@ function App() {
   const { isDark, toggle: toggleTheme } = useTheme()
 
   return (
-    <div className="min-h-screen bg-surface-50 flex flex-col">
+    <div className="min-h-screen bg-surface-50 dark:bg-surface-900 dark:text-slate-100 flex flex-col">
       <header className="bg-surface-900 text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary-500" />
@@ -151,7 +151,7 @@ function App() {
         </div>
       )}
 
-      <main className="flex-1 p-6" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
+      <main className="flex-1 p-6 dark:bg-surface-900" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (
           <SystemDashboard
             health={systemHealth.health}

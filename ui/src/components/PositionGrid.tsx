@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wifi, WifiOff, Inbox, Settings } from 'lucide-react'
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wifi, WifiOff, Inbox, Settings, Download } from 'lucide-react'
 import type { PositionDto, PositionRiskDto } from '../types'
 import { formatMoney, formatNum, formatQuantity, pnlColorClass } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
+import { exportToCsv } from '../utils/exportCsv'
 import { Card, EmptyState } from './ui'
 
 type SortField = 'delta' | 'gamma' | 'vega' | 'var-pct'
@@ -151,6 +152,36 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
   const positionColCount = visiblePositionCols.length
   const riskColCount = 4
 
+  const handleExportCsv = () => {
+    const headers = visiblePositionCols.map((c) => c.label)
+    if (hasRisk) headers.push('Delta', 'Gamma', 'Vega', 'VaR Contrib %')
+
+    const rows = sortedPositions.map((pos) => {
+      const risk = riskByInstrument.get(pos.instrumentId)
+      const cellValues: Record<string, string> = {
+        instrument: pos.instrumentId,
+        assetClass: pos.assetClass,
+        quantity: pos.quantity,
+        avgCost: pos.averageCost.amount,
+        marketPrice: pos.marketPrice.amount,
+        marketValue: pos.marketValue.amount,
+        unrealizedPnl: pos.unrealizedPnl.amount,
+      }
+      const row = visiblePositionCols.map((c) => cellValues[c.key])
+      if (hasRisk) {
+        row.push(
+          risk?.delta ?? '',
+          risk?.gamma ?? '',
+          risk?.vega ?? '',
+          risk ? `${risk.percentageOfTotal}%` : '',
+        )
+      }
+      return row
+    })
+
+    exportToCsv('positions.csv', headers, rows)
+  }
+
   return (
     <div>
       {connected !== undefined && (
@@ -248,7 +279,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
 
       <Card>
         <div className="-mx-4 -my-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-surface-700">
             <thead>
               {hasRisk && (
                 <tr>
@@ -268,7 +299,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
                   </th>
                 </tr>
               )}
-              <tr className="bg-slate-50">
+              <tr className="bg-slate-50 dark:bg-surface-800">
                 {visiblePositionCols.map((col) => (
                   <th
                     key={col.key}
@@ -311,7 +342,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
               {paginatedPositions.map((pos) => {
                 const risk = riskByInstrument.get(pos.instrumentId)
                 const cellMap: Record<string, React.ReactNode> = {
@@ -332,7 +363,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
                   ),
                 }
                 return (
-                  <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
+                  <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors">
                     {visiblePositionCols.map((col) => cellMap[col.key])}
                     {hasRisk && (
                       <>
