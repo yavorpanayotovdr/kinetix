@@ -3,6 +3,7 @@ package com.kinetix.regulatory.persistence
 import com.kinetix.common.persistence.ConnectionPoolConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.micrometer.core.instrument.MeterRegistry
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 
@@ -15,8 +16,9 @@ data class DatabaseConfig(
 
 object DatabaseFactory {
 
-    fun init(config: DatabaseConfig): Database {
+    fun init(config: DatabaseConfig, meterRegistry: MeterRegistry? = null): Database {
         val dataSource = createDataSource(config)
+        meterRegistry?.let { dataSource.metricsTrackerFactory = com.zaxxer.hikari.metrics.micrometer.MicrometerMetricsTrackerFactory(it) }
         runMigrations(dataSource)
         return Database.connect(dataSource)
     }

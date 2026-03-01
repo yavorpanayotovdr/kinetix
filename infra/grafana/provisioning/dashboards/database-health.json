@@ -1,0 +1,125 @@
+{
+  "uid": "kinetix-database-health",
+  "title": "Database Health",
+  "tags": ["kinetix", "infrastructure", "database"],
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "Active Connections",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active",
+          "legendFormat": "{{pool}} active"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Idle Connections",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_idle",
+          "legendFormat": "{{pool}} idle"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Connection Wait Time (P95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_acquire_seconds{quantile=\"0.95\"}",
+          "legendFormat": "{{pool}} P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Connection Usage Time (P95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_usage_seconds{quantile=\"0.95\"}",
+          "legendFormat": "{{pool}} P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pending Threads",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_pending",
+          "legendFormat": "{{pool}} pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Connection Timeout Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(hikaricp_connections_timeout_total[5m])",
+          "legendFormat": "{{pool}} timeouts/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}
