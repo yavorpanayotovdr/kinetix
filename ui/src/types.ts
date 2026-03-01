@@ -326,6 +326,18 @@ export interface CurrencyExposureDto {
   fxRate: string
 }
 
+export interface DataQualityCheck {
+  name: string
+  status: string
+  message: string
+  lastChecked: string
+}
+
+export interface DataQualityStatus {
+  overall: string
+  checks: DataQualityCheck[]
+}
+
 export interface PortfolioAggregationDto {
   portfolioId: string
   baseCurrency: string
