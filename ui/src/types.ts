@@ -28,6 +28,17 @@ export interface PositionRiskDto {
   percentageOfTotal: string
 }
 
+export interface TradeHistoryDto {
+  tradeId: string
+  portfolioId: string
+  instrumentId: string
+  assetClass: string
+  side: string
+  quantity: string
+  price: MoneyDto
+  tradedAt: string
+}
+
 export interface PortfolioDto {
   portfolioId: string
 }
