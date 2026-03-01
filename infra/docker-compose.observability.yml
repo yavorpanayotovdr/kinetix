@@ -84,6 +84,14 @@ services:
       - "3200:3200"
     command: ["-config.file", "/etc/tempo/tempo-config.yaml"]
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    container_name: kinetix-kafka-exporter
+    command:
+      - "--kafka.server=host.docker.internal:9092"
+    ports:
+      - "9308:9308"
+
 volumes:
   prometheusdata:
   grafanadata:
