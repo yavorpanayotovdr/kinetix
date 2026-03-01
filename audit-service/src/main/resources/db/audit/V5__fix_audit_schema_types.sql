@@ -1,6 +1,6 @@
--- Temporarily drop immutability rules
-DROP RULE IF EXISTS prevent_update_audit ON audit_events;
-DROP RULE IF EXISTS prevent_delete_audit ON audit_events;
+-- Temporarily drop immutability triggers (rules were replaced by triggers in V4)
+DROP TRIGGER IF EXISTS prevent_audit_update ON audit_events;
+DROP TRIGGER IF EXISTS prevent_audit_delete ON audit_events;
 
 -- Fix column types
 ALTER TABLE audit_events
@@ -8,6 +8,11 @@ ALTER TABLE audit_events
     ALTER COLUMN price_amount TYPE NUMERIC(28,12) USING price_amount::NUMERIC(28,12),
     ALTER COLUMN traded_at TYPE TIMESTAMPTZ USING traded_at::TIMESTAMPTZ;
 
--- Re-create immutability rules
-CREATE RULE prevent_update_audit AS ON UPDATE TO audit_events DO INSTEAD NOTHING;
-CREATE RULE prevent_delete_audit AS ON DELETE TO audit_events DO INSTEAD NOTHING;
+-- Re-create immutability triggers
+CREATE TRIGGER prevent_audit_update
+    BEFORE UPDATE ON audit_events
+    FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation();
+
+CREATE TRIGGER prevent_audit_delete
+    BEFORE DELETE ON audit_events
+    FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation();
