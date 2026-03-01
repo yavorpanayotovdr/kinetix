@@ -7,6 +7,7 @@ import com.kinetix.risk.model.*
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.SodBaselineRepository
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -32,14 +33,17 @@ class SodSnapshotService(
             ?: calculateFreshVaR(portfolioId)
             ?: throw IllegalStateException("Cannot create SOD snapshot: no valuation data available for ${portfolioId.value}")
 
+        val positions = positionProvider.getPositions(portfolioId)
+
         val snapshots = result.positionRisk.map { risk ->
+            val position = positions.find { it.instrumentId == risk.instrumentId }
             DailyRiskSnapshot(
                 portfolioId = portfolioId,
                 snapshotDate = date,
                 instrumentId = risk.instrumentId,
                 assetClass = risk.assetClass,
-                quantity = risk.marketValue.abs(),
-                marketPrice = risk.marketValue,
+                quantity = position?.quantity ?: BigDecimal.ONE,
+                marketPrice = position?.marketPrice?.amount ?: risk.marketValue,
                 delta = risk.delta,
                 gamma = risk.gamma,
                 vega = risk.vega,

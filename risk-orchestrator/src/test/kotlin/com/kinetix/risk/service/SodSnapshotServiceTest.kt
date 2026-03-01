@@ -97,6 +97,7 @@ class SodSnapshotServiceTest : FunSpec({
 
     test("creates snapshot from provided ValuationResult and stores baseline metadata") {
         val result = valuationResult()
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -108,6 +109,8 @@ class SodSnapshotServiceTest : FunSpec({
                 snapshots[0].portfolioId shouldBe PORTFOLIO
                 snapshots[0].snapshotDate shouldBe TODAY
                 snapshots[0].instrumentId shouldBe InstrumentId("AAPL")
+                snapshots[0].quantity shouldBe BigDecimal("100")
+                snapshots[0].marketPrice shouldBe BigDecimal("150.00")
                 snapshots[0].delta shouldBe 0.85
                 snapshots[0].gamma shouldBe 0.02
                 snapshots[0].vega shouldBe 1500.0
@@ -127,6 +130,7 @@ class SodSnapshotServiceTest : FunSpec({
     test("creates snapshot using cached VaR result when no ValuationResult provided") {
         val result = valuationResult()
         coEvery { varCache.get(PORTFOLIO.value) } returns result
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -153,6 +157,7 @@ class SodSnapshotServiceTest : FunSpec({
 
     test("replaces existing baseline when creating new snapshot for same date") {
         val result = valuationResult()
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -207,6 +212,7 @@ class SodSnapshotServiceTest : FunSpec({
 
     test("creates snapshot with null jobId for backward compatibility") {
         val result = valuationResult(jobId = null)
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -238,6 +244,7 @@ class SodSnapshotServiceTest : FunSpec({
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
         coEvery { varCalculationService.calculateVaR(any(), any()) } returns valuationResult()
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -326,6 +333,10 @@ class SodSnapshotServiceTest : FunSpec({
                 ),
             ),
         )
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(
+            position(instrumentId = "AAPL", quantity = "100", price = "150.00"),
+            position(instrumentId = "MSFT", quantity = "200", price = "300.00"),
+        )
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
@@ -335,7 +346,28 @@ class SodSnapshotServiceTest : FunSpec({
             dailyRiskSnapshotRepository.saveAll(withArg { snapshots ->
                 snapshots.size shouldBe 2
                 snapshots[0].instrumentId shouldBe InstrumentId("AAPL")
+                snapshots[0].quantity shouldBe BigDecimal("100")
+                snapshots[0].marketPrice shouldBe BigDecimal("150.00")
                 snapshots[1].instrumentId shouldBe InstrumentId("MSFT")
+                snapshots[1].quantity shouldBe BigDecimal("200")
+                snapshots[1].marketPrice shouldBe BigDecimal("300.00")
+            })
+        }
+    }
+
+    test("uses fallback values when position not found for an instrument") {
+        val result = valuationResult()
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns emptyList()
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.MANUAL, result, TODAY)
+
+        coVerify {
+            dailyRiskSnapshotRepository.saveAll(withArg { snapshots ->
+                snapshots.size shouldBe 1
+                snapshots[0].quantity shouldBe BigDecimal.ONE
+                snapshots[0].marketPrice shouldBe BigDecimal("15000.00")
             })
         }
     }
