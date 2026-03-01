@@ -17,14 +17,14 @@ class TradeLifecycleService(
     suspend fun handleAmend(command: AmendTradeCommand): BookTradeResult {
         logger.info("Amending trade: originalTradeId={}, newTradeId={}, portfolio={}",
             command.originalTradeId.value, command.newTradeId.value, command.portfolioId.value)
+
+        val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
+            ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
+        if (originalTrade.status != TradeStatus.LIVE) {
+            throw InvalidTradeStateException(command.originalTradeId.value, originalTrade.status, "amend")
+        }
+
         val result = transactional.run {
-            val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
-                ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
-
-            check(originalTrade.status == TradeStatus.LIVE) {
-                "Cannot amend trade in status ${originalTrade.status}"
-            }
-
             tradeEventRepository.updateStatus(command.originalTradeId, TradeStatus.AMENDED)
 
             val currentPosition = positionRepository.findByKey(originalTrade.portfolioId, originalTrade.instrumentId)
@@ -62,14 +62,14 @@ class TradeLifecycleService(
 
     suspend fun handleCancel(command: CancelTradeCommand): BookTradeResult {
         logger.info("Cancelling trade: tradeId={}", command.tradeId.value)
+
+        val trade = tradeEventRepository.findByTradeId(command.tradeId)
+            ?: throw IllegalArgumentException("Trade not found: ${command.tradeId.value}")
+        if (trade.status != TradeStatus.LIVE) {
+            throw InvalidTradeStateException(command.tradeId.value, trade.status, "cancel")
+        }
+
         val result = transactional.run {
-            val trade = tradeEventRepository.findByTradeId(command.tradeId)
-                ?: throw IllegalArgumentException("Trade not found: ${command.tradeId.value}")
-
-            check(trade.status == TradeStatus.LIVE) {
-                "Cannot cancel trade in status ${trade.status}"
-            }
-
             tradeEventRepository.updateStatus(command.tradeId, TradeStatus.CANCELLED)
 
             val currentPosition = positionRepository.findByKey(trade.portfolioId, trade.instrumentId)

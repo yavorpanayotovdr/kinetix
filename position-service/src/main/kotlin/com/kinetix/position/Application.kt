@@ -181,6 +181,12 @@ fun Application.moduleWithRoutes() {
                 ErrorBody("conflict", cause.message ?: "Invalid state"),
             )
         }
+        exception<com.kinetix.position.service.InvalidTradeStateException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorBody("invalid_trade_state", cause.message ?: "Invalid trade state"),
+            )
+        }
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception", cause)
             call.respond(

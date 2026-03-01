@@ -186,7 +186,7 @@ class TradeLifecycleServiceTest : FunSpec({
             portfolioId = PORTFOLIO,
         )
 
-        shouldThrow<IllegalStateException> {
+        shouldThrow<InvalidTradeStateException> {
             service.handleCancel(command)
         }
     }
@@ -208,7 +208,7 @@ class TradeLifecycleServiceTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
         )
 
-        shouldThrow<IllegalStateException> {
+        shouldThrow<InvalidTradeStateException> {
             service.handleAmend(command)
         }
     }
