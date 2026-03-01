@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -29,10 +30,10 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             it[instrumentId] = event.instrumentId
             it[assetClass] = event.assetClass
             it[side] = event.side
-            it[quantity] = event.quantity
-            it[priceAmount] = event.priceAmount
+            it[quantity] = event.quantity.toBigDecimal()
+            it[priceAmount] = event.priceAmount.toBigDecimal()
             it[priceCurrency] = event.priceCurrency
-            it[tradedAt] = event.tradedAt
+            it[tradedAt] = OffsetDateTime.ofInstant(Instant.parse(event.tradedAt), ZoneOffset.UTC)
             it[receivedAt] = OffsetDateTime.ofInstant(event.receivedAt, ZoneOffset.UTC)
             it[AuditEventsTable.previousHash] = latestHash
             it[AuditEventsTable.recordHash] = recordHash
@@ -64,10 +65,10 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         instrumentId = this[AuditEventsTable.instrumentId],
         assetClass = this[AuditEventsTable.assetClass],
         side = this[AuditEventsTable.side],
-        quantity = this[AuditEventsTable.quantity],
-        priceAmount = this[AuditEventsTable.priceAmount],
+        quantity = this[AuditEventsTable.quantity].stripTrailingZeros().toPlainString(),
+        priceAmount = this[AuditEventsTable.priceAmount].stripTrailingZeros().toPlainString(),
         priceCurrency = this[AuditEventsTable.priceCurrency],
-        tradedAt = this[AuditEventsTable.tradedAt],
+        tradedAt = this[AuditEventsTable.tradedAt].toInstant().toString(),
         receivedAt = this[AuditEventsTable.receivedAt].toInstant(),
         previousHash = this[AuditEventsTable.previousHash],
         recordHash = this[AuditEventsTable.recordHash],
