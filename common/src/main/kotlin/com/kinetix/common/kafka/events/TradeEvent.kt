@@ -1,9 +1,15 @@
-package com.kinetix.position.kafka
+package com.kinetix.common.kafka.events
 
 import com.kinetix.common.model.Trade
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
+/**
+ * Canonical Kafka event schema for trade lifecycle messages on the `trades.lifecycle` topic.
+ *
+ * This is the superset of all per-service TradeEvent definitions. Fields added by the
+ * audit-service (userId, userRole, eventType) are nullable/defaulted for backward compatibility.
+ */
 @Serializable
 data class TradeEvent(
     val tradeId: String,
@@ -19,6 +25,9 @@ data class TradeEvent(
     val status: String = "LIVE",
     val originalTradeId: String? = null,
     val correlationId: String? = null,
+    val userId: String? = null,
+    val userRole: String? = null,
+    val eventType: String = "TRADE_BOOKED",
 ) {
     companion object {
         fun from(trade: Trade, correlationId: String? = null): TradeEvent = TradeEvent(

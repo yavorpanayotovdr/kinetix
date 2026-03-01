@@ -1,7 +1,9 @@
 package com.kinetix.audit.kafka
 
+import com.kinetix.audit.model.AuditEvent
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.common.kafka.RetryableConsumer
+import com.kinetix.common.kafka.events.TradeEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -20,6 +22,7 @@ class AuditEventConsumer(
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
     private val logger = LoggerFactory.getLogger(AuditEventConsumer::class.java)
+    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun start() {
         withContext(Dispatchers.IO) {
@@ -32,12 +35,15 @@ class AuditEventConsumer(
             for (record in records) {
                 try {
                     retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = Json.decodeFromString<TradeEvent>(record.value())
+                        val event = json.decodeFromString<TradeEvent>(record.value())
                         MDC.put("correlationId", event.correlationId ?: "")
                         try {
                             val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
                             repository.save(auditEvent)
-                            logger.info("Audit event persisted: tradeId={}, portfolioId={}, eventType={}", auditEvent.tradeId, auditEvent.portfolioId, auditEvent.eventType)
+                            logger.info(
+                                "Audit event persisted: tradeId={}, portfolioId={}, eventType={}",
+                                auditEvent.tradeId, auditEvent.portfolioId, auditEvent.eventType,
+                            )
                         } finally {
                             MDC.remove("correlationId")
                         }
@@ -51,4 +57,20 @@ class AuditEventConsumer(
             }
         }
     }
+
+    private fun TradeEvent.toAuditEvent(receivedAt: Instant): AuditEvent = AuditEvent(
+        tradeId = tradeId,
+        portfolioId = portfolioId,
+        instrumentId = instrumentId,
+        assetClass = assetClass,
+        side = side,
+        quantity = quantity,
+        priceAmount = priceAmount,
+        priceCurrency = priceCurrency,
+        tradedAt = tradedAt,
+        receivedAt = receivedAt,
+        userId = userId,
+        userRole = userRole,
+        eventType = eventType,
+    )
 }

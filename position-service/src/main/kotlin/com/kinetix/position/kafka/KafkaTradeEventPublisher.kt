@@ -1,5 +1,6 @@
 package com.kinetix.position.kafka
 
+import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.common.model.Trade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

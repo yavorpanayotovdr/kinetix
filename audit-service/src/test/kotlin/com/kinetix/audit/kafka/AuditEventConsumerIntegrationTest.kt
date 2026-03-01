@@ -1,6 +1,7 @@
 package com.kinetix.audit.kafka
 
 import com.kinetix.audit.persistence.DatabaseTestSetup
+import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

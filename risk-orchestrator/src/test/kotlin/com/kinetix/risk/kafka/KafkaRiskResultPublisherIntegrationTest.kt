@@ -1,5 +1,6 @@
 package com.kinetix.risk.kafka
 
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.*

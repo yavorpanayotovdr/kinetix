@@ -9,8 +9,8 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
-import com.kinetix.risk.kafka.RiskResultEvent
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.BehaviorSpec

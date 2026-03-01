@@ -1,5 +1,7 @@
 package com.kinetix.risk.kafka
 
+import com.kinetix.common.kafka.events.ComponentBreakdownEvent
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.*
@@ -23,22 +25,39 @@ private fun valuationResult(portfolioId: String = "port-1") = ValuationResult(
     computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
 )
 
+private fun ValuationResult.toRiskResultEvent(correlationId: String? = null) = RiskResultEvent(
+    portfolioId = portfolioId.value,
+    calculationType = calculationType.name,
+    confidenceLevel = confidenceLevel.name,
+    varValue = (varValue ?: 0.0).toString(),
+    expectedShortfall = (expectedShortfall ?: 0.0).toString(),
+    componentBreakdown = componentBreakdown.map {
+        ComponentBreakdownEvent(
+            assetClass = it.assetClass.name,
+            varContribution = it.varContribution.toString(),
+            percentageOfTotal = it.percentageOfTotal.toString(),
+        )
+    },
+    calculatedAt = calculatedAt.toString(),
+    correlationId = correlationId,
+)
+
 class RiskResultEventCorrelationIdTest : FunSpec({
 
     test("RiskResultEvent carries correlationId from trigger") {
-        val event = RiskResultEvent.from(valuationResult(), correlationId = "trigger-corr-123")
+        val event = valuationResult().toRiskResultEvent(correlationId = "trigger-corr-123")
 
         event.correlationId shouldBe "trigger-corr-123"
     }
 
     test("RiskResultEvent correlationId defaults to null") {
-        val event = RiskResultEvent.from(valuationResult())
+        val event = valuationResult().toRiskResultEvent()
 
         event.correlationId shouldBe null
     }
 
     test("correlationId survives JSON round-trip") {
-        val event = RiskResultEvent.from(valuationResult(), correlationId = "round-trip-id")
+        val event = valuationResult().toRiskResultEvent(correlationId = "round-trip-id")
         val json = Json.encodeToString(event)
         val deserialized = Json.decodeFromString<RiskResultEvent>(json)
 

@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
     compileOnly(libs.kafka.clients)
     compileOnly(libs.logback.classic)
     compileOnly(libs.opentelemetry.sdk.autoconfigure)

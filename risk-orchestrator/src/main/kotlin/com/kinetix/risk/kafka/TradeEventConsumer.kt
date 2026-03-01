@@ -1,6 +1,7 @@
 package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
+import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel

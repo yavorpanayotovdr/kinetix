@@ -1,5 +1,6 @@
 package com.kinetix.notification.kafka
 
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.delivery.*
 import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.model.*

@@ -1,6 +1,7 @@
 package com.kinetix.position.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
+import com.kinetix.common.kafka.events.PriceEvent
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.position.service.PriceUpdateService

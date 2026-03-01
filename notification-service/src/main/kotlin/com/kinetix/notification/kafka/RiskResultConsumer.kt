@@ -1,9 +1,9 @@
 package com.kinetix.notification.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.engine.RulesEngine
-import com.kinetix.notification.model.RiskResultEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext

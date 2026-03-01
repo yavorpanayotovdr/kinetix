@@ -1,5 +1,6 @@
 package com.kinetix.notification.engine
 
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.model.*
 import com.kinetix.notification.persistence.AlertRuleRepository
 import java.time.Instant

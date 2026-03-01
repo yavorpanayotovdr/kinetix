@@ -1,5 +1,6 @@
 package com.kinetix.position.kafka
 
+import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.common.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

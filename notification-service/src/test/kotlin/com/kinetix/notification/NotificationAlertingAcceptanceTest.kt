@@ -1,5 +1,6 @@
 package com.kinetix.notification
 
+import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService

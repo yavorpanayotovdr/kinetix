@@ -1,5 +1,6 @@
 package com.kinetix.price.kafka
 
+import com.kinetix.common.kafka.events.PriceEvent
 import com.kinetix.common.model.PricePoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

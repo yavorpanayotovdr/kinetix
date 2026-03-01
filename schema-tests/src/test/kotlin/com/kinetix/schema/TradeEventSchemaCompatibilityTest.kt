@@ -1,5 +1,6 @@
 package com.kinetix.schema
 
+import com.kinetix.common.kafka.events.TradeEvent
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.json.Json
@@ -8,8 +9,8 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
 
     val json = Json { ignoreUnknownKeys = true }
 
-    test("risk-orchestrator TradeEvent preserves type and status when deserializing AMEND event from position-service") {
-        val positionEvent = com.kinetix.position.kafka.TradeEvent(
+    test("TradeEvent preserves type and status when serializing an AMEND event") {
+        val event = TradeEvent(
             tradeId = "trade-amend-1",
             portfolioId = "port-1",
             instrumentId = "AAPL",
@@ -24,19 +25,19 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
             originalTradeId = "orig-1",
             correlationId = "corr-amend-1",
         )
-        val serialized = Json.encodeToString(com.kinetix.position.kafka.TradeEvent.serializer(), positionEvent)
+        val serialized = Json.encodeToString(TradeEvent.serializer(), event)
 
-        val riskEvent = json.decodeFromString<com.kinetix.risk.kafka.TradeEvent>(serialized)
-        riskEvent.tradeId shouldBe "trade-amend-1"
-        riskEvent.portfolioId shouldBe "port-1"
-        riskEvent.type shouldBe "AMEND"
-        riskEvent.status shouldBe "LIVE"
-        riskEvent.originalTradeId shouldBe "orig-1"
-        riskEvent.correlationId shouldBe "corr-amend-1"
+        val deserialized = json.decodeFromString<TradeEvent>(serialized)
+        deserialized.tradeId shouldBe "trade-amend-1"
+        deserialized.portfolioId shouldBe "port-1"
+        deserialized.type shouldBe "AMEND"
+        deserialized.status shouldBe "LIVE"
+        deserialized.originalTradeId shouldBe "orig-1"
+        deserialized.correlationId shouldBe "corr-amend-1"
     }
 
-    test("risk-orchestrator TradeEvent preserves type=CANCEL and status=CANCELLED") {
-        val positionEvent = com.kinetix.position.kafka.TradeEvent(
+    test("TradeEvent preserves type=CANCEL and status=CANCELLED") {
+        val event = TradeEvent(
             tradeId = "trade-cancel-1",
             portfolioId = "port-2",
             instrumentId = "MSFT",
@@ -50,17 +51,17 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
             status = "CANCELLED",
             originalTradeId = "orig-cancel-1",
         )
-        val serialized = Json.encodeToString(com.kinetix.position.kafka.TradeEvent.serializer(), positionEvent)
+        val serialized = Json.encodeToString(TradeEvent.serializer(), event)
 
-        val riskEvent = json.decodeFromString<com.kinetix.risk.kafka.TradeEvent>(serialized)
-        riskEvent.tradeId shouldBe "trade-cancel-1"
-        riskEvent.type shouldBe "CANCEL"
-        riskEvent.status shouldBe "CANCELLED"
-        riskEvent.originalTradeId shouldBe "orig-cancel-1"
+        val deserialized = json.decodeFromString<TradeEvent>(serialized)
+        deserialized.tradeId shouldBe "trade-cancel-1"
+        deserialized.type shouldBe "CANCEL"
+        deserialized.status shouldBe "CANCELLED"
+        deserialized.originalTradeId shouldBe "orig-cancel-1"
     }
 
-    test("audit-service TradeEvent preserves type, status, and originalTradeId from position-service") {
-        val positionEvent = com.kinetix.position.kafka.TradeEvent(
+    test("TradeEvent preserves audit fields (userId, userRole, eventType)") {
+        val event = TradeEvent(
             tradeId = "trade-audit-1",
             portfolioId = "port-3",
             instrumentId = "GOOG",
@@ -74,19 +75,24 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
             status = "LIVE",
             originalTradeId = "orig-audit-1",
             correlationId = "corr-audit-1",
+            userId = "user-42",
+            userRole = "TRADER",
+            eventType = "TRADE_AMENDED",
         )
-        val serialized = Json.encodeToString(com.kinetix.position.kafka.TradeEvent.serializer(), positionEvent)
+        val serialized = Json.encodeToString(TradeEvent.serializer(), event)
 
-        val auditEvent = json.decodeFromString<com.kinetix.audit.kafka.TradeEvent>(serialized)
-        auditEvent.tradeId shouldBe "trade-audit-1"
-        auditEvent.portfolioId shouldBe "port-3"
-        auditEvent.type shouldBe "AMEND"
-        auditEvent.status shouldBe "LIVE"
-        auditEvent.originalTradeId shouldBe "orig-audit-1"
-        auditEvent.correlationId shouldBe "corr-audit-1"
+        val deserialized = json.decodeFromString<TradeEvent>(serialized)
+        deserialized.tradeId shouldBe "trade-audit-1"
+        deserialized.type shouldBe "AMEND"
+        deserialized.status shouldBe "LIVE"
+        deserialized.originalTradeId shouldBe "orig-audit-1"
+        deserialized.correlationId shouldBe "corr-audit-1"
+        deserialized.userId shouldBe "user-42"
+        deserialized.userRole shouldBe "TRADER"
+        deserialized.eventType shouldBe "TRADE_AMENDED"
     }
 
-    test("backward compatibility: risk-orchestrator defaults apply when deserializing minimal event without type or status") {
+    test("backward compatibility: defaults apply when deserializing minimal event without optional fields") {
         val minimalJson = """
             {
                 "tradeId": "trade-minimal-1",
@@ -101,11 +107,14 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
             }
         """.trimIndent()
 
-        val riskEvent = json.decodeFromString<com.kinetix.risk.kafka.TradeEvent>(minimalJson)
-        riskEvent.tradeId shouldBe "trade-minimal-1"
-        riskEvent.type shouldBe "NEW"
-        riskEvent.status shouldBe "LIVE"
-        riskEvent.originalTradeId shouldBe null
-        riskEvent.correlationId shouldBe null
+        val event = json.decodeFromString<TradeEvent>(minimalJson)
+        event.tradeId shouldBe "trade-minimal-1"
+        event.type shouldBe "NEW"
+        event.status shouldBe "LIVE"
+        event.originalTradeId shouldBe null
+        event.correlationId shouldBe null
+        event.userId shouldBe null
+        event.userRole shouldBe null
+        event.eventType shouldBe "TRADE_BOOKED"
     }
 })
