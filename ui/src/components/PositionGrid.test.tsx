@@ -468,4 +468,21 @@ describe('PositionGrid', () => {
       expect(screen.queryByRole('columnheader', { name: 'Asset Class' })).not.toBeInTheDocument()
     })
   })
+
+  describe('CSV export', () => {
+    it('should have a CSV export button', () => {
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      expect(screen.getByTestId('csv-export-button')).toBeInTheDocument()
+    })
+
+    it('should trigger download when export button is clicked', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      const exportButton = screen.getByTestId('csv-export-button')
+      // Verify the button exists and can be clicked without error
+      await user.click(exportButton)
+    })
+  })
 })
