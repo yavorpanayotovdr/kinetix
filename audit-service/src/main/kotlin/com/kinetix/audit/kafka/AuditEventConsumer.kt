@@ -37,6 +37,7 @@ class AuditEventConsumer(
                         try {
                             val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
                             repository.save(auditEvent)
+                            logger.info("Audit event persisted: tradeId={}, portfolioId={}, eventType={}", auditEvent.tradeId, auditEvent.portfolioId, auditEvent.eventType)
                         } finally {
                             MDC.remove("correlationId")
                         }

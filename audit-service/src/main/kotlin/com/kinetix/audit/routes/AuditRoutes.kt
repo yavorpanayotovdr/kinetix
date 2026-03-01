@@ -7,6 +7,9 @@ import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("com.kinetix.audit.routes.AuditRoutes")
 
 fun Route.auditRoutes(repository: AuditEventRepository) {
     route("/api/v1/audit") {
@@ -34,7 +37,9 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
             tags = listOf("Audit")
         }) {
             val events = repository.findAll()
+            logger.info("Verifying audit chain integrity, eventCount={}", events.size)
             val result = AuditHasher.verifyChain(events)
+            logger.info("Audit chain verification complete: valid={}, eventCount={}", result.valid, result.eventCount)
             call.respond(result)
         }
     }
