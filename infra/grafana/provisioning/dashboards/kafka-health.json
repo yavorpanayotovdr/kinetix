@@ -6,7 +6,15 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [],
+  "links": [
+    { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
+    { "title": "Service Overview", "type": "link", "url": "/d/kinetix-service-overview", "icon": "dashboard" },
+    { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
+    { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Kafka Health", "type": "link", "url": "/d/kinetix-kafka-health", "icon": "dashboard" },
+    { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
+    { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
+  ],
   "panels": [
     {
       "title": "Consumer Group Lag",
