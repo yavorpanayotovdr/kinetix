@@ -67,7 +67,7 @@ function App() {
   }
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
-  const { positions, connected } = usePriceStream(initialPositions)
+  const { positions, connected, reconnecting } = usePriceStream(initialPositions)
   const { positionRisk } = usePositionRisk(portfolioId)
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
@@ -132,6 +132,12 @@ function App() {
           </button>
         ))}
       </nav>
+
+      {reconnecting && (
+        <div data-testid="reconnecting-banner" className="bg-amber-100 border-b border-amber-300 px-6 py-2 text-sm text-amber-800 font-medium" role="alert">
+          Reconnecting...
+        </div>
+      )}
 
       <main className="flex-1 p-6" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (

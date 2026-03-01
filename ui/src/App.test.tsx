@@ -55,7 +55,7 @@ function setupDefaults() {
     loading: false,
     error: null,
   })
-  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true })
+  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true, reconnecting: false })
   mockUseNotifications.mockReturnValue({
     rules: [],
     alerts: [],
@@ -438,6 +438,27 @@ describe('App', () => {
 
       const connectionStatus = screen.getByTestId('connection-status')
       expect(connectionStatus).toHaveAttribute('aria-live', 'polite')
+    })
+  })
+
+  describe('reconnecting indicator', () => {
+    it('shows reconnecting banner when WebSocket is reconnecting', () => {
+      mockUsePriceStream.mockReturnValue({
+        positions: [position],
+        connected: false,
+        reconnecting: true,
+      })
+
+      render(<App />)
+
+      expect(screen.getByTestId('reconnecting-banner')).toBeInTheDocument()
+      expect(screen.getByText('Reconnecting...')).toBeInTheDocument()
+    })
+
+    it('does not show reconnecting banner when connected', () => {
+      render(<App />)
+
+      expect(screen.queryByTestId('reconnecting-banner')).not.toBeInTheDocument()
     })
   })
 })
