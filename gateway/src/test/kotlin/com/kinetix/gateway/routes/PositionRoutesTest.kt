@@ -259,6 +259,57 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
+    // --- GET /api/v1/portfolios/{portfolioId}/trades ---
+
+    test("GET /trades returns 200 with trade history") {
+        val trades = listOf(
+            Trade(
+                tradeId = TradeId("t-1"),
+                portfolioId = PortfolioId("port-1"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.BUY,
+                quantity = BigDecimal("100"),
+                price = usd("150.00"),
+                tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            ),
+            Trade(
+                tradeId = TradeId("t-2"),
+                portfolioId = PortfolioId("port-1"),
+                instrumentId = InstrumentId("MSFT"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.SELL,
+                quantity = BigDecimal("50"),
+                price = usd("300.00"),
+                tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
+            ),
+        )
+        coEvery { positionClient.getTradeHistory(PortfolioId("port-1")) } returns trades
+
+        testApplication {
+            application { module(positionClient) }
+            val response = client.get("/api/v1/portfolios/port-1/trades")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 2
+            body[0].jsonObject["tradeId"]?.jsonPrimitive?.content shouldBe "t-1"
+            body[0].jsonObject["side"]?.jsonPrimitive?.content shouldBe "BUY"
+            body[1].jsonObject["tradeId"]?.jsonPrimitive?.content shouldBe "t-2"
+            body[1].jsonObject["side"]?.jsonPrimitive?.content shouldBe "SELL"
+        }
+    }
+
+    test("GET /trades returns empty array for portfolio with no trades") {
+        coEvery { positionClient.getTradeHistory(PortfolioId("port-1")) } returns emptyList()
+
+        testApplication {
+            application { module(positionClient) }
+            val response = client.get("/api/v1/portfolios/port-1/trades")
+            response.status shouldBe HttpStatusCode.OK
+            response.bodyAsText() shouldBe "[]"
+        }
+    }
+
     // --- GET /api/v1/portfolios/{portfolioId}/positions ---
 
     test("GET /positions returns 200 with position list") {

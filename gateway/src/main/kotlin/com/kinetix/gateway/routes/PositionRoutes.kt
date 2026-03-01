@@ -23,6 +23,18 @@ fun Route.positionRoutes(client: PositionServiceClient) {
 
         route("/{portfolioId}") {
 
+            get("/trades", {
+                summary = "Get trade history for a portfolio"
+                tags = listOf("Trades")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val trades = client.getTradeHistory(portfolioId)
+                call.respond(trades.map { it.toResponse() })
+            }
+
             post("/trades", {
                 summary = "Book a trade"
                 tags = listOf("Trades")
