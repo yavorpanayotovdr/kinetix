@@ -28,77 +28,85 @@ fun Route.referenceDataRoutes(
 ) {
     route("/api/v1/reference-data") {
         route("/dividends/{instrumentId}") {
-            get("/latest", {
-                summary = "Get latest dividend yield"
-                tags = listOf("Dividends")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val dividendYield = dividendYieldRepository.findLatest(instrumentId)
-                if (dividendYield != null) {
-                    call.respond(dividendYield.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest dividend yield"
+                    tags = listOf("Dividends")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val dividendYield = dividendYieldRepository.findLatest(instrumentId)
+                    if (dividendYield != null) {
+                        call.respond(dividendYield.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
         }
 
-        post("/dividends", {
-            summary = "Ingest a dividend yield"
-            tags = listOf("Dividends")
-            request {
-                body<IngestDividendYieldRequest>()
+        route("/dividends") {
+            post({
+                summary = "Ingest a dividend yield"
+                tags = listOf("Dividends")
+                request {
+                    body<IngestDividendYieldRequest>()
+                }
+            }) {
+                val request = call.receive<IngestDividendYieldRequest>()
+                val dividendYield = DividendYield(
+                    instrumentId = InstrumentId(request.instrumentId),
+                    yield = request.yield,
+                    exDate = request.exDate?.let { LocalDate.parse(it) },
+                    asOfDate = Instant.now(),
+                    source = ReferenceDataSource.valueOf(request.source),
+                )
+                ingestionService.ingest(dividendYield)
+                call.respond(HttpStatusCode.Created, dividendYield.toResponse())
             }
-        }) {
-            val request = call.receive<IngestDividendYieldRequest>()
-            val dividendYield = DividendYield(
-                instrumentId = InstrumentId(request.instrumentId),
-                yield = request.yield,
-                exDate = request.exDate?.let { LocalDate.parse(it) },
-                asOfDate = Instant.now(),
-                source = ReferenceDataSource.valueOf(request.source),
-            )
-            ingestionService.ingest(dividendYield)
-            call.respond(HttpStatusCode.Created, dividendYield.toResponse())
         }
 
         route("/credit-spreads/{instrumentId}") {
-            get("/latest", {
-                summary = "Get latest credit spread"
-                tags = listOf("Credit Spreads")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val creditSpread = creditSpreadRepository.findLatest(instrumentId)
-                if (creditSpread != null) {
-                    call.respond(creditSpread.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest credit spread"
+                    tags = listOf("Credit Spreads")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val creditSpread = creditSpreadRepository.findLatest(instrumentId)
+                    if (creditSpread != null) {
+                        call.respond(creditSpread.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
         }
 
-        post("/credit-spreads", {
-            summary = "Ingest a credit spread"
-            tags = listOf("Credit Spreads")
-            request {
-                body<IngestCreditSpreadRequest>()
+        route("/credit-spreads") {
+            post({
+                summary = "Ingest a credit spread"
+                tags = listOf("Credit Spreads")
+                request {
+                    body<IngestCreditSpreadRequest>()
+                }
+            }) {
+                val request = call.receive<IngestCreditSpreadRequest>()
+                val creditSpread = CreditSpread(
+                    instrumentId = InstrumentId(request.instrumentId),
+                    spread = request.spread,
+                    rating = request.rating,
+                    asOfDate = Instant.now(),
+                    source = ReferenceDataSource.valueOf(request.source),
+                )
+                ingestionService.ingest(creditSpread)
+                call.respond(HttpStatusCode.Created, creditSpread.toResponse())
             }
-        }) {
-            val request = call.receive<IngestCreditSpreadRequest>()
-            val creditSpread = CreditSpread(
-                instrumentId = InstrumentId(request.instrumentId),
-                spread = request.spread,
-                rating = request.rating,
-                asOfDate = Instant.now(),
-                source = ReferenceDataSource.valueOf(request.source),
-            )
-            ingestionService.ingest(creditSpread)
-            call.respond(HttpStatusCode.Created, creditSpread.toResponse())
         }
     }
 }

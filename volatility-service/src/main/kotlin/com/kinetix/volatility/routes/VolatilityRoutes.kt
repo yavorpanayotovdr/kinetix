@@ -25,63 +25,69 @@ fun Route.volatilityRoutes(
 ) {
     route("/api/v1/volatility") {
         route("/{instrumentId}/surface") {
-            get("/latest", {
-                summary = "Get latest volatility surface"
-                tags = listOf("Volatility")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val surface = volSurfaceRepository.findLatest(instrumentId)
-                if (surface != null) {
-                    call.respond(surface.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest volatility surface"
+                    tags = listOf("Volatility")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val surface = volSurfaceRepository.findLatest(instrumentId)
+                    if (surface != null) {
+                        call.respond(surface.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
 
-            get("/history", {
-                summary = "Get volatility surface history"
-                tags = listOf("Volatility")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                    queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
-                    queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+            route("/history") {
+                get({
+                    summary = "Get volatility surface history"
+                    tags = listOf("Volatility")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                        queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
+                        queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val from = Instant.parse(
+                        call.request.queryParameters["from"]
+                            ?: throw IllegalArgumentException("Missing required query parameter: from")
+                    )
+                    val to = Instant.parse(
+                        call.request.queryParameters["to"]
+                            ?: throw IllegalArgumentException("Missing required query parameter: to")
+                    )
+                    val surfaces = volSurfaceRepository.findByTimeRange(instrumentId, from, to)
+                    call.respond(surfaces.map { it.toResponse() })
                 }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val from = Instant.parse(
-                    call.request.queryParameters["from"]
-                        ?: throw IllegalArgumentException("Missing required query parameter: from")
-                )
-                val to = Instant.parse(
-                    call.request.queryParameters["to"]
-                        ?: throw IllegalArgumentException("Missing required query parameter: to")
-                )
-                val surfaces = volSurfaceRepository.findByTimeRange(instrumentId, from, to)
-                call.respond(surfaces.map { it.toResponse() })
             }
         }
 
-        post("/surfaces", {
-            summary = "Ingest a volatility surface"
-            tags = listOf("Volatility")
-            request {
-                body<IngestVolSurfaceRequest>()
+        route("/surfaces") {
+            post({
+                summary = "Ingest a volatility surface"
+                tags = listOf("Volatility")
+                request {
+                    body<IngestVolSurfaceRequest>()
+                }
+            }) {
+                val request = call.receive<IngestVolSurfaceRequest>()
+                val surface = VolSurface(
+                    instrumentId = InstrumentId(request.instrumentId),
+                    asOf = Instant.now(),
+                    points = request.points.map {
+                        VolPoint(BigDecimal(it.strike.toString()), it.maturityDays, BigDecimal(it.impliedVol.toString()))
+                    },
+                    source = VolatilitySource.valueOf(request.source),
+                )
+                ingestionService.ingest(surface)
+                call.respond(HttpStatusCode.Created, surface.toResponse())
             }
-        }) {
-            val request = call.receive<IngestVolSurfaceRequest>()
-            val surface = VolSurface(
-                instrumentId = InstrumentId(request.instrumentId),
-                asOf = Instant.now(),
-                points = request.points.map {
-                    VolPoint(BigDecimal(it.strike.toString()), it.maturityDays, BigDecimal(it.impliedVol.toString()))
-                },
-                source = VolatilitySource.valueOf(request.source),
-            )
-            ingestionService.ingest(surface)
-            call.respond(HttpStatusCode.Created, surface.toResponse())
         }
     }
 }

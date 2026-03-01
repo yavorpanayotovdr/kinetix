@@ -207,176 +207,184 @@ fun Route.positionRoutes(
 
         route("/{portfolioId}") {
 
-            get("/trades", {
-                summary = "Get trade history for a portfolio"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            route("/trades") {
+                get({
+                    summary = "Get trade history for a portfolio"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    }
+                    response {
+                        code(HttpStatusCode.OK) { body<List<TradeResponse>>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val trades = tradeEventRepository.findByPortfolioId(portfolioId)
+                    call.respond(trades.map { it.toResponse() })
                 }
-                response {
-                    code(HttpStatusCode.OK) { body<List<TradeResponse>>() }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val trades = tradeEventRepository.findByPortfolioId(portfolioId)
-                call.respond(trades.map { it.toResponse() })
-            }
 
-            get("/positions", {
-                summary = "Get positions for a portfolio"
-                tags = listOf("Positions")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                }
-                response {
-                    code(HttpStatusCode.OK) { body<List<PositionResponse>>() }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
-                call.respond(positions.map { it.toResponse() })
-            }
-
-            get("/summary", {
-                summary = "Get portfolio summary with multi-currency aggregation"
-                tags = listOf("Portfolios")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                    queryParameter<String>("baseCurrency") {
-                        description = "Base currency for aggregation (default: USD)"
-                        required = false
+                post({
+                    summary = "Book a trade"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        body<BookTradeRequest>()
+                    }
+                    response {
+                        code(HttpStatusCode.Created) { body<BookTradeResponse>() }
+                        code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                        code(HttpStatusCode.UnprocessableEntity) { body<LimitBreachResponse>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val request = call.receive<BookTradeRequest>()
+                    val qty = BigDecimal(request.quantity)
+                    require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
+                    val priceAmt = BigDecimal(request.priceAmount)
+                    require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
+                    val command = BookTradeCommand(
+                        tradeId = TradeId(request.tradeId ?: UUID.randomUUID().toString()),
+                        portfolioId = portfolioId,
+                        instrumentId = InstrumentId(request.instrumentId),
+                        assetClass = AssetClass.valueOf(request.assetClass),
+                        side = Side.valueOf(request.side),
+                        quantity = qty,
+                        price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
+                        tradedAt = Instant.parse(request.tradedAt),
+                    )
+                    try {
+                        val result = tradeBookingService.handle(command)
+                        call.respond(
+                            HttpStatusCode.Created,
+                            BookTradeResponse(
+                                trade = result.trade.toResponse(),
+                                position = result.position.toResponse(),
+                                warnings = result.warnings.map { it.toDto() },
+                            ),
+                        )
+                    } catch (e: LimitBreachException) {
+                        call.respond(
+                            HttpStatusCode.UnprocessableEntity,
+                            LimitBreachResponse(
+                                error = "limit_breach",
+                                message = e.message ?: "Trade blocked by limit breach",
+                                breaches = e.result.breaches.map { it.toDto() },
+                            ),
+                        )
                     }
                 }
-                response {
-                    code(HttpStatusCode.OK) { body<PortfolioAggregationResponse>() }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val baseCurrency = call.request.queryParameters["baseCurrency"]
-                    ?.let { Currency.getInstance(it) }
-                    ?: Currency.getInstance("USD")
-                val summary = portfolioAggregationService.aggregate(portfolioId, baseCurrency)
-                call.respond(summary.toResponse())
             }
 
-            post("/trades", {
-                summary = "Book a trade"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                    body<BookTradeRequest>()
+            route("/positions") {
+                get({
+                    summary = "Get positions for a portfolio"
+                    tags = listOf("Positions")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    }
+                    response {
+                        code(HttpStatusCode.OK) { body<List<PositionResponse>>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
+                    call.respond(positions.map { it.toResponse() })
                 }
-                response {
-                    code(HttpStatusCode.Created) { body<BookTradeResponse>() }
-                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
-                    code(HttpStatusCode.UnprocessableEntity) { body<LimitBreachResponse>() }
+            }
+
+            route("/summary") {
+                get({
+                    summary = "Get portfolio summary with multi-currency aggregation"
+                    tags = listOf("Portfolios")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        queryParameter<String>("baseCurrency") {
+                            description = "Base currency for aggregation (default: USD)"
+                            required = false
+                        }
+                    }
+                    response {
+                        code(HttpStatusCode.OK) { body<PortfolioAggregationResponse>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val baseCurrency = call.request.queryParameters["baseCurrency"]
+                        ?.let { Currency.getInstance(it) }
+                        ?: Currency.getInstance("USD")
+                    val summary = portfolioAggregationService.aggregate(portfolioId, baseCurrency)
+                    call.respond(summary.toResponse())
                 }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val request = call.receive<BookTradeRequest>()
-                val qty = BigDecimal(request.quantity)
-                require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
-                val priceAmt = BigDecimal(request.priceAmount)
-                require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
-                val command = BookTradeCommand(
-                    tradeId = TradeId(request.tradeId ?: UUID.randomUUID().toString()),
-                    portfolioId = portfolioId,
-                    instrumentId = InstrumentId(request.instrumentId),
-                    assetClass = AssetClass.valueOf(request.assetClass),
-                    side = Side.valueOf(request.side),
-                    quantity = qty,
-                    price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
-                    tradedAt = Instant.parse(request.tradedAt),
-                )
-                try {
-                    val result = tradeBookingService.handle(command)
+            }
+
+            route("/trades/{tradeId}") {
+                put({
+                    summary = "Amend a trade"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("tradeId") { description = "Trade identifier to amend" }
+                        body<AmendTradeRequest>()
+                    }
+                    response {
+                        code(HttpStatusCode.OK) { body<BookTradeResponse>() }
+                        code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val tradeId = TradeId(call.requirePathParam("tradeId"))
+                    val request = call.receive<AmendTradeRequest>()
+                    val qty = BigDecimal(request.quantity)
+                    require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
+                    val priceAmt = BigDecimal(request.priceAmount)
+                    require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
+                    val command = AmendTradeCommand(
+                        originalTradeId = tradeId,
+                        newTradeId = TradeId(request.newTradeId ?: UUID.randomUUID().toString()),
+                        portfolioId = portfolioId,
+                        instrumentId = InstrumentId(request.instrumentId),
+                        assetClass = AssetClass.valueOf(request.assetClass),
+                        side = Side.valueOf(request.side),
+                        quantity = qty,
+                        price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
+                        tradedAt = Instant.parse(request.tradedAt),
+                    )
+                    val result = tradeLifecycleService.handleAmend(command)
                     call.respond(
-                        HttpStatusCode.Created,
+                        HttpStatusCode.OK,
                         BookTradeResponse(
                             trade = result.trade.toResponse(),
                             position = result.position.toResponse(),
-                            warnings = result.warnings.map { it.toDto() },
                         ),
                     )
-                } catch (e: LimitBreachException) {
+                }
+
+                delete({
+                    summary = "Cancel a trade"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("tradeId") { description = "Trade identifier to cancel" }
+                    }
+                    response {
+                        code(HttpStatusCode.OK) { body<BookTradeResponse>() }
+                        code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val tradeId = TradeId(call.requirePathParam("tradeId"))
+                    val command = CancelTradeCommand(
+                        tradeId = tradeId,
+                        portfolioId = portfolioId,
+                    )
+                    val result = tradeLifecycleService.handleCancel(command)
                     call.respond(
-                        HttpStatusCode.UnprocessableEntity,
-                        LimitBreachResponse(
-                            error = "limit_breach",
-                            message = e.message ?: "Trade blocked by limit breach",
-                            breaches = e.result.breaches.map { it.toDto() },
+                        HttpStatusCode.OK,
+                        BookTradeResponse(
+                            trade = result.trade.toResponse(),
+                            position = result.position.toResponse(),
                         ),
                     )
                 }
-            }
-
-            put("/trades/{tradeId}", {
-                summary = "Amend a trade"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                    pathParameter<String>("tradeId") { description = "Trade identifier to amend" }
-                    body<AmendTradeRequest>()
-                }
-                response {
-                    code(HttpStatusCode.OK) { body<BookTradeResponse>() }
-                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val tradeId = TradeId(call.requirePathParam("tradeId"))
-                val request = call.receive<AmendTradeRequest>()
-                val qty = BigDecimal(request.quantity)
-                require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
-                val priceAmt = BigDecimal(request.priceAmount)
-                require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
-                val command = AmendTradeCommand(
-                    originalTradeId = tradeId,
-                    newTradeId = TradeId(request.newTradeId ?: UUID.randomUUID().toString()),
-                    portfolioId = portfolioId,
-                    instrumentId = InstrumentId(request.instrumentId),
-                    assetClass = AssetClass.valueOf(request.assetClass),
-                    side = Side.valueOf(request.side),
-                    quantity = qty,
-                    price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
-                    tradedAt = Instant.parse(request.tradedAt),
-                )
-                val result = tradeLifecycleService.handleAmend(command)
-                call.respond(
-                    HttpStatusCode.OK,
-                    BookTradeResponse(
-                        trade = result.trade.toResponse(),
-                        position = result.position.toResponse(),
-                    ),
-                )
-            }
-
-            delete("/trades/{tradeId}", {
-                summary = "Cancel a trade"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                    pathParameter<String>("tradeId") { description = "Trade identifier to cancel" }
-                }
-                response {
-                    code(HttpStatusCode.OK) { body<BookTradeResponse>() }
-                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val tradeId = TradeId(call.requirePathParam("tradeId"))
-                val command = CancelTradeCommand(
-                    tradeId = tradeId,
-                    portfolioId = portfolioId,
-                )
-                val result = tradeLifecycleService.handleCancel(command)
-                call.respond(
-                    HttpStatusCode.OK,
-                    BookTradeResponse(
-                        trade = result.trade.toResponse(),
-                        position = result.position.toResponse(),
-                    ),
-                )
             }
         }
     }

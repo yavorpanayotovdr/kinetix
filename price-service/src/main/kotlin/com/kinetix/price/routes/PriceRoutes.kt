@@ -48,67 +48,73 @@ private fun PricePoint.toResponse() = PricePointResponse(
 fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngestionService) {
     route("/api/v1/prices/{instrumentId}") {
 
-        get("/latest", {
-            summary = "Get latest price for an instrument"
-            tags = listOf("Prices")
-            request {
-                pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-            }
-            response {
-                code(HttpStatusCode.OK) { body<PricePointResponse>() }
-            }
-        }) {
-            val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-            val point = repository.findLatest(instrumentId)
-            if (point != null) {
-                call.respond(point.toResponse())
-            } else {
-                call.respond(HttpStatusCode.NotFound)
+        route("/latest") {
+            get({
+                summary = "Get latest price for an instrument"
+                tags = listOf("Prices")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<PricePointResponse>() }
+                }
+            }) {
+                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                val point = repository.findLatest(instrumentId)
+                if (point != null) {
+                    call.respond(point.toResponse())
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
             }
         }
 
-        get("/history", {
-            summary = "Get price history for an instrument"
-            tags = listOf("Prices")
-            request {
-                pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
-                queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+        route("/history") {
+            get({
+                summary = "Get price history for an instrument"
+                tags = listOf("Prices")
+                request {
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    queryParameter<String>("from") { description = "Start of time range (ISO-8601)" }
+                    queryParameter<String>("to") { description = "End of time range (ISO-8601)" }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<List<PricePointResponse>>() }
+                }
+            }) {
+                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                val from = call.queryParameters["from"]
+                    ?: throw IllegalArgumentException("Missing required query parameter: from")
+                val to = call.queryParameters["to"]
+                    ?: throw IllegalArgumentException("Missing required query parameter: to")
+                val points = repository.findByInstrumentId(instrumentId, Instant.parse(from), Instant.parse(to))
+                call.respond(points.map { it.toResponse() })
             }
-            response {
-                code(HttpStatusCode.OK) { body<List<PricePointResponse>>() }
-            }
-        }) {
-            val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-            val from = call.queryParameters["from"]
-                ?: throw IllegalArgumentException("Missing required query parameter: from")
-            val to = call.queryParameters["to"]
-                ?: throw IllegalArgumentException("Missing required query parameter: to")
-            val points = repository.findByInstrumentId(instrumentId, Instant.parse(from), Instant.parse(to))
-            call.respond(points.map { it.toResponse() })
         }
     }
 
     route("/api/v1/prices") {
-        post("/ingest", {
-            summary = "Ingest a new price"
-            tags = listOf("Prices")
-            request {
-                body<IngestPriceRequest>()
+        route("/ingest") {
+            post({
+                summary = "Ingest a new price"
+                tags = listOf("Prices")
+                request {
+                    body<IngestPriceRequest>()
+                }
+                response {
+                    code(HttpStatusCode.Created) { body<PricePointResponse>() }
+                }
+            }) {
+                val request = call.receive<IngestPriceRequest>()
+                val point = PricePoint(
+                    instrumentId = InstrumentId(request.instrumentId),
+                    price = Money(BigDecimal(request.priceAmount), Currency.getInstance(request.priceCurrency)),
+                    timestamp = Instant.now(),
+                    source = PriceSource.valueOf(request.source),
+                )
+                ingestionService.ingest(point)
+                call.respond(HttpStatusCode.Created, point.toResponse())
             }
-            response {
-                code(HttpStatusCode.Created) { body<PricePointResponse>() }
-            }
-        }) {
-            val request = call.receive<IngestPriceRequest>()
-            val point = PricePoint(
-                instrumentId = InstrumentId(request.instrumentId),
-                price = Money(BigDecimal(request.priceAmount), Currency.getInstance(request.priceCurrency)),
-                timestamp = Instant.now(),
-                source = PriceSource.valueOf(request.source),
-            )
-            ingestionService.ingest(point)
-            call.respond(HttpStatusCode.Created, point.toResponse())
         }
     }
 }

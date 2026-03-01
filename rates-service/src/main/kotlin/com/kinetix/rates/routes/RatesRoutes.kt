@@ -31,154 +31,170 @@ fun Route.ratesRoutes(
 ) {
     route("/api/v1/rates") {
         route("/yield-curves/{curveId}") {
-            get("/latest", {
-                summary = "Get latest yield curve"
-                tags = listOf("Yield Curves")
-                request {
-                    pathParameter<String>("curveId") { description = "Yield curve identifier" }
-                }
-            }) {
-                val curveId = call.requirePathParam("curveId")
-                val curve = yieldCurveRepository.findLatest(curveId)
-                if (curve != null) {
-                    call.respond(curve.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest yield curve"
+                    tags = listOf("Yield Curves")
+                    request {
+                        pathParameter<String>("curveId") { description = "Yield curve identifier" }
+                    }
+                }) {
+                    val curveId = call.requirePathParam("curveId")
+                    val curve = yieldCurveRepository.findLatest(curveId)
+                    if (curve != null) {
+                        call.respond(curve.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
 
-            get("/history", {
-                summary = "Get yield curve history"
-                tags = listOf("Yield Curves")
-                request {
-                    pathParameter<String>("curveId") { description = "Yield curve identifier" }
-                    queryParameter<String>("from") { description = "Start of time range" }
-                    queryParameter<String>("to") { description = "End of time range" }
+            route("/history") {
+                get({
+                    summary = "Get yield curve history"
+                    tags = listOf("Yield Curves")
+                    request {
+                        pathParameter<String>("curveId") { description = "Yield curve identifier" }
+                        queryParameter<String>("from") { description = "Start of time range" }
+                        queryParameter<String>("to") { description = "End of time range" }
+                    }
+                }) {
+                    val curveId = call.requirePathParam("curveId")
+                    val from = call.queryParameters["from"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: from")
+                    val to = call.queryParameters["to"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: to")
+                    val curves = yieldCurveRepository.findByTimeRange(curveId, Instant.parse(from), Instant.parse(to))
+                    call.respond(curves.map { it.toResponse() })
                 }
-            }) {
-                val curveId = call.requirePathParam("curveId")
-                val from = call.queryParameters["from"]
-                    ?: throw IllegalArgumentException("Missing required query parameter: from")
-                val to = call.queryParameters["to"]
-                    ?: throw IllegalArgumentException("Missing required query parameter: to")
-                val curves = yieldCurveRepository.findByTimeRange(curveId, Instant.parse(from), Instant.parse(to))
-                call.respond(curves.map { it.toResponse() })
             }
         }
 
-        post("/yield-curves", {
-            summary = "Ingest a yield curve"
-            tags = listOf("Yield Curves")
-            request {
-                body<IngestYieldCurveRequest>()
+        route("/yield-curves") {
+            post({
+                summary = "Ingest a yield curve"
+                tags = listOf("Yield Curves")
+                request {
+                    body<IngestYieldCurveRequest>()
+                }
+            }) {
+                val request = call.receive<IngestYieldCurveRequest>()
+                val curve = YieldCurve(
+                    curveId = request.curveId,
+                    currency = Currency.getInstance(request.currency),
+                    tenors = request.tenors.map { Tenor(it.label, it.days, BigDecimal(it.rate)) },
+                    asOf = Instant.now(),
+                    source = RateSource.valueOf(request.source),
+                )
+                ingestionService.ingest(curve)
+                call.respond(HttpStatusCode.Created, curve.toResponse())
             }
-        }) {
-            val request = call.receive<IngestYieldCurveRequest>()
-            val curve = YieldCurve(
-                curveId = request.curveId,
-                currency = Currency.getInstance(request.currency),
-                tenors = request.tenors.map { Tenor(it.label, it.days, BigDecimal(it.rate)) },
-                asOf = Instant.now(),
-                source = RateSource.valueOf(request.source),
-            )
-            ingestionService.ingest(curve)
-            call.respond(HttpStatusCode.Created, curve.toResponse())
         }
 
         route("/risk-free/{currency}") {
-            get("/latest", {
-                summary = "Get latest risk-free rate"
-                tags = listOf("Risk-Free Rates")
-                request {
-                    pathParameter<String>("currency") { description = "Currency code" }
-                    queryParameter<String>("tenor") { description = "Rate tenor" }
-                }
-            }) {
-                val currencyCode = call.requirePathParam("currency")
-                val currency = Currency.getInstance(currencyCode)
-                val tenor = call.queryParameters["tenor"]
-                    ?: throw IllegalArgumentException("Missing required query parameter: tenor")
-                val rate = riskFreeRateRepository.findLatest(currency, tenor)
-                if (rate != null) {
-                    call.respond(rate.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest risk-free rate"
+                    tags = listOf("Risk-Free Rates")
+                    request {
+                        pathParameter<String>("currency") { description = "Currency code" }
+                        queryParameter<String>("tenor") { description = "Rate tenor" }
+                    }
+                }) {
+                    val currencyCode = call.requirePathParam("currency")
+                    val currency = Currency.getInstance(currencyCode)
+                    val tenor = call.queryParameters["tenor"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: tenor")
+                    val rate = riskFreeRateRepository.findLatest(currency, tenor)
+                    if (rate != null) {
+                        call.respond(rate.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
         }
 
-        post("/risk-free", {
-            summary = "Ingest a risk-free rate"
-            tags = listOf("Risk-Free Rates")
-            request {
-                body<IngestRiskFreeRateRequest>()
+        route("/risk-free") {
+            post({
+                summary = "Ingest a risk-free rate"
+                tags = listOf("Risk-Free Rates")
+                request {
+                    body<IngestRiskFreeRateRequest>()
+                }
+            }) {
+                val request = call.receive<IngestRiskFreeRateRequest>()
+                val rate = RiskFreeRate(
+                    currency = Currency.getInstance(request.currency),
+                    tenor = request.tenor,
+                    rate = BigDecimal(request.rate).toDouble(),
+                    asOfDate = Instant.now(),
+                    source = RateSource.valueOf(request.source),
+                )
+                ingestionService.ingest(rate)
+                call.respond(HttpStatusCode.Created, rate.toResponse())
             }
-        }) {
-            val request = call.receive<IngestRiskFreeRateRequest>()
-            val rate = RiskFreeRate(
-                currency = Currency.getInstance(request.currency),
-                tenor = request.tenor,
-                rate = BigDecimal(request.rate).toDouble(),
-                asOfDate = Instant.now(),
-                source = RateSource.valueOf(request.source),
-            )
-            ingestionService.ingest(rate)
-            call.respond(HttpStatusCode.Created, rate.toResponse())
         }
 
         route("/forwards/{instrumentId}") {
-            get("/latest", {
-                summary = "Get latest forward curve"
-                tags = listOf("Forward Curves")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val curve = forwardCurveRepository.findLatest(instrumentId)
-                if (curve != null) {
-                    call.respond(curve.toResponse())
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
+            route("/latest") {
+                get({
+                    summary = "Get latest forward curve"
+                    tags = listOf("Forward Curves")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val curve = forwardCurveRepository.findLatest(instrumentId)
+                    if (curve != null) {
+                        call.respond(curve.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
                 }
             }
 
-            get("/history", {
-                summary = "Get forward curve history"
-                tags = listOf("Forward Curves")
-                request {
-                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
-                    queryParameter<String>("from") { description = "Start of time range" }
-                    queryParameter<String>("to") { description = "End of time range" }
+            route("/history") {
+                get({
+                    summary = "Get forward curve history"
+                    tags = listOf("Forward Curves")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                        queryParameter<String>("from") { description = "Start of time range" }
+                        queryParameter<String>("to") { description = "End of time range" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val from = call.queryParameters["from"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: from")
+                    val to = call.queryParameters["to"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: to")
+                    val curves = forwardCurveRepository.findByTimeRange(instrumentId, Instant.parse(from), Instant.parse(to))
+                    call.respond(curves.map { it.toResponse() })
                 }
-            }) {
-                val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
-                val from = call.queryParameters["from"]
-                    ?: throw IllegalArgumentException("Missing required query parameter: from")
-                val to = call.queryParameters["to"]
-                    ?: throw IllegalArgumentException("Missing required query parameter: to")
-                val curves = forwardCurveRepository.findByTimeRange(instrumentId, Instant.parse(from), Instant.parse(to))
-                call.respond(curves.map { it.toResponse() })
             }
         }
 
-        post("/forwards", {
-            summary = "Ingest a forward curve"
-            tags = listOf("Forward Curves")
-            request {
-                body<IngestForwardCurveRequest>()
+        route("/forwards") {
+            post({
+                summary = "Ingest a forward curve"
+                tags = listOf("Forward Curves")
+                request {
+                    body<IngestForwardCurveRequest>()
+                }
+            }) {
+                val request = call.receive<IngestForwardCurveRequest>()
+                val curve = ForwardCurve(
+                    instrumentId = InstrumentId(request.instrumentId),
+                    assetClass = request.assetClass,
+                    points = request.points.map { CurvePoint(it.tenor, BigDecimal(it.value).toDouble()) },
+                    asOfDate = Instant.now(),
+                    source = RateSource.valueOf(request.source),
+                )
+                ingestionService.ingest(curve)
+                call.respond(HttpStatusCode.Created, curve.toResponse())
             }
-        }) {
-            val request = call.receive<IngestForwardCurveRequest>()
-            val curve = ForwardCurve(
-                instrumentId = InstrumentId(request.instrumentId),
-                assetClass = request.assetClass,
-                points = request.points.map { CurvePoint(it.tenor, BigDecimal(it.value).toDouble()) },
-                asOfDate = Instant.now(),
-                source = RateSource.valueOf(request.source),
-            )
-            ingestionService.ingest(curve)
-            call.respond(HttpStatusCode.Created, curve.toResponse())
         }
     }
 }

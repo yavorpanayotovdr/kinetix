@@ -20,92 +20,98 @@ fun Route.regulatoryRoutes(
     client: RiskOrchestratorClient,
 ) {
     route("/api/v1/regulatory/frtb/{portfolioId}") {
-        post("/calculate", {
-            summary = "Calculate FRTB for a portfolio"
-            tags = listOf("FRTB")
-            request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+        route("/calculate") {
+            post({
+                summary = "Calculate FRTB for a portfolio"
+                tags = listOf("FRTB")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                }
+            }) {
+                val portfolioId = call.parameters["portfolioId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+
+                val frtbResult = client.calculateFrtb(portfolioId)
+
+                val record = FrtbCalculationRecord(
+                    id = UUID.randomUUID().toString(),
+                    portfolioId = portfolioId,
+                    totalSbmCharge = frtbResult.totalSbmCharge.toDouble(),
+                    grossJtd = frtbResult.grossJtd.toDouble(),
+                    hedgeBenefit = frtbResult.hedgeBenefit.toDouble(),
+                    netDrc = frtbResult.netDrc.toDouble(),
+                    exoticNotional = frtbResult.exoticNotional.toDouble(),
+                    otherNotional = frtbResult.otherNotional.toDouble(),
+                    totalRrao = frtbResult.totalRrao.toDouble(),
+                    totalCapitalCharge = frtbResult.totalCapitalCharge.toDouble(),
+                    sbmCharges = frtbResult.sbmCharges.map {
+                        RiskClassCharge(
+                            riskClass = it.riskClass,
+                            deltaCharge = it.deltaCharge.toDouble(),
+                            vegaCharge = it.vegaCharge.toDouble(),
+                            curvatureCharge = it.curvatureCharge.toDouble(),
+                            totalCharge = it.totalCharge.toDouble(),
+                        )
+                    },
+                    calculatedAt = Instant.parse(frtbResult.calculatedAt),
+                    storedAt = Instant.now(),
+                )
+
+                repository.save(record)
+                call.respond(HttpStatusCode.Created, record.toResponse())
             }
-        }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
-
-            val frtbResult = client.calculateFrtb(portfolioId)
-
-            val record = FrtbCalculationRecord(
-                id = UUID.randomUUID().toString(),
-                portfolioId = portfolioId,
-                totalSbmCharge = frtbResult.totalSbmCharge.toDouble(),
-                grossJtd = frtbResult.grossJtd.toDouble(),
-                hedgeBenefit = frtbResult.hedgeBenefit.toDouble(),
-                netDrc = frtbResult.netDrc.toDouble(),
-                exoticNotional = frtbResult.exoticNotional.toDouble(),
-                otherNotional = frtbResult.otherNotional.toDouble(),
-                totalRrao = frtbResult.totalRrao.toDouble(),
-                totalCapitalCharge = frtbResult.totalCapitalCharge.toDouble(),
-                sbmCharges = frtbResult.sbmCharges.map {
-                    RiskClassCharge(
-                        riskClass = it.riskClass,
-                        deltaCharge = it.deltaCharge.toDouble(),
-                        vegaCharge = it.vegaCharge.toDouble(),
-                        curvatureCharge = it.curvatureCharge.toDouble(),
-                        totalCharge = it.totalCharge.toDouble(),
-                    )
-                },
-                calculatedAt = Instant.parse(frtbResult.calculatedAt),
-                storedAt = Instant.now(),
-            )
-
-            repository.save(record)
-            call.respond(HttpStatusCode.Created, record.toResponse())
         }
 
-        get("/history", {
-            summary = "Get FRTB calculation history"
-            tags = listOf("FRTB")
-            request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                queryParameter<String>("limit") {
-                    description = "Maximum number of results"
-                    required = false
+        route("/history") {
+            get({
+                summary = "Get FRTB calculation history"
+                tags = listOf("FRTB")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    queryParameter<String>("limit") {
+                        description = "Maximum number of results"
+                        required = false
+                    }
+                    queryParameter<String>("offset") {
+                        description = "Number of results to skip"
+                        required = false
+                    }
                 }
-                queryParameter<String>("offset") {
-                    description = "Number of results to skip"
-                    required = false
-                }
-            }
-        }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
-            val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
-            val offset = call.queryParameters["offset"]?.toIntOrNull() ?: 0
+            }) {
+                val portfolioId = call.parameters["portfolioId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+                val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val offset = call.queryParameters["offset"]?.toIntOrNull() ?: 0
 
-            val records = repository.findByPortfolioId(portfolioId, limit, offset)
-            call.respond(
-                FrtbHistoryResponse(
-                    calculations = records.map { it.toResponse() },
-                    total = records.size,
-                    limit = limit,
-                    offset = offset,
-                ),
-            )
+                val records = repository.findByPortfolioId(portfolioId, limit, offset)
+                call.respond(
+                    FrtbHistoryResponse(
+                        calculations = records.map { it.toResponse() },
+                        total = records.size,
+                        limit = limit,
+                        offset = offset,
+                    ),
+                )
+            }
         }
 
-        get("/latest", {
-            summary = "Get latest FRTB calculation"
-            tags = listOf("FRTB")
-            request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-            }
-        }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+        route("/latest") {
+            get({
+                summary = "Get latest FRTB calculation"
+                tags = listOf("FRTB")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                }
+            }) {
+                val portfolioId = call.parameters["portfolioId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 
-            val record = repository.findLatestByPortfolioId(portfolioId)
-            if (record != null) {
-                call.respond(record.toResponse())
-            } else {
-                call.respond(HttpStatusCode.NotFound)
+                val record = repository.findLatestByPortfolioId(portfolioId)
+                if (record != null) {
+                    call.respond(record.toResponse())
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
             }
         }
     }

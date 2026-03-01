@@ -20,41 +20,45 @@ fun Route.correlationRoutes(
     ingestionService: CorrelationIngestionService,
 ) {
     route("/api/v1/correlations") {
-        get("/latest", {
-            summary = "Get latest correlation matrix"
-            tags = listOf("Correlations")
-            request {
-                queryParameter<String>("labels") { description = "Comma-separated instrument labels" }
-                queryParameter<Int>("window") { description = "Window size in days" }
-            }
-        }) {
-            val labels = call.requireQueryParam("labels").split(",")
-            val windowDays = call.requireQueryParam("window").toInt()
-            val matrix = correlationMatrixRepository.findLatest(labels, windowDays)
-            if (matrix != null) {
-                call.respond(matrix.toResponse())
-            } else {
-                call.respond(HttpStatusCode.NotFound)
+        route("/latest") {
+            get({
+                summary = "Get latest correlation matrix"
+                tags = listOf("Correlations")
+                request {
+                    queryParameter<String>("labels") { description = "Comma-separated instrument labels" }
+                    queryParameter<Int>("window") { description = "Window size in days" }
+                }
+            }) {
+                val labels = call.requireQueryParam("labels").split(",")
+                val windowDays = call.requireQueryParam("window").toInt()
+                val matrix = correlationMatrixRepository.findLatest(labels, windowDays)
+                if (matrix != null) {
+                    call.respond(matrix.toResponse())
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
             }
         }
 
-        post("/ingest", {
-            summary = "Ingest a correlation matrix"
-            tags = listOf("Correlations")
-            request {
-                body<IngestCorrelationMatrixRequest>()
+        route("/ingest") {
+            post({
+                summary = "Ingest a correlation matrix"
+                tags = listOf("Correlations")
+                request {
+                    body<IngestCorrelationMatrixRequest>()
+                }
+            }) {
+                val request = call.receive<IngestCorrelationMatrixRequest>()
+                val matrix = CorrelationMatrix(
+                    labels = request.labels,
+                    values = request.values,
+                    windowDays = request.windowDays,
+                    asOfDate = Instant.now(),
+                    method = EstimationMethod.valueOf(request.method),
+                )
+                ingestionService.ingest(matrix)
+                call.respond(HttpStatusCode.Created, matrix.toResponse())
             }
-        }) {
-            val request = call.receive<IngestCorrelationMatrixRequest>()
-            val matrix = CorrelationMatrix(
-                labels = request.labels,
-                values = request.values,
-                windowDays = request.windowDays,
-                asOfDate = Instant.now(),
-                method = EstimationMethod.valueOf(request.method),
-            )
-            ingestionService.ingest(matrix)
-            call.respond(HttpStatusCode.Created, matrix.toResponse())
         }
     }
 }
