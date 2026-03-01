@@ -29,6 +29,7 @@ data class VaRResult(
     val expectedShortfall: Double,
     val componentBreakdown: List<ComponentBreakdown>,
     val calculatedAt: Instant,
+    val modelVersion: String? = null,
 )
 
 data class VaRCalculationRequest(

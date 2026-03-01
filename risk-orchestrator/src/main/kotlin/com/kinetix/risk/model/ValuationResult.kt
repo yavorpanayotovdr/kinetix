@@ -17,4 +17,5 @@ data class ValuationResult(
     val pvValue: Double? = null,
     val positionRisk: List<PositionRisk> = emptyList(),
     val jobId: UUID? = null,
+    val modelVersion: String? = null,
 )
