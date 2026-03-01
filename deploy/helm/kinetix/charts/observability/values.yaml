@@ -100,7 +100,7 @@ kube-prometheus-stack:
         access: proxy
       - name: Tempo
         type: tempo
-        url: http://kinetix-tempo:3100
+        url: http://kinetix-tempo:3200
         access: proxy
 
 loki:
