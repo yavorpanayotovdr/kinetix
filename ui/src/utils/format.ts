@@ -5,6 +5,11 @@ const KNOWN_CURRENCIES: Record<string, string> = {
   JPY: 'ja-JP',
 }
 
+export function formatCurrency(value: string | number, currency = 'USD'): string {
+  const num = typeof value === 'string' ? Number(value) : value
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num)
+}
+
 export function formatMoney(amount: string, currency: string): string {
   const locale = KNOWN_CURRENCIES[currency]
   if (!locale) {
