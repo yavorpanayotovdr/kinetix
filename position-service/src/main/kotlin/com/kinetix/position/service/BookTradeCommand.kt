@@ -2,6 +2,7 @@ package com.kinetix.position.service
 
 import com.kinetix.common.model.*
 import com.kinetix.position.kafka.TradeEventPublisher
+import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
 import java.math.BigDecimal
@@ -21,6 +22,7 @@ data class BookTradeCommand(
 data class BookTradeResult(
     val trade: Trade,
     val position: Position,
+    val warnings: List<LimitBreach> = emptyList(),
 )
 
 class TradeBookingService(
@@ -28,8 +30,15 @@ class TradeBookingService(
     private val positionRepository: PositionRepository,
     private val transactional: TransactionalRunner,
     private val tradeEventPublisher: TradeEventPublisher,
+    private val limitCheckService: LimitCheckService? = null,
 ) {
     suspend fun handle(command: BookTradeCommand): BookTradeResult {
+        val limitResult = limitCheckService?.check(command)
+        if (limitResult != null && limitResult.blocked) {
+            throw LimitBreachException(limitResult)
+        }
+        val warnings = limitResult?.breaches ?: emptyList()
+
         val trade = Trade(
             tradeId = command.tradeId,
             portfolioId = command.portfolioId,
@@ -46,7 +55,7 @@ class TradeBookingService(
             if (existing != null) {
                 val position = positionRepository.findByKey(trade.portfolioId, trade.instrumentId)
                     ?: Position.empty(trade.portfolioId, trade.instrumentId, trade.assetClass, trade.price.currency)
-                return@run Pair(BookTradeResult(existing, position), false)
+                return@run Pair(BookTradeResult(existing, position, warnings), false)
             }
 
             tradeEventRepository.save(trade)
@@ -57,7 +66,7 @@ class TradeBookingService(
             val updatedPosition = currentPosition.applyTrade(trade)
             positionRepository.save(updatedPosition)
 
-            Pair(BookTradeResult(trade, updatedPosition), true)
+            Pair(BookTradeResult(trade, updatedPosition, warnings), true)
         }
 
         if (isNewTrade) {
