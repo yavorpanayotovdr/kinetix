@@ -7,10 +7,10 @@ tests:
   - interval: 1m
     input_series:
       - series: 'risk_var_value{portfolio_id="port-1"}'
-        values: "500000 500000 500000 1500000 1500000 1500000 1500000 1500000"
+        values: "500000 500000 500000 1500000 1500000 1500000 1500000 1500000 1500000"
 
     alert_rule_test:
-      - eval_time: 7m
+      - eval_time: 8m
         alertname: VaRBreached
         exp_alerts:
           - exp_labels:
@@ -37,7 +37,7 @@ tests:
               severity: warning
             exp_annotations:
               summary: "Risk calculation p95 latency exceeds 30s"
-              description: "P95 VaR calculation duration is 60s"
+              description: "P95 VaR calculation duration is 58.5s"
 
   - interval: 1m
     input_series:

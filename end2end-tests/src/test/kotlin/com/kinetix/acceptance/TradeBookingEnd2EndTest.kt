@@ -33,7 +33,10 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
         .withUsername("test")
         .withPassword("test")
 
-    val auditDb = PostgreSQLContainer("postgres:17-alpine")
+    val auditDb = PostgreSQLContainer(
+        DockerImageName.parse("timescale/timescaledb:latest-pg17")
+            .asCompatibleSubstituteFor("postgres")
+    )
         .withDatabaseName("audit_test")
         .withUsername("test")
         .withPassword("test")
