@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { AlertRuleDto, AlertEventDto } from '../types'
 import { NotificationCenter } from './NotificationCenter'
@@ -241,5 +241,66 @@ describe('NotificationCenter', () => {
     expect(badges[1]).toHaveTextContent('CRITICAL')
 
     vi.useRealTimers()
+  })
+
+  describe('delete confirmation', () => {
+    it('should show confirmation dialog when delete button clicked', () => {
+      const onDeleteRule = vi.fn()
+      render(
+        <NotificationCenter
+          rules={sampleRules}
+          alerts={[]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={onDeleteRule}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('delete-rule-rule-1'))
+
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+      expect(onDeleteRule).not.toHaveBeenCalled()
+    })
+
+    it('should not delete rule if dialog cancelled', () => {
+      const onDeleteRule = vi.fn()
+      render(
+        <NotificationCenter
+          rules={sampleRules}
+          alerts={[]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={onDeleteRule}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('delete-rule-rule-1'))
+      fireEvent.click(screen.getByTestId('confirm-dialog-cancel'))
+
+      expect(onDeleteRule).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+
+    it('should delete rule if dialog confirmed', () => {
+      const onDeleteRule = vi.fn()
+      render(
+        <NotificationCenter
+          rules={sampleRules}
+          alerts={[]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={onDeleteRule}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('delete-rule-rule-1'))
+      fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+      expect(onDeleteRule).toHaveBeenCalledWith('rule-1')
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
   })
 })
