@@ -11,10 +11,14 @@ data class Position(
     val quantity: BigDecimal,
     val averageCost: Money,
     val marketPrice: Money,
+    val realizedPnl: Money = Money.zero(marketPrice.currency),
 ) {
     init {
         require(averageCost.currency == marketPrice.currency) {
             "Currency mismatch: averageCost=${averageCost.currency}, marketPrice=${marketPrice.currency}"
+        }
+        require(realizedPnl.currency == marketPrice.currency) {
+            "Currency mismatch: realizedPnl=${realizedPnl.currency}, marketPrice=${marketPrice.currency}"
         }
     }
 
@@ -42,6 +46,21 @@ data class Position(
         val tradeSignedQty = trade.signedQuantity
         val newQuantity = quantity + tradeSignedQty
 
+        // Compute realized P&L when the trade reduces or closes the position
+        val tradeRealizedPnl = when {
+            // No existing position — nothing to realize
+            quantity.signum() == 0 -> BigDecimal.ZERO
+
+            // Trade increases position (same direction) — no realization
+            quantity.signum() == tradeSignedQty.signum() -> BigDecimal.ZERO
+
+            // Trade reduces or flips position — realize on the closed portion
+            else -> {
+                val closedQuantity = trade.quantity.min(quantity.abs())
+                (trade.price.amount - averageCost.amount) * closedQuantity * quantity.signum().toBigDecimal()
+            }
+        }
+
         val newAverageCost = when {
             quantity.signum() == 0 -> trade.price
 
@@ -61,6 +80,7 @@ data class Position(
         return copy(
             quantity = newQuantity,
             averageCost = newAverageCost,
+            realizedPnl = realizedPnl + Money(tradeRealizedPnl, currency),
         )
     }
 
