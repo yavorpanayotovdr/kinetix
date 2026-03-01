@@ -61,6 +61,7 @@ import kotlinx.serialization.json.putJsonObject
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
+    log.info("Starting gateway")
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) {

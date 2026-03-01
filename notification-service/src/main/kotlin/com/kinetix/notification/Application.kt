@@ -52,6 +52,7 @@ import java.util.UUID
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
+    log.info("Starting notification-service")
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }

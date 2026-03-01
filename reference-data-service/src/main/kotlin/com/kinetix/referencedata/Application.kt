@@ -45,6 +45,7 @@ import java.util.Properties
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
+    log.info("Starting reference-data-service")
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }

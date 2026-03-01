@@ -41,6 +41,7 @@ fun main(args: Array<String>): Unit = EngineMain.main(args)
 fun Application.module(
     appMicrometerRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
 ) {
+    log.info("Starting price-service")
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
     install(CallLogging) {
