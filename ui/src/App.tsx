@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { NotificationCenter } from './components/NotificationCenter'
@@ -18,6 +18,7 @@ import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
 import { usePortfolioSummary } from './hooks/usePortfolioSummary'
+import { useTheme } from './hooks/useTheme'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -74,6 +75,7 @@ function App() {
   const whatIf = useWhatIf(portfolioId)
   const stress = useStressTest(portfolioId)
   const portfolioSummary = usePortfolioSummary(portfolioId)
+  const { isDark, toggle: toggleTheme } = useTheme()
 
   return (
     <div className="min-h-screen bg-surface-50 flex flex-col">
@@ -82,18 +84,28 @@ function App() {
           <Activity className="h-5 w-5 text-primary-500" />
           <h1 className="text-lg font-bold tracking-tight">Kinetix</h1>
         </div>
-        {portfolios.length > 0 && (
-          <select
-            data-testid="portfolio-selector"
-            value={portfolioId ?? ''}
-            onChange={(e) => selectPortfolio(e.target.value)}
-            className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        <div className="flex items-center gap-3">
+          {portfolios.length > 0 && (
+            <select
+              data-testid="portfolio-selector"
+              value={portfolioId ?? ''}
+              onChange={(e) => selectPortfolio(e.target.value)}
+              className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              {portfolios.map((id) => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </select>
+          )}
+          <button
+            data-testid="dark-mode-toggle"
+            onClick={toggleTheme}
+            className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {portfolios.map((id) => (
-              <option key={id} value={id}>{id}</option>
-            ))}
-          </select>
-        )}
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+        </div>
       </header>
 
       <nav className="bg-surface-800 px-6 flex gap-1 border-b border-surface-700" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
