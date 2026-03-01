@@ -70,14 +70,19 @@ class LimitCheckServiceTest : FunSpec({
         val limits = TradeLimits(
             positionLimit = BigDecimal("1000"),
             notionalLimit = usd("1000000"),
-            concentrationLimitPct = 0.25,
+            concentrationLimitPct = 0.50,
         )
         val service = LimitCheckService(positionRepo, limits)
 
-        // Existing position: 100 shares of AAPL. Buying 100 more -> 200 total, well within 1000 limit.
-        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "100")
+        // Portfolio: AAPL 100 @ $155 = $15,500 + MSFT 500 @ $300 = $150,000 = total $165,500
+        // Trade: buy 100 AAPL @ $150 -> trade notional = $15,000
+        // New portfolio value = $165,500 + $15,000 = $180,500
+        // New AAPL qty = 200, mktVal = 200 * 155 = $31,000 -> concentration = 17.2% < 50%
+        // Position: 200 < 1000, Notional: $180,500 < $1,000,000
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "100", marketPrice = "155.00")
         coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
-            position(quantity = "100", marketPrice = "155.00"), // AAPL: mktVal = 15,500
+            position(instrumentId = AAPL, quantity = "100", marketPrice = "155.00"),
+            position(instrumentId = MSFT, quantity = "500", averageCost = "290.00", marketPrice = "300.00"),
         )
 
         val result = service.check(command(quantity = "100", price = "150.00"))
