@@ -8,6 +8,7 @@ import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.GetPositionsQuery
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.TradeBookingService
+import com.kinetix.position.service.TradeLifecycleService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -59,6 +60,7 @@ private fun Application.configureTestApp(
     positionQueryService: PositionQueryService,
     tradeBookingService: TradeBookingService,
     tradeEventRepository: TradeEventRepository,
+    tradeLifecycleService: TradeLifecycleService,
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
@@ -70,7 +72,7 @@ private fun Application.configureTestApp(
         }
     }
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
     }
 }
 
@@ -80,14 +82,15 @@ class PositionRoutesTest : FunSpec({
     val positionQueryService = mockk<PositionQueryService>()
     val tradeBookingService = mockk<TradeBookingService>()
     val tradeEventRepository = mockk<TradeEventRepository>()
+    val tradeLifecycleService = mockk<TradeLifecycleService>()
 
     beforeEach {
-        clearMocks(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
+        clearMocks(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
     }
 
     fun ApplicationTestBuilder.setupApp() {
         application {
-            configureTestApp(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
+            configureTestApp(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
         }
     }
 

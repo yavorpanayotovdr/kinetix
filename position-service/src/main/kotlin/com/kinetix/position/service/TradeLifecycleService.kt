@@ -17,7 +17,7 @@ class TradeLifecycleService(
             val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
                 ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
 
-            require(originalTrade.status == TradeStatus.LIVE) {
+            check(originalTrade.status == TradeStatus.LIVE) {
                 "Cannot amend trade in status ${originalTrade.status}"
             }
 
