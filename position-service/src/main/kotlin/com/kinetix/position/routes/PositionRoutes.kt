@@ -1,6 +1,7 @@
 package com.kinetix.position.routes
 
 import com.kinetix.common.model.*
+import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.service.*
 import io.github.smiley4.ktoropenapi.delete
@@ -74,6 +75,7 @@ data class AmendTradeRequest(
 data class BookTradeResponse(
     val trade: TradeResponse,
     val position: PositionResponse,
+    val warnings: List<LimitBreachDto> = emptyList(),
 )
 
 @Serializable
@@ -92,6 +94,22 @@ data class BookTradeRequest(
 data class ErrorResponse(
     val error: String,
     val message: String,
+)
+
+@Serializable
+data class LimitBreachDto(
+    val limitType: String,
+    val severity: String,
+    val currentValue: String,
+    val limitValue: String,
+    val message: String,
+)
+
+@Serializable
+data class LimitBreachResponse(
+    val error: String,
+    val message: String,
+    val breaches: List<LimitBreachDto>,
 )
 
 // --- Mappers ---
@@ -122,6 +140,14 @@ private fun Trade.toResponse() = TradeResponse(
     type = type.name,
     status = status.name,
     originalTradeId = originalTradeId?.value,
+)
+
+private fun LimitBreach.toDto() = LimitBreachDto(
+    limitType = limitType,
+    severity = severity.name,
+    currentValue = currentValue,
+    limitValue = limitValue,
+    message = message,
 )
 
 // --- Routes ---
@@ -188,6 +214,7 @@ fun Route.positionRoutes(
                 response {
                     code(HttpStatusCode.Created) { body<BookTradeResponse>() }
                     code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                    code(HttpStatusCode.UnprocessableEntity) { body<LimitBreachResponse>() }
                 }
             }) {
                 val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
@@ -206,14 +233,26 @@ fun Route.positionRoutes(
                     price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
                     tradedAt = Instant.parse(request.tradedAt),
                 )
-                val result = tradeBookingService.handle(command)
-                call.respond(
-                    HttpStatusCode.Created,
-                    BookTradeResponse(
-                        trade = result.trade.toResponse(),
-                        position = result.position.toResponse(),
-                    ),
-                )
+                try {
+                    val result = tradeBookingService.handle(command)
+                    call.respond(
+                        HttpStatusCode.Created,
+                        BookTradeResponse(
+                            trade = result.trade.toResponse(),
+                            position = result.position.toResponse(),
+                            warnings = result.warnings.map { it.toDto() },
+                        ),
+                    )
+                } catch (e: LimitBreachException) {
+                    call.respond(
+                        HttpStatusCode.UnprocessableEntity,
+                        LimitBreachResponse(
+                            error = "limit_breach",
+                            message = e.message ?: "Trade blocked by limit breach",
+                            breaches = e.result.breaches.map { it.toDto() },
+                        ),
+                    )
+                }
             }
 
             put("/trades/{tradeId}", {
