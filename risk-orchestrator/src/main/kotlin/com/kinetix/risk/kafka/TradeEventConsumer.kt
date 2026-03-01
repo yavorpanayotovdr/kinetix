@@ -38,7 +38,7 @@ class TradeEventConsumer(
                         val event = Json.decodeFromString<TradeEvent>(record.value())
                         val portfolioId = PortfolioId(event.portfolioId)
 
-                        logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
+                        logger.info("Trade event received for portfolio {} correlationId={}, triggering VaR recalculation", portfolioId.value, event.correlationId)
 
                         varCalculationService.calculateVaR(
                             VaRCalculationRequest(
@@ -47,6 +47,7 @@ class TradeEventConsumer(
                                 confidenceLevel = ConfidenceLevel.CL_95,
                             ),
                             triggerType = TriggerType.TRADE_EVENT,
+                            correlationId = event.correlationId,
                         )
                     }
                 } catch (e: Exception) {

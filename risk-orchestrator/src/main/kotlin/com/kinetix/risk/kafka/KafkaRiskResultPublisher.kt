@@ -16,8 +16,8 @@ class KafkaRiskResultPublisher(
 
     private val logger = LoggerFactory.getLogger(KafkaRiskResultPublisher::class.java)
 
-    override suspend fun publish(result: ValuationResult) {
-        val event = RiskResultEvent.from(result)
+    override suspend fun publish(result: ValuationResult, correlationId: String?) {
+        val event = RiskResultEvent.from(result, correlationId)
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, result.portfolioId.value, json)
 

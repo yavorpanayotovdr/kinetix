@@ -32,6 +32,7 @@ class VaRCalculationService(
     suspend fun calculateVaR(
         request: VaRCalculationRequest,
         triggerType: TriggerType = TriggerType.ON_DEMAND,
+        correlationId: String? = null,
     ): ValuationResult? {
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
@@ -245,7 +246,7 @@ class VaRCalculationService(
 
             // Step 5: Publish result
             val publishStart = Instant.now()
-            resultPublisher.publish(result)
+            resultPublisher.publish(result, correlationId)
             val publishDuration = java.time.Duration.between(publishStart, Instant.now()).toMillis()
             steps.add(
                 JobStep(
