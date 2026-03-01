@@ -33,7 +33,8 @@ class HttpPositionServiceClientTest : FunSpec({
                         "averageCost": {"amount": "150.00", "currency": "USD"},
                         "marketPrice": {"amount": "170.00", "currency": "USD"},
                         "marketValue": {"amount": "17000.00", "currency": "USD"},
-                        "unrealizedPnl": {"amount": "2000.00", "currency": "USD"}
+                        "unrealizedPnl": {"amount": "2000.00", "currency": "USD"},
+                        "realizedPnl": {"amount": "500.00", "currency": "USD"}
                     }
                 ]""",
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
@@ -51,6 +52,7 @@ class HttpPositionServiceClientTest : FunSpec({
         success.value[0].quantity.compareTo(BigDecimal("100")) shouldBe 0
         success.value[0].averageCost.amount.compareTo(BigDecimal("150.00")) shouldBe 0
         success.value[0].marketPrice.amount.compareTo(BigDecimal("170.00")) shouldBe 0
+        success.value[0].realizedPnl.amount.compareTo(BigDecimal("500.00")) shouldBe 0
     }
 
     test("should return empty list for unknown portfolio") {

@@ -18,6 +18,7 @@ data class PositionDto(
     val marketPrice: MoneyDto,
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
+    val realizedPnl: MoneyDto,
 ) {
     fun toDomain(): Position = Position(
         portfolioId = PortfolioId(portfolioId),
@@ -26,5 +27,6 @@ data class PositionDto(
         quantity = BigDecimal(quantity),
         averageCost = averageCost.toDomain(),
         marketPrice = marketPrice.toDomain(),
+        realizedPnl = realizedPnl.toDomain(),
     )
 }
