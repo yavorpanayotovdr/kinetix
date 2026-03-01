@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import java.time.Duration
 import kotlin.coroutines.coroutineContext
 
@@ -35,6 +36,11 @@ class PriceEventConsumer(
             }
             if (records.isEmpty) continue
 
+            val firstRecord = records.first()
+            val priceCorrelationId = try {
+                Json.decodeFromString<PriceEvent>(firstRecord.value()).correlationId
+            } catch (_: Exception) { null }
+
             val portfolioIds = try {
                 affectedPortfolios()
             } catch (e: Exception) {
@@ -45,15 +51,20 @@ class PriceEventConsumer(
             for (portfolioId in portfolioIds) {
                 try {
                     retryableConsumer.process(portfolioId.value, "") {
-                        logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
-                        varCalculationService.calculateVaR(
-                            VaRCalculationRequest(
-                                portfolioId = portfolioId,
-                                calculationType = CalculationType.PARAMETRIC,
-                                confidenceLevel = ConfidenceLevel.CL_95,
-                            ),
-                            triggerType = TriggerType.PRICE_EVENT,
-                        )
+                        MDC.put("correlationId", priceCorrelationId ?: "")
+                        try {
+                            logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
+                            varCalculationService.calculateVaR(
+                                VaRCalculationRequest(
+                                    portfolioId = portfolioId,
+                                    calculationType = CalculationType.PARAMETRIC,
+                                    confidenceLevel = ConfidenceLevel.CL_95,
+                                ),
+                                triggerType = TriggerType.PRICE_EVENT,
+                            )
+                        } finally {
+                            MDC.remove("correlationId")
+                        }
                     }
                 } catch (e: Exception) {
                     logger.error(

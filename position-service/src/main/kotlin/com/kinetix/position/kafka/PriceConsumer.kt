@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import java.math.BigDecimal
 import java.time.Duration
 import java.util.*
@@ -35,9 +36,14 @@ class PriceConsumer(
                 try {
                     retryableConsumer.process(record.key() ?: "", record.value()) {
                         val event = Json.decodeFromString<PriceEvent>(record.value())
-                        val instrumentId = InstrumentId(event.instrumentId)
-                        val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
-                        priceUpdateService.handle(instrumentId, price)
+                        MDC.put("correlationId", event.correlationId ?: "")
+                        try {
+                            val instrumentId = InstrumentId(event.instrumentId)
+                            val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
+                            priceUpdateService.handle(instrumentId, price)
+                        } finally {
+                            MDC.remove("correlationId")
+                        }
                     }
                 } catch (e: Exception) {
                     logger.error(

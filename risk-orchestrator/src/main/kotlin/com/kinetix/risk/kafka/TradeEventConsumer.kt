@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import java.time.Duration
 import kotlin.coroutines.coroutineContext
 
@@ -36,19 +37,24 @@ class TradeEventConsumer(
                 try {
                     retryableConsumer.process(record.key() ?: "", record.value()) {
                         val event = Json.decodeFromString<TradeEvent>(record.value())
-                        val portfolioId = PortfolioId(event.portfolioId)
+                        MDC.put("correlationId", event.correlationId ?: "")
+                        try {
+                            val portfolioId = PortfolioId(event.portfolioId)
 
-                        logger.info("Trade event received for portfolio {} correlationId={}, triggering VaR recalculation", portfolioId.value, event.correlationId)
+                            logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
 
-                        varCalculationService.calculateVaR(
-                            VaRCalculationRequest(
-                                portfolioId = portfolioId,
-                                calculationType = CalculationType.PARAMETRIC,
-                                confidenceLevel = ConfidenceLevel.CL_95,
-                            ),
-                            triggerType = TriggerType.TRADE_EVENT,
-                            correlationId = event.correlationId,
-                        )
+                            varCalculationService.calculateVaR(
+                                VaRCalculationRequest(
+                                    portfolioId = portfolioId,
+                                    calculationType = CalculationType.PARAMETRIC,
+                                    confidenceLevel = ConfidenceLevel.CL_95,
+                                ),
+                                triggerType = TriggerType.TRADE_EVENT,
+                                correlationId = event.correlationId,
+                            )
+                        } finally {
+                            MDC.remove("correlationId")
+                        }
                     }
                 } catch (e: Exception) {
                     logger.error(

@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import java.time.Duration
 import kotlin.coroutines.coroutineContext
 
@@ -36,15 +37,20 @@ class RiskResultConsumer(
                 try {
                     retryableConsumer.process(record.key() ?: "", record.value()) {
                         val event = json.decodeFromString<RiskResultEvent>(record.value())
-                        val alerts = rulesEngine.evaluate(event)
-                        for (alert in alerts) {
-                            val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
-                            val channels = rule?.channels ?: emptyList()
-                            deliveryRouter.route(alert, channels)
-                            logger.info(
-                                "Alert triggered: rule={}, severity={}, portfolio={}",
-                                alert.ruleName, alert.severity, alert.portfolioId,
-                            )
+                        MDC.put("correlationId", event.correlationId ?: "")
+                        try {
+                            val alerts = rulesEngine.evaluate(event)
+                            for (alert in alerts) {
+                                val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
+                                val channels = rule?.channels ?: emptyList()
+                                deliveryRouter.route(alert, channels)
+                                logger.info(
+                                    "Alert triggered: rule={}, severity={}, portfolio={}",
+                                    alert.ruleName, alert.severity, alert.portfolioId,
+                                )
+                            }
+                        } finally {
+                            MDC.remove("correlationId")
                         }
                     }
                 } catch (e: Exception) {
