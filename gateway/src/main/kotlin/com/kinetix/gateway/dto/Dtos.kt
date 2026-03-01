@@ -14,10 +14,12 @@ import com.kinetix.gateway.client.MarketDataDependencyItem
 import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.CreateAlertRuleParams
+import com.kinetix.gateway.client.CurrencyExposureSummary
 import com.kinetix.gateway.client.FrtbResultSummary
 import com.kinetix.gateway.client.GreekValuesItem
 import com.kinetix.gateway.client.GreeksResultSummary
 import com.kinetix.gateway.client.PnlAttributionSummary
+import com.kinetix.gateway.client.PortfolioAggregationSummary
 import com.kinetix.gateway.client.PortfolioSummary
 import com.kinetix.gateway.client.PositionPnlAttributionSummary
 import com.kinetix.gateway.client.ReportResult
@@ -95,6 +97,23 @@ data class ErrorResponse(
     val message: String,
 )
 
+@Serializable
+data class CurrencyExposureResponse(
+    val currency: String,
+    val localValue: MoneyDto,
+    val baseValue: MoneyDto,
+    val fxRate: String,
+)
+
+@Serializable
+data class PortfolioAggregationResponse(
+    val portfolioId: String,
+    val baseCurrency: String,
+    val totalNav: MoneyDto,
+    val totalUnrealizedPnl: MoneyDto,
+    val currencyBreakdown: List<CurrencyExposureResponse>,
+)
+
 // --- Domain -> DTO mappers ---
 
 fun Money.toDto(): MoneyDto = MoneyDto(
@@ -131,6 +150,21 @@ fun BookTradeResult.toResponse(): BookTradeResponse = BookTradeResponse(
 
 fun PortfolioSummary.toResponse(): PortfolioSummaryResponse = PortfolioSummaryResponse(
     portfolioId = id.value,
+)
+
+fun CurrencyExposureSummary.toResponse(): CurrencyExposureResponse = CurrencyExposureResponse(
+    currency = currency,
+    localValue = localValue.toDto(),
+    baseValue = baseValue.toDto(),
+    fxRate = fxRate.toPlainString(),
+)
+
+fun PortfolioAggregationSummary.toResponse(): PortfolioAggregationResponse = PortfolioAggregationResponse(
+    portfolioId = portfolioId,
+    baseCurrency = baseCurrency,
+    totalNav = totalNav.toDto(),
+    totalUnrealizedPnl = totalUnrealizedPnl.toDto(),
+    currencyBreakdown = currencyBreakdown.map { it.toResponse() },
 )
 
 // --- DTO -> Domain mappers ---

@@ -60,6 +60,23 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                 val positions = client.getPositions(portfolioId)
                 call.respond(positions.map { it.toResponse() })
             }
+
+            get("/summary", {
+                summary = "Get portfolio summary with multi-currency aggregation"
+                tags = listOf("Portfolios")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    queryParameter<String>("baseCurrency") {
+                        description = "Base currency for aggregation (default: USD)"
+                        required = false
+                    }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
+                val summary = client.getPortfolioSummary(portfolioId, baseCurrency)
+                call.respond(summary.toResponse())
+            }
         }
     }
 }

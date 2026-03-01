@@ -50,4 +50,12 @@ class HttpPositionServiceClient(
         val dtos: List<TradeDto> = response.body()
         return dtos.map { it.toDomain() }
     }
+
+    override suspend fun getPortfolioSummary(portfolioId: PortfolioId, baseCurrency: String): PortfolioAggregationSummary {
+        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/summary") {
+            parameter("baseCurrency", baseCurrency)
+        }
+        val dto: PortfolioAggregationDto = response.body()
+        return dto.toDomain()
+    }
 }

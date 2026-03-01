@@ -12,6 +12,23 @@ import java.util.Currency
 data class PortfolioSummaryDto(val portfolioId: String)
 
 @Serializable
+data class CurrencyExposureDto(
+    val currency: String,
+    val localValue: MoneyDto,
+    val baseValue: MoneyDto,
+    val fxRate: String,
+)
+
+@Serializable
+data class PortfolioAggregationDto(
+    val portfolioId: String,
+    val baseCurrency: String,
+    val totalNav: MoneyDto,
+    val totalUnrealizedPnl: MoneyDto,
+    val currencyBreakdown: List<CurrencyExposureDto>,
+)
+
+@Serializable
 data class MoneyDto(val amount: String, val currency: String)
 
 @Serializable
@@ -563,4 +580,19 @@ fun PnlAttributionClientDto.toDomain() = PnlAttributionSummary(
     unexplainedPnl = unexplainedPnl,
     positionAttributions = positionAttributions.map { it.toDomain() },
     calculatedAt = calculatedAt,
+)
+
+fun CurrencyExposureDto.toDomain() = CurrencyExposureSummary(
+    currency = currency,
+    localValue = localValue.toDomainMoney(),
+    baseValue = baseValue.toDomainMoney(),
+    fxRate = BigDecimal(fxRate),
+)
+
+fun PortfolioAggregationDto.toDomain() = PortfolioAggregationSummary(
+    portfolioId = portfolioId,
+    baseCurrency = baseCurrency,
+    totalNav = totalNav.toDomainMoney(),
+    totalUnrealizedPnl = totalUnrealizedPnl.toDomainMoney(),
+    currencyBreakdown = currencyBreakdown.map { it.toDomain() },
 )
