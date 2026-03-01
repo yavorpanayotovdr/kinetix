@@ -27,6 +27,7 @@ def calculate_portfolio_var(
     volatility_provider: VolatilityProvider | None = None,
     correlation_matrix: "np.ndarray | None" = None,
     risk_free_rate: float = 0.0,
+    historical_returns: "np.ndarray | None" = None,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -61,7 +62,10 @@ def calculate_portfolio_var(
     if calculation_type == CalculationType.PARAMETRIC:
         return calculate_parametric_var(exposures, confidence_level, time_horizon_days, corr)
     elif calculation_type == CalculationType.HISTORICAL:
-        return calculate_historical_var(exposures, confidence_level, time_horizon_days, corr)
+        return calculate_historical_var(
+            exposures, confidence_level, time_horizon_days, corr,
+            historical_returns=historical_returns,
+        )
     elif calculation_type == CalculationType.MONTE_CARLO:
         return calculate_monte_carlo_var(
             exposures, confidence_level, time_horizon_days, corr,

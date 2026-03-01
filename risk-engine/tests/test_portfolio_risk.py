@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from kinetix_risk.models import (
@@ -65,3 +66,22 @@ class TestPortfolioRiskOrchestrator:
             calculate_portfolio_var(
                 [], CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
             )
+
+    def test_historical_var_with_actual_returns_propagated(self):
+        positions = [make_equity_position("AAPL", 100_000.0)]
+        rng = np.random.default_rng(55)
+        returns = rng.normal(0, 0.01, size=(250, 1))
+
+        result = calculate_portfolio_var(
+            positions,
+            CalculationType.HISTORICAL,
+            ConfidenceLevel.CL_95,
+            1,
+            historical_returns=returns,
+        )
+
+        assert result.var_value > 0
+        # Cross-check against direct calculation
+        portfolio_losses = -(returns[:, 0] * 100_000)
+        expected_var = float(np.percentile(portfolio_losses, 95))
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
