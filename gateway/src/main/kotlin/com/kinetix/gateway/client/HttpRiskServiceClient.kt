@@ -11,6 +11,16 @@ class HttpRiskServiceClient(
     private val baseUrl: String,
 ) : RiskServiceClient {
 
+    override suspend fun getMarginEstimate(portfolioId: String, previousMTM: String?): MarginEstimateSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/portfolios/$portfolioId/margin") {
+            if (previousMTM != null) {
+                url { parameters.append("previousMTM", previousMTM) }
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        return response.body<MarginEstimateClientDto>().toDomain()
+    }
+
     override suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary? {
         val response = httpClient.post("$baseUrl/api/v1/risk/var/${params.portfolioId}") {
             contentType(ContentType.Application.Json)

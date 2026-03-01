@@ -196,7 +196,15 @@ data class PnlAttributionSummary(
     val calculatedAt: String,
 )
 
+data class MarginEstimateSummary(
+    val initialMargin: String,
+    val variationMargin: String,
+    val totalMargin: String,
+    val currency: String,
+)
+
 interface RiskServiceClient {
+    suspend fun getMarginEstimate(portfolioId: String, previousMTM: String? = null): MarginEstimateSummary?
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
     suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?

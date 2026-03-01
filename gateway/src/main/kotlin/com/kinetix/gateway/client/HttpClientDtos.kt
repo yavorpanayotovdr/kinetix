@@ -352,6 +352,16 @@ data class PnlAttributionClientDto(
     val calculatedAt: String,
 )
 
+// --- Margin DTOs ---
+
+@Serializable
+data class MarginEstimateClientDto(
+    val initialMargin: String,
+    val variationMargin: String,
+    val totalMargin: String,
+    val currency: String,
+)
+
 // --- Domain mappers ---
 
 fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
@@ -580,6 +590,13 @@ fun PnlAttributionClientDto.toDomain() = PnlAttributionSummary(
     unexplainedPnl = unexplainedPnl,
     positionAttributions = positionAttributions.map { it.toDomain() },
     calculatedAt = calculatedAt,
+)
+
+fun MarginEstimateClientDto.toDomain() = MarginEstimateSummary(
+    initialMargin = initialMargin,
+    variationMargin = variationMargin,
+    totalMargin = totalMargin,
+    currency = currency,
 )
 
 fun CurrencyExposureDto.toDomain() = CurrencyExposureSummary(
