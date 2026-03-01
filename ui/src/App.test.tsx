@@ -325,4 +325,119 @@ describe('App', () => {
     fireEvent.click(screen.getByTestId('tab-positions'))
     expect(screen.queryByTestId('risk-tab-wrapper')).not.toBeInTheDocument()
   })
+
+  describe('WAI-ARIA accessibility', () => {
+    it('tab bar has role tablist', () => {
+      render(<App />)
+
+      const tabBar = screen.getByTestId('tab-bar')
+      expect(tabBar).toHaveAttribute('role', 'tablist')
+    })
+
+    it('each tab has role tab and aria-selected', () => {
+      render(<App />)
+
+      const positionsTab = screen.getByTestId('tab-positions')
+      expect(positionsTab).toHaveAttribute('role', 'tab')
+      expect(positionsTab).toHaveAttribute('aria-selected', 'true')
+
+      const tradesTab = screen.getByTestId('tab-trades')
+      expect(tradesTab).toHaveAttribute('role', 'tab')
+      expect(tradesTab).toHaveAttribute('aria-selected', 'false')
+    })
+
+    it('active tab panel has role tabpanel', () => {
+      render(<App />)
+
+      const tabPanel = screen.getByRole('tabpanel')
+      expect(tabPanel).toBeInTheDocument()
+      expect(tabPanel).toHaveAttribute('aria-labelledby', 'tab-positions')
+    })
+
+    it('tab panel aria-labelledby updates when switching tabs', () => {
+      render(<App />)
+
+      fireEvent.click(screen.getByTestId('tab-trades'))
+
+      const tabPanel = screen.getByRole('tabpanel')
+      expect(tabPanel).toHaveAttribute('aria-labelledby', 'tab-trades')
+    })
+
+    it('keyboard arrow right navigates to next tab', () => {
+      render(<App />)
+
+      const positionsTab = screen.getByTestId('tab-positions')
+      positionsTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'ArrowRight' })
+
+      expect(screen.getByTestId('tab-trades')).toHaveFocus()
+    })
+
+    it('keyboard arrow left navigates to previous tab', () => {
+      render(<App />)
+
+      const tradesTab = screen.getByTestId('tab-trades')
+      tradesTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'ArrowLeft' })
+
+      expect(screen.getByTestId('tab-positions')).toHaveFocus()
+    })
+
+    it('keyboard Home moves focus to first tab', () => {
+      render(<App />)
+
+      const tradesTab = screen.getByTestId('tab-trades')
+      tradesTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'Home' })
+
+      expect(screen.getByTestId('tab-positions')).toHaveFocus()
+    })
+
+    it('keyboard End moves focus to last tab', () => {
+      render(<App />)
+
+      const positionsTab = screen.getByTestId('tab-positions')
+      positionsTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'End' })
+
+      expect(screen.getByTestId('tab-system')).toHaveFocus()
+    })
+
+    it('arrow right wraps around from last tab to first', () => {
+      render(<App />)
+
+      const systemTab = screen.getByTestId('tab-system')
+      systemTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'ArrowRight' })
+
+      expect(screen.getByTestId('tab-positions')).toHaveFocus()
+    })
+
+    it('arrow left wraps around from first tab to last', () => {
+      render(<App />)
+
+      const positionsTab = screen.getByTestId('tab-positions')
+      positionsTab.focus()
+      fireEvent.keyDown(screen.getByTestId('tab-bar'), { key: 'ArrowLeft' })
+
+      expect(screen.getByTestId('tab-system')).toHaveFocus()
+    })
+
+    it('inactive tabs have tabIndex -1 and active tab has tabIndex 0', () => {
+      render(<App />)
+
+      const positionsTab = screen.getByTestId('tab-positions')
+      expect(positionsTab).toHaveAttribute('tabindex', '0')
+
+      const tradesTab = screen.getByTestId('tab-trades')
+      expect(tradesTab).toHaveAttribute('tabindex', '-1')
+    })
+
+    it('connection status has aria-live polite for real-time updates', () => {
+      render(<App />)
+
+      const connectionStatus = screen.getByTestId('connection-status')
+      expect(connectionStatus).toHaveAttribute('aria-live', 'polite')
+    })
+  })
 })
