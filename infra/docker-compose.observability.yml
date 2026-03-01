@@ -16,6 +16,16 @@ services:
       tempo:
         condition: service_started
 
+  alertmanager:
+    image: prom/alertmanager
+    container_name: kinetix-alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+
   prometheus:
     image: prom/prometheus
     container_name: kinetix-prometheus
@@ -29,6 +39,9 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--web.enable-lifecycle"
+    depends_on:
+      alertmanager:
+        condition: service_started
 
   grafana:
     image: grafana/grafana
