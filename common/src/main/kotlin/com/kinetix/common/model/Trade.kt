@@ -12,6 +12,9 @@ data class Trade(
     val quantity: BigDecimal,
     val price: Money,
     val tradedAt: Instant,
+    val type: TradeType = TradeType.NEW,
+    val status: TradeStatus = TradeStatus.LIVE,
+    val originalTradeId: TradeId? = null,
 ) {
     init {
         require(quantity > BigDecimal.ZERO) { "Trade quantity must be positive, was $quantity" }
