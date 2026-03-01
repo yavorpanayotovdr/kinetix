@@ -403,4 +403,69 @@ describe('PositionGrid', () => {
       expect(screen.queryByTestId('pagination-controls')).not.toBeInTheDocument()
     })
   })
+
+  describe('column visibility toggles', () => {
+    beforeEach(() => {
+      localStorage.clear()
+    })
+
+    afterEach(() => {
+      localStorage.clear()
+    })
+
+    it('should show settings dropdown button', () => {
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      expect(screen.getByTestId('column-settings-button')).toBeInTheDocument()
+    })
+
+    it('should toggle column visibility', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      await user.click(screen.getByTestId('column-settings-button'))
+
+      const assetClassToggle = screen.getByTestId('column-toggle-assetClass')
+      expect(assetClassToggle).toBeInTheDocument()
+
+      // Uncheck Asset Class column
+      await user.click(assetClassToggle)
+
+      // Column header should be hidden
+      expect(screen.queryByRole('columnheader', { name: 'Asset Class' })).not.toBeInTheDocument()
+    })
+
+    it('should hide column when unchecked', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      await user.click(screen.getByTestId('column-settings-button'))
+      await user.click(screen.getByTestId('column-toggle-quantity'))
+
+      // Quantity header should be gone
+      expect(screen.queryByRole('columnheader', { name: 'Quantity' })).not.toBeInTheDocument()
+      // Quantity value should not be visible in the row
+      const row = screen.getByTestId('position-row-AAPL')
+      expect(within(row).queryByText('100')).not.toBeInTheDocument()
+    })
+
+    it('should persist preferences in localStorage', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      await user.click(screen.getByTestId('column-settings-button'))
+      await user.click(screen.getByTestId('column-toggle-assetClass'))
+
+      const stored = JSON.parse(localStorage.getItem('kinetix:column-visibility') ?? '{}')
+      expect(stored.assetClass).toBe(false)
+    })
+
+    it('should load preferences from localStorage on mount', () => {
+      localStorage.setItem('kinetix:column-visibility', JSON.stringify({ assetClass: false }))
+
+      render(<PositionGrid positions={[makePosition()]} />)
+
+      expect(screen.queryByRole('columnheader', { name: 'Asset Class' })).not.toBeInTheDocument()
+    })
+  })
 })
