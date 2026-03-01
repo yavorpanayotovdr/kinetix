@@ -100,6 +100,11 @@ kube-prometheus-stack:
         cpu: 500m
         memory: 1Gi
   grafana:
+    adminUser: admin
+    adminPassword: "${GRAFANA_ADMIN_PASSWORD}"
+    grafana.ini:
+      auth.anonymous:
+        enabled: false
     resources:
       requests:
         cpu: 100m
