@@ -7,7 +7,6 @@ object AuditHasher {
 
     fun computeHash(event: AuditEvent, previousHash: String?): String {
         val data = buildString {
-            append(event.id)
             append(event.receivedAt)
             append(event.tradeId)
             append(event.portfolioId)
