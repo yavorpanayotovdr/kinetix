@@ -2,6 +2,7 @@ package com.kinetix.gateway.client
 
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.common.model.Position
+import com.kinetix.common.model.Trade
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -41,6 +42,12 @@ class HttpPositionServiceClient(
     override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
         val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/positions")
         val dtos: List<PositionDto> = response.body()
+        return dtos.map { it.toDomain() }
+    }
+
+    override suspend fun getTradeHistory(portfolioId: PortfolioId): List<Trade> {
+        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/trades")
+        val dtos: List<TradeDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 }

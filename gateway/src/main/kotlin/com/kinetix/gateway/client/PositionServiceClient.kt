@@ -28,4 +28,5 @@ interface PositionServiceClient {
     suspend fun listPortfolios(): List<PortfolioSummary>
     suspend fun bookTrade(command: BookTradeCommand): BookTradeResult
     suspend fun getPositions(portfolioId: PortfolioId): List<Position>
+    suspend fun getTradeHistory(portfolioId: PortfolioId): List<Trade>
 }
