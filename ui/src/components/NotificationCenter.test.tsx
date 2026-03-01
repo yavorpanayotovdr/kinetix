@@ -243,6 +243,23 @@ describe('NotificationCenter', () => {
     vi.useRealTimers()
   })
 
+  describe('CSV export', () => {
+    it('should have a CSV export button for alerts', () => {
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={sampleAlerts}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('alerts-csv-export')).toBeInTheDocument()
+    })
+  })
+
   describe('delete confirmation', () => {
     it('should show confirmation dialog when delete button clicked', () => {
       const onDeleteRule = vi.fn()

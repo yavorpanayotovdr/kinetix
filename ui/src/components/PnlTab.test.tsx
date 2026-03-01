@@ -221,6 +221,29 @@ describe('PnlTab', () => {
     expect(screen.getByText('aaaaaaaa')).toBeInTheDocument()
   })
 
+  it('shows CSV export button when P&L data is available', () => {
+    mockUsePnlAttribution.mockReturnValue({
+      data: pnlAttributionData,
+      loading: false,
+      error: null,
+    })
+    mockUseSodBaseline.mockReturnValue({
+      ...defaultSodBaseline,
+      status: {
+        exists: true,
+        baselineDate: '2025-01-15',
+        snapshotType: 'MANUAL',
+        createdAt: '2025-01-15T08:00:00Z',
+        sourceJobId: null,
+        calculationType: null,
+      },
+    })
+
+    render(<PnlTab portfolioId="port-1" />)
+
+    expect(screen.getByTestId('pnl-csv-export')).toBeInTheDocument()
+  })
+
   it('shows SOD error when sod hook returns an error', () => {
     mockUsePnlAttribution.mockReturnValue({
       data: null,

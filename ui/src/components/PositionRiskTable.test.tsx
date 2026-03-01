@@ -291,4 +291,18 @@ describe('PositionRiskTable', () => {
       expect(errorEl).toHaveTextContent('Connection timeout')
     })
   })
+
+  describe('CSV export', () => {
+    it('shows CSV export button when data is present', () => {
+      render(<PositionRiskTable data={[makeRisk()]} loading={false} />)
+
+      expect(screen.getByTestId('risk-csv-export')).toBeInTheDocument()
+    })
+
+    it('does not show CSV export button when data is empty', () => {
+      render(<PositionRiskTable data={[]} loading={false} />)
+
+      expect(screen.queryByTestId('risk-csv-export')).not.toBeInTheDocument()
+    })
+  })
 })
