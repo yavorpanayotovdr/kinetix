@@ -169,3 +169,25 @@ class FrtbResult:
     drc: DrcResult
     rrao: RraoResult
     total_capital_charge: float
+
+
+class TrafficLightZone(str, Enum):
+    GREEN = "GREEN"
+    YELLOW = "YELLOW"
+    RED = "RED"
+
+
+@dataclass(frozen=True)
+class BacktestResult:
+    total_days: int
+    violation_count: int
+    violation_rate: float
+    expected_violation_rate: float
+    kupiec_statistic: float
+    kupiec_p_value: float
+    kupiec_pass: bool
+    christoffersen_statistic: float
+    christoffersen_p_value: float
+    christoffersen_pass: bool
+    traffic_light_zone: TrafficLightZone
+    violations: list[dict]
