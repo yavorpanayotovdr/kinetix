@@ -96,7 +96,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
   return (
     <div>
       {connected !== undefined && (
-        <div data-testid="connection-status" className="mb-3 text-sm flex items-center gap-1.5">
+        <div data-testid="connection-status" aria-live="polite" className="mb-3 text-sm flex items-center gap-1.5">
           {connected ? (
             <>
               <Wifi className="h-4 w-4 text-green-600" />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
@@ -35,6 +35,36 @@ const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('positions')
   const [whatIfOpen, setWhatIfOpen] = useState(false)
+  const tabRefs = useRef<Map<Tab, HTMLButtonElement>>(new Map())
+
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    const tabKeys = TABS.map(t => t.key)
+    const focusedElement = document.activeElement
+    const currentIndex = tabKeys.findIndex(
+      key => tabRefs.current.get(key) === focusedElement,
+    )
+    if (currentIndex === -1) return
+
+    let nextIndex: number | null = null
+    switch (e.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % tabKeys.length
+        break
+      case 'ArrowLeft':
+        nextIndex = (currentIndex - 1 + tabKeys.length) % tabKeys.length
+        break
+      case 'Home':
+        nextIndex = 0
+        break
+      case 'End':
+        nextIndex = tabKeys.length - 1
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+    tabRefs.current.get(tabKeys[nextIndex])?.focus()
+  }
 
   const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
   const { positions, connected } = usePriceStream(initialPositions)
@@ -66,11 +96,16 @@ function App() {
         )}
       </header>
 
-      <nav className="bg-surface-800 px-6 flex gap-1 border-b border-surface-700" data-testid="tab-bar">
+      <nav className="bg-surface-800 px-6 flex gap-1 border-b border-surface-700" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
+            id={`tab-${key}`}
             data-testid={`tab-${key}`}
+            ref={(el) => { if (el) tabRefs.current.set(key, el) }}
+            role="tab"
+            aria-selected={activeTab === key}
+            tabIndex={activeTab === key ? 0 : -1}
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === key
@@ -98,7 +133,7 @@ function App() {
         ))}
       </nav>
 
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (
           <SystemDashboard
             health={systemHealth.health}
