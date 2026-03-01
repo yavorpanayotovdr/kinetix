@@ -13,5 +13,8 @@ data class TradeEvent(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val type: String = "NEW",
+    val status: String = "LIVE",
+    val originalTradeId: String? = null,
     val correlationId: String? = null,
 )
