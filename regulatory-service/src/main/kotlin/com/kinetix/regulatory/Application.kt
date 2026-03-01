@@ -2,10 +2,13 @@ package com.kinetix.regulatory
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.persistence.BacktestResultRepository
 import com.kinetix.regulatory.persistence.DatabaseConfig
 import com.kinetix.regulatory.persistence.DatabaseFactory
+import com.kinetix.regulatory.persistence.ExposedBacktestResultRepository
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
+import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
 import io.ktor.client.*
@@ -66,10 +69,17 @@ fun Application.module() {
     }
 }
 
-fun Application.module(repository: FrtbCalculationRepository, client: RiskOrchestratorClient) {
+fun Application.module(
+    repository: FrtbCalculationRepository,
+    client: RiskOrchestratorClient,
+    backtestRepository: BacktestResultRepository? = null,
+) {
     module()
     routing {
         regulatoryRoutes(repository, client)
+        if (backtestRepository != null) {
+            backtestRoutes(backtestRepository)
+        }
     }
 }
 
@@ -84,6 +94,7 @@ fun Application.moduleWithRoutes() {
     )
 
     val repository = ExposedFrtbCalculationRepository(db)
+    val backtestRepository = ExposedBacktestResultRepository(db)
 
     val riskOrchestratorUrl = environment.config
         .config("services.riskOrchestrator")
@@ -98,7 +109,7 @@ fun Application.moduleWithRoutes() {
 
     val client = RiskOrchestratorClient(httpClient, riskOrchestratorUrl)
 
-    module(repository, client)
+    module(repository, client, backtestRepository)
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
