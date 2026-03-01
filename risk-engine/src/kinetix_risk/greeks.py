@@ -9,6 +9,7 @@ from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider
 PRICE_BUMP = 0.01       # 1% price bump for delta/gamma
 VOL_BUMP = 0.01         # 1 percentage point vol bump for vega
 RATE_BUMP = 0.0001      # 1 basis point for rho
+TIME_BUMP_DAYS = 1      # 1-day bump for charm
 DEFAULT_RISK_FREE_RATE = 0.05
 
 
@@ -59,6 +60,9 @@ def calculate_greeks(
     delta: dict[AssetClass, float] = {}
     gamma: dict[AssetClass, float] = {}
     vega: dict[AssetClass, float] = {}
+    vanna: dict[AssetClass, float] = {}
+    volga: dict[AssetClass, float] = {}
+    charm: dict[AssetClass, float] = {}
 
     for ac in sorted(asset_classes_present, key=lambda a: a.value):
         # Delta: (VaR_up - VaR_base) / bump
@@ -79,6 +83,38 @@ def calculate_greeks(
         var_vol_up = _var_value(positions, calculation_type, confidence_level, time_horizon_days,
                                 volatility_provider=vol_provider)
         vega[ac] = (var_vol_up - base_var) / VOL_BUMP
+
+        # Vanna: d(delta)/d(vol) — bump price AND vol, compute cross-partial
+        # vanna = (VaR(S+,vol+) - VaR(S+,vol_base) - VaR(S_base,vol+) + VaR_base) / (price_bump * vol_bump)
+        positions_up_vol = _bump_positions(positions, ac, PRICE_BUMP)
+        var_up_vol_up = _var_value(positions_up_vol, calculation_type, confidence_level, time_horizon_days,
+                                   volatility_provider=vol_provider)
+        vanna[ac] = (var_up_vol_up - var_up - var_vol_up + base_var) / (PRICE_BUMP * VOL_BUMP)
+
+        # Volga: d(vega)/d(vol) — second derivative w.r.t. vol
+        # volga = (VaR(vol+2) - 2*VaR(vol+) + VaR_base) / vol_bump^2
+        bumped_vols_2 = dict(DEFAULT_VOLATILITIES)
+        bumped_vols_2[ac] = base_vol + 2 * VOL_BUMP
+        vol_provider_2 = VolatilityProvider.from_dict(bumped_vols_2)
+        var_vol_up_2 = _var_value(positions, calculation_type, confidence_level, time_horizon_days,
+                                   volatility_provider=vol_provider_2)
+        volga[ac] = (var_vol_up_2 - 2 * var_vol_up + base_var) / (VOL_BUMP ** 2)
+
+        # Charm: d(delta)/d(time) — how delta changes with time horizon
+        if time_horizon_days > TIME_BUMP_DAYS:
+            var_up_t_minus = _var_value(positions_up, calculation_type, confidence_level,
+                                        time_horizon_days - TIME_BUMP_DAYS)
+            var_base_t_minus = _var_value(positions, calculation_type, confidence_level,
+                                          time_horizon_days - TIME_BUMP_DAYS)
+            delta_t_minus = (var_up_t_minus - var_base_t_minus) / PRICE_BUMP
+            charm[ac] = (delta[ac] - delta_t_minus) / TIME_BUMP_DAYS
+        else:
+            var_up_t_plus = _var_value(positions_up, calculation_type, confidence_level,
+                                       time_horizon_days + TIME_BUMP_DAYS)
+            var_base_t_plus = _var_value(positions, calculation_type, confidence_level,
+                                         time_horizon_days + TIME_BUMP_DAYS)
+            delta_t_plus = (var_up_t_plus - var_base_t_plus) / PRICE_BUMP
+            charm[ac] = (delta_t_plus - delta[ac]) / TIME_BUMP_DAYS
 
     # Theta: VaR with (time_horizon - 1) minus VaR_base
     if time_horizon_days > 1:
@@ -104,4 +140,7 @@ def calculate_greeks(
         vega=vega,
         theta=theta,
         rho=rho,
+        vanna=vanna,
+        volga=volga,
+        charm=charm,
     )

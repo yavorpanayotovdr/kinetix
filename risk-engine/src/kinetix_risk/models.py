@@ -105,6 +105,9 @@ class GreeksResult:
     vega: dict[AssetClass, float]
     theta: float
     rho: float
+    vanna: dict[AssetClass, float] | None = None
+    volga: dict[AssetClass, float] | None = None
+    charm: dict[AssetClass, float] | None = None
 
 
 @dataclass(frozen=True)

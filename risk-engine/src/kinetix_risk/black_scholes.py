@@ -81,6 +81,24 @@ def bs_rho(option: OptionPosition) -> float:
         return float(-K * T * math.exp(-r * T) * norm.cdf(-d2))
 
 
+def bs_vanna(option: OptionPosition) -> float:
+    from kinetix_risk.cross_greeks import calculate_vanna
+    T = option.expiry_days / 365.0
+    return calculate_vanna(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol)
+
+
+def bs_volga(option: OptionPosition) -> float:
+    from kinetix_risk.cross_greeks import calculate_volga
+    T = option.expiry_days / 365.0
+    return calculate_volga(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol)
+
+
+def bs_charm(option: OptionPosition) -> float:
+    from kinetix_risk.cross_greeks import calculate_charm
+    T = option.expiry_days / 365.0
+    return calculate_charm(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol, option.option_type)
+
+
 def bs_greeks(option: OptionPosition) -> dict:
     return {
         "price": bs_price(option),
@@ -89,4 +107,7 @@ def bs_greeks(option: OptionPosition) -> dict:
         "vega": bs_vega(option),
         "theta": bs_theta(option),
         "rho": bs_rho(option),
+        "vanna": bs_vanna(option),
+        "volga": bs_volga(option),
+        "charm": bs_charm(option),
     }
