@@ -5,6 +5,7 @@ import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -32,7 +33,12 @@ class TradeBookingService(
     private val tradeEventPublisher: TradeEventPublisher,
     private val limitCheckService: LimitCheckService? = null,
 ) {
+    private val logger = LoggerFactory.getLogger(TradeBookingService::class.java)
+
     suspend fun handle(command: BookTradeCommand): BookTradeResult {
+        logger.info("Booking trade: tradeId={}, portfolio={}, instrument={}, side={}, qty={}, price={}",
+            command.tradeId.value, command.portfolioId.value, command.instrumentId.value,
+            command.side, command.quantity, command.price.amount)
         val limitResult = limitCheckService?.check(command)
         if (limitResult != null && limitResult.blocked) {
             throw LimitBreachException(limitResult)
@@ -71,6 +77,8 @@ class TradeBookingService(
 
         if (isNewTrade) {
             tradeEventPublisher.publish(result.trade)
+            logger.info("Trade booked: tradeId={}, portfolio={}, newPosition={}",
+                result.trade.tradeId.value, result.trade.portfolioId.value, result.position.quantity)
         }
 
         return result

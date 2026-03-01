@@ -9,6 +9,7 @@ import com.kinetix.position.model.LimitBreachResult
 import com.kinetix.position.model.LimitBreachSeverity
 import com.kinetix.position.model.TradeLimits
 import com.kinetix.position.persistence.PositionRepository
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.util.Currency
 
@@ -16,6 +17,8 @@ class LimitCheckService(
     private val positionRepository: PositionRepository,
     private val defaultLimits: TradeLimits,
 ) {
+    private val logger = LoggerFactory.getLogger(LimitCheckService::class.java)
+
     suspend fun check(command: BookTradeCommand): LimitBreachResult {
         val breaches = mutableListOf<LimitBreach>()
 
@@ -45,7 +48,20 @@ class LimitCheckService(
             breaches = breaches,
         )
 
-        return LimitBreachResult(breaches)
+        val result = LimitBreachResult(breaches)
+        if (result.blocked) {
+            logger.warn("Limit check BLOCKED trade: portfolio={}, instrument={}, breaches={}",
+                command.portfolioId.value, command.instrumentId.value,
+                breaches.map { "${it.limitType}:${it.severity}" })
+        } else if (breaches.isNotEmpty()) {
+            logger.info("Limit check passed with warnings: portfolio={}, instrument={}, breaches={}",
+                command.portfolioId.value, command.instrumentId.value,
+                breaches.map { "${it.limitType}:${it.severity}" })
+        } else {
+            logger.debug("Limit check passed: portfolio={}, instrument={}",
+                command.portfolioId.value, command.instrumentId.value)
+        }
+        return result
     }
 
     private fun checkPositionLimit(newQuantity: BigDecimal, breaches: MutableList<LimitBreach>) {

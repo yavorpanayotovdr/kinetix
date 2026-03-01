@@ -4,6 +4,7 @@ import com.kinetix.common.model.*
 import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
+import org.slf4j.LoggerFactory
 
 class TradeLifecycleService(
     private val tradeEventRepository: TradeEventRepository,
@@ -11,8 +12,11 @@ class TradeLifecycleService(
     private val transactional: TransactionalRunner,
     private val tradeEventPublisher: TradeEventPublisher,
 ) {
+    private val logger = LoggerFactory.getLogger(TradeLifecycleService::class.java)
 
     suspend fun handleAmend(command: AmendTradeCommand): BookTradeResult {
+        logger.info("Amending trade: originalTradeId={}, newTradeId={}, portfolio={}",
+            command.originalTradeId.value, command.newTradeId.value, command.portfolioId.value)
         val result = transactional.run {
             val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
                 ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
@@ -52,10 +56,12 @@ class TradeLifecycleService(
         }
 
         tradeEventPublisher.publish(result.trade)
+        logger.info("Trade amended: originalTradeId={}, newTradeId={}", command.originalTradeId.value, command.newTradeId.value)
         return result
     }
 
     suspend fun handleCancel(command: CancelTradeCommand): BookTradeResult {
+        logger.info("Cancelling trade: tradeId={}", command.tradeId.value)
         val result = transactional.run {
             val trade = tradeEventRepository.findByTradeId(command.tradeId)
                 ?: throw IllegalArgumentException("Trade not found: ${command.tradeId.value}")
@@ -79,6 +85,7 @@ class TradeLifecycleService(
         }
 
         tradeEventPublisher.publish(result.trade)
+        logger.info("Trade cancelled: tradeId={}", command.tradeId.value)
         return result
     }
 
