@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from kinetix_risk.market_data_models import VolSurface, VolSurfacePoint, YieldCurveData
 from kinetix_risk.models import AssetClass
 from kinetix_risk.volatility import VolatilityProvider
 
@@ -13,6 +14,8 @@ class MarketDataBundle:
     volatility_provider: VolatilityProvider | None = None
     correlation_matrix: np.ndarray | None = None
     spot_prices: dict[str, float] = field(default_factory=dict)
+    vol_surfaces: dict[str, VolSurface] = field(default_factory=dict)
+    yield_curves: dict[str, YieldCurveData] = field(default_factory=dict)
 
 
 _ASSET_CLASS_NAME_TO_DOMAIN = {ac.value: ac for ac in AssetClass}
@@ -32,6 +35,8 @@ def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
     spot_prices: dict[str, float] = {}
     vols_by_asset_class: dict[AssetClass, list[float]] = defaultdict(list)
     correlation_matrix: np.ndarray | None = None
+    vol_surfaces: dict[str, VolSurface] = {}
+    yield_curves: dict[str, YieldCurveData] = {}
 
     for item in market_data:
         data_type = item.get("data_type")
@@ -61,6 +66,27 @@ def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
                 values = matrix_data["values"]
                 correlation_matrix = np.array(values).reshape(rows, cols)
 
+        elif data_type == "VOLATILITY_SURFACE":
+            instrument_id = item.get("instrument_id", "")
+            raw_points = item.get("points", [])
+            if instrument_id and raw_points:
+                points = [
+                    VolSurfacePoint(
+                        strike=pt["strike"],
+                        maturity_days=pt["maturity_days"],
+                        implied_vol=pt["implied_vol"],
+                    )
+                    for pt in raw_points
+                ]
+                vol_surfaces[instrument_id] = VolSurface(points=points)
+
+        elif data_type == "YIELD_CURVE":
+            currency = item.get("currency", "")
+            raw_tenors = item.get("tenors", [])
+            if currency and raw_tenors:
+                tenors = [(t["days"], t["rate"]) for t in raw_tenors]
+                yield_curves[currency] = YieldCurveData(tenors=tenors)
+
     volatility_provider = None
     if vols_by_asset_class:
         avg_vols = {
@@ -73,4 +99,6 @@ def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
         volatility_provider=volatility_provider,
         correlation_matrix=correlation_matrix,
         spot_prices=spot_prices,
+        vol_surfaces=vol_surfaces,
+        yield_curves=yield_curves,
     )
