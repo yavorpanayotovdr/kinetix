@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PositionDto, PositionRiskDto } from '../types'
 import { PositionGrid } from './PositionGrid'
 
@@ -327,6 +327,80 @@ describe('PositionGrid', () => {
       const summary = screen.getByTestId('portfolio-summary')
       expect(within(summary).getByTestId('summary-portfolio-delta')).toBeInTheDocument()
       expect(within(summary).getByTestId('summary-portfolio-var')).toBeInTheDocument()
+    })
+  })
+
+  describe('pagination', () => {
+    const makeManyPositions = (count: number): PositionDto[] =>
+      Array.from({ length: count }, (_, i) =>
+        makePosition({ instrumentId: `INST-${String(i + 1).padStart(3, '0')}` }),
+      )
+
+    it('should display only 50 rows per page by default', () => {
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(50)
+    })
+
+    it('should show page navigation controls', () => {
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      expect(screen.getByTestId('pagination-controls')).toBeInTheDocument()
+      expect(screen.getByTestId('pagination-prev')).toBeInTheDocument()
+      expect(screen.getByTestId('pagination-next')).toBeInTheDocument()
+    })
+
+    it('should navigate to next page', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      await user.click(screen.getByTestId('pagination-next'))
+
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(25)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-row-INST-051')
+    })
+
+    it('should navigate to previous page', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      // Go to page 2
+      await user.click(screen.getByTestId('pagination-next'))
+      // Go back to page 1
+      await user.click(screen.getByTestId('pagination-prev'))
+
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(50)
+      expect(rows[0]).toHaveAttribute('data-testid', 'position-row-INST-001')
+    })
+
+    it('should show current page and total pages', () => {
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 2')
+    })
+
+    it('should disable previous on first page', () => {
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      expect(screen.getByTestId('pagination-prev')).toBeDisabled()
+    })
+
+    it('should disable next on last page', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={makeManyPositions(75)} />)
+
+      await user.click(screen.getByTestId('pagination-next'))
+
+      expect(screen.getByTestId('pagination-next')).toBeDisabled()
+    })
+
+    it('should not show pagination when positions fit on one page', () => {
+      render(<PositionGrid positions={makeManyPositions(30)} />)
+
+      expect(screen.queryByTestId('pagination-controls')).not.toBeInTheDocument()
     })
   })
 })
