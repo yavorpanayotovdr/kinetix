@@ -11,6 +11,7 @@ import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
 import { PortfolioSummaryCard } from './components/PortfolioSummaryCard'
 import { usePositions } from './hooks/usePositions'
+import { usePortfolioSelector, ALL_PORTFOLIOS } from './hooks/usePortfolioSelector'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
@@ -67,9 +68,28 @@ function App() {
     tabRefs.current.get(tabKeys[nextIndex])?.focus()
   }
 
-  const { positions: initialPositions, portfolioId, portfolios, selectPortfolio, loading, error } = usePositions()
-  const { positions, connected, reconnecting } = usePriceStream(initialPositions)
-  const { positionRisk } = usePositionRisk(portfolioId)
+  const { positions: initialPositions, portfolioId: rawPortfolioId, portfolios, selectPortfolio: rawSelectPortfolio, loading: rawLoading, error: rawError } = usePositions()
+  const portfolioSelector = usePortfolioSelector()
+  const isAllSelected = portfolioSelector.isAllSelected
+  const effectivePortfolioId = isAllSelected ? null : rawPortfolioId
+  const { positions, connected, reconnecting } = usePriceStream(
+    isAllSelected ? portfolioSelector.aggregatedPositions : initialPositions,
+  )
+  const { positionRisk } = usePositionRisk(effectivePortfolioId)
+
+  const loading = rawLoading || portfolioSelector.loading
+  const error = rawError || portfolioSelector.error
+
+  const handlePortfolioChange = (id: string) => {
+    if (id === ALL_PORTFOLIOS) {
+      portfolioSelector.selectPortfolio(ALL_PORTFOLIOS)
+    } else {
+      rawSelectPortfolio(id)
+      portfolioSelector.selectPortfolio(id)
+    }
+  }
+
+  const portfolioId = isAllSelected ? ALL_PORTFOLIOS : rawPortfolioId
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(portfolioId)
@@ -89,9 +109,12 @@ function App() {
             <select
               data-testid="portfolio-selector"
               value={portfolioId ?? ''}
-              onChange={(e) => selectPortfolio(e.target.value)}
+              onChange={(e) => handlePortfolioChange(e.target.value)}
               className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
+              {portfolios.length > 1 && (
+                <option key={ALL_PORTFOLIOS} value={ALL_PORTFOLIOS}>All Portfolios</option>
+              )}
               {portfolios.map((id) => (
                 <option key={id} value={id}>{id}</option>
               ))}
