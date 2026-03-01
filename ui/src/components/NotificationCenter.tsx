@@ -3,6 +3,7 @@ import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info } from 'lucide-rea
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
 import { formatRelativeTime } from '../utils/format'
 import { Card, Button, Badge, Input, Select, Spinner } from './ui'
+import { ConfirmDialog } from './ui/ConfirmDialog'
 
 interface NotificationCenterProps {
   rules: AlertRuleDto[]
@@ -51,6 +52,7 @@ export function NotificationCenter({
   const [operator, setOperator] = useState('GREATER_THAN')
   const [severity, setSeverity] = useState('CRITICAL')
   const [channels, setChannels] = useState<string[]>(['IN_APP'])
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const sortedAlerts = useMemo(
     () =>
@@ -200,7 +202,7 @@ export function NotificationCenter({
               <td className="py-1.5">
                 <button
                   data-testid={`delete-rule-${rule.id}`}
-                  onClick={() => onDeleteRule(rule.id)}
+                  onClick={() => setPendingDeleteId(rule.id)}
                   className="text-red-500 hover:text-red-700 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -242,6 +244,20 @@ export function NotificationCenter({
           )
         })}
       </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete Alert Rule"
+        message="Are you sure you want to delete this alert rule? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (pendingDeleteId) onDeleteRule(pendingDeleteId)
+          setPendingDeleteId(null)
+        }}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </Card>
   )
 }
