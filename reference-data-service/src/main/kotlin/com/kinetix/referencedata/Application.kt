@@ -23,8 +23,11 @@ import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.header
+import org.slf4j.event.Level
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -45,6 +48,12 @@ fun Application.module() {
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
+    install(CallLogging) {
+        level = Level.INFO
+        mdc("correlationId") {
+            it.request.header("X-Correlation-ID") ?: java.util.UUID.randomUUID().toString()
+        }
+    }
     install(OpenApi) {
         info {
             title = "Reference Data Service API"

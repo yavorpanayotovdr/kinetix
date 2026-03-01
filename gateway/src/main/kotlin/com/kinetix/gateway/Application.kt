@@ -40,9 +40,11 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.plugins.statuspages.*
+import org.slf4j.event.Level
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -65,6 +67,12 @@ fun Application.module() {
         json(Json {
             ignoreUnknownKeys = true
         })
+    }
+    install(CallLogging) {
+        level = Level.INFO
+        mdc("correlationId") {
+            it.request.header("X-Correlation-ID") ?: java.util.UUID.randomUUID().toString()
+        }
     }
     install(WebSockets)
     install(OpenApi) {
