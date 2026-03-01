@@ -1,7 +1,10 @@
 {
   "uid": "kinetix-gateway",
   "title": "Gateway",
-  "tags": ["kinetix", "gateway"],
+  "tags": [
+    "kinetix",
+    "gateway"
+  ],
   "timezone": "browser",
   "refresh": "30s",
   "time": {
@@ -13,68 +16,120 @@
       "id": 1,
       "title": "Request Rate by Route",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "sum by (route) (rate(ktor_http_server_requests_seconds_count{job=\"gateway\"}[5m]))",
           "legendFormat": "{{route}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       }
     },
     {
       "id": 2,
       "title": "Error Rate (4xx + 5xx)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "sum by (status) (rate(ktor_http_server_requests_seconds_count{job=\"gateway\",status=~\"[45]..\"}[5m]))",
           "legendFormat": "{{status}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       }
     },
     {
       "id": 3,
       "title": "P95 Latency by Route",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (route, le) (rate(ktor_http_server_requests_seconds_bucket{job=\"gateway\"}[5m])))",
           "legendFormat": "{{route}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s"
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       }
     },
     {
       "id": 4,
       "title": "Active Requests",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "ktor_http_server_requests_active{job=\"gateway\"}",
           "legendFormat": "active",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      }
     }
   ],
   "schemaVersion": 39,
