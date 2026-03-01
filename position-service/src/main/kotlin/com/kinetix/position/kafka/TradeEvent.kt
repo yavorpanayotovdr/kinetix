@@ -14,6 +14,9 @@ data class TradeEvent(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val type: String = "NEW",
+    val status: String = "LIVE",
+    val originalTradeId: String? = null,
 ) {
     companion object {
         fun from(trade: Trade): TradeEvent = TradeEvent(
@@ -26,6 +29,9 @@ data class TradeEvent(
             priceAmount = trade.price.amount.toPlainString(),
             priceCurrency = trade.price.currency.currencyCode,
             tradedAt = trade.tradedAt.toString(),
+            type = trade.type.name,
+            status = trade.status.name,
+            originalTradeId = trade.originalTradeId?.value,
         )
     }
 }
