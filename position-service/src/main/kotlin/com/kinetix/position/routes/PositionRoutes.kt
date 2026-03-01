@@ -111,6 +111,7 @@ fun Route.positionRoutes(
     positionRepository: PositionRepository,
     positionQueryService: PositionQueryService,
     tradeBookingService: TradeBookingService,
+    tradeEventRepository: com.kinetix.position.persistence.TradeEventRepository,
 ) {
     route("/api/v1/portfolios") {
 
@@ -126,6 +127,21 @@ fun Route.positionRoutes(
         }
 
         route("/{portfolioId}") {
+
+            get("/trades", {
+                summary = "Get trade history for a portfolio"
+                tags = listOf("Trades")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<List<TradeResponse>>() }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val trades = tradeEventRepository.findByPortfolioId(portfolioId)
+                call.respond(trades.map { it.toResponse() })
+            }
 
             get("/positions", {
                 summary = "Get positions for a portfolio"

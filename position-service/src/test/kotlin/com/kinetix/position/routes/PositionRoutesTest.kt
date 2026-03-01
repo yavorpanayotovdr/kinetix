@@ -2,6 +2,7 @@ package com.kinetix.position.routes
 
 import com.kinetix.common.model.*
 import com.kinetix.position.persistence.PositionRepository
+import com.kinetix.position.persistence.TradeEventRepository
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.GetPositionsQuery
@@ -57,6 +58,7 @@ private fun Application.configureTestApp(
     positionRepository: PositionRepository,
     positionQueryService: PositionQueryService,
     tradeBookingService: TradeBookingService,
+    tradeEventRepository: TradeEventRepository,
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
@@ -68,7 +70,7 @@ private fun Application.configureTestApp(
         }
     }
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
     }
 }
 
@@ -77,14 +79,15 @@ class PositionRoutesTest : FunSpec({
     val positionRepository = mockk<PositionRepository>()
     val positionQueryService = mockk<PositionQueryService>()
     val tradeBookingService = mockk<TradeBookingService>()
+    val tradeEventRepository = mockk<TradeEventRepository>()
 
     beforeEach {
-        clearMocks(positionRepository, positionQueryService, tradeBookingService)
+        clearMocks(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
     }
 
     fun ApplicationTestBuilder.setupApp() {
         application {
-            configureTestApp(positionRepository, positionQueryService, tradeBookingService)
+            configureTestApp(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
         }
     }
 
@@ -192,6 +195,45 @@ class PositionRoutesTest : FunSpec({
             body shouldContain "\"side\":\"BUY\""
             body shouldContain "\"portfolioId\":\"port-1\""
             body shouldContain "\"instrumentId\":\"AAPL\""
+        }
+    }
+
+    test("GET /api/v1/portfolios/{id}/trades returns 200 with trade history") {
+        testApplication {
+            setupApp()
+            val trades = listOf(
+                Trade(
+                    tradeId = TradeId("t-1"),
+                    portfolioId = PORTFOLIO,
+                    instrumentId = AAPL,
+                    assetClass = AssetClass.EQUITY,
+                    side = Side.BUY,
+                    quantity = BigDecimal("100"),
+                    price = usd("150.00"),
+                    tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+                ),
+            )
+            coEvery { tradeEventRepository.findByPortfolioId(PORTFOLIO) } returns trades
+
+            val response = client.get("/api/v1/portfolios/port-1/trades")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "\"tradeId\":\"t-1\""
+            body shouldContain "\"side\":\"BUY\""
+            body shouldContain "\"quantity\":\"100\""
+        }
+    }
+
+    test("GET /api/v1/portfolios/{id}/trades returns empty list for unknown portfolio") {
+        testApplication {
+            setupApp()
+            coEvery { tradeEventRepository.findByPortfolioId(PortfolioId("unknown")) } returns emptyList()
+
+            val response = client.get("/api/v1/portfolios/unknown/trades")
+
+            response.status shouldBe HttpStatusCode.OK
+            response.bodyAsText() shouldBe "[]"
         }
     }
 

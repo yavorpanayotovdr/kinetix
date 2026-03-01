@@ -133,7 +133,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
     }
 
     launch {
