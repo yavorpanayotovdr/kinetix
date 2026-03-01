@@ -12,6 +12,7 @@ object PositionsTable : Table("positions") {
     val marketPriceAmount = decimal("market_price_amount", 28, 12)
     val currency = varchar("currency", 3)
     val updatedAt = timestampWithTimeZone("updated_at")
+    val realizedPnlAmount = decimal("realized_pnl_amount", 28, 12).default(java.math.BigDecimal.ZERO)
 
     override val primaryKey = PrimaryKey(portfolioId, instrumentId)
 }

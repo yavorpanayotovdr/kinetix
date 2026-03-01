@@ -25,6 +25,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             it[marketPriceAmount] = position.marketPrice.amount
             it[currency] = position.currency.currencyCode
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+            it[realizedPnlAmount] = position.realizedPnl.amount
         }
     }
 
@@ -84,6 +85,10 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
         ),
         marketPrice = Money(
             this[PositionsTable.marketPriceAmount],
+            Currency.getInstance(this[PositionsTable.currency]),
+        ),
+        realizedPnl = Money(
+            this[PositionsTable.realizedPnlAmount],
             Currency.getInstance(this[PositionsTable.currency]),
         ),
     )

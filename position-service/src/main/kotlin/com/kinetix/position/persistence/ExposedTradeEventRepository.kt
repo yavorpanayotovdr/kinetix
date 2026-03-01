@@ -4,6 +4,7 @@ import com.kinetix.common.model.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
@@ -24,6 +25,9 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             it[priceCurrency] = trade.price.currency.currencyCode
             it[tradedAt] = trade.tradedAt.atOffset(ZoneOffset.UTC)
             it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
+            it[tradeType] = trade.type.name
+            it[status] = trade.status.name
+            it[originalTradeId] = trade.originalTradeId?.value
         }
     }
 
@@ -43,6 +47,12 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             .map { it.toTrade() }
     }
 
+    override suspend fun updateStatus(tradeId: TradeId, status: TradeStatus): Unit = newSuspendedTransaction(db = db) {
+        TradeEventsTable.update({ TradeEventsTable.tradeId eq tradeId.value }) {
+            it[TradeEventsTable.status] = status.name
+        }
+    }
+
     private fun ResultRow.toTrade(): Trade = Trade(
         tradeId = TradeId(this[TradeEventsTable.tradeId]),
         portfolioId = PortfolioId(this[TradeEventsTable.portfolioId]),
@@ -55,5 +65,8 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             Currency.getInstance(this[TradeEventsTable.priceCurrency]),
         ),
         tradedAt = this[TradeEventsTable.tradedAt].toInstant(),
+        type = TradeType.valueOf(this[TradeEventsTable.tradeType]),
+        status = TradeStatus.valueOf(this[TradeEventsTable.status]),
+        originalTradeId = this[TradeEventsTable.originalTradeId]?.let { TradeId(it) },
     )
 }
