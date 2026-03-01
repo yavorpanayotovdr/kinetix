@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { formatMoney, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, formatDuration, formatNum, pnlColorClass } from './format'
+import { formatMoney, formatCurrency, formatQuantity, formatRelativeTime, formatTimestamp, formatTimeOnly, formatChartTime, formatDuration, formatNum, pnlColorClass } from './format'
 
 describe('formatMoney', () => {
   it('formats USD with dollar sign and commas', () => {
@@ -28,6 +28,33 @@ describe('formatMoney', () => {
 
   it('rounds to 2 decimal places', () => {
     expect(formatMoney('150.999', 'USD')).toBe('$151.00')
+  })
+})
+
+describe('formatCurrency', () => {
+  it('formats positive values with $ sign and commas', () => {
+    expect(formatCurrency(1500)).toBe('$1,500.00')
+  })
+
+  it('formats negative values with minus sign', () => {
+    expect(formatCurrency(-1234.56)).toBe('-$1,234.56')
+  })
+
+  it('handles zero', () => {
+    expect(formatCurrency(0)).toBe('$0.00')
+  })
+
+  it('uses 2 decimal places by default', () => {
+    expect(formatCurrency(42)).toBe('$42.00')
+    expect(formatCurrency(1234567.89)).toBe('$1,234,567.89')
+  })
+
+  it('supports custom currency codes', () => {
+    expect(formatCurrency(2500.50, 'EUR')).toContain('2,500.50')
+  })
+
+  it('coerces string values to numbers', () => {
+    expect(formatCurrency('9999.99' as unknown as number)).toBe('$9,999.99')
   })
 })
 
