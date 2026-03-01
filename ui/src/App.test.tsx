@@ -7,6 +7,9 @@ vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useSystemHealth')
 vi.mock('./hooks/useStressTest')
+vi.mock('./hooks/usePortfolioSelector')
+vi.mock('./hooks/useDataQuality')
+vi.mock('./hooks/useWorkspace')
 vi.mock('./components/TradeBlotter', () => ({
   TradeBlotter: () => <div data-testid="trade-blotter-wrapper" />,
 }))
@@ -26,12 +29,18 @@ import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useStressTest } from './hooks/useStressTest'
+import { usePortfolioSelector } from './hooks/usePortfolioSelector'
+import { useDataQuality } from './hooks/useDataQuality'
+import { useWorkspace, DEFAULT_PREFERENCES } from './hooks/useWorkspace'
 
 const mockUsePositions = vi.mocked(usePositions)
 const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
 const mockUseStressTest = vi.mocked(useStressTest)
+const mockUsePortfolioSelector = vi.mocked(usePortfolioSelector)
+const mockUseDataQuality = vi.mocked(useDataQuality)
+const mockUseWorkspace = vi.mocked(useWorkspace)
 
 const position: PositionDto = {
   portfolioId: 'port-1',
@@ -88,6 +97,31 @@ function setupDefaults() {
     loading: false,
     error: null,
     run: vi.fn(),
+  })
+  mockUsePortfolioSelector.mockReturnValue({
+    portfolioOptions: [
+      { value: '__ALL__', label: 'All Portfolios' },
+      { value: 'port-1', label: 'port-1' },
+      { value: 'port-2', label: 'port-2' },
+    ],
+    selectedPortfolioId: 'port-1',
+    isAllSelected: false,
+    allPortfolioIds: ['port-1', 'port-2'],
+    positions: [position],
+    aggregatedPositions: [],
+    selectPortfolio: vi.fn(),
+    loading: false,
+    error: null,
+  })
+  mockUseDataQuality.mockReturnValue({
+    status: { overall: 'OK', checks: [] },
+    loading: false,
+    error: null,
+  })
+  mockUseWorkspace.mockReturnValue({
+    preferences: DEFAULT_PREFERENCES,
+    updatePreference: vi.fn(),
+    resetPreferences: vi.fn(),
   })
 }
 
