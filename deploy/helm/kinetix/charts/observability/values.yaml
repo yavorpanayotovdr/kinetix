@@ -92,7 +92,21 @@ kube-prometheus-stack:
                   annotations:
                     summary: "Kafka consumer lag is high for {{ $labels.group }}"
                     description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
   grafana:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
     additionalDataSources:
       - name: Loki
         type: loki
@@ -114,6 +128,13 @@ loki:
       type: filesystem
   singleBinary:
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
 
 tempo:
   enabled: true
@@ -121,10 +142,24 @@ tempo:
     storage:
       trace:
         backend: local
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
 
 opentelemetry-collector:
   enabled: true
   mode: deployment
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
   config:
     receivers:
       otlp:
