@@ -318,3 +318,18 @@ export interface ValuationJobDetailDto {
   steps: JobStepDto[]
   error: string | null
 }
+
+export interface CurrencyExposureDto {
+  currency: string
+  localValue: MoneyDto
+  baseValue: MoneyDto
+  fxRate: string
+}
+
+export interface PortfolioAggregationDto {
+  portfolioId: string
+  baseCurrency: string
+  totalNav: MoneyDto
+  totalUnrealizedPnl: MoneyDto
+  currencyBreakdown: CurrencyExposureDto[]
+}
