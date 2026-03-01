@@ -23,59 +23,65 @@ fun Route.positionRoutes(client: PositionServiceClient) {
 
         route("/{portfolioId}") {
 
-            get("/trades", {
-                summary = "Get trade history for a portfolio"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val trades = client.getTradeHistory(portfolioId)
-                call.respond(trades.map { it.toResponse() })
-            }
-
-            post("/trades", {
-                summary = "Book a trade"
-                tags = listOf("Trades")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val request = call.receive<BookTradeRequest>()
-                val command = request.toCommand(portfolioId)
-                val result = client.bookTrade(command)
-                call.respond(HttpStatusCode.Created, result.toResponse())
-            }
-
-            get("/positions", {
-                summary = "Get positions for a portfolio"
-                tags = listOf("Positions")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val positions = client.getPositions(portfolioId)
-                call.respond(positions.map { it.toResponse() })
-            }
-
-            get("/summary", {
-                summary = "Get portfolio summary with multi-currency aggregation"
-                tags = listOf("Portfolios")
-                request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
-                    queryParameter<String>("baseCurrency") {
-                        description = "Base currency for aggregation (default: USD)"
-                        required = false
+            route("/trades") {
+                get({
+                    summary = "Get trade history for a portfolio"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
                     }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val trades = client.getTradeHistory(portfolioId)
+                    call.respond(trades.map { it.toResponse() })
                 }
-            }) {
-                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
-                val summary = client.getPortfolioSummary(portfolioId, baseCurrency)
-                call.respond(summary.toResponse())
+
+                post({
+                    summary = "Book a trade"
+                    tags = listOf("Trades")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val request = call.receive<BookTradeRequest>()
+                    val command = request.toCommand(portfolioId)
+                    val result = client.bookTrade(command)
+                    call.respond(HttpStatusCode.Created, result.toResponse())
+                }
+            }
+
+            route("/positions") {
+                get({
+                    summary = "Get positions for a portfolio"
+                    tags = listOf("Positions")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val positions = client.getPositions(portfolioId)
+                    call.respond(positions.map { it.toResponse() })
+                }
+            }
+
+            route("/summary") {
+                get({
+                    summary = "Get portfolio summary with multi-currency aggregation"
+                    tags = listOf("Portfolios")
+                    request {
+                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        queryParameter<String>("baseCurrency") {
+                            description = "Base currency for aggregation (default: USD)"
+                            required = false
+                        }
+                    }
+                }) {
+                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
+                    val summary = client.getPortfolioSummary(portfolioId, baseCurrency)
+                    call.respond(summary.toResponse())
+                }
             }
         }
     }
