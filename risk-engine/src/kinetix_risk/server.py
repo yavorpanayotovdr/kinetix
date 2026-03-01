@@ -1,9 +1,12 @@
+import logging
 import os
 from concurrent import futures
 from pathlib import Path
 
 import grpc
 import prometheus_client
+
+logger = logging.getLogger(__name__)
 
 from kinetix.risk import market_data_dependencies_pb2_grpc, ml_prediction_pb2_grpc, regulatory_reporting_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
 from kinetix_risk.converters import (
@@ -108,8 +111,36 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
 
 def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models"):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(threadName)s] %(levelname)-5s %(name)s - %(message)s",
+    )
+
+    # Configure OTel logging if endpoint is set
+    otel_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if otel_endpoint:
+        try:
+            from opentelemetry.sdk._logs import LoggerProvider
+            from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+            from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+            from opentelemetry.sdk.resources import Resource
+
+            resource = Resource.create({"service.name": os.environ.get("OTEL_SERVICE_NAME", "risk-engine")})
+            provider = LoggerProvider(resource=resource)
+            provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=otel_endpoint, insecure=True)))
+
+            from opentelemetry._logs import set_logger_provider
+            set_logger_provider(provider)
+
+            from opentelemetry.sdk._logs.export import LoggingHandler
+            handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
+            logging.getLogger().addHandler(handler)
+            logger.info("OTel logging configured, exporting to %s", otel_endpoint)
+        except Exception:
+            logger.warning("Failed to configure OTel logging, continuing without it", exc_info=True)
+
     prometheus_client.start_http_server(metrics_port)
-    print(f"Prometheus metrics server started on port {metrics_port}")
+    logger.info("Prometheus metrics server started on port %d", metrics_port)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     risk_calculation_pb2_grpc.add_RiskCalculationServiceServicer_to_server(
@@ -149,10 +180,10 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
             require_client_auth=False,
         )
         server.add_secure_port(f"[::]:{port}", credentials)
-        print(f"Risk engine gRPC server started on port {port} with TLS")
+        logger.info("Risk engine gRPC server started on port %d with TLS", port)
     else:
         server.add_insecure_port(f"[::]:{port}")
-        print(f"Risk engine gRPC server started on port {port} (plaintext)")
+        logger.info("Risk engine gRPC server started on port %d (plaintext)", port)
 
     server.start()
     server.wait_for_termination()
