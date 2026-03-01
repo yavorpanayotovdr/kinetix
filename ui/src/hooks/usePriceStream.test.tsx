@@ -102,6 +102,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null
   onmessage: MessageHandler | null = null
   onclose: (() => void) | null = null
+  onerror: (() => void) | null = null
   readyState = 0
   sent: string[] = []
   closed = false
@@ -131,6 +132,10 @@ class MockWebSocket {
   simulateClose() {
     this.readyState = 3
     this.onclose?.()
+  }
+
+  simulateError() {
+    this.onerror?.()
   }
 }
 
@@ -285,5 +290,227 @@ describe('usePriceStream', () => {
 
     const subscribeMsg = JSON.parse(ws.sent[0])
     expect(subscribeMsg.instrumentIds).toEqual(['AAPL'])
+  })
+
+  describe('auto-reconnect', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('should attempt to reconnect on disconnect', () => {
+      const positions = [makePosition()]
+
+      renderHook(() => usePriceStream(positions, 'ws://localhost/ws'))
+
+      const ws = MockWebSocket.instances[0]
+
+      act(() => {
+        ws.simulateOpen()
+      })
+
+      act(() => {
+        ws.simulateClose()
+      })
+
+      // First reconnect after 1s
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(MockWebSocket.instances).toHaveLength(2)
+    })
+
+    it('should use exponential backoff', () => {
+      const positions = [makePosition()]
+
+      renderHook(() => usePriceStream(positions, 'ws://localhost/ws'))
+
+      const ws1 = MockWebSocket.instances[0]
+
+      act(() => {
+        ws1.simulateOpen()
+      })
+      act(() => {
+        ws1.simulateClose()
+      })
+
+      // 1st reconnect at 1s
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(MockWebSocket.instances).toHaveLength(2)
+
+      const ws2 = MockWebSocket.instances[1]
+      act(() => {
+        ws2.simulateClose()
+      })
+
+      // 2nd reconnect at 2s
+      act(() => {
+        vi.advanceTimersByTime(1999)
+      })
+      expect(MockWebSocket.instances).toHaveLength(2)
+
+      act(() => {
+        vi.advanceTimersByTime(1)
+      })
+      expect(MockWebSocket.instances).toHaveLength(3)
+    })
+
+    it('should show reconnecting state', () => {
+      const positions = [makePosition()]
+
+      const { result } = renderHook(() =>
+        usePriceStream(positions, 'ws://localhost/ws'),
+      )
+
+      const ws = MockWebSocket.instances[0]
+
+      act(() => {
+        ws.simulateOpen()
+      })
+
+      expect(result.current.reconnecting).toBe(false)
+
+      act(() => {
+        ws.simulateClose()
+      })
+
+      expect(result.current.reconnecting).toBe(true)
+    })
+
+    it('should cap backoff at 30 seconds', () => {
+      const positions = [makePosition()]
+
+      renderHook(() => usePriceStream(positions, 'ws://localhost/ws'))
+
+      const ws1 = MockWebSocket.instances[0]
+      act(() => {
+        ws1.simulateOpen()
+      })
+      act(() => {
+        ws1.simulateClose()
+      })
+
+      // Simulate several failed reconnections: 1s, 2s, 4s, 8s, 16s, 30s (capped)
+      for (let i = 0; i < 5; i++) {
+        act(() => {
+          vi.advanceTimersByTime(30000)
+        })
+        const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+        act(() => {
+          ws.simulateClose()
+        })
+      }
+
+      const countBefore = MockWebSocket.instances.length
+
+      // Next backoff should be capped at 30s, not 64s
+      act(() => {
+        vi.advanceTimersByTime(30000)
+      })
+
+      expect(MockWebSocket.instances).toHaveLength(countBefore + 1)
+    })
+
+    it('should reset backoff on successful reconnection', () => {
+      const positions = [makePosition()]
+
+      const { result } = renderHook(() =>
+        usePriceStream(positions, 'ws://localhost/ws'),
+      )
+
+      const ws1 = MockWebSocket.instances[0]
+      act(() => {
+        ws1.simulateOpen()
+      })
+      act(() => {
+        ws1.simulateClose()
+      })
+
+      // Reconnect after 1s
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      const ws2 = MockWebSocket.instances[1]
+      act(() => {
+        ws2.simulateOpen()
+      })
+
+      expect(result.current.reconnecting).toBe(false)
+      expect(result.current.connected).toBe(true)
+
+      // Disconnect again - backoff should be reset to 1s
+      act(() => {
+        ws2.simulateClose()
+      })
+
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(MockWebSocket.instances).toHaveLength(3)
+    })
+
+    it('should stop reconnecting after 20 attempts', () => {
+      const positions = [makePosition()]
+
+      renderHook(() => usePriceStream(positions, 'ws://localhost/ws'))
+
+      const ws1 = MockWebSocket.instances[0]
+      act(() => {
+        ws1.simulateOpen()
+      })
+      act(() => {
+        ws1.simulateClose()
+      })
+
+      // Simulate 20 failed reconnections
+      for (let i = 0; i < 20; i++) {
+        act(() => {
+          vi.advanceTimersByTime(30000)
+        })
+        const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+        act(() => {
+          ws.simulateClose()
+        })
+      }
+
+      const countAfter20 = MockWebSocket.instances.length
+
+      // 21st attempt should not happen
+      act(() => {
+        vi.advanceTimersByTime(60000)
+      })
+
+      expect(MockWebSocket.instances).toHaveLength(countAfter20)
+    })
+
+    it('should not reconnect on intentional unmount', () => {
+      const positions = [makePosition()]
+
+      const { unmount } = renderHook(() =>
+        usePriceStream(positions, 'ws://localhost/ws'),
+      )
+
+      const ws = MockWebSocket.instances[0]
+      act(() => {
+        ws.simulateOpen()
+      })
+
+      unmount()
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      // Should only have the original connection, no reconnect
+      expect(MockWebSocket.instances).toHaveLength(1)
+    })
   })
 })
