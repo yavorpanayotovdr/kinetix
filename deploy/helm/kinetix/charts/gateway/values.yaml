@@ -19,7 +19,7 @@ env:
   OTEL_SERVICE_NAME: "gateway"
   OTEL_LOGS_EXPORTER: "otlp"
   OTEL_METRICS_EXPORTER: "none"
-  OTEL_TRACES_EXPORTER: "none"
+  OTEL_TRACES_EXPORTER: "otlp"
 
 resources:
   requests:
