@@ -11,6 +11,7 @@ from kinetix_risk.models import (
     AssetClass, AssetClassExposure, CalculationType, ConfidenceLevel,
     PositionRisk, VaRResult,
 )
+from kinetix_risk.correlation import estimate_correlation
 from kinetix_risk.var_historical import calculate_historical_var
 from kinetix_risk.var_monte_carlo import calculate_monte_carlo_var
 from kinetix_risk.var_parametric import calculate_parametric_var
@@ -28,6 +29,7 @@ def calculate_portfolio_var(
     correlation_matrix: "np.ndarray | None" = None,
     risk_free_rate: float = 0.0,
     historical_returns: "np.ndarray | None" = None,
+    correlation_method: str | None = None,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -55,8 +57,15 @@ def calculate_portfolio_var(
         for ac in asset_classes
     ]
 
-    # Get correlation sub-matrix for the asset classes present
-    corr = correlation_matrix if correlation_matrix is not None else get_sub_correlation_matrix(asset_classes)
+    # Get correlation sub-matrix for the asset classes present.
+    # When historical_returns are provided and a correlation_method is specified,
+    # estimate the correlation dynamically using the requested method (e.g. Ledoit-Wolf).
+    if correlation_matrix is not None:
+        corr = correlation_matrix
+    elif correlation_method is not None and historical_returns is not None:
+        corr = estimate_correlation(historical_returns, method=correlation_method)
+    else:
+        corr = get_sub_correlation_matrix(asset_classes)
 
     # Dispatch to the appropriate VaR engine
     if calculation_type == CalculationType.PARAMETRIC:
