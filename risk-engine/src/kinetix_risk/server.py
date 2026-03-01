@@ -16,7 +16,7 @@ from kinetix_risk.converters import (
     var_result_to_proto_response,
 )
 from kinetix_risk.market_data_consumer import consume_market_data
-from kinetix_risk.metrics import risk_var_value
+from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expected_shortfall, risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
@@ -47,7 +47,14 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             correlation_matrix=bundle.correlation_matrix,
         )
 
-        risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_value)
+        portfolio_id = request.portfolio_id.value
+        risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_value)
+        risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.expected_shortfall)
+        for component in result.component_breakdown:
+            risk_var_component_contribution.labels(
+                portfolio_id=portfolio_id,
+                asset_class=component.asset_class.value,
+            ).set(component.var_contribution)
 
         return var_result_to_proto_response(
             result,
@@ -79,7 +86,14 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
         )
 
         if result.var_result is not None:
-            risk_var_value.labels(portfolio_id=request.portfolio_id.value).set(result.var_result.var_value)
+            portfolio_id = request.portfolio_id.value
+            risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_result.var_value)
+            risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.var_result.expected_shortfall)
+            for component in result.var_result.component_breakdown:
+                risk_var_component_contribution.labels(
+                    portfolio_id=portfolio_id,
+                    asset_class=component.asset_class.value,
+                ).set(component.var_contribution)
 
         return valuation_result_to_proto_response(
             result,
