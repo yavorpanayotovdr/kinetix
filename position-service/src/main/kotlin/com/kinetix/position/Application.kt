@@ -13,6 +13,7 @@ import com.kinetix.position.service.ExposedTransactionalRunner
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
+import com.kinetix.position.service.TradeLifecycleService
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktorswaggerui.swaggerUI
@@ -98,6 +99,12 @@ fun Application.moduleWithRoutes() {
         tradeEventPublisher = tradeEventPublisher,
     )
     val positionQueryService = PositionQueryService(positionRepository)
+    val tradeLifecycleService = TradeLifecycleService(
+        tradeEventRepository = tradeEventRepository,
+        positionRepository = positionRepository,
+        transactional = transactionalRunner,
+        tradeEventPublisher = tradeEventPublisher,
+    )
 
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
@@ -123,6 +130,12 @@ fun Application.moduleWithRoutes() {
                 ErrorBody("bad_request", cause.message ?: "Invalid request"),
             )
         }
+        exception<IllegalStateException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorBody("conflict", cause.message ?: "Invalid state"),
+            )
+        }
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception", cause)
             call.respond(
@@ -133,7 +146,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
     }
 
     launch {

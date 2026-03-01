@@ -2,12 +2,11 @@ package com.kinetix.position.routes
 
 import com.kinetix.common.model.*
 import com.kinetix.position.persistence.PositionRepository
-import com.kinetix.position.service.BookTradeCommand
-import com.kinetix.position.service.GetPositionsQuery
-import com.kinetix.position.service.PositionQueryService
-import com.kinetix.position.service.TradeBookingService
+import com.kinetix.position.service.*
+import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -41,6 +40,7 @@ data class PositionResponse(
     val marketPrice: MoneyDto,
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
+    val realizedPnl: MoneyDto,
 )
 
 @Serializable
@@ -52,6 +52,21 @@ data class TradeResponse(
     val side: String,
     val quantity: String,
     val price: MoneyDto,
+    val tradedAt: String,
+    val type: String = "NEW",
+    val status: String = "LIVE",
+    val originalTradeId: String? = null,
+)
+
+@Serializable
+data class AmendTradeRequest(
+    val newTradeId: String? = null,
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
     val tradedAt: String,
 )
 
@@ -92,6 +107,7 @@ private fun Position.toResponse() = PositionResponse(
     marketPrice = marketPrice.toDto(),
     marketValue = marketValue.toDto(),
     unrealizedPnl = unrealizedPnl.toDto(),
+    realizedPnl = realizedPnl.toDto(),
 )
 
 private fun Trade.toResponse() = TradeResponse(
@@ -103,6 +119,9 @@ private fun Trade.toResponse() = TradeResponse(
     quantity = quantity.toPlainString(),
     price = price.toDto(),
     tradedAt = tradedAt.toString(),
+    type = type.name,
+    status = status.name,
+    originalTradeId = originalTradeId?.value,
 )
 
 // --- Routes ---
@@ -112,6 +131,7 @@ fun Route.positionRoutes(
     positionQueryService: PositionQueryService,
     tradeBookingService: TradeBookingService,
     tradeEventRepository: com.kinetix.position.persistence.TradeEventRepository,
+    tradeLifecycleService: TradeLifecycleService,
 ) {
     route("/api/v1/portfolios") {
 
@@ -189,6 +209,75 @@ fun Route.positionRoutes(
                 val result = tradeBookingService.handle(command)
                 call.respond(
                     HttpStatusCode.Created,
+                    BookTradeResponse(
+                        trade = result.trade.toResponse(),
+                        position = result.position.toResponse(),
+                    ),
+                )
+            }
+
+            put("/trades/{tradeId}", {
+                summary = "Amend a trade"
+                tags = listOf("Trades")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("tradeId") { description = "Trade identifier to amend" }
+                    body<AmendTradeRequest>()
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<BookTradeResponse>() }
+                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val tradeId = TradeId(call.requirePathParam("tradeId"))
+                val request = call.receive<AmendTradeRequest>()
+                val qty = BigDecimal(request.quantity)
+                require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
+                val priceAmt = BigDecimal(request.priceAmount)
+                require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
+                val command = AmendTradeCommand(
+                    originalTradeId = tradeId,
+                    newTradeId = TradeId(request.newTradeId ?: UUID.randomUUID().toString()),
+                    portfolioId = portfolioId,
+                    instrumentId = InstrumentId(request.instrumentId),
+                    assetClass = AssetClass.valueOf(request.assetClass),
+                    side = Side.valueOf(request.side),
+                    quantity = qty,
+                    price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
+                    tradedAt = Instant.parse(request.tradedAt),
+                )
+                val result = tradeLifecycleService.handleAmend(command)
+                call.respond(
+                    HttpStatusCode.OK,
+                    BookTradeResponse(
+                        trade = result.trade.toResponse(),
+                        position = result.position.toResponse(),
+                    ),
+                )
+            }
+
+            delete("/trades/{tradeId}", {
+                summary = "Cancel a trade"
+                tags = listOf("Trades")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("tradeId") { description = "Trade identifier to cancel" }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<BookTradeResponse>() }
+                    code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val tradeId = TradeId(call.requirePathParam("tradeId"))
+                val command = CancelTradeCommand(
+                    tradeId = tradeId,
+                    portfolioId = portfolioId,
+                )
+                val result = tradeLifecycleService.handleCancel(command)
+                call.respond(
+                    HttpStatusCode.OK,
                     BookTradeResponse(
                         trade = result.trade.toResponse(),
                         position = result.position.toResponse(),
