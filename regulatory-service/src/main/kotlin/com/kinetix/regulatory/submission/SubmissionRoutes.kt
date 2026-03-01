@@ -10,7 +10,10 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
 import java.time.Instant
+
+private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.submission.SubmissionRoutes")
 
 fun Route.submissionRoutes(service: SubmissionService) {
     route("/api/v1/submissions") {
@@ -19,11 +22,13 @@ fun Route.submissionRoutes(service: SubmissionService) {
             tags = listOf("Submissions")
         }) {
             val request = call.receive<CreateSubmissionRequest>()
+            logger.info("Creating submission: reportType={}, preparerId={}", request.reportType, request.preparerId)
             val submission = service.create(
                 reportType = request.reportType,
                 preparerId = request.preparerId,
                 deadline = Instant.parse(request.deadline),
             )
+            logger.info("Submission created: id={}, reportType={}", submission.id, submission.reportType)
             call.respond(HttpStatusCode.Created, submission.toResponse())
         }
 
@@ -44,7 +49,9 @@ fun Route.submissionRoutes(service: SubmissionService) {
         }) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
+            logger.info("Submission submitted for review: id={}", id)
             val updated = service.submitForReview(id)
+            logger.info("Submission in review: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
 
@@ -58,7 +65,9 @@ fun Route.submissionRoutes(service: SubmissionService) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
             val request = call.receive<ApproveSubmissionRequest>()
+            logger.info("Submission approval requested: id={}, approverId={}", id, request.approverId)
             val updated = service.approve(id, request.approverId)
+            logger.info("Submission approved: id={}, approverId={}", updated.id, updated.approverId)
             call.respond(updated.toResponse())
         }
 
@@ -71,7 +80,9 @@ fun Route.submissionRoutes(service: SubmissionService) {
         }) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
+            logger.info("Final submission requested: id={}", id)
             val updated = service.submit(id)
+            logger.info("Submission finalized: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
     }

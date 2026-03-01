@@ -10,6 +10,9 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.governance.ModelGovernanceRoutes")
 
 fun Route.modelGovernanceRoutes(registry: ModelRegistry) {
     route("/api/v1/models") {
@@ -26,11 +29,13 @@ fun Route.modelGovernanceRoutes(registry: ModelRegistry) {
             tags = listOf("Model Governance")
         }) {
             val request = call.receive<RegisterModelRequest>()
+            logger.info("Registering model: name={}, version={}", request.modelName, request.version)
             val model = registry.register(
                 modelName = request.modelName,
                 version = request.version,
                 parameters = request.parameters,
             )
+            logger.info("Model registered: id={}, name={}, version={}", model.id, model.modelName, model.version)
             call.respond(HttpStatusCode.Created, model.toResponse())
         }
 
@@ -45,7 +50,9 @@ fun Route.modelGovernanceRoutes(registry: ModelRegistry) {
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
             val request = call.receive<TransitionStatusRequest>()
             val targetStatus = ModelVersionStatus.valueOf(request.targetStatus)
+            logger.info("Model status transition: id={}, targetStatus={}, approvedBy={}", id, targetStatus, request.approvedBy)
             val updated = registry.transitionStatus(id, targetStatus, request.approvedBy)
+            logger.info("Model status transitioned: id={}, newStatus={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
     }

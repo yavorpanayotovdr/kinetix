@@ -10,6 +10,9 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.stress.StressScenarioRoutes")
 
 fun Route.stressScenarioRoutes(service: StressScenarioService) {
     route("/api/v1/stress-scenarios") {
@@ -34,12 +37,14 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             tags = listOf("Stress Testing")
         }) {
             val request = call.receive<CreateScenarioRequest>()
+            logger.info("Creating stress scenario: name={}, createdBy={}", request.name, request.createdBy)
             val scenario = service.create(
                 name = request.name,
                 description = request.description,
                 shocks = request.shocks,
                 createdBy = request.createdBy,
             )
+            logger.info("Stress scenario created: id={}, name={}", scenario.id, scenario.name)
             call.respond(HttpStatusCode.Created, scenario.toResponse())
         }
 
@@ -52,7 +57,9 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
         }) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
+            logger.info("Stress scenario submitted for approval: id={}", id)
             val updated = service.submitForApproval(id)
+            logger.info("Stress scenario pending approval: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
 
@@ -66,7 +73,9 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
             val request = call.receive<ApproveScenarioRequest>()
+            logger.info("Stress scenario approval: id={}, approvedBy={}", id, request.approvedBy)
             val updated = service.approve(id, request.approvedBy)
+            logger.info("Stress scenario approved: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
 
@@ -79,7 +88,9 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
         }) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
+            logger.info("Stress scenario retirement: id={}", id)
             val updated = service.retire(id)
+            logger.info("Stress scenario retired: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
     }

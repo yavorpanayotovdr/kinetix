@@ -12,8 +12,11 @@ import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
+
+private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.routes.RegulatoryRoutes")
 
 fun Route.regulatoryRoutes(
     repository: FrtbCalculationRepository,
@@ -31,6 +34,7 @@ fun Route.regulatoryRoutes(
                 val portfolioId = call.parameters["portfolioId"]
                     ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 
+                logger.info("FRTB calculation requested for portfolio={}", portfolioId)
                 val frtbResult = client.calculateFrtb(portfolioId)
 
                 val record = FrtbCalculationRecord(
@@ -58,6 +62,7 @@ fun Route.regulatoryRoutes(
                 )
 
                 repository.save(record)
+                logger.info("FRTB calculation completed for portfolio={}, totalCapitalCharge={}", portfolioId, record.totalCapitalCharge)
                 call.respond(HttpStatusCode.Created, record.toResponse())
             }
         }

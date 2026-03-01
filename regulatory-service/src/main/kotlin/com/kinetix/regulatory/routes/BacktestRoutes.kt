@@ -11,10 +11,13 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.ln
+
+private val backtestLogger = LoggerFactory.getLogger("com.kinetix.regulatory.routes.BacktestRoutes")
 
 fun Route.backtestRoutes(repository: BacktestResultRepository) {
     route("/api/v1/regulatory/backtest/{portfolioId}") {
@@ -29,6 +32,7 @@ fun Route.backtestRoutes(repository: BacktestResultRepository) {
                 ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 
             val request = call.receive<BacktestRequest>()
+            backtestLogger.info("Backtest requested for portfolio={}, days={}, confidenceLevel={}", portfolioId, request.dailyVarPredictions.size, request.confidenceLevel)
 
             if (request.dailyVarPredictions.size != request.dailyPnl.size) {
                 throw IllegalArgumentException("dailyVarPredictions and dailyPnl must have the same length")
@@ -58,6 +62,7 @@ fun Route.backtestRoutes(repository: BacktestResultRepository) {
             )
 
             repository.save(record)
+            backtestLogger.info("Backtest completed for portfolio={}, violations={}/{}, zone={}", portfolioId, record.violationCount, record.totalDays, record.trafficLightZone)
             call.respond(HttpStatusCode.Created, record.toResponse())
         }
 
