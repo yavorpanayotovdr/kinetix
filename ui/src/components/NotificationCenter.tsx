@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info } from 'lucide-react'
+import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info, Download } from 'lucide-react'
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
 import { formatRelativeTime } from '../utils/format'
+import { exportToCsv } from '../utils/exportCsv'
 import { Card, Button, Badge, Input, Select, Spinner } from './ui'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 
@@ -214,7 +215,31 @@ export function NotificationCenter({
       </table>
 
       {/* Recent Alerts */}
-      <h3 className="text-sm font-semibold text-slate-700 mb-2">Recent Alerts</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-slate-700">Recent Alerts</h3>
+        {sortedAlerts.length > 0 && (
+          <button
+            data-testid="alerts-csv-export"
+            onClick={() => {
+              const headers = ['Severity', 'Type', 'Message', 'Portfolio', 'Value', 'Threshold', 'Time']
+              const rows = sortedAlerts.map((a) => [
+                a.severity,
+                a.type,
+                a.message,
+                a.portfolioId,
+                String(a.currentValue),
+                String(a.threshold),
+                a.triggeredAt,
+              ])
+              exportToCsv('alerts.csv', headers, rows)
+            }}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
+        )}
+      </div>
       <div data-testid="alerts-list" className="space-y-2">
         {sortedAlerts.map((alert) => {
           const SevIcon = severityIcon[alert.severity] ?? Info

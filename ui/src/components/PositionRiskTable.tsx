@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download } from 'lucide-react'
 import type { PositionRiskDto } from '../types'
 import { formatNum } from '../utils/format'
 import { formatAssetClassLabel } from '../utils/formatAssetClass'
+import { exportToCsv } from '../utils/exportCsv'
 import { Card, Spinner } from './ui'
 
 type SortField =
@@ -80,19 +81,49 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
       : <ChevronUp className="inline h-3 w-3" />
   }
 
+  const handleExportCsv = () => {
+    const headers = ['Instrument', 'Asset Class', ...COLUMNS.map((c) => c.label)]
+    const rows = sorted.map((row) => [
+      row.instrumentId,
+      formatAssetClassLabel(row.assetClass),
+      row.marketValue,
+      row.delta ?? '',
+      row.gamma ?? '',
+      row.vega ?? '',
+      row.theta ?? '',
+      row.rho ?? '',
+      row.varContribution,
+      row.esContribution,
+      `${row.percentageOfTotal}%`,
+    ])
+    exportToCsv('position-risk.csv', headers, rows)
+  }
+
   return (
     <Card data-testid="position-risk-section">
       <div className="-mx-4 -my-4">
-        <button
-          data-testid="position-risk-toggle"
-          onClick={() => setExpanded((prev) => !prev)}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-        >
-          <span>Position Risk Breakdown</span>
-          {expanded
-            ? <ChevronUp className="h-4 w-4 text-slate-400" />
-            : <ChevronDown className="h-4 w-4 text-slate-400" />}
-        </button>
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            data-testid="position-risk-toggle"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+          >
+            <span>Position Risk Breakdown</span>
+            {expanded
+              ? <ChevronUp className="h-4 w-4 text-slate-400" />
+              : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          </button>
+          {data.length > 0 && (
+            <button
+              data-testid="risk-csv-export"
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
+          )}
+        </div>
 
         {loading && (
           <div data-testid="position-risk-loading" className="flex items-center justify-center py-8">

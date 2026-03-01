@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, Download } from 'lucide-react'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import { useSodBaseline } from '../hooks/useSodBaseline'
 import { PnlWaterfallChart } from './PnlWaterfallChart'
@@ -12,6 +12,7 @@ import { Card } from './ui/Card'
 import { EmptyState } from './ui/EmptyState'
 import { Spinner } from './ui/Spinner'
 import { formatTimestamp } from '../utils/format'
+import { exportToCsv } from '../utils/exportCsv'
 import type { PnlAttributionDto } from '../types'
 
 interface PnlTabProps {
@@ -102,8 +103,30 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
 
       {data && (
         <>
-          {sod.status?.exists && (
-            <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button
+              data-testid="pnl-csv-export"
+              onClick={() => {
+                const headers = ['Instrument', 'Asset Class', 'Total P&L', 'Delta', 'Gamma', 'Vega', 'Theta', 'Rho', 'Unexplained']
+                const rows = data.positionAttributions.map((p) => [
+                  p.instrumentId,
+                  p.assetClass,
+                  p.totalPnl,
+                  p.deltaPnl,
+                  p.gammaPnl,
+                  p.vegaPnl,
+                  p.thetaPnl,
+                  p.rhoPnl,
+                  p.unexplainedPnl,
+                ])
+                exportToCsv('pnl-attribution.csv', headers, rows)
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
+            {sod.status?.exists && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -113,8 +136,8 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
               >
                 Recompute P&L
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           <Card header="P&L Waterfall">
             <PnlWaterfallChart data={data} />
