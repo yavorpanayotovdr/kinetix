@@ -68,3 +68,12 @@ class VolatilityProvider:
         def lookup(ac: AssetClass) -> float:
             return vols.get(ac, DEFAULT_VOLATILITIES[ac])
         return cls(lookup)
+
+    @classmethod
+    def ewma(
+        cls,
+        returns_by_asset_class: dict[AssetClass, np.ndarray],
+        decay_factor: float = 0.94,
+    ) -> "VolatilityProvider":
+        from kinetix_risk.ewma import EwmaVolatilityProvider
+        return EwmaVolatilityProvider(returns_by_asset_class, decay_factor).get_provider()

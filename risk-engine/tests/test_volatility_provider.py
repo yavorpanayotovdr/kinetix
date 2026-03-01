@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from kinetix_risk.models import (
@@ -65,3 +66,20 @@ class TestVolatilityProvider:
             provider_a(ac) != provider_b(ac) for ac in AssetClass
         )
         assert any_differ, "Two jittered providers should produce different values"
+
+    def test_ewma_factory_returns_provider_with_estimated_vols(self):
+        rng = np.random.default_rng(10)
+        equity_returns = rng.normal(0, 0.012, size=250)
+
+        provider = VolatilityProvider.ewma(
+            returns_by_asset_class={AssetClass.EQUITY: equity_returns},
+        )
+
+        eq_vol = provider(AssetClass.EQUITY)
+        assert eq_vol > 0
+        # Should differ from static default (0.20)
+        assert eq_vol != pytest.approx(0.20, abs=0.01)
+        # Falls back for missing asset classes
+        assert provider(AssetClass.COMMODITY) == pytest.approx(
+            DEFAULT_VOLATILITIES[AssetClass.COMMODITY], rel=1e-6,
+        )
