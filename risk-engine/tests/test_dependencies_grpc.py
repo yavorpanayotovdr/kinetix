@@ -2,6 +2,8 @@ import grpc
 import pytest
 from concurrent import futures
 
+pytestmark = pytest.mark.integration
+
 from kinetix.common import types_pb2
 from kinetix.risk import market_data_dependencies_pb2, market_data_dependencies_pb2_grpc, risk_calculation_pb2
 from kinetix_risk.dependencies_server import MarketDataDependenciesServicer

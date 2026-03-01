@@ -5,6 +5,8 @@ import grpc
 import pytest
 import torch
 
+pytestmark = pytest.mark.performance
+
 from kinetix.risk import ml_prediction_pb2, ml_prediction_pb2_grpc
 from kinetix_risk.ml.data_generator import generate_synthetic_returns, generate_vol_training_data
 from kinetix_risk.ml.model_store import ModelStore

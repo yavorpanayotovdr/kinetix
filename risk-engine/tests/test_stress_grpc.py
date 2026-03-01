@@ -2,6 +2,8 @@ import grpc
 import pytest
 from concurrent import futures
 
+pytestmark = pytest.mark.integration
+
 from kinetix.common import types_pb2
 from kinetix.risk import risk_calculation_pb2, stress_testing_pb2, stress_testing_pb2_grpc
 from kinetix_risk.stress_server import StressTestServicer

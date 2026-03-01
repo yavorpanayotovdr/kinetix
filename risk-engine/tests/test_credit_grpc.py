@@ -3,6 +3,8 @@ from concurrent import futures
 import grpc
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from kinetix.risk import ml_prediction_pb2, ml_prediction_pb2_grpc
 from kinetix_risk.ml.credit_model import generate_credit_training_data, train_credit_model
 from kinetix_risk.ml.data_generator import generate_vol_training_data

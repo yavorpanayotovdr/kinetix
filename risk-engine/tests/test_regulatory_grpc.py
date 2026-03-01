@@ -2,6 +2,8 @@ import grpc
 import pytest
 from concurrent import futures
 
+pytestmark = pytest.mark.integration
+
 from kinetix.common import types_pb2
 from kinetix.risk import regulatory_reporting_pb2, regulatory_reporting_pb2_grpc
 from kinetix_risk.regulatory_server import RegulatoryReportingServicer

@@ -3,6 +3,8 @@ from concurrent import futures
 import grpc
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from kinetix.risk import ml_prediction_pb2, ml_prediction_pb2_grpc
 from kinetix_risk.ml.anomaly_detector import generate_anomaly_training_data, train_anomaly_detector
 from kinetix_risk.ml.data_generator import generate_vol_training_data

@@ -26,6 +26,11 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--junitxml=reports/pytest.xml"
+markers = [
+    "unit: Pure logic tests — no I/O, no gRPC servers",
+    "integration: Tests that start an in-process gRPC server",
+    "performance: Load and latency tests",
+]
 
 [build-system]
 requires = ["hatchling"]
