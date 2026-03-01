@@ -74,7 +74,7 @@ jobs:
         run: buf lint
       - name: Check proto breaking changes against main
         working-directory: proto
-        run: buf breaking --against '.git#branch=main,subdir=proto'
+        run: buf breaking --against '../.git#branch=main,subdir=proto'
 
   kotlin-compile:
     needs: [changes, proto-lint]
