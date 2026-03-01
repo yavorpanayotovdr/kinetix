@@ -29,4 +29,5 @@ include(
     "volatility-service",
     "correlation-service",
     "end2end-tests",
+    "schema-tests",
 )

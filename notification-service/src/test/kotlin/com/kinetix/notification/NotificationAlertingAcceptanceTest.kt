@@ -38,8 +38,8 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
         `when`("VaR calculation result exceeds the threshold") {
             val event = RiskResultEvent(
                 portfolioId = "port-alert-1",
-                varValue = 150_000.0,
-                expectedShortfall = 180_000.0,
+                varValue = "150000.0",
+                expectedShortfall = "180000.0",
                 calculationType = "PARAMETRIC",
                 calculatedAt = "2025-01-15T10:00:00Z",
             )
@@ -85,8 +85,8 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
             )
             val event = RiskResultEvent(
                 portfolioId = "port-alert-1",
-                varValue = 50_000.0,
-                expectedShortfall = 60_000.0,
+                varValue = "50000.0",
+                expectedShortfall = "60000.0",
                 calculationType = "PARAMETRIC",
                 calculatedAt = "2025-01-15T10:05:00Z",
             )
@@ -141,8 +141,8 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
         `when`("risk result triggers some but not all rules") {
             val event = RiskResultEvent(
                 portfolioId = "port-multi",
-                varValue = 150_000.0,
-                expectedShortfall = 200_000.0,
+                varValue = "150000.0",
+                expectedShortfall = "200000.0",
                 calculationType = "PARAMETRIC",
                 calculatedAt = "2025-01-15T11:00:00Z",
             )

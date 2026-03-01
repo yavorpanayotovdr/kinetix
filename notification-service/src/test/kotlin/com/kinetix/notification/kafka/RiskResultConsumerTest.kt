@@ -36,7 +36,7 @@ class RiskResultConsumerTest : FunSpec({
         val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
-        val riskEvent = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
+        val riskEvent = RiskResultEvent("port-1", "150000.0", "180000.0", "PARAMETRIC", "2025-01-15T10:00:00Z")
         val eventJson = Json.encodeToString(RiskResultEvent.serializer(), riskEvent)
 
         val tp = TopicPartition("risk.results", 0)
@@ -76,7 +76,7 @@ class RiskResultConsumerTest : FunSpec({
         val email = EmailDeliveryService()
         val router = DeliveryRouter(listOf(inApp, email))
 
-        val riskEvent = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
+        val riskEvent = RiskResultEvent("port-1", "150000.0", "180000.0", "PARAMETRIC", "2025-01-15T10:00:00Z")
         val eventJson = Json.encodeToString(RiskResultEvent.serializer(), riskEvent)
 
         val tp = TopicPartition("risk.results", 0)
@@ -105,7 +105,7 @@ class RiskResultConsumerTest : FunSpec({
         val inApp = InAppDeliveryService(InMemoryAlertEventRepository())
         val router = DeliveryRouter(listOf(inApp))
 
-        val riskEvent = RiskResultEvent("port-1", 150_000.0, 180_000.0, "PARAMETRIC", "2025-01-15T10:00:00Z")
+        val riskEvent = RiskResultEvent("port-1", "150000.0", "180000.0", "PARAMETRIC", "2025-01-15T10:00:00Z")
         val eventJson = Json.encodeToString(RiskResultEvent.serializer(), riskEvent)
 
         val tp = TopicPartition("risk.results", 0)

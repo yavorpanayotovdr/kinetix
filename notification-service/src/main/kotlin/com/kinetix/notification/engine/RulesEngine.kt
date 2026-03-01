@@ -20,9 +20,9 @@ class RulesEngine(private val repository: AlertRuleRepository) {
     suspend fun evaluate(event: RiskResultEvent): List<AlertEvent> {
         return repository.findAll().filter { it.enabled }.mapNotNull { rule ->
             val currentValue = when (rule.type) {
-                AlertType.VAR_BREACH -> event.varValue
-                AlertType.PNL_THRESHOLD -> event.expectedShortfall
-                AlertType.RISK_LIMIT -> event.varValue
+                AlertType.VAR_BREACH -> event.varValue.toDoubleOrNull() ?: 0.0
+                AlertType.PNL_THRESHOLD -> event.expectedShortfall.toDoubleOrNull() ?: 0.0
+                AlertType.RISK_LIMIT -> event.varValue.toDoubleOrNull() ?: 0.0
             }
             val triggered = when (rule.operator) {
                 ComparisonOperator.GREATER_THAN -> currentValue > rule.threshold
