@@ -20,8 +20,6 @@ export function usePortfolioSummary(portfolioId: string | null): UsePortfolioSum
     if (!portfolioId) return
 
     let cancelled = false
-    setLoading(true)
-    setError(null)
 
     fetchPortfolioSummary(portfolioId, baseCurrency)
       .then((data) => {
@@ -40,6 +38,8 @@ export function usePortfolioSummary(portfolioId: string | null): UsePortfolioSum
   }, [portfolioId, baseCurrency])
 
   const handleSetBaseCurrency = useCallback((currency: string) => {
+    setLoading(true)
+    setError(null)
     setBaseCurrency(currency)
   }, [])
 
