@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { NotificationCenter } from './components/NotificationCenter'
@@ -22,6 +22,7 @@ import { usePortfolioSummary } from './hooks/usePortfolioSummary'
 import { useTheme } from './hooks/useTheme'
 import { useDataQuality } from './hooks/useDataQuality'
 import { DataQualityIndicator } from './components/DataQualityIndicator'
+import { useWorkspace } from './hooks/useWorkspace'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
@@ -37,7 +38,10 @@ const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
 ]
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('positions')
+  const workspace = useWorkspace()
+  const [activeTab, setActiveTab] = useState<Tab>(
+    (workspace.preferences.defaultTab as Tab) || 'positions',
+  )
   const [whatIfOpen, setWhatIfOpen] = useState(false)
   const tabRefs = useRef<Map<Tab, HTMLButtonElement>>(new Map())
 
@@ -124,6 +128,18 @@ function App() {
             </select>
           )}
           <DataQualityIndicator status={dataQuality.status} loading={dataQuality.loading} />
+          <button
+            data-testid="save-workspace-button"
+            onClick={() => {
+              workspace.updatePreference('defaultTab', activeTab)
+              workspace.updatePreference('defaultPortfolio', portfolioId)
+            }}
+            className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+            aria-label="Save workspace"
+            title="Save current tab and portfolio as defaults"
+          >
+            <Save className="h-4 w-4" />
+          </button>
           <button
             data-testid="dark-mode-toggle"
             onClick={toggleTheme}
