@@ -73,6 +73,9 @@ fun Application.module() {
         mdc("correlationId") {
             it.request.header("X-Correlation-ID") ?: java.util.UUID.randomUUID().toString()
         }
+        mdc("userId") {
+            it.authentication.principal<com.kinetix.gateway.auth.JwtUserPrincipal>()?.user?.userId ?: "anonymous"
+        }
     }
     install(WebSockets)
     install(OpenApi) {
