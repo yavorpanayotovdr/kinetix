@@ -1,0 +1,15 @@
+version: v2
+
+modules:
+  - path: src/main/proto
+
+lint:
+  use:
+    - STANDARD
+  except:
+    # java_package option is project convention, not a proto lint concern
+    - JAVA_MULTIPLE_FILES
+
+breaking:
+  use:
+    - FILE

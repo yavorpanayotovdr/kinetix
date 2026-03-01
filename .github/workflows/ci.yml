@@ -23,12 +23,16 @@ jobs:
       python: ${{ steps.filter.outputs.python }}
       ui: ${{ steps.filter.outputs.ui }}
       infra: ${{ steps.filter.outputs.infra }}
+      proto: ${{ steps.filter.outputs.proto }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
+            proto:
+              - 'proto/src/main/proto/**'
+              - 'proto/buf.yaml'
             kotlin:
               - '*.gradle.kts'
               - 'gradle/**'
@@ -54,9 +58,30 @@ jobs:
             infra:
               - 'infra/**'
 
-  kotlin-compile:
+  proto-lint:
     needs: changes
-    if: needs.changes.outputs.kotlin == 'true' || github.ref == 'refs/heads/main'
+    if: needs.changes.outputs.proto == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - name: Lint proto files
+        working-directory: proto
+        run: buf lint
+      - name: Check proto breaking changes against main
+        working-directory: proto
+        run: buf breaking --against '.git#branch=main,subdir=proto'
+
+  kotlin-compile:
+    needs: [changes, proto-lint]
+    if: |
+      always() &&
+      (needs.proto-lint.result == 'success' || needs.proto-lint.result == 'skipped') &&
+      (needs.changes.outputs.kotlin == 'true' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
