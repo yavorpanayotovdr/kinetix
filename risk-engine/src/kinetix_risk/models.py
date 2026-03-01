@@ -17,6 +17,20 @@ class OptionType(str, Enum):
     PUT = "PUT"
 
 
+@dataclass(frozen=True)
+class OptionPosition:
+    instrument_id: str
+    underlying_id: str
+    option_type: OptionType
+    strike: float
+    expiry_days: int  # days to expiry
+    spot_price: float
+    implied_vol: float
+    risk_free_rate: float = 0.05
+    quantity: float = 1.0
+    currency: str = "USD"
+
+
 class CalculationType(Enum):
     HISTORICAL = "HISTORICAL"
     PARAMETRIC = "PARAMETRIC"
