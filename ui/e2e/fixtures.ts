@@ -202,8 +202,150 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  // Block WebSocket connections by default -- individual tests can override this
-  await page.route('**/ws/prices', (route: Route) => {
-    route.abort()
+  // Note: Playwright's page.route() does NOT intercept WebSocket connections.
+  // To mock WebSocket behaviour, tests must use page.addInitScript() to replace
+  // the browser's WebSocket constructor before the page loads.
+  // By default (without mocking), the app's WebSocket will connect to whatever
+  // the Vite dev server proxies to -- which may succeed or fail depending on
+  // whether a real backend is running.
+}
+
+const ASSET_CLASSES = ['EQUITY', 'FX', 'BOND', 'COMMODITY', 'OPTION']
+const TICKERS = [
+  'AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM',
+  'V', 'JNJ', 'WMT', 'PG', 'UNH', 'HD', 'MA', 'DIS', 'PYPL', 'BAC',
+  'INTC', 'VZ', 'KO', 'PEP', 'NFLX', 'ADBE', 'CRM', 'CMCSA', 'NKE',
+  'T', 'MRK', 'ABT', 'XOM', 'CVX', 'LLY', 'TMO', 'AVGO', 'COST',
+  'MDT', 'DHR', 'ACN', 'NEE', 'TXN', 'LIN', 'PM', 'HON', 'UPS',
+  'ORCL', 'MS', 'BMY', 'QCOM', 'RTX', 'SBUX', 'BLK', 'AMGN', 'GE',
+  'CAT', 'DE', 'LOW', 'ISRG', 'GS', 'AXP', 'SYK', 'MDLZ', 'EL',
+  'BKNG', 'TGT', 'ADP', 'CI', 'MO', 'PLD', 'ZTS', 'CB', 'GILD',
+  'SPGI', 'BDX', 'DUK', 'SO', 'CL', 'ICE', 'CSX', 'MMC', 'SHW',
+  'CME', 'PNC', 'TFC', 'USB', 'AON', 'APD', 'NSC', 'FIS', 'EMR',
+  'ECL', 'WM', 'ITW', 'EW', 'D', 'HUM', 'MCO', 'ETN', 'PSA', 'F',
+  'GM', 'ATVI', 'REGN', 'KLAC', 'SLB', 'MPC', 'PSX', 'VLO', 'OXY',
+  'AIG', 'MET', 'PRU', 'ALL', 'TRV', 'WBA', 'KHC', 'CTVA', 'DOW',
+  'DD', 'BIIB', 'VRTX', 'MRNA', 'DXCM', 'IDXX', 'ALGN', 'ILMN',
+  'ENPH', 'ODFL', 'CTAS', 'CDNS', 'SNPS', 'MCHP', 'FTNT', 'PANW',
+]
+
+/**
+ * Generates N position fixtures with unique instrument IDs.
+ */
+export function generatePositions(count: number): PositionFixture[] {
+  return Array.from({ length: count }, (_, i) => {
+    const ticker = i < TICKERS.length ? TICKERS[i] : `INST_${String(i).padStart(3, '0')}`
+    const price = 50 + (i * 7) % 300
+    const qty = 10 + (i * 3) % 500
+    const cost = price - (i % 10)
+    const mv = price * qty
+    const pnl = (price - cost) * qty
+    return {
+      portfolioId: 'port-1',
+      instrumentId: ticker,
+      assetClass: ASSET_CLASSES[i % ASSET_CLASSES.length],
+      quantity: String(qty),
+      averageCost: { amount: cost.toFixed(2), currency: 'USD' },
+      marketPrice: { amount: price.toFixed(2), currency: 'USD' },
+      marketValue: { amount: mv.toFixed(2), currency: 'USD' },
+      unrealizedPnl: { amount: pnl.toFixed(2), currency: 'USD' },
+    }
+  })
+}
+
+/**
+ * Overrides the positions endpoint to return `count` generated positions.
+ * Call this AFTER mockAllApiRoutes (Playwright uses the first matching route handler).
+ */
+export async function mockManyPositions(page: Page, count: number): Promise<PositionFixture[]> {
+  const positions = generatePositions(count)
+  // Unroute the default positions handler and add a new one
+  await page.unroute('**/api/v1/portfolios/*/positions')
+  await page.route('**/api/v1/portfolios/*/positions', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(positions),
+    })
+  })
+  return positions
+}
+
+export interface AlertRuleFixture {
+  id: string
+  name: string
+  type: string
+  threshold: number
+  operator: string
+  severity: string
+  channels: string[]
+  enabled: boolean
+}
+
+/**
+ * Sets up mock routes for alert rule CRUD operations.
+ * Maintains an in-memory array of rules that the tests can populate.
+ * Call AFTER mockAllApiRoutes so that the new handlers override the defaults.
+ */
+export async function mockAlertRuleCrud(
+  page: Page,
+  initialRules: AlertRuleFixture[] = [],
+): Promise<void> {
+  let rules = [...initialRules]
+  let nextId = initialRules.length + 1
+
+  // Unroute default rules and alerts handlers so we can replace them
+  await page.unroute('**/api/v1/notifications/rules')
+  await page.unroute('**/api/v1/notifications/alerts*')
+
+  await page.route('**/api/v1/notifications/alerts*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/v1/notifications/rules', (route: Route) => {
+    const method = route.request().method()
+    if (method === 'GET') {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(rules),
+      })
+    } else if (method === 'POST') {
+      const body = route.request().postDataJSON()
+      const newRule: AlertRuleFixture = {
+        id: `rule-${nextId++}`,
+        name: body.name,
+        type: body.type,
+        threshold: body.threshold,
+        operator: body.operator,
+        severity: body.severity,
+        channels: body.channels,
+        enabled: true,
+      }
+      rules.push(newRule)
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(newRule),
+      })
+    } else {
+      route.fallback()
+    }
+  })
+
+  await page.route('**/api/v1/notifications/rules/*', (route: Route) => {
+    const method = route.request().method()
+    if (method === 'DELETE') {
+      const url = route.request().url()
+      const ruleId = url.split('/').pop()!
+      rules = rules.filter((r) => r.id !== ruleId)
+      route.fulfill({ status: 204 })
+    } else {
+      route.fallback()
+    }
   })
 }
