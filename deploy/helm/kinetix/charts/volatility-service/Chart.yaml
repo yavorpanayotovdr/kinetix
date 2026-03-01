@@ -1,0 +1,6 @@
+apiVersion: v2
+name: volatility-service
+description: Kinetix Volatility Service
+version: 0.1.0
+appVersion: "1.0.0"
+type: application

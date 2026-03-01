@@ -1,0 +1,6 @@
+apiVersion: v2
+name: reference-data-service
+description: Kinetix Reference Data Service
+version: 0.1.0
+appVersion: "1.0.0"
+type: application
