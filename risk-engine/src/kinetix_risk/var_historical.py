@@ -13,17 +13,21 @@ def calculate_historical_var(
     correlation_matrix: np.ndarray,
     num_scenarios: int = 250,
     seed: int | None = None,
+    historical_returns: np.ndarray | None = None,
 ) -> VaRResult:
     n = len(exposures)
     market_values = np.array([e.total_market_value for e in exposures])
-    daily_vols = np.array([e.volatility / np.sqrt(TRADING_DAYS_PER_YEAR) for e in exposures])
 
-    rng = np.random.default_rng(seed)
-
-    # Generate correlated daily returns via Cholesky decomposition
-    cholesky = np.linalg.cholesky(correlation_matrix)
-    z = rng.standard_normal((num_scenarios, n))
-    correlated_returns = z @ cholesky.T * daily_vols
+    if historical_returns is not None:
+        # True historical VaR: replay actual return observations
+        correlated_returns = historical_returns
+    else:
+        # Fallback: simulated returns via Cholesky (backward-compatible)
+        daily_vols = np.array([e.volatility / np.sqrt(TRADING_DAYS_PER_YEAR) for e in exposures])
+        rng = np.random.default_rng(seed)
+        cholesky = np.linalg.cholesky(correlation_matrix)
+        z = rng.standard_normal((num_scenarios, n))
+        correlated_returns = z @ cholesky.T * daily_vols
 
     # Portfolio losses for each scenario (positive = loss)
     portfolio_losses = -(correlated_returns @ market_values)

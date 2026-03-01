@@ -15,11 +15,12 @@ class TestHistoricalVaRWithActualReturns:
         exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
         corr = np.array([[1.0]])
 
-        # Construct a deterministic return series with a known bad day
-        returns = np.zeros((250, 1))
-        returns[0, 0] = -0.05  # 5 % loss day
-        returns[1, 0] = -0.04
-        returns[2, 0] = 0.02
+        # Construct a deterministic return series with realistic dispersion.
+        # 250 days of small positive drift with a few negative outliers.
+        rng = np.random.default_rng(42)
+        returns = rng.normal(0.0005, 0.01, size=(250, 1))
+        # Inject a known large loss at index 0
+        returns[0, 0] = -0.05
 
         result = calculate_historical_var(
             exposures,
@@ -29,12 +30,14 @@ class TestHistoricalVaRWithActualReturns:
             historical_returns=returns,
         )
 
-        # With 250 scenarios at 95 % confidence the VaR should be near
-        # the 95th percentile loss from these actual returns.
+        # Portfolio loss for a -r return on 100k is r * 100k.
+        # The VaR should reflect the empirical 95th-percentile loss.
         assert result.var_value > 0
-        # The 95th-percentile loss from a portfolio with a single -5 % day
-        # on 100k should be around 4000-5000.
-        assert result.var_value == pytest.approx(4000.0, rel=0.05)
+
+        # Manually compute expected VaR for cross-check
+        portfolio_losses = -(returns[:, 0] * 100_000)
+        expected_var = float(np.percentile(portfolio_losses, 95))
+        assert result.var_value == pytest.approx(expected_var, rel=1e-6)
 
     def test_historical_var_with_250_historical_scenarios(self):
         """250 historical daily returns produce 250 portfolio-loss scenarios."""
