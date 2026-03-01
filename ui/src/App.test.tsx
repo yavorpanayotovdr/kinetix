@@ -7,6 +7,9 @@ vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useSystemHealth')
 vi.mock('./hooks/useStressTest')
+vi.mock('./components/TradeBlotter', () => ({
+  TradeBlotter: () => <div data-testid="trade-blotter-wrapper" />,
+}))
 vi.mock('./components/RiskTab', () => ({
   RiskTab: () => <div data-testid="risk-tab-wrapper" />,
 }))
@@ -136,6 +139,15 @@ describe('App', () => {
 
     expect(screen.getByTestId('position-row-AAPL')).toBeInTheDocument()
     expect(screen.queryByTestId('risk-tab-wrapper')).not.toBeInTheDocument()
+  })
+
+  it('clicking Trades tab renders the TradeBlotter wrapper', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('tab-trades'))
+
+    expect(screen.getByTestId('trade-blotter-wrapper')).toBeInTheDocument()
+    expect(screen.queryByTestId('position-row-AAPL')).not.toBeInTheDocument()
   })
 
   it('clicking Risk tab renders the RiskTab wrapper', () => {

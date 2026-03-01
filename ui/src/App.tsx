@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Activity, BarChart3, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
+import { TradeBlotter } from './components/TradeBlotter'
 import { NotificationCenter } from './components/NotificationCenter'
 import { SystemDashboard } from './components/SystemDashboard'
 import { RiskTab } from './components/RiskTab'
@@ -16,10 +17,11 @@ import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
 
-type Tab = 'positions' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
+type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'positions', label: 'Positions', icon: BarChart3 },
+  { key: 'trades', label: 'Trades', icon: ScrollText },
   { key: 'pnl', label: 'P&L', icon: TrendingUp },
   { key: 'risk', label: 'Risk', icon: Shield },
   { key: 'scenarios', label: 'Scenarios', icon: FlaskConical },
@@ -123,6 +125,10 @@ function App() {
                     </div>
                     <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
                   </div>
+                )}
+
+                {activeTab === 'trades' && (
+                  <TradeBlotter portfolioId={portfolioId} />
                 )}
 
                 {activeTab === 'pnl' && (
