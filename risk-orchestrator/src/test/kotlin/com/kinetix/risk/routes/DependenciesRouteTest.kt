@@ -6,7 +6,7 @@ import com.kinetix.risk.routes.dtos.*
 import com.kinetix.proto.risk.DataDependenciesResponse as ProtoDataDependenciesResponse
 import com.kinetix.proto.risk.MarketDataDependency as ProtoMarketDataDependency
 import com.kinetix.proto.risk.MarketDataType
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.service.VaRCalculationService
@@ -27,7 +27,7 @@ class DependenciesRouteTest : FunSpec({
     val positionProvider = mockk<PositionProvider>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val varCalculationService = mockk<VaRCalculationService>()
-    val varCache = LatestVaRCache()
+    val varCache = InMemoryVaRCache()
     val stressTestStub = mockk<com.kinetix.proto.risk.StressTestServiceGrpcKt.StressTestServiceCoroutineStub>(relaxed = true)
     val regulatoryStub = mockk<com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub>(relaxed = true)
 

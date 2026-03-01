@@ -1,7 +1,7 @@
 package com.kinetix.risk.schedule
 
 import com.kinetix.common.model.PortfolioId
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.service.VaRCalculationService
@@ -17,7 +17,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
 
     test("triggers VaR calculation at regular intervals") {
         val varService = mockk<VaRCalculationService>()
-        val varCache = LatestVaRCache()
+        val varCache = InMemoryVaRCache()
 
         var callCount = 0
         coEvery { varService.calculateVaR(any(), any()) } answers {
@@ -42,7 +42,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
 
     test("calculates VaR for all configured portfolios") {
         val varService = mockk<VaRCalculationService>()
-        val varCache = LatestVaRCache()
+        val varCache = InMemoryVaRCache()
 
         val portfoliosCalculated = mutableSetOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {
@@ -67,7 +67,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
 
     test("continues running even if calculation fails") {
         val varService = mockk<VaRCalculationService>()
-        val varCache = LatestVaRCache()
+        val varCache = InMemoryVaRCache()
 
         var callCount = 0
         coEvery { varService.calculateVaR(any(), any()) } answers {
@@ -93,7 +93,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
 
     test("caches VaR results when calculation succeeds") {
         val varService = mockk<VaRCalculationService>()
-        val varCache = LatestVaRCache()
+        val varCache = InMemoryVaRCache()
         val mockResult = mockk<ValuationResult>()
 
         coEvery { varService.calculateVaR(any(), any()) } returns mockResult

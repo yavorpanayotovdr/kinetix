@@ -5,7 +5,7 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.common.model.Position
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.*
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
@@ -29,7 +29,7 @@ class PnlComputationServiceTest : FunSpec({
     val dailyRiskSnapshotRepository = mockk<DailyRiskSnapshotRepository>()
     val pnlAttributionService = PnlAttributionService()
     val pnlAttributionRepository = mockk<PnlAttributionRepository>()
-    val varCache = mockk<LatestVaRCache>()
+    val varCache = mockk<VaRCache>()
     val positionProvider = mockk<PositionProvider>()
 
     val service = PnlComputationService(

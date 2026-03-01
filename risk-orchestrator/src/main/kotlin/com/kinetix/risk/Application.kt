@@ -6,7 +6,9 @@ import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpPositionServiceClient
 import com.kinetix.risk.client.HttpPriceServiceClient
@@ -35,6 +37,7 @@ import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.simulation.*
+import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
 import io.grpc.TlsChannelCredentials
 import io.ktor.client.HttpClient
@@ -218,7 +221,19 @@ fun Application.moduleWithRoutes() {
         marketDataFetcher = marketDataFetcher,
         jobRecorder = jobRecorder,
     )
-    val varCache = LatestVaRCache()
+    val varCache: VaRCache = run {
+        val redisUrl = environment.config.propertyOrNull("redis.url")?.getString().orEmpty()
+        if (redisUrl.isNotBlank()) {
+            val ttl = environment.config.propertyOrNull("redis.ttlSeconds")?.getString()?.toLongOrNull() ?: 300L
+            val client = RedisClient.create(redisUrl)
+            val connection = client.connect()
+            log.info("Using RedisVaRCache at {}", redisUrl)
+            RedisVaRCache(connection, ttl)
+        } else {
+            log.info("No REDIS_URL configured, using InMemoryVaRCache")
+            InMemoryVaRCache()
+        }
+    }
 
     val sodSnapshotService = SodSnapshotService(
         sodBaselineRepository = sodBaselineRepository,

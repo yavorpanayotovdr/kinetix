@@ -1,7 +1,7 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.PortfolioId
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
@@ -15,7 +15,7 @@ class PnlComputationService(
     private val dailyRiskSnapshotRepository: DailyRiskSnapshotRepository,
     private val pnlAttributionService: PnlAttributionService,
     private val pnlAttributionRepository: PnlAttributionRepository,
-    private val varCache: LatestVaRCache,
+    private val varCache: VaRCache,
     private val positionProvider: PositionProvider,
 ) {
     private val logger = LoggerFactory.getLogger(PnlComputationService::class.java)

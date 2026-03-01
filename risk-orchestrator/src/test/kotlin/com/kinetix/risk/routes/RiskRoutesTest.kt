@@ -4,7 +4,7 @@ import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.routes.dtos.*
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
@@ -75,7 +75,7 @@ private fun PositionRisk.toDto() = PositionRiskDto(
 
 class RiskRoutesTest : FunSpec({
 
-    val varCache = LatestVaRCache()
+    val varCache = InMemoryVaRCache()
     val varCalculationService = mockk<VaRCalculationService>()
 
     beforeEach {

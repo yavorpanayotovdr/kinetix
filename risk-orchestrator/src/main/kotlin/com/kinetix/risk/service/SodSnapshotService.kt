@@ -1,7 +1,7 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.PortfolioId
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.*
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
@@ -14,7 +14,7 @@ import java.util.UUID
 class SodSnapshotService(
     private val sodBaselineRepository: SodBaselineRepository,
     private val dailyRiskSnapshotRepository: DailyRiskSnapshotRepository,
-    private val varCache: LatestVaRCache,
+    private val varCache: VaRCache,
     private val varCalculationService: VaRCalculationService,
     private val positionProvider: PositionProvider,
     private val jobRecorder: ValuationJobRecorder? = null,

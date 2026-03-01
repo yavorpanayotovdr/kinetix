@@ -3,7 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.routes.dtos.*
-import com.kinetix.risk.cache.LatestVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.mapper.*
@@ -38,7 +38,7 @@ import java.time.LocalDate
 
 fun Route.riskRoutes(
     varCalculationService: VaRCalculationService,
-    varCache: LatestVaRCache,
+    varCache: VaRCache,
     positionProvider: PositionProvider,
     stressTestStub: StressTestServiceGrpcKt.StressTestServiceCoroutineStub,
     regulatoryStub: RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub,
