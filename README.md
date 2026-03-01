@@ -1,6 +1,8 @@
 # Kinetix
 
-Real-time portfolio risk management platform built as a polyglot microservices monorepo.
+Real-time portfolio risk management platform for institutional trading desks, built as a polyglot microservices monorepo.
+
+Covers the full risk lifecycle: trade booking with pre-trade limit checks, position management with multi-currency aggregation, live P&L attribution, VaR/ES/Greeks computation (parametric, historical, Monte Carlo), Black-Scholes options pricing, stress testing, FRTB regulatory capital, model governance, and counterparty exposure monitoring.
 
 ## Architecture
 
@@ -78,19 +80,19 @@ Real-time portfolio risk management platform built as a polyglot microservices m
 
 | Service | Port | Description |
 |---|---|---|
-| Gateway | 8080 | API routing, JWT authentication, WebSocket proxy |
-| Position Service | 8081 | Trade booking, position calculation, event sourcing |
-| Price Service | 8082 | Price ingestion, Redis caching, Kafka publishing |
-| Risk Orchestrator | 8083 | Coordinates VaR and risk calculations via gRPC |
-| Audit Service | 8084 | Immutable audit log from Kafka trade events |
-| Regulatory Service | 8085 | FRTB regulatory reporting |
-| Notification Service | 8086 | Risk breach alerts and anomaly notifications |
+| Gateway | 8080 | API routing, JWT auth (Keycloak), rate limiting, WebSocket proxy |
+| Position Service | 8081 | Trade booking/amend/cancel, positions, limit checks, P&L, counterparty exposure |
+| Price Service | 8082 | Price ingestion, TimescaleDB storage, Redis caching, Kafka publishing |
+| Risk Orchestrator | 8083 | VaR/ES/Greeks, stress tests, P&L attribution, margin estimation, what-if analysis |
+| Audit Service | 8084 | Hash-chained immutable audit trail with 7-year retention |
+| Regulatory Service | 8085 | FRTB capital, model governance, submission workflow, VaR backtesting |
+| Notification Service | 8086 | Risk breach alerts, anomaly detection, multi-channel delivery |
 | Rates Service | 8088 | Yield curves, risk-free rates, forward curves |
 | Reference Data Service | 8089 | Dividend yields, credit spreads |
 | Volatility Service | 8090 | Volatility surfaces for options pricing |
-| Correlation Service | 8091 | Correlation matrices for portfolio risk |
-| Risk Engine | 50051 | VaR, Monte Carlo, Greeks, ML models (Python/gRPC) |
-| UI | 5173 | React trading and risk dashboard |
+| Correlation Service | 8091 | Correlation matrices with Ledoit-Wolf shrinkage |
+| Risk Engine | 50051 | VaR, Monte Carlo, Black-Scholes, cross-Greeks, FRTB, ML models (Python/gRPC) |
+| UI | 5173 | React trading and risk dashboard with dark mode |
 
 ## Quick Start
 
@@ -206,30 +208,44 @@ Key docs in the repo:
 - [`docs/adr/`](docs/adr/) - Architecture Decision Records
 - [`docs/ui/`](docs/ui/) - UI tab documentation (Risk, Positions, Scenarios, Regulatory, Alerts, System)
 
+## Key Capabilities
+
+| Domain | Features |
+|---|---|
+| Trading | Trade booking, amendment, cancellation; pre-trade limit checks (position, notional, concentration); limit hierarchy (FIRM/DESK/TRADER/COUNTERPARTY) |
+| Positions | Event-sourced positions; multi-currency aggregation with FX rates; realized P&L tracking; counterparty exposure (net/gross) |
+| Risk | VaR/ES (parametric, historical, Monte Carlo with antithetic variates); EWMA volatility; P&L attribution; what-if analysis; SOD baseline snapshots |
+| Greeks | Delta, Gamma, Vega, Theta, Rho; cross-Greeks (Vanna, Volga, Charm); Black-Scholes options pricing |
+| Stress Testing | Predefined scenarios (GFC 2008, COVID 2020, Taper Tantrum 2013, Euro Crisis 2011); scenario governance with approval workflow |
+| Regulatory | FRTB capital (SBM, DRC with 21 credit ratings, RRAO); VaR backtesting (Kupiec POF, Christoffersen); model governance; four-eyes submission workflow |
+| Margin | SPAN/SIMM simplified margin estimation by asset class |
+| Audit | Hash-chained immutable trail; correlation ID propagation; TimescaleDB 7-year retention with compression |
+| UI | 8-tab dashboard; dark mode; CSV export; data quality monitoring; workspace customisation; multi-portfolio aggregation; WebSocket auto-reconnect; accessibility (WAI-ARIA) |
+
 ## Project Structure
 
 ```
 kinetix/
-├── gateway/               Ktor API gateway
-├── position-service/      Trade booking and positions
-├── price-service/         Price ingestion pipeline
-├── rates-service/         Yield curves and risk-free rates
+├── gateway/                Ktor API gateway
+├── position-service/       Trade booking, positions, limits, counterparty exposure
+├── price-service/          Price ingestion pipeline
+├── rates-service/          Yield curves and risk-free rates
 ├── reference-data-service/ Dividend yields and credit spreads
-├── volatility-service/    Volatility surfaces
-├── correlation-service/   Correlation matrices
-├── risk-orchestrator/     Risk calculation coordinator
-├── audit-service/         Immutable audit trail
-├── regulatory-service/    FRTB regulatory reporting
-├── notification-service/  Risk alerts
-├── risk-engine/           Python VaR/Greeks/ML engine
-├── ui/                    React + TypeScript frontend
-├── proto/                 Protobuf/gRPC definitions
-├── common/                Shared Kotlin library
-├── build-logic/           Gradle convention plugins
-├── end2end-tests/         End-to-end API tests
-├── load-tests/            Gatling performance tests
-├── infra/                 Docker Compose and infra config
-├── deploy/                Docker, Helm, and Terraform configs
-├── scripts/               CI and dev utility scripts
-└── docs/                  Tech docs and ADRs
+├── volatility-service/     Volatility surfaces
+├── correlation-service/    Correlation matrices
+├── risk-orchestrator/      Risk calculation coordinator
+├── audit-service/          Hash-chained immutable audit trail
+├── regulatory-service/     FRTB, model governance, regulatory submissions
+├── notification-service/   Risk breach alerts and anomaly detection
+├── risk-engine/            Python VaR/Greeks/Black-Scholes/FRTB/ML engine
+├── ui/                     React trading and risk dashboard
+├── proto/                  Protobuf/gRPC definitions
+├── common/                 Shared Kotlin library (RetryableConsumer, domain types)
+├── build-logic/            Gradle convention plugins
+├── end2end-tests/          End-to-end API tests
+├── load-tests/             Gatling performance tests
+├── infra/                  Docker Compose and infra config
+├── deploy/                 Docker, Helm, and Terraform configs
+├── scripts/                CI and dev utility scripts
+└── docs/                   Tech docs and ADRs
 ```
