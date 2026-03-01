@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wifi, WifiOff, Inbox } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wifi, WifiOff, Inbox, Settings } from 'lucide-react'
 import type { PositionDto, PositionRiskDto } from '../types'
 import { formatMoney, formatNum, formatQuantity, pnlColorClass } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
@@ -26,10 +26,57 @@ function riskValue(risk: PositionRiskDto | undefined, field: SortField): number 
 
 const PAGE_SIZE = 50
 
+const STORAGE_KEY = 'kinetix:column-visibility'
+
+interface ColumnDef {
+  key: string
+  label: string
+  align: 'left' | 'right'
+}
+
+const POSITION_COLUMNS: ColumnDef[] = [
+  { key: 'instrument', label: 'Instrument', align: 'left' },
+  { key: 'assetClass', label: 'Asset Class', align: 'left' },
+  { key: 'quantity', label: 'Quantity', align: 'right' },
+  { key: 'avgCost', label: 'Avg Cost', align: 'right' },
+  { key: 'marketPrice', label: 'Market Price', align: 'right' },
+  { key: 'marketValue', label: 'Market Value', align: 'right' },
+  { key: 'unrealizedPnl', label: 'Unrealized P&L', align: 'right' },
+]
+
+function loadColumnVisibility(): Record<string, boolean> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) return JSON.parse(stored)
+  } catch { /* ignore */ }
+  return {}
+}
+
 export function PositionGrid({ positions, connected, positionRisk }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const isColumnVisible = (key: string) => columnVisibility[key] !== false
+
+  const toggleColumn = (key: string) => {
+    const next = { ...columnVisibility, [key]: !isColumnVisible(key) }
+    setColumnVisibility(next)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  }
 
   const hasRisk = positionRisk != null && positionRisk.length > 0
 
@@ -100,7 +147,8 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
       : <ChevronUp className="inline h-3 w-3" />
   }
 
-  const positionColCount = 7
+  const visiblePositionCols = POSITION_COLUMNS.filter((c) => isColumnVisible(c.key))
+  const positionColCount = visiblePositionCols.length
   const riskColCount = 4
 
   return (
@@ -166,6 +214,38 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
         )}
       </div>
 
+      <div className="flex justify-end mb-2">
+        <div ref={settingsRef} className="relative">
+          <button
+            data-testid="column-settings-button"
+            onClick={() => setSettingsOpen((v) => !v)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            Columns
+          </button>
+          {settingsOpen && (
+            <div data-testid="column-settings-dropdown" className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
+              {POSITION_COLUMNS.map((col) => (
+                <label
+                  key={col.key}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    data-testid={`column-toggle-${col.key}`}
+                    checked={isColumnVisible(col.key)}
+                    onChange={() => toggleColumn(col.key)}
+                    className="rounded border-slate-300"
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <Card>
         <div className="-mx-4 -my-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
@@ -189,27 +269,14 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
                 </tr>
               )}
               <tr className="bg-slate-50">
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">
-                  Instrument
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">
-                  Asset Class
-                </th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
-                  Quantity
-                </th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
-                  Avg Cost
-                </th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
-                  Market Price
-                </th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
-                  Market Value
-                </th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">
-                  Unrealized P&L
-                </th>
+                {visiblePositionCols.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`px-4 py-2 text-${col.align} text-sm font-semibold text-slate-700`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
                 {hasRisk && (
                   <>
                     <th
@@ -247,29 +314,26 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
             <tbody className="divide-y divide-slate-100">
               {paginatedPositions.map((pos) => {
                 const risk = riskByInstrument.get(pos.instrumentId)
-                return (
-                  <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>
-                    <td className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>
-                    <td className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>
-                    <td className="px-4 py-2 text-sm text-right">
-                      {formatMoney(pos.averageCost.amount, pos.averageCost.currency)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-right">
-                      {formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-right">
-                      {formatMoney(pos.marketValue.amount, pos.marketValue.currency)}
-                    </td>
+                const cellMap: Record<string, React.ReactNode> = {
+                  instrument: <td key="instrument" className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>,
+                  assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>,
+                  quantity: <td key="quantity" className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>,
+                  avgCost: <td key="avgCost" className="px-4 py-2 text-sm text-right">{formatMoney(pos.averageCost.amount, pos.averageCost.currency)}</td>,
+                  marketPrice: <td key="marketPrice" className="px-4 py-2 text-sm text-right">{formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}</td>,
+                  marketValue: <td key="marketValue" className="px-4 py-2 text-sm text-right">{formatMoney(pos.marketValue.amount, pos.marketValue.currency)}</td>,
+                  unrealizedPnl: (
                     <td
+                      key="unrealizedPnl"
                       data-testid={`pnl-${pos.instrumentId}`}
                       className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)}`}
                     >
-                      {formatMoney(
-                        pos.unrealizedPnl.amount,
-                        pos.unrealizedPnl.currency,
-                      )}
+                      {formatMoney(pos.unrealizedPnl.amount, pos.unrealizedPnl.currency)}
                     </td>
+                  ),
+                }
+                return (
+                  <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
+                    {visiblePositionCols.map((col) => cellMap[col.key])}
                     {hasRisk && (
                       <>
                         <td
