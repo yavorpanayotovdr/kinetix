@@ -112,6 +112,23 @@ data class LimitBreachResponse(
     val breaches: List<LimitBreachDto>,
 )
 
+@Serializable
+data class CurrencyExposureDto(
+    val currency: String,
+    val localValue: MoneyDto,
+    val baseValue: MoneyDto,
+    val fxRate: String,
+)
+
+@Serializable
+data class PortfolioAggregationResponse(
+    val portfolioId: String,
+    val baseCurrency: String,
+    val totalNav: MoneyDto,
+    val totalUnrealizedPnl: MoneyDto,
+    val currencyBreakdown: List<CurrencyExposureDto>,
+)
+
 // --- Mappers ---
 
 private fun Money.toDto() = MoneyDto(amount.toPlainString(), currency.currencyCode)
@@ -150,6 +167,21 @@ private fun LimitBreach.toDto() = LimitBreachDto(
     message = message,
 )
 
+private fun com.kinetix.position.model.CurrencyExposure.toDto() = CurrencyExposureDto(
+    currency = currency.currencyCode,
+    localValue = localValue.toDto(),
+    baseValue = baseValue.toDto(),
+    fxRate = fxRate.toPlainString(),
+)
+
+private fun com.kinetix.position.model.PortfolioSummary.toResponse() = PortfolioAggregationResponse(
+    portfolioId = portfolioId.value,
+    baseCurrency = baseCurrency.currencyCode,
+    totalNav = totalNav.toDto(),
+    totalUnrealizedPnl = totalUnrealizedPnl.toDto(),
+    currencyBreakdown = currencyBreakdown.map { it.toDto() },
+)
+
 // --- Routes ---
 
 fun Route.positionRoutes(
@@ -158,6 +190,7 @@ fun Route.positionRoutes(
     tradeBookingService: TradeBookingService,
     tradeEventRepository: com.kinetix.position.persistence.TradeEventRepository,
     tradeLifecycleService: TradeLifecycleService,
+    portfolioAggregationService: PortfolioAggregationService,
 ) {
     route("/api/v1/portfolios") {
 
@@ -202,6 +235,28 @@ fun Route.positionRoutes(
                 val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
                 val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
                 call.respond(positions.map { it.toResponse() })
+            }
+
+            get("/summary", {
+                summary = "Get portfolio summary with multi-currency aggregation"
+                tags = listOf("Portfolios")
+                request {
+                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    queryParameter<String>("baseCurrency") {
+                        description = "Base currency for aggregation (default: USD)"
+                        required = false
+                    }
+                }
+                response {
+                    code(HttpStatusCode.OK) { body<PortfolioAggregationResponse>() }
+                }
+            }) {
+                val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                val baseCurrency = call.request.queryParameters["baseCurrency"]
+                    ?.let { Currency.getInstance(it) }
+                    ?: Currency.getInstance("USD")
+                val summary = portfolioAggregationService.aggregate(portfolioId, baseCurrency)
+                call.respond(summary.toResponse())
             }
 
             post("/trades", {

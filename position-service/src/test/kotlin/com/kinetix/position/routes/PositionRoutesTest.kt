@@ -8,6 +8,7 @@ import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.GetPositionsQuery
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.TradeBookingService
+import com.kinetix.position.service.PortfolioAggregationService
 import com.kinetix.position.service.TradeLifecycleService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -61,6 +62,7 @@ private fun Application.configureTestApp(
     tradeBookingService: TradeBookingService,
     tradeEventRepository: TradeEventRepository,
     tradeLifecycleService: TradeLifecycleService,
+    portfolioAggregationService: PortfolioAggregationService,
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
@@ -72,7 +74,7 @@ private fun Application.configureTestApp(
         }
     }
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
     }
 }
 
@@ -83,14 +85,15 @@ class PositionRoutesTest : FunSpec({
     val tradeBookingService = mockk<TradeBookingService>()
     val tradeEventRepository = mockk<TradeEventRepository>()
     val tradeLifecycleService = mockk<TradeLifecycleService>()
+    val portfolioAggregationService = mockk<PortfolioAggregationService>()
 
     beforeEach {
-        clearMocks(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
+        clearMocks(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
     }
 
     fun ApplicationTestBuilder.setupApp() {
         application {
-            configureTestApp(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
+            configureTestApp(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
         }
     }
 

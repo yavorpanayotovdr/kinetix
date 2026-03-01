@@ -16,6 +16,8 @@ import com.kinetix.position.service.LimitCheckService
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
+import com.kinetix.position.service.PortfolioAggregationService
+import com.kinetix.position.service.StaticFxRateProvider
 import com.kinetix.position.service.TradeLifecycleService
 import java.math.BigDecimal
 import java.util.Currency
@@ -119,6 +121,18 @@ fun Application.moduleWithRoutes() {
         tradeEventPublisher = tradeEventPublisher,
     )
 
+    val fxRateProvider = StaticFxRateProvider(
+        mapOf(
+            Currency.getInstance("EUR") to Currency.getInstance("USD") to BigDecimal("1.08"),
+            Currency.getInstance("GBP") to Currency.getInstance("USD") to BigDecimal("1.27"),
+            Currency.getInstance("JPY") to Currency.getInstance("USD") to BigDecimal("0.0067"),
+            Currency.getInstance("USD") to Currency.getInstance("EUR") to BigDecimal("0.93"),
+            Currency.getInstance("USD") to Currency.getInstance("GBP") to BigDecimal("0.79"),
+            Currency.getInstance("USD") to Currency.getInstance("JPY") to BigDecimal("149.25"),
+        )
+    )
+    val portfolioAggregationService = PortfolioAggregationService(positionRepository, fxRateProvider)
+
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -159,7 +173,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService)
+        positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
     }
 
     launch {
