@@ -12,6 +12,11 @@ class AssetClass(Enum):
     DERIVATIVE = "DERIVATIVE"
 
 
+class OptionType(str, Enum):
+    CALL = "CALL"
+    PUT = "PUT"
+
+
 class CalculationType(Enum):
     HISTORICAL = "HISTORICAL"
     PARAMETRIC = "PARAMETRIC"
