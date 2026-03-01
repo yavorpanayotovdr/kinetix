@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Wifi, WifiOff, Inbox } from 'lucide-react'
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wifi, WifiOff, Inbox } from 'lucide-react'
 import type { PositionDto, PositionRiskDto } from '../types'
 import { formatMoney, formatNum, formatQuantity, pnlColorClass } from '../utils/format'
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
@@ -24,9 +24,12 @@ function riskValue(risk: PositionRiskDto | undefined, field: SortField): number 
   }
 }
 
+const PAGE_SIZE = 50
+
 export function PositionGrid({ positions, connected, positionRisk }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const hasRisk = positionRisk != null && positionRisk.length > 0
 
@@ -45,6 +48,13 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
       return sortDir === 'desc' ? valB - valA : valA - valB
     })
   }, [positions, sortField, sortDir, hasRisk, riskByInstrument])
+
+  const totalPages = Math.ceil(sortedPositions.length / PAGE_SIZE)
+  const showPagination = totalPages > 1
+  const paginatedPositions = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return sortedPositions.slice(start, start + PAGE_SIZE)
+  }, [sortedPositions, currentPage])
 
   if (positions.length === 0) {
     return (
@@ -235,7 +245,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {sortedPositions.map((pos) => {
+              {paginatedPositions.map((pos) => {
                 const risk = riskByInstrument.get(pos.instrumentId)
                 return (
                   <tr key={pos.instrumentId} data-testid={`position-row-${pos.instrumentId}`} className="hover:bg-slate-50 transition-colors">
@@ -295,6 +305,32 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
           </table>
         </div>
       </Card>
+
+      {showPagination && (
+        <div data-testid="pagination-controls" className="flex items-center justify-center gap-3 mt-3">
+          <button
+            data-testid="pagination-prev"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </button>
+          <span data-testid="pagination-info" className="text-sm text-slate-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            data-testid="pagination-next"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
