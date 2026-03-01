@@ -9,11 +9,16 @@ import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.seed.DevDataSeeder
+import com.kinetix.common.model.Money
+import com.kinetix.position.model.TradeLimits
 import com.kinetix.position.service.ExposedTransactionalRunner
+import com.kinetix.position.service.LimitCheckService
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
 import com.kinetix.position.service.TradeLifecycleService
+import java.math.BigDecimal
+import java.util.Currency
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktorswaggerui.swaggerUI
@@ -92,11 +97,19 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val tradeEventPublisher = KafkaTradeEventPublisher(kafkaProducer)
 
+    val defaultTradeLimits = TradeLimits(
+        positionLimit = BigDecimal("1000000"),
+        notionalLimit = Money(BigDecimal("10000000"), Currency.getInstance("USD")),
+        concentrationLimitPct = 0.25,
+    )
+    val limitCheckService = LimitCheckService(positionRepository, defaultTradeLimits)
+
     val tradeBookingService = TradeBookingService(
         tradeEventRepository = tradeEventRepository,
         positionRepository = positionRepository,
         transactional = transactionalRunner,
         tradeEventPublisher = tradeEventPublisher,
+        limitCheckService = limitCheckService,
     )
     val positionQueryService = PositionQueryService(positionRepository)
     val tradeLifecycleService = TradeLifecycleService(
