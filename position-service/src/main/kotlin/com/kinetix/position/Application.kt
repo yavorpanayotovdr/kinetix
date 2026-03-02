@@ -22,6 +22,7 @@ import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
 import com.kinetix.position.service.PortfolioAggregationService
+import com.kinetix.position.service.LiveFxRateProvider
 import com.kinetix.position.service.StaticFxRateProvider
 import com.kinetix.position.service.TradeLifecycleService
 import java.math.BigDecimal
@@ -136,7 +137,7 @@ fun Application.moduleWithRoutes() {
         tradeEventPublisher = tradeEventPublisher,
     )
 
-    val fxRateProvider = StaticFxRateProvider(
+    val staticFxRateProvider = StaticFxRateProvider(
         mapOf(
             Currency.getInstance("EUR") to Currency.getInstance("USD") to BigDecimal("1.08"),
             Currency.getInstance("GBP") to Currency.getInstance("USD") to BigDecimal("1.27"),
@@ -146,10 +147,11 @@ fun Application.moduleWithRoutes() {
             Currency.getInstance("USD") to Currency.getInstance("JPY") to BigDecimal("149.25"),
         )
     )
+    val liveFxRateProvider = LiveFxRateProvider(delegate = staticFxRateProvider)
     val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
     val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
     val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
-    val portfolioAggregationService = PortfolioAggregationService(positionRepository, fxRateProvider)
+    val portfolioAggregationService = PortfolioAggregationService(positionRepository, liveFxRateProvider)
 
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
@@ -164,7 +166,11 @@ fun Application.moduleWithRoutes() {
         topic = "price.updates",
         dlqProducer = kafkaProducer,
     )
-    val priceConsumer = PriceConsumer(priceKafkaConsumer, priceUpdateService, retryableConsumer = retryableConsumer)
+    val priceConsumer = PriceConsumer(
+        priceKafkaConsumer, priceUpdateService,
+        retryableConsumer = retryableConsumer,
+        liveFxRateProvider = liveFxRateProvider,
+    )
 
     module()
 

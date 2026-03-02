@@ -4,6 +4,7 @@ import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.kafka.events.PriceEvent
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
+import com.kinetix.position.service.LiveFxRateProvider
 import com.kinetix.position.service.PriceUpdateService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -22,6 +23,7 @@ class PriceConsumer(
     private val priceUpdateService: PriceUpdateService,
     private val topic: String = "price.updates",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
+    private val liveFxRateProvider: LiveFxRateProvider? = null,
 ) {
     private val logger = LoggerFactory.getLogger(PriceConsumer::class.java)
 
@@ -42,6 +44,7 @@ class PriceConsumer(
                             val instrumentId = InstrumentId(event.instrumentId)
                             val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
                             priceUpdateService.handle(instrumentId, price)
+                            liveFxRateProvider?.onPriceUpdate(event.instrumentId, BigDecimal(event.priceAmount))
                         } finally {
                             MDC.remove("correlationId")
                         }

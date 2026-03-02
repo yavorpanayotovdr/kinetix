@@ -9,6 +9,8 @@ import com.kinetix.price.persistence.DatabaseFactory
 import com.kinetix.price.persistence.ExposedPriceRepository
 import com.kinetix.price.persistence.PriceRepository
 import com.kinetix.price.routes.priceRoutes
+import com.kinetix.price.feed.InstrumentSeed
+import com.kinetix.price.feed.PriceFeedSimulator
 import com.kinetix.price.seed.DevDataSeeder
 import com.kinetix.price.service.PriceIngestionService
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -29,8 +31,14 @@ import io.ktor.server.routing.*
 import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import com.kinetix.common.model.PriceSource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.Currency
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -152,6 +160,22 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(repository).seed()
+        }
+    }
+
+    val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true
+    if (feedEnabled) {
+        val seeds = DevDataSeeder.INSTRUMENTS.map { (id, config) ->
+            InstrumentSeed(id, BigDecimal(config.latestPrice.toString()), Currency.getInstance(config.currency))
+        }
+        val simulator = PriceFeedSimulator(seeds)
+        launch {
+            while (isActive) {
+                delay(5000)
+                simulator.tick(Instant.now(), PriceSource.INTERNAL).forEach { point ->
+                    ingestionService.ingest(point)
+                }
+            }
         }
     }
 }

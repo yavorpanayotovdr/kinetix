@@ -61,7 +61,7 @@ class DevDataSeeder(
         }
     }
 
-    private data class InstrumentConfig(
+    internal data class InstrumentConfig(
         val currency: String,
         val startPrice: Double,
         val latestPrice: Double,
@@ -81,7 +81,7 @@ class DevDataSeeder(
             "DE10Y",
         )
 
-        private val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
+        internal val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
             // Equities
             InstrumentId("AAPL") to InstrumentConfig("USD", 187.10, 189.25),
             InstrumentId("GOOGL") to InstrumentConfig("USD", 176.50, 178.90),
