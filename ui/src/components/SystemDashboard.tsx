@@ -48,15 +48,15 @@ const SERVICE_ICONS: Record<string, LucideIcon> = {
 }
 
 const SERVICE_DASHBOARD_URLS: Record<string, string> = {
-  gateway: 'http://localhost:3000/d/kinetix-gateway',
-  'position-service': 'http://localhost:3000/d/kinetix-position-service',
+  gateway: 'http://localhost:3000/d/kinetix-service-overview',
+  'position-service': 'http://localhost:3000/d/kinetix-trade-flow',
   'price-service': 'http://localhost:3000/d/kinetix-prices',
   'risk-orchestrator': 'http://localhost:3000/d/kinetix-risk-orchestrator',
-  'notification-service': 'http://localhost:3000/d/kinetix-notification-service',
-  'rates-service': 'http://localhost:3000/d/kinetix-rates-service',
-  'reference-data-service': 'http://localhost:3000/d/kinetix-reference-data-service',
-  'volatility-service': 'http://localhost:3000/d/kinetix-volatility-service',
-  'correlation-service': 'http://localhost:3000/d/kinetix-correlation-service',
+  'notification-service': 'http://localhost:3000/d/kinetix-service-overview',
+  'rates-service': 'http://localhost:3000/d/kinetix-service-overview',
+  'reference-data-service': 'http://localhost:3000/d/kinetix-service-overview',
+  'volatility-service': 'http://localhost:3000/d/kinetix-service-overview',
+  'correlation-service': 'http://localhost:3000/d/kinetix-service-overview',
 }
 
 const OBSERVABILITY_LINKS = [
@@ -66,9 +66,29 @@ const OBSERVABILITY_LINKS = [
     description: 'Request rate, error rate, latency, JVM, Kafka lag',
   },
   {
+    name: 'Service Overview',
+    url: 'http://localhost:3000/d/kinetix-service-overview',
+    description: 'Per-service request rate, errors, latency',
+  },
+  {
     name: 'Risk Overview',
     url: 'http://localhost:3000/d/kinetix-risk-overview',
     description: 'VaR gauge, ES, component breakdown',
+  },
+  {
+    name: 'Trade Flow',
+    url: 'http://localhost:3000/d/kinetix-trade-flow',
+    description: 'Trade lifecycle, booking rate, amends & cancels',
+  },
+  {
+    name: 'Database Health',
+    url: 'http://localhost:3000/d/kinetix-database-health',
+    description: 'Connection pools, query latency, table sizes',
+  },
+  {
+    name: 'Kafka Health',
+    url: 'http://localhost:3000/d/kinetix-kafka-health',
+    description: 'Consumer lag, partition health, throughput',
   },
   {
     name: 'Service Logs',

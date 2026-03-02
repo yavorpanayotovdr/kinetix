@@ -194,7 +194,7 @@ describe('SystemDashboard', () => {
     expect(screen.getByText('Correlations')).toBeInTheDocument()
   })
 
-  it('gateway card has a Grafana icon linking to the gateway dashboard', () => {
+  it('gateway card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -207,12 +207,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-gateway')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-gateway',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('position-service card has a Grafana icon linking to the position service dashboard', () => {
+  it('position-service card links to the trade flow dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -225,12 +225,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-position-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-position-service',
+      'http://localhost:3000/d/kinetix-trade-flow',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('risk-orchestrator card has a Grafana icon linking to the risk orchestrator dashboard', () => {
+  it('risk-orchestrator card links to the risk orchestrator dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -248,7 +248,7 @@ describe('SystemDashboard', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('notification-service card has a Grafana icon linking to the notification service dashboard', () => {
+  it('notification-service card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -261,12 +261,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-notification-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-notification-service',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('price-service card has a Grafana icon linking to the prices dashboard', () => {
+  it('price-service card links to the prices dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -284,7 +284,7 @@ describe('SystemDashboard', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('rates-service card has a Grafana icon linking to the rates service dashboard', () => {
+  it('rates-service card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -297,12 +297,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-rates-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-rates-service',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('reference-data-service card has a Grafana icon linking to the reference data service dashboard', () => {
+  it('reference-data-service card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -315,12 +315,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-reference-data-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-reference-data-service',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('volatility-service card has a Grafana icon linking to the volatility service dashboard', () => {
+  it('volatility-service card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -333,12 +333,12 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-volatility-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-volatility-service',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('correlation-service card has a Grafana icon linking to the correlation service dashboard', () => {
+  it('correlation-service card links to the service overview dashboard', () => {
     render(
       <SystemDashboard
         health={allUpHealth}
@@ -351,7 +351,7 @@ describe('SystemDashboard', () => {
     const link = screen.getByTestId('service-grafana-link-correlation-service')
     expect(link).toHaveAttribute(
       'href',
-      'http://localhost:3000/d/kinetix-correlation-service',
+      'http://localhost:3000/d/kinetix-service-overview',
     )
     expect(link).toHaveAttribute('target', '_blank')
   })
