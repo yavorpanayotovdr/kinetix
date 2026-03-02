@@ -10,6 +10,7 @@ import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.mapper.toValuationResult
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpPositionServiceClient
 import com.kinetix.risk.client.HttpPriceServiceClient
@@ -326,6 +327,10 @@ fun Application.moduleWithRoutes() {
         jobHistoryRoutes(jobRecorder)
     }
 
+    launch {
+        seedCacheFromDb(varCache, jobRecorder)
+    }
+
     val tradeConsumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         put(ConsumerConfig.GROUP_ID_CONFIG, "risk-orchestrator-trades-group")
@@ -384,5 +389,26 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
         ).start()
+    }
+}
+
+private suspend fun seedCacheFromDb(
+    cache: VaRCache,
+    recorder: com.kinetix.risk.service.ValuationJobRecorder,
+) {
+    val log = org.slf4j.LoggerFactory.getLogger("CacheSeeder")
+    try {
+        val portfolios = recorder.findDistinctPortfolioIds()
+        var seeded = 0
+        for (portfolioId in portfolios) {
+            val job = recorder.findLatestCompleted(portfolioId) ?: continue
+            val result = job.toValuationResult() ?: continue
+            cache.put(portfolioId, result)
+            seeded++
+            log.info("Seeded VaR cache for portfolio {} from job {} (calculated {})", portfolioId, job.jobId, job.completedAt)
+        }
+        log.info("Cache seeding complete: {}/{} portfolios seeded", seeded, portfolios.size)
+    } catch (e: Exception) {
+        log.warn("Cache seeding failed, starting cold: {}", e.message)
     }
 }
