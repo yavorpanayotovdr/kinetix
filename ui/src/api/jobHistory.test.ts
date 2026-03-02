@@ -108,6 +108,20 @@ describe('jobHistory API', () => {
       expect(calledUrl).toMatch(/to=\d{4}-\d{2}-\d{2}T\d{2}%3A\d{2}%3A\d{2}/)
     })
 
+    it('appends status query parameter when provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ items: [], totalCount: 0 }),
+      })
+
+      await fetchValuationJobs('port-1', 20, 0, undefined, undefined, 'COMPLETED')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/jobs/port-1?limit=20&offset=0&status=COMPLETED',
+      )
+    })
+
     it('throws on 500', async () => {
       mockFetch.mockResolvedValue({
         ok: false,

@@ -6,6 +6,7 @@ export async function fetchValuationJobs(
   offset: number = 0,
   from?: string,
   to?: string,
+  status?: string,
 ): Promise<{ items: ValuationJobSummaryDto[]; totalCount: number }> {
   const params = new URLSearchParams({
     limit: limit.toString(),
@@ -13,6 +14,7 @@ export async function fetchValuationJobs(
   })
   if (from) params.set('from', from)
   if (to) params.set('to', to)
+  if (status) params.set('status', status)
   const response = await fetch(
     `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}?${params}`,
   )

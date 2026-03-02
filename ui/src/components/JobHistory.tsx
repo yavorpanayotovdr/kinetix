@@ -3,50 +3,15 @@ import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, Chevro
 
 import { useJobHistory } from '../hooks/useJobHistory'
 import { useTimeBuckets } from '../hooks/useTimeBuckets'
+import { jobMatchesSearch } from '../utils/jobSearch'
 import { JobHistoryTable } from './JobHistoryTable'
 import { JobTimechart } from './JobTimechart'
 import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Badge, Spinner } from './ui'
-import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 interface JobHistoryProps {
   portfolioId: string | null
   refreshSignal?: number
-}
-
-function buildSearchableText(
-  run: ValuationJobSummaryDto,
-  detail: ValuationJobDetailDto | undefined,
-): string {
-  const parts = [
-    run.jobId,
-    run.triggerType,
-    run.status,
-    run.calculationType,
-    run.varValue?.toString(),
-    run.expectedShortfall?.toString(),
-    run.durationMs?.toString(),
-  ]
-
-  if (detail) {
-    for (const step of detail.steps) {
-      parts.push(...Object.values(step.details))
-      if (step.error) parts.push(step.error)
-    }
-    if (detail.error) parts.push(detail.error)
-  }
-
-  return parts.filter(Boolean).join(' ').toLowerCase()
-}
-
-function jobMatchesSearch(
-  run: ValuationJobSummaryDto,
-  term: string,
-  detail: ValuationJobDetailDto | undefined,
-): boolean {
-  const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
-  const text = buildSearchableText(run, detail)
-  return tokens.every((t) => text.includes(t))
 }
 
 function formatJobTime(iso: string): string {
