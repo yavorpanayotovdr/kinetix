@@ -74,6 +74,14 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipLeft, setTooltipLeft] = useState(0)
 
+  // Filter to entries that have greeks data
+  const greeksHistory = useMemo(
+    () => history.filter((e) => e.delta !== undefined && e.gamma !== undefined && e.vega !== undefined),
+    [history],
+  )
+
+  const hasChart = greeksHistory.length >= 2
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -87,13 +95,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
     setContainerWidth(el.clientWidth)
 
     return () => observer.disconnect()
-  }, [])
-
-  // Filter to entries that have greeks data
-  const greeksHistory = useMemo(
-    () => history.filter((e) => e.delta !== undefined && e.gamma !== undefined && e.vega !== undefined),
-    [history],
-  )
+  }, [hasChart])
 
   const plotWidth = containerWidth - PADDING.left - PADDING.right
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom

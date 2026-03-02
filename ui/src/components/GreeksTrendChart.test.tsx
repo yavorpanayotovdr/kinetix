@@ -136,6 +136,16 @@ describe('GreeksTrendChart', () => {
     expect(observeCalls).toBeGreaterThan(0)
   })
 
+  it('attaches ResizeObserver when history transitions from empty to data', () => {
+    const { rerender } = render(<GreeksTrendChart history={[]} />)
+
+    const initialCalls = observeCalls
+
+    rerender(<GreeksTrendChart history={history} />)
+
+    expect(observeCalls).toBeGreaterThan(initialCalls)
+  })
+
   it('renders Y-axis grid lines', () => {
     render(<GreeksTrendChart history={history} />)
 

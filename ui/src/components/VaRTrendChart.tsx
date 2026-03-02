@@ -59,6 +59,8 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipLeft, setTooltipLeft] = useState(0)
 
+  const hasChart = history.length >= 2
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -72,7 +74,7 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
     setContainerWidth(el.clientWidth)
 
     return () => observer.disconnect()
-  }, [])
+  }, [hasChart])
 
   const plotWidth = containerWidth - PADDING.left - PADDING.right
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom

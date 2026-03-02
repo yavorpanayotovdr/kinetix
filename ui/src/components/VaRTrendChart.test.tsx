@@ -144,6 +144,18 @@ describe('VaRTrendChart', () => {
     expect(observeCalls).toBeGreaterThan(0)
   })
 
+  it('attaches ResizeObserver when history transitions from empty to data', () => {
+    const { rerender } = render(<VaRTrendChart history={[]} />)
+
+    // Placeholder render — no ref attached, observer may have run but on null
+    const initialCalls = observeCalls
+
+    // Transition to having data — should re-attach ResizeObserver
+    rerender(<VaRTrendChart history={history} />)
+
+    expect(observeCalls).toBeGreaterThan(initialCalls)
+  })
+
   it('X-axis labels reflect the selected time range, not just the data extent', () => {
     // All data is within 2 hours, but the Custom timeRange covers 7 days
     const weekRange: TimeRange = {
