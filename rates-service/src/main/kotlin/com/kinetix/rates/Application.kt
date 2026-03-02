@@ -1,9 +1,22 @@
 package com.kinetix.rates
 
+import com.kinetix.common.model.CurvePoint
+import com.kinetix.common.model.ForwardCurve
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.RateSource
+import com.kinetix.common.model.RiskFreeRate
+import com.kinetix.common.model.Tenor
+import com.kinetix.common.model.YieldCurve
 import com.kinetix.rates.cache.RedisRatesCache
+import com.kinetix.rates.feed.RatesFeedSimulator
 import com.kinetix.rates.kafka.KafkaRatesPublisher
 import com.kinetix.rates.persistence.DatabaseConfig
 import com.kinetix.rates.seed.DevDataSeeder
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.Currency
 import com.kinetix.rates.persistence.DatabaseFactory
 import com.kinetix.rates.persistence.ExposedForwardCurveRepository
 import com.kinetix.rates.persistence.ExposedRiskFreeRateRepository
@@ -147,6 +160,55 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(yieldCurveRepository, riskFreeRateRepository, forwardCurveRepository).seed()
+        }
+    }
+
+    val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true
+    if (feedEnabled) {
+        val seedYieldCurves = DevDataSeeder.YIELD_CURVE_DATA.map { (currency, rates) ->
+            val tenors = DevDataSeeder.YIELD_CURVE_TENORS.zip(rates).map { (tenorFn, rate) -> tenorFn(rate) }
+            YieldCurve(
+                currency = Currency.getInstance(currency),
+                asOf = DevDataSeeder.AS_OF,
+                tenors = tenors,
+                curveId = currency,
+                source = RateSource.CENTRAL_BANK,
+            )
+        }
+        val seedRiskFreeRates = DevDataSeeder.RISK_FREE_RATE_DATA.map { (config, rate) ->
+            RiskFreeRate(
+                currency = Currency.getInstance(config.first),
+                tenor = config.second,
+                rate = rate,
+                asOfDate = DevDataSeeder.AS_OF,
+                source = RateSource.CENTRAL_BANK,
+            )
+        }
+        val seedForwardCurves = DevDataSeeder.FORWARD_CURVE_DATA.map { (instrumentId, config) ->
+            val points = DevDataSeeder.FORWARD_CURVE_TENORS.zip(config.values).map { (tenor, value) ->
+                CurvePoint(tenor = tenor, value = value)
+            }
+            ForwardCurve(
+                instrumentId = InstrumentId(instrumentId),
+                assetClass = config.assetClass,
+                points = points,
+                asOfDate = DevDataSeeder.AS_OF,
+                source = RateSource.INTERNAL,
+            )
+        }
+        val simulator = RatesFeedSimulator(seedYieldCurves, seedRiskFreeRates, seedForwardCurves)
+        launch {
+            while (isActive) {
+                delay(30_000)
+                try {
+                    val tick = simulator.tick(Instant.now())
+                    tick.yieldCurves.forEach { ingestionService.ingest(it) }
+                    tick.riskFreeRates.forEach { ingestionService.ingest(it) }
+                    tick.forwardCurves.forEach { ingestionService.ingest(it) }
+                } catch (e: Exception) {
+                    log.error("Rates feed simulator tick failed", e)
+                }
+            }
         }
     }
 }

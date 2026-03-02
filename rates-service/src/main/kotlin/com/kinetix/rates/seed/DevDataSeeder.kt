@@ -84,7 +84,7 @@ class DevDataSeeder(
         log.info("Seeded {} forward curves", FORWARD_CURVE_DATA.size)
     }
 
-    private data class ForwardCurveConfig(
+    internal data class ForwardCurveConfig(
         val assetClass: String,
         val values: List<Double>,
     )
@@ -92,7 +92,7 @@ class DevDataSeeder(
     companion object {
         val AS_OF: Instant = Instant.parse("2026-02-22T10:00:00Z")
 
-        private val YIELD_CURVE_TENORS: List<(BigDecimal) -> Tenor> = listOf(
+        internal val YIELD_CURVE_TENORS: List<(BigDecimal) -> Tenor> = listOf(
             Tenor::overnight,
             Tenor::oneWeek,
             Tenor::oneMonth,
@@ -105,7 +105,7 @@ class DevDataSeeder(
             Tenor::thirtyYears,
         )
 
-        private val YIELD_CURVE_DATA: Map<String, List<BigDecimal>> = mapOf(
+        internal val YIELD_CURVE_DATA: Map<String, List<BigDecimal>> = mapOf(
             "USD" to listOf(
                 BigDecimal("0.0450"), BigDecimal("0.0452"), BigDecimal("0.0455"),
                 BigDecimal("0.0458"), BigDecimal("0.0462"), BigDecimal("0.0465"),
@@ -120,14 +120,14 @@ class DevDataSeeder(
             ),
         )
 
-        private val RISK_FREE_RATE_DATA: Map<Pair<String, String>, Double> = mapOf(
+        internal val RISK_FREE_RATE_DATA: Map<Pair<String, String>, Double> = mapOf(
             ("USD" to "3M") to 4.55,
             ("EUR" to "3M") to 3.05,
         )
 
-        private val FORWARD_CURVE_TENORS = listOf("1M", "3M", "6M", "1Y", "2Y")
+        internal val FORWARD_CURVE_TENORS = listOf("1M", "3M", "6M", "1Y", "2Y")
 
-        private val FORWARD_CURVE_DATA: Map<String, ForwardCurveConfig> = mapOf(
+        internal val FORWARD_CURVE_DATA: Map<String, ForwardCurveConfig> = mapOf(
             "EURUSD" to ForwardCurveConfig("FX", listOf(1.0858, 1.0865, 1.0878, 1.0905, 1.0960)),
             "GBPUSD" to ForwardCurveConfig("FX", listOf(1.2625, 1.2638, 1.2660, 1.2710, 1.2800)),
             "USDJPY" to ForwardCurveConfig("FX", listOf(150.60, 150.20, 149.50, 148.10, 145.50)),
