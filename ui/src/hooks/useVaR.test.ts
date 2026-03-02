@@ -8,14 +8,14 @@ vi.mock('../api/risk', () => ({
 }))
 
 vi.mock('../api/jobHistory', () => ({
-  fetchValuationJobs: vi.fn(),
+  fetchValuationJobsForChart: vi.fn(),
 }))
 
 import { fetchVaR } from '../api/risk'
-import { fetchValuationJobs } from '../api/jobHistory'
+import { fetchValuationJobsForChart } from '../api/jobHistory'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
-const mockFetchValuationJobs = vi.mocked(fetchValuationJobs)
+const mockFetchChartJobs = vi.mocked(fetchValuationJobsForChart)
 
 describe('useVaR', () => {
   beforeEach(() => {
@@ -23,8 +23,7 @@ describe('useVaR', () => {
   })
 
   it('populates history from job history on initial load', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -63,9 +62,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 2,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -74,10 +71,8 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchValuationJobs).toHaveBeenCalledWith(
+    expect(mockFetchChartJobs).toHaveBeenCalledWith(
       'port-1',
-      60,
-      0,
       expect.any(String),
       expect.any(String),
     )
@@ -87,8 +82,7 @@ describe('useVaR', () => {
   })
 
   it('filters out non-COMPLETED jobs and jobs with null varValue', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -146,9 +140,7 @@ describe('useVaR', () => {
           theta: null,
           rho: null,
         },
-      ],
-      totalCount: 3,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -162,8 +154,7 @@ describe('useVaR', () => {
   })
 
   it('sorts history by completedAt ascending', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j2',
           portfolioId: 'port-1',
@@ -202,9 +193,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 2,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -218,8 +207,7 @@ describe('useVaR', () => {
   })
 
   it('appends polled VaR result to pre-loaded history without duplicating', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -239,9 +227,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 1,
-    })
+      ])
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -266,13 +252,13 @@ describe('useVaR', () => {
   it('does not fetch job history when portfolioId is null', () => {
     const { result } = renderHook(() => useVaR(null))
 
-    expect(mockFetchValuationJobs).not.toHaveBeenCalled()
+    expect(mockFetchChartJobs).not.toHaveBeenCalled()
     expect(result.current.history).toHaveLength(0)
     expect(result.current.loading).toBe(false)
   })
 
   it('gracefully handles job history fetch failure', async () => {
-    mockFetchValuationJobs.mockRejectedValue(new Error('Network error'))
+    mockFetchChartJobs.mockRejectedValue(new Error('Network error'))
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -286,7 +272,7 @@ describe('useVaR', () => {
   })
 
   it('accumulates aggregate Greeks into history entry when VaR result includes greeks', async () => {
-    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchChartJobs.mockResolvedValue([])
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -322,7 +308,7 @@ describe('useVaR', () => {
   })
 
   it('leaves Greeks fields undefined when VaR result has no greeks', async () => {
-    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchChartJobs.mockResolvedValue([])
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -348,8 +334,7 @@ describe('useVaR', () => {
   })
 
   it('populates Greeks from job history when available', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -388,9 +373,7 @@ describe('useVaR', () => {
           theta: -135.2,
           rho: 210.0,
         },
-      ],
-      totalCount: 2,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -408,8 +391,7 @@ describe('useVaR', () => {
   })
 
   it('leaves Greeks undefined when job history has null Greeks', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -429,9 +411,7 @@ describe('useVaR', () => {
           theta: null,
           rho: null,
         },
-      ],
-      totalCount: 1,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -448,8 +428,7 @@ describe('useVaR', () => {
   })
 
   it('history entries include confidenceLevel from job history', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -469,9 +448,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 1,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -484,8 +461,7 @@ describe('useVaR', () => {
   })
 
   it('defaults confidenceLevel to CL_95 for old jobs without confidenceLevel', async () => {
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -505,9 +481,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 1,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -520,7 +494,7 @@ describe('useVaR', () => {
   })
 
   it('history entry from polled VaR result includes confidenceLevel', async () => {
-    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchChartJobs.mockResolvedValue([])
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -541,7 +515,7 @@ describe('useVaR', () => {
   })
 
   it('selectedConfidenceLevel defaults to CL_95', async () => {
-    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchChartJobs.mockResolvedValue([])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -558,8 +532,7 @@ describe('useVaR', () => {
     const recentTime1 = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
     const recentTime2 = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
 
-    mockFetchValuationJobs.mockResolvedValue({
-      items: [
+    mockFetchChartJobs.mockResolvedValue([
         {
           jobId: 'j1',
           portfolioId: 'port-1',
@@ -598,9 +571,7 @@ describe('useVaR', () => {
           theta: 0,
           rho: 0,
         },
-      ],
-      totalCount: 2,
-    })
+      ])
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -623,7 +594,7 @@ describe('useVaR', () => {
   })
 
   it('changing confidence level resets zoom stack', async () => {
-    mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+    mockFetchChartJobs.mockResolvedValue([])
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -655,6 +626,138 @@ describe('useVaR', () => {
     expect(result.current.zoomDepth).toBe(0)
   })
 
+  it('re-fetches history when time range changes', async () => {
+    const now = new Date()
+    const recent = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+
+    mockFetchChartJobs.mockResolvedValue([
+      {
+        jobId: 'j1',
+        portfolioId: 'port-1',
+        triggerType: 'SCHEDULED',
+        status: 'COMPLETED',
+        startedAt: recent,
+        completedAt: recent,
+        durationMs: 60000,
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: 1200000,
+        expectedShortfall: 1500000,
+        pvValue: 10000000,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+      },
+    ])
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+    expect(result.current.history).toHaveLength(1)
+
+    // Change time range — should re-fetch
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    mockFetchChartJobs.mockResolvedValue([
+      {
+        jobId: 'j1',
+        portfolioId: 'port-1',
+        triggerType: 'SCHEDULED',
+        status: 'COMPLETED',
+        startedAt: recent,
+        completedAt: recent,
+        durationMs: 60000,
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: 1200000,
+        expectedShortfall: 1500000,
+        pvValue: 10000000,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+      },
+      {
+        jobId: 'j-old',
+        portfolioId: 'port-1',
+        triggerType: 'SCHEDULED',
+        status: 'COMPLETED',
+        startedAt: sevenDaysAgo,
+        completedAt: sevenDaysAgo,
+        durationMs: 60000,
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: 900000,
+        expectedShortfall: 1100000,
+        pvValue: 8000000,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+      },
+    ])
+
+    act(() => {
+      result.current.setTimeRange({
+        from: sevenDaysAgo,
+        to: now.toISOString(),
+        label: 'Last 7d',
+      })
+    })
+
+    await waitFor(() => {
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+    })
+
+    await waitFor(() => {
+      expect(result.current.history).toHaveLength(2)
+    })
+  })
+
+  it('re-fetches history on zoom', async () => {
+    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+    })
+
+    await waitFor(() => {
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('re-fetches history on resetZoom', async () => {
+    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+    })
+
+    await waitFor(() => {
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+    })
+
+    act(() => {
+      result.current.resetZoom()
+    })
+
+    await waitFor(() => {
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(3)
+    })
+  })
+
   describe('polling overlap guard', () => {
     beforeEach(() => {
       vi.useFakeTimers()
@@ -665,7 +768,7 @@ describe('useVaR', () => {
     })
 
     it('skips poll when a previous request is still in flight', async () => {
-      mockFetchValuationJobs.mockResolvedValue({ items: [], totalCount: 0 })
+      mockFetchChartJobs.mockResolvedValue([])
 
       let resolveSlowFetch: (value: null) => void
       const slowPromise = new Promise<null>((resolve) => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
-import { fetchValuationJobs } from '../api/jobHistory'
+import { fetchValuationJobsForChart } from '../api/jobHistory'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import { resolveTimeRange } from '../utils/resolveTimeRange'
 
@@ -34,7 +34,6 @@ export interface UseVaRResult {
 }
 
 const POLL_INTERVAL = 30_000
-const MAX_HISTORY = 60
 
 function aggregateGreeks(greeks: GreeksResultDto | undefined): { delta: number; gamma: number; vega: number; theta: number } | undefined {
   if (!greeks) return undefined
@@ -64,48 +63,55 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
+  const [fetchVersion, setFetchVersion] = useState(0)
   const [selectedConfidenceLevel, setSelectedConfidenceLevelInternal] = useState('CL_95')
   const initialLoadDone = useRef(false)
   const isPolling = useRef(false)
   const timeRangeRef = useRef(timeRange)
   timeRangeRef.current = timeRange
 
+  const loadHistory = useCallback(async () => {
+    if (!portfolioId) return
+
+    try {
+      const { from, to } = resolveTimeRange(timeRangeRef.current)
+      const items = await fetchValuationJobsForChart(portfolioId, from, to)
+      const historical = items
+        .filter((job) => job.status === 'COMPLETED' && job.varValue != null && job.completedAt != null)
+        .map((job) => ({
+          varValue: job.varValue!,
+          expectedShortfall: job.expectedShortfall ?? 0,
+          calculatedAt: job.completedAt!,
+          confidenceLevel: job.confidenceLevel ?? 'CL_95',
+          ...(job.delta != null && job.gamma != null && job.vega != null
+            ? { delta: job.delta, gamma: job.gamma, vega: job.vega, ...(job.theta != null ? { theta: job.theta } : {}) }
+            : {}),
+        }))
+        .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
+
+      setHistory((prev) => {
+        if (historical.length === 0) return prev
+        const timestamps = new Set(historical.map((e) => e.calculatedAt))
+        const extra = prev.filter((e) => !timestamps.has(e.calculatedAt))
+        return [...historical, ...extra].sort(
+          (a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime(),
+        )
+      })
+    } catch {
+      // History fetch failure is non-critical; polling continues
+    }
+  }, [portfolioId])
+
   const load = useCallback(async () => {
     if (!portfolioId) return
     if (isPolling.current) return
     isPolling.current = true
 
-    const isFirstLoad = !initialLoadDone.current
-    if (isFirstLoad) {
+    if (!initialLoadDone.current) {
       setLoading(true)
     }
 
     try {
-      if (isFirstLoad) {
-        try {
-          const { from, to } = resolveTimeRange(timeRangeRef.current)
-          const { items } = await fetchValuationJobs(portfolioId, MAX_HISTORY, 0, from, to)
-          const historical = items
-            .filter((job) => job.status === 'COMPLETED' && job.varValue != null && job.completedAt != null)
-            .map((job) => ({
-              varValue: job.varValue!,
-              expectedShortfall: job.expectedShortfall ?? 0,
-              calculatedAt: job.completedAt!,
-              confidenceLevel: job.confidenceLevel ?? 'CL_95',
-              ...(job.delta != null && job.gamma != null && job.vega != null
-                ? { delta: job.delta, gamma: job.gamma, vega: job.vega, ...(job.theta != null ? { theta: job.theta } : {}) }
-                : {}),
-            }))
-            .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
-
-          if (historical.length > 0) {
-            setHistory(historical)
-          }
-        } catch {
-          // Job history fetch failed — continue with polling only
-        }
-      }
-
       const result = await fetchVaR(portfolioId)
       setVarResult(result)
       setError(null)
@@ -123,8 +129,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
             confidenceLevel: result.confidenceLevel,
             ...greeks,
           }
-          const next = [...prev, entry]
-          return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
+          return [...prev, entry]
         })
       }
     } catch (err) {
@@ -145,6 +150,10 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     const interval = setInterval(load, POLL_INTERVAL)
     return () => clearInterval(interval)
   }, [portfolioId, load])
+
+  useEffect(() => {
+    if (portfolioId) loadHistory()
+  }, [portfolioId, loadHistory, fetchVersion])
 
   const refresh = useCallback(async () => {
     if (!portfolioId) return
@@ -169,8 +178,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
             confidenceLevel: result.confidenceLevel,
             ...greeks,
           }
-          const next = [...prev, entry]
-          return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
+          return [...prev, entry]
         })
       }
     } catch (err: unknown) {
@@ -193,8 +201,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
                 confidenceLevel: retryResult.confidenceLevel,
                 ...greeks,
               }
-              const next = [...prev, entry]
-              return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
+              return [...prev, entry]
             })
           }
           return
@@ -227,17 +234,20 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const setTimeRange = useCallback((range: TimeRange) => {
     setZoomStack([])
     setTimeRangeInternal(range)
+    setFetchVersion((v) => v + 1)
   }, [])
 
   const zoomIn = useCallback((range: TimeRange) => {
     setZoomStack((prev) => [...prev, timeRange])
     setTimeRangeInternal(range)
+    setFetchVersion((v) => v + 1)
   }, [timeRange])
 
   const resetZoom = useCallback(() => {
     if (zoomStack.length > 0) {
       setTimeRangeInternal(zoomStack[0])
       setZoomStack([])
+      setFetchVersion((v) => v + 1)
     }
   }, [zoomStack])
 
