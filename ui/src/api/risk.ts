@@ -23,7 +23,7 @@ export async function triggerVaRCalculation(
 ): Promise<VaRResultDto | null> {
   const body = {
     ...request,
-    requestedOutputs: request.requestedOutputs ?? ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS'],
+    requestedOutputs: request.requestedOutputs ?? ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'],
   }
   const response = await fetch(
     `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`,

@@ -108,7 +108,7 @@ class SodSnapshotService(
             portfolioId = portfolioId,
             calculationType = calcType,
             confidenceLevel = confLevel,
-            requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
+            requestedOutputs = ValuationOutput.entries.toSet(),
         )
         val result = varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
             ?: throw IllegalStateException("Re-calculation failed for job $jobId parameters")
@@ -128,7 +128,7 @@ class SodSnapshotService(
             portfolioId = portfolioId,
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
-            requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
+            requestedOutputs = ValuationOutput.entries.toSet(),
         )
         return varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
     }

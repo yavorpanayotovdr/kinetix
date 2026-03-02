@@ -63,7 +63,7 @@ fun Route.riskRoutes(
             val requestedOutputs = body.requestedOutputs
                 ?.mapNotNull { runCatching { ValuationOutput.valueOf(it) }.getOrNull() }
                 ?.toSet()
-                ?: setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS)
+                ?: ValuationOutput.entries.toSet()
             val request = VaRCalculationRequest(
                 portfolioId = PortfolioId(portfolioId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
@@ -357,7 +357,7 @@ fun Route.riskRoutes(
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
                 numSimulations = body.numSimulations?.toInt() ?: 10_000,
-                requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
+                requestedOutputs = ValuationOutput.entries.toSet(),
             )
             val result = varCalculationService.calculateVaR(request)
             if (result?.greeks != null) {
