@@ -17,6 +17,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.mockk.*
 import java.math.BigDecimal
 import java.util.Currency
+import java.util.concurrent.TimeUnit
 import com.kinetix.proto.common.AssetClass as ProtoAssetClass
 import com.kinetix.proto.risk.ConfidenceLevel as ProtoConfidenceLevel
 import com.kinetix.proto.risk.ValuationOutput as ProtoValuationOutput
@@ -26,7 +27,13 @@ private val USD = Currency.getInstance("USD")
 class GrpcRiskEngineClientTest : FunSpec({
 
     val stub = mockk<RiskCalculationServiceCoroutineStub>()
+    val deadlinedStub = mockk<RiskCalculationServiceCoroutineStub>()
     val client = GrpcRiskEngineClient(stub)
+
+    beforeTest {
+        clearMocks(stub, deadlinedStub)
+        every { stub.withDeadlineAfter(any(), any()) } returns deadlinedStub
+    }
 
     test("maps request to proto and invokes stub") {
         val positions = listOf(
@@ -66,7 +73,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             .addComputedOutputs(ProtoValuationOutput.PV)
             .build()
 
-        coEvery { stub.valuate(any(), any()) } returns protoResponse
+        coEvery { deadlinedStub.valuate(any(), any()) } returns protoResponse
 
         val result = client.valuate(request, positions)
 
@@ -82,7 +89,7 @@ class GrpcRiskEngineClientTest : FunSpec({
         result.computedOutputs shouldBe setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.PV)
 
         coVerify {
-            stub.valuate(match { req ->
+            deadlinedStub.valuate(match { req ->
                 req.portfolioId.value == "port-1" &&
                     req.calculationType == RiskCalculationType.PARAMETRIC &&
                     req.confidenceLevel == ProtoConfidenceLevel.CL_95 &&
@@ -91,6 +98,50 @@ class GrpcRiskEngineClientTest : FunSpec({
                     req.positionsCount == 1
             }, any())
         }
+    }
+
+    test("applies gRPC deadline to valuate calls") {
+        val deadlinedStub = mockk<RiskCalculationServiceCoroutineStub>()
+        val deadlineStub = mockk<RiskCalculationServiceCoroutineStub>()
+        every { deadlineStub.withDeadlineAfter(any(), any()) } returns deadlinedStub
+
+        val deadlineClient = GrpcRiskEngineClient(deadlineStub, deadlineMs = 30_000)
+
+        val positions = listOf(
+            Position(
+                portfolioId = PortfolioId("port-1"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                quantity = BigDecimal("100"),
+                averageCost = Money(BigDecimal("150.00"), USD),
+                marketPrice = Money(BigDecimal("170.00"), USD),
+            ),
+        )
+        val request = VaRCalculationRequest(
+            portfolioId = PortfolioId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+        )
+
+        val protoResponse = ValuationResponse.newBuilder()
+            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setCalculationType(RiskCalculationType.PARAMETRIC)
+            .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
+            .setVarValue(5000.0)
+            .setExpectedShortfall(6200.0)
+            .setPvValue(17000.0)
+            .setCalculatedAt(Timestamp.newBuilder().setSeconds(1700000000))
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .build()
+
+        coEvery { deadlinedStub.valuate(any(), any()) } returns protoResponse
+
+        deadlineClient.valuate(request, positions)
+
+        verify { deadlineStub.withDeadlineAfter(30_000, TimeUnit.MILLISECONDS) }
+        coVerify { deadlinedStub.valuate(any(), any()) }
     }
 
     test("passes multiple positions in proto request") {
@@ -129,14 +180,14 @@ class GrpcRiskEngineClientTest : FunSpec({
             .addComputedOutputs(ProtoValuationOutput.EXPECTED_SHORTFALL)
             .build()
 
-        coEvery { stub.valuate(any(), any()) } returns protoResponse
+        coEvery { deadlinedStub.valuate(any(), any()) } returns protoResponse
 
         val result = client.valuate(request, positions)
 
         result.varValue shouldBe 12000.0
 
         coVerify {
-            stub.valuate(match { req -> req.positionsCount == 2 }, any())
+            deadlinedStub.valuate(match { req -> req.positionsCount == 2 }, any())
         }
     }
 })

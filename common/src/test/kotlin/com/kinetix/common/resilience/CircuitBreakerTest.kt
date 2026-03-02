@@ -3,6 +3,10 @@ package com.kinetix.common.resilience
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -92,6 +96,63 @@ class CircuitBreakerTest : FunSpec({
         val result = cb.execute { "success" }
         result shouldBe "success"
         cb.currentState shouldBe CircuitState.CLOSED
+    }
+
+    test("allows only halfOpenMaxCalls concurrent calls in HALF_OPEN state") {
+        var now = Instant.parse("2025-01-15T10:00:00Z")
+        val mutableClock = object : Clock() {
+            override fun getZone() = ZoneId.of("UTC")
+            override fun withZone(zone: ZoneId?) = this
+            override fun instant(): Instant = now
+        }
+        val cb = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, resetTimeoutMs = 5000, halfOpenMaxCalls = 2),
+            clock = mutableClock,
+        )
+        // Trip to OPEN
+        repeat(2) {
+            runCatching { cb.execute { throw RuntimeException("fail") } }
+        }
+        cb.currentState shouldBe CircuitState.OPEN
+
+        // Advance past reset timeout so next call transitions to HALF_OPEN
+        now = now.plusMillis(6000)
+
+        withContext(Dispatchers.Default) {
+            // First call enters HALF_OPEN and blocks inside execute (simulating slow work)
+            val gate = CompletableDeferred<Unit>()
+            val firstCall = async {
+                cb.execute {
+                    gate.await() // block until we release
+                    "first"
+                }
+            }
+
+            // Give first coroutine time to acquire and release the mutex
+            kotlinx.coroutines.delay(100)
+
+            // Second call should also pass through (halfOpenMaxCalls = 2)
+            val gate2 = CompletableDeferred<Unit>()
+            val secondCall = async {
+                cb.execute {
+                    gate2.await()
+                    "second"
+                }
+            }
+
+            kotlinx.coroutines.delay(100)
+
+            // Third call should be rejected because halfOpenMaxCalls = 2
+            shouldThrow<CircuitBreakerOpenException> {
+                cb.execute { "third" }
+            }
+
+            // Release both calls so they complete
+            gate.complete(Unit)
+            gate2.complete(Unit)
+            firstCall.await() shouldBe "first"
+            secondCall.await() shouldBe "second"
+        }
     }
 
     test("failed call in HALF_OPEN re-opens circuit") {

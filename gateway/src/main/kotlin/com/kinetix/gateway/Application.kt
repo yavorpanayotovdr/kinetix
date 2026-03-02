@@ -87,6 +87,25 @@ fun Application.module() {
         }
     }
     install(StatusPages) {
+        exception<com.kinetix.gateway.client.ServiceUnavailableException> { call, cause ->
+            cause.retryAfterSeconds?.let { call.response.header(HttpHeaders.RetryAfter, it.toString()) }
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ErrorResponse("service_unavailable", cause.message ?: "Service unavailable"),
+            )
+        }
+        exception<com.kinetix.gateway.client.GatewayTimeoutException> { call, cause ->
+            call.respond(
+                HttpStatusCode.GatewayTimeout,
+                ErrorResponse("gateway_timeout", cause.message ?: "Gateway timeout"),
+            )
+        }
+        exception<com.kinetix.gateway.client.UpstreamErrorException> { call, cause ->
+            call.respond(
+                HttpStatusCode.fromValue(cause.statusCode),
+                ErrorResponse("upstream_error", cause.message ?: "Upstream error"),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

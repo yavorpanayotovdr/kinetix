@@ -429,6 +429,120 @@ describe('useVaR', () => {
     expect(result.current.zoomDepth).toBe(1)
   })
 
+  describe('refresh 503 retry', () => {
+    it('retries once after 5s delay when refresh returns 503, then succeeds', async () => {
+      mockFetchVaR.mockResolvedValue(varResult)
+
+      const freshResult: VaRResultDto = {
+        ...varResult,
+        varValue: '999999.00',
+        calculatedAt: '2025-01-15T11:00:00Z',
+      }
+
+      const error503 = new Error('Risk engine temporarily unavailable') as Error & { status: number }
+      error503.status = 503
+
+      mockTriggerVaR
+        .mockRejectedValueOnce(error503)
+        .mockResolvedValueOnce(freshResult)
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      // Start refresh — first call will 503, retry after 5s should succeed
+      let refreshPromise: Promise<void>
+      act(() => {
+        refreshPromise = result.current.refresh()
+      })
+
+      expect(result.current.refreshing).toBe(true)
+
+      // Flush microtasks so the catch handler runs and setTimeout is registered
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      // Advance past the 5s delay
+      await act(async () => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      await act(async () => {
+        await refreshPromise!
+      })
+
+      expect(result.current.refreshing).toBe(false)
+      expect(mockTriggerVaR).toHaveBeenCalledTimes(2)
+      expect(result.current.error).toBeNull()
+      expect(result.current.varResult).toEqual(freshResult)
+    })
+
+    it('shows error immediately when refresh returns 500 (no retry)', async () => {
+      mockFetchVaR.mockResolvedValue(varResult)
+
+      const error500 = new Error('Internal server error') as Error & { status: number }
+      error500.status = 500
+
+      mockTriggerVaR.mockRejectedValue(error500)
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      await act(async () => {
+        await result.current.refresh()
+      })
+
+      expect(result.current.error).toBe('Internal server error')
+      expect(mockTriggerVaR).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows error when 503 retry also fails', async () => {
+      mockFetchVaR.mockResolvedValue(varResult)
+
+      const error503 = new Error('Risk engine temporarily unavailable') as Error & { status: number }
+      error503.status = 503
+
+      mockTriggerVaR
+        .mockRejectedValueOnce(error503)
+        .mockRejectedValueOnce(error503)
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      let refreshPromise: Promise<void>
+      act(() => {
+        refreshPromise = result.current.refresh()
+      })
+
+      // Flush microtasks so the catch handler runs and setTimeout is registered
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      // Advance past the 5s delay
+      await act(async () => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      await act(async () => {
+        await refreshPromise!
+      })
+
+      expect(result.current.refreshing).toBe(false)
+      expect(mockTriggerVaR).toHaveBeenCalledTimes(2)
+      expect(result.current.error).toBe('Risk engine temporarily unavailable')
+    })
+  })
+
   describe('preset switching and zoom lifecycle', () => {
     // Pin clock to a known instant so sliding-window presets resolve deterministically
     const NOW = new Date('2025-01-15T12:00:00Z')

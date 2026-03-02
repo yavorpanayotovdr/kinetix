@@ -6,6 +6,13 @@ from kinetix_risk.models import AssetClassExposure, ConfidenceLevel, ComponentBr
 TRADING_DAYS_PER_YEAR = 252
 
 
+def _nearest_positive_definite(matrix: np.ndarray) -> np.ndarray:
+    """Clip negative eigenvalues to a small positive value."""
+    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+    eigenvalues = np.maximum(eigenvalues, 1e-10)
+    return eigenvectors @ np.diag(eigenvalues) @ eigenvectors.T
+
+
 def calculate_historical_var(
     exposures: list[AssetClassExposure],
     confidence_level: ConfidenceLevel,
@@ -25,7 +32,16 @@ def calculate_historical_var(
         # Fallback: simulated returns via Cholesky (backward-compatible)
         daily_vols = np.array([e.volatility / np.sqrt(TRADING_DAYS_PER_YEAR) for e in exposures])
         rng = np.random.default_rng(seed)
-        cholesky = np.linalg.cholesky(correlation_matrix)
+        try:
+            cholesky = np.linalg.cholesky(correlation_matrix)
+        except np.linalg.LinAlgError:
+            repaired = _nearest_positive_definite(correlation_matrix)
+            try:
+                cholesky = np.linalg.cholesky(repaired)
+            except np.linalg.LinAlgError:
+                raise ValueError(
+                    "correlation matrix is not positive-definite and could not be repaired"
+                )
         z = rng.standard_normal((num_scenarios, n))
         correlated_returns = z @ cholesky.T * daily_vols
 

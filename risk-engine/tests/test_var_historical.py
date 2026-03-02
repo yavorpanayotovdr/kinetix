@@ -95,3 +95,30 @@ class TestHistoricalVaRConvergesToParametric:
         assert historical.var_value == pytest.approx(
             parametric.var_value, rel=0.05
         )
+
+
+class TestHistoricalNonPositiveDefiniteMatrix:
+    def test_nearly_non_pd_matrix_is_repaired_automatically(self):
+        """A matrix that fails Cholesky but can be repaired via nearPD should produce valid results."""
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        bad_corr = np.array([[1.0, 1.5], [1.5, 1.0]])
+        result = calculate_historical_var(exposures, ConfidenceLevel.CL_95, 1, bad_corr, seed=42)
+        assert result.var_value > 0
+
+    def test_unrepairable_matrix_raises_descriptive_error(self):
+        """When nearPD repair also fails, a descriptive ValueError is raised."""
+        from unittest.mock import patch
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        bad_corr = np.array([[1.0, 1.5], [1.5, 1.0]])
+        with patch(
+            "kinetix_risk.var_historical._nearest_positive_definite",
+            return_value=bad_corr,
+        ):
+            with pytest.raises(ValueError, match="correlation matrix is not positive"):
+                calculate_historical_var(exposures, ConfidenceLevel.CL_95, 1, bad_corr, seed=42)

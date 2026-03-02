@@ -38,7 +38,7 @@ class CircuitBreaker(
                     } ?: Long.MAX_VALUE
                     if (elapsed >= config.resetTimeoutMs) {
                         state = CircuitState.HALF_OPEN
-                        halfOpenCalls = 0
+                        halfOpenCalls = 1
                     } else {
                         throw CircuitBreakerOpenException(config.name)
                     }
@@ -47,6 +47,7 @@ class CircuitBreaker(
                     if (halfOpenCalls >= config.halfOpenMaxCalls) {
                         throw CircuitBreakerOpenException(config.name)
                     }
+                    halfOpenCalls++
                 }
                 CircuitState.CLOSED -> { /* allow */ }
             }

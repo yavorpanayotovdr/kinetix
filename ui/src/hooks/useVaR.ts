@@ -170,8 +170,37 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
           return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
         })
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+    } catch (err: any) {
+      if (err.status === 503) {
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        try {
+          const retryResult = await triggerVaRCalculation(portfolioId, { confidenceLevel: selectedConfidenceLevel })
+          setVarResult(retryResult)
+
+          if (retryResult) {
+            setHistory((prev) => {
+              if (prev.some((e) => e.calculatedAt === retryResult.calculatedAt)) {
+                return prev
+              }
+              const greeks = aggregateGreeks(retryResult.greeks)
+              const entry: VaRHistoryEntry = {
+                varValue: Number(retryResult.varValue),
+                expectedShortfall: Number(retryResult.expectedShortfall),
+                calculatedAt: retryResult.calculatedAt,
+                confidenceLevel: retryResult.confidenceLevel,
+                ...greeks,
+              }
+              const next = [...prev, entry]
+              return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
+            })
+          }
+          return
+        } catch (retryErr: any) {
+          setError(retryErr.message || 'VaR calculation failed')
+        }
+      } else {
+        setError(err instanceof Error ? err.message : String(err))
+      }
     } finally {
       setRefreshing(false)
     }

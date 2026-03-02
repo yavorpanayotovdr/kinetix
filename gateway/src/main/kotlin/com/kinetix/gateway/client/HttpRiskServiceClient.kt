@@ -3,13 +3,44 @@ package com.kinetix.gateway.client
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.time.Instant
 
 class HttpRiskServiceClient(
     private val httpClient: HttpClient,
     private val baseUrl: String,
 ) : RiskServiceClient {
+
+    @Serializable
+    private data class UpstreamErrorBody(val code: String = "", val message: String = "")
+
+    private val lenientJson = Json { ignoreUnknownKeys = true }
+
+    private suspend fun handleErrorResponse(response: HttpResponse): Nothing {
+        val body = try {
+            response.bodyAsText()
+        } catch (_: Exception) {
+            ""
+        }
+
+        val message = try {
+            lenientJson.decodeFromString<UpstreamErrorBody>(body).message
+        } catch (_: Exception) {
+            body.ifBlank { response.status.description }
+        }
+
+        when (response.status.value) {
+            503 -> {
+                val retryAfter = response.headers[HttpHeaders.RetryAfter]?.toIntOrNull()
+                throw ServiceUnavailableException(retryAfter, message)
+            }
+            504 -> throw GatewayTimeoutException(message)
+            else -> throw UpstreamErrorException(response.status.value, message)
+        }
+    }
 
     override suspend fun getMarginEstimate(portfolioId: String, previousMTM: String?): MarginEstimateSummary? {
         val response = httpClient.get("$baseUrl/api/v1/portfolios/$portfolioId/margin") {
@@ -18,6 +49,7 @@ class HttpRiskServiceClient(
             }
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body<MarginEstimateClientDto>().toDomain()
     }
 
@@ -35,6 +67,7 @@ class HttpRiskServiceClient(
             )
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: ValuationResultDto = response.body()
         return dto.toDomain()
     }
@@ -42,6 +75,7 @@ class HttpRiskServiceClient(
     override suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary? {
         val response = httpClient.get("$baseUrl/api/v1/risk/var/$portfolioId")
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: ValuationResultDto = response.body()
         return dto.toDomain()
     }
@@ -62,12 +96,14 @@ class HttpRiskServiceClient(
             )
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: StressTestResultDto = response.body()
         return dto.toDomain()
     }
 
     override suspend fun listScenarios(): List<String> {
         val response = httpClient.get("$baseUrl/api/v1/risk/stress/scenarios")
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
 
@@ -83,6 +119,7 @@ class HttpRiskServiceClient(
             contentType(ContentType.Application.Json)
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: FrtbResultDto = response.body()
         return dto.toDomain()
     }
@@ -93,6 +130,7 @@ class HttpRiskServiceClient(
             setBody(GenerateReportRequestDto(format = format))
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: ReportResultDto = response.body()
         return dto.toDomain()
     }
@@ -108,6 +146,7 @@ class HttpRiskServiceClient(
             )
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: DataDependenciesDto = response.body()
         return dto.toDomain()
     }
@@ -121,6 +160,7 @@ class HttpRiskServiceClient(
                 if (to != null) parameters.append("to", to.toString())
             }
         }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: PaginatedJobsClientDto = response.body()
         return Pair(dto.items.map { it.toDomain() }, dto.totalCount)
     }
@@ -128,6 +168,7 @@ class HttpRiskServiceClient(
     override suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem? {
         val response = httpClient.get("$baseUrl/api/v1/risk/jobs/detail/$jobId")
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: ValuationJobDetailClientDto = response.body()
         return dto.toDomain()
     }
@@ -135,6 +176,7 @@ class HttpRiskServiceClient(
     override suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary? {
         val response = httpClient.get("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId/status")
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: SodBaselineStatusClientDto = response.body()
         return dto.toDomain()
     }
@@ -146,10 +188,7 @@ class HttpRiskServiceClient(
                 url.parameters.append("jobId", jobId)
             }
         }
-        if (!response.status.isSuccess()) {
-            val errorBody: Map<String, String> = try { response.body() } catch (_: Exception) { emptyMap() }
-            throw IllegalStateException(errorBody["message"] ?: "Failed to create SOD snapshot: ${response.status}")
-        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: SodBaselineStatusClientDto = response.body()
         return dto.toDomain()
     }
@@ -162,10 +201,7 @@ class HttpRiskServiceClient(
         val response = httpClient.post("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId/compute") {
             contentType(ContentType.Application.Json)
         }
-        if (!response.status.isSuccess()) {
-            val errorBody: Map<String, String> = try { response.body() } catch (_: Exception) { emptyMap() }
-            throw IllegalStateException(errorBody["message"] ?: "Failed to compute P&L attribution: ${response.status}")
-        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: PnlAttributionClientDto = response.body()
         return dto.toDomain()
     }
@@ -177,6 +213,7 @@ class HttpRiskServiceClient(
             }
         }
         if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: PnlAttributionClientDto = response.body()
         return dto.toDomain()
     }

@@ -24,7 +24,13 @@ _ASSET_CLASS_NAME_TO_DOMAIN = {ac.value: ac for ac in AssetClass}
 def _annualized_vol_from_prices(prices: list[float]) -> float | None:
     if len(prices) < 2:
         return None
-    log_returns = [math.log(prices[i] / prices[i - 1]) for i in range(1, len(prices))]
+    log_returns = [
+        math.log(prices[i] / prices[i - 1])
+        for i in range(1, len(prices))
+        if prices[i] > 0 and prices[i - 1] > 0
+    ]
+    if len(log_returns) < 2:
+        return None
     return float(np.std(log_returns, ddof=1)) * math.sqrt(252)
 
 

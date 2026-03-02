@@ -138,7 +138,7 @@ describe('risk API', () => {
       })
 
       await expect(triggerVaRCalculation('port-1')).rejects.toThrow(
-        'Failed to trigger VaR calculation: 500 Internal Server Error',
+        '500 Internal Server Error',
       )
     })
   })
@@ -207,6 +207,59 @@ describe('risk API', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/v1/risk/positions/port%2Fspecial%20%26%20id',
       )
+    })
+  })
+
+  describe('triggerVaRCalculation error handling', () => {
+    it('attaches status and uses message from JSON error body on 503', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        json: () => Promise.resolve({ code: 'service_unavailable', message: 'Risk engine temporarily unavailable' }),
+      })
+
+      try {
+        await triggerVaRCalculation('p1')
+        expect.fail('should have thrown')
+      } catch (e: any) {
+        expect(e.status).toBe(503)
+        expect(e.message).toBe('Risk engine temporarily unavailable')
+      }
+    })
+
+    it('attaches status and uses message from JSON error body on 500', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ code: 'internal_error', message: 'An unexpected error occurred' }),
+      })
+
+      try {
+        await triggerVaRCalculation('p1')
+        expect.fail('should have thrown')
+      } catch (e: any) {
+        expect(e.status).toBe(500)
+        expect(e.message).toBe('An unexpected error occurred')
+      }
+    })
+
+    it('falls back to status text when body is not JSON', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        json: () => Promise.reject(new Error('not json')),
+      })
+
+      try {
+        await triggerVaRCalculation('p1')
+        expect.fail('should have thrown')
+      } catch (e: any) {
+        expect(e.status).toBe(502)
+        expect(e.message).toContain('Bad Gateway')
+      }
     })
   })
 })

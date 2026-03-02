@@ -37,9 +37,16 @@ export async function triggerVaRCalculation(
     return null
   }
   if (!response.ok) {
-    throw new Error(
-      `Failed to trigger VaR calculation: ${response.status} ${response.statusText}`,
-    )
+    let message: string
+    try {
+      const body = await response.json()
+      message = body.message || `${response.status} ${response.statusText}`
+    } catch {
+      message = `${response.status} ${response.statusText}`
+    }
+    const error = new Error(message) as Error & { status: number }
+    error.status = response.status
+    throw error
   }
   return response.json()
 }

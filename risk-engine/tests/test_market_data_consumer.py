@@ -149,3 +149,33 @@ class TestConsumeMarketDataPartial:
         # FX should fall back to default (0.10)
         fx_vol = bundle.volatility_provider(AssetClass.FX)
         assert fx_vol == 0.10
+
+
+class TestMarketDataConsumerZeroPrices:
+    def test_zero_price_in_history_skipped_gracefully(self):
+        prices = [100.0, 0.0, 102.0, 103.0, 104.0]
+        market_data = [{
+            "data_type": "HISTORICAL_PRICES",
+            "instrument_id": "AAPL",
+            "asset_class": "EQUITY",
+            "time_series": [
+                {"timestamp_seconds": 1000000 + i * 86400, "value": p}
+                for i, p in enumerate(prices)
+            ],
+        }]
+        bundle = consume_market_data(market_data)
+        assert bundle.volatility_provider is not None
+
+    def test_negative_price_in_history_skipped_gracefully(self):
+        prices = [100.0, -1.0, 102.0, 103.0, 104.0]
+        market_data = [{
+            "data_type": "HISTORICAL_PRICES",
+            "instrument_id": "AAPL",
+            "asset_class": "EQUITY",
+            "time_series": [
+                {"timestamp_seconds": 1000000 + i * 86400, "value": p}
+                for i, p in enumerate(prices)
+            ],
+        }]
+        bundle = consume_market_data(market_data)
+        assert bundle.volatility_provider is not None

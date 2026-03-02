@@ -126,3 +126,22 @@ class TestParametricVaRExpectedShortfall:
         z = norm.ppf(0.95)
         expected_es = daily_vol * 100_000 * norm.pdf(z) / (1 - 0.95)
         assert result.expected_shortfall == pytest.approx(expected_es, rel=1e-6)
+
+
+class TestParametricVaRZeroExposure:
+    def test_zero_market_value_portfolio_returns_zero_var(self):
+        """When all exposures have zero market value, VaR should be zero, not crash with division by zero."""
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 0.0, 0.20)]
+        corr = np.array([[1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+        assert result.var_value == 0.0
+        assert result.expected_shortfall == 0.0
+
+    def test_all_zero_market_values_multi_asset(self):
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 0.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 0.0, 0.10),
+        ]
+        corr = np.array([[1.0, 0.5], [0.5, 1.0]])
+        result = calculate_parametric_var(exposures, ConfidenceLevel.CL_95, 1, corr)
+        assert result.var_value == 0.0

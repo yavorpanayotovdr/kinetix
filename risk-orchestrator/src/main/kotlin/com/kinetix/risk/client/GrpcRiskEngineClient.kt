@@ -17,6 +17,7 @@ import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.ValuationResult
+import java.util.concurrent.TimeUnit
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
 import com.kinetix.proto.risk.ValuationOutput as ProtoValuationOutput
 
@@ -30,6 +31,7 @@ private val DOMAIN_VALUATION_OUTPUT_TO_PROTO = mapOf(
 class GrpcRiskEngineClient(
     private val stub: RiskCalculationServiceCoroutineStub,
     private val dependenciesStub: MarketDataDependenciesServiceCoroutineStub? = null,
+    private val deadlineMs: Long = 60_000,
 ) : RiskEngineClient {
 
     override suspend fun calculateVaR(
@@ -47,7 +49,8 @@ class GrpcRiskEngineClient(
             .addAllMarketData(marketData.map { it.toProto() })
             .build()
 
-        val response = stub.calculateVaR(protoRequest)
+        val response = stub.withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS)
+            .calculateVaR(protoRequest)
         return response.toDomain()
     }
 
@@ -67,7 +70,8 @@ class GrpcRiskEngineClient(
             .addAllRequestedOutputs(request.requestedOutputs.map { DOMAIN_VALUATION_OUTPUT_TO_PROTO.getValue(it) })
             .build()
 
-        val response = stub.valuate(protoRequest)
+        val response = stub.withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS)
+            .valuate(protoRequest)
         return response.toDomainValuation()
     }
 
@@ -87,6 +91,7 @@ class GrpcRiskEngineClient(
 
         return requireNotNull(dependenciesStub) {
             "MarketDataDependenciesService stub not configured"
-        }.discoverDependencies(protoRequest)
+        }.withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS)
+            .discoverDependencies(protoRequest)
     }
 }

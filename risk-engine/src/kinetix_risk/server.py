@@ -33,81 +33,97 @@ from kinetix_risk.stress_server import StressTestServicer
 class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceServicer):
 
     def CalculateVaR(self, request, context):
-        positions = proto_positions_to_domain(request.positions)
-        calc_type = proto_calculation_type_to_domain(request.calculation_type)
-        confidence = proto_confidence_to_domain(request.confidence_level)
+        try:
+            positions = proto_positions_to_domain(request.positions)
+            calc_type = proto_calculation_type_to_domain(request.calculation_type)
+            confidence = proto_confidence_to_domain(request.confidence_level)
 
-        market_data_dicts = proto_market_data_to_domain(request.market_data)
-        bundle = consume_market_data(market_data_dicts)
+            market_data_dicts = proto_market_data_to_domain(request.market_data)
+            bundle = consume_market_data(market_data_dicts)
 
-        result = calculate_portfolio_var(
-            positions=positions,
-            calculation_type=calc_type,
-            confidence_level=confidence,
-            time_horizon_days=request.time_horizon_days or 1,
-            num_simulations=request.num_simulations or 10_000,
-            volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
-            correlation_matrix=bundle.correlation_matrix,
-        )
+            result = calculate_portfolio_var(
+                positions=positions,
+                calculation_type=calc_type,
+                confidence_level=confidence,
+                time_horizon_days=request.time_horizon_days or 1,
+                num_simulations=request.num_simulations or 10_000,
+                volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
+                correlation_matrix=bundle.correlation_matrix,
+            )
 
-        portfolio_id = request.portfolio_id.value
-        risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_value)
-        risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.expected_shortfall)
-        for component in result.component_breakdown:
-            risk_var_component_contribution.labels(
-                portfolio_id=portfolio_id,
-                asset_class=component.asset_class.value,
-            ).set(component.var_contribution)
-
-        return var_result_to_proto_response(
-            result,
-            portfolio_id=request.portfolio_id.value,
-            calculation_type=request.calculation_type,
-            confidence_level=request.confidence_level,
-        )
-
-    def Valuate(self, request, context):
-        positions = proto_positions_to_domain(request.positions)
-        calc_type = proto_calculation_type_to_domain(request.calculation_type)
-        confidence = proto_confidence_to_domain(request.confidence_level)
-
-        market_data_dicts = proto_market_data_to_domain(request.market_data)
-        bundle = consume_market_data(market_data_dicts)
-
-        requested_outputs = proto_valuation_outputs_to_names(request.requested_outputs)
-
-        result = calculate_valuation(
-            positions=positions,
-            calculation_type=calc_type,
-            confidence_level=confidence,
-            time_horizon_days=request.time_horizon_days or 1,
-            num_simulations=request.num_simulations or 10_000,
-            volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
-            correlation_matrix=bundle.correlation_matrix,
-            requested_outputs=requested_outputs,
-            portfolio_id=request.portfolio_id.value,
-        )
-
-        if result.var_result is not None:
             portfolio_id = request.portfolio_id.value
-            risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_result.var_value)
-            risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.var_result.expected_shortfall)
-            for component in result.var_result.component_breakdown:
+            risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_value)
+            risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.expected_shortfall)
+            for component in result.component_breakdown:
                 risk_var_component_contribution.labels(
                     portfolio_id=portfolio_id,
                     asset_class=component.asset_class.value,
                 ).set(component.var_contribution)
 
-        return valuation_result_to_proto_response(
-            result,
-            portfolio_id=request.portfolio_id.value,
-            calculation_type=request.calculation_type,
-            confidence_level=request.confidence_level,
-        )
+            return var_result_to_proto_response(
+                result,
+                portfolio_id=request.portfolio_id.value,
+                calculation_type=request.calculation_type,
+                confidence_level=request.confidence_level,
+            )
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except Exception as e:
+            logger.exception("CalculateVaR failed")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
+
+    def Valuate(self, request, context):
+        try:
+            positions = proto_positions_to_domain(request.positions)
+            calc_type = proto_calculation_type_to_domain(request.calculation_type)
+            confidence = proto_confidence_to_domain(request.confidence_level)
+
+            market_data_dicts = proto_market_data_to_domain(request.market_data)
+            bundle = consume_market_data(market_data_dicts)
+
+            requested_outputs = proto_valuation_outputs_to_names(request.requested_outputs)
+
+            result = calculate_valuation(
+                positions=positions,
+                calculation_type=calc_type,
+                confidence_level=confidence,
+                time_horizon_days=request.time_horizon_days or 1,
+                num_simulations=request.num_simulations or 10_000,
+                volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
+                correlation_matrix=bundle.correlation_matrix,
+                requested_outputs=requested_outputs,
+                portfolio_id=request.portfolio_id.value,
+            )
+
+            if result.var_result is not None:
+                portfolio_id = request.portfolio_id.value
+                risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_result.var_value)
+                risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.var_result.expected_shortfall)
+                for component in result.var_result.component_breakdown:
+                    risk_var_component_contribution.labels(
+                        portfolio_id=portfolio_id,
+                        asset_class=component.asset_class.value,
+                    ).set(component.var_contribution)
+
+            return valuation_result_to_proto_response(
+                result,
+                portfolio_id=request.portfolio_id.value,
+                calculation_type=request.calculation_type,
+                confidence_level=request.confidence_level,
+            )
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except Exception as e:
+            logger.exception("Valuate failed")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
 
     def CalculateVaRStream(self, request_iterator, context):
         for request in request_iterator:
-            yield self.CalculateVaR(request, context)
+            try:
+                yield self.CalculateVaR(request, context)
+            except Exception as e:
+                logger.exception("CalculateVaRStream failed for request")
+                context.abort(grpc.StatusCode.INTERNAL, str(e))
 
 
 def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models"):

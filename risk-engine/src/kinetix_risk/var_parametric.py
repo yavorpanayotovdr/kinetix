@@ -38,7 +38,10 @@ def calculate_parametric_var(
 
     # Component VaR via Euler allocation: CVaR_i = (Cov @ 1)_i * z / port_std
     marginal = cov_matrix @ ones
-    component_var = marginal * z / port_std * sqrt_t
+    if port_std == 0:
+        component_var = np.zeros(n)
+    else:
+        component_var = marginal * z / port_std * sqrt_t
 
     breakdown = []
     for i, exp in enumerate(exposures):

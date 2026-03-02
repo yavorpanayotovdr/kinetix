@@ -114,3 +114,30 @@ class TestMonteCarloVaRMultiAsset:
             [exposures[1]], ConfidenceLevel.CL_95, 1, np.array([[1.0]]), seed=42,
         )
         assert var_combined.var_value < var_eq_only.var_value + var_fi_only.var_value
+
+
+class TestMonteCarloNonPositiveDefiniteMatrix:
+    def test_nearly_non_pd_matrix_is_repaired_automatically(self):
+        """A matrix that fails Cholesky but can be repaired via nearPD should produce valid results."""
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        bad_corr = np.array([[1.0, 1.5], [1.5, 1.0]])  # not PD
+        result = calculate_monte_carlo_var(exposures, ConfidenceLevel.CL_95, 1, bad_corr, seed=42)
+        assert result.var_value > 0
+
+    def test_unrepairable_matrix_raises_descriptive_error(self):
+        """When nearPD repair also fails, a descriptive ValueError is raised."""
+        from unittest.mock import patch
+        exposures = [
+            AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20),
+            AssetClassExposure(AssetClass.FX, 50_000.0, 0.10),
+        ]
+        bad_corr = np.array([[1.0, 1.5], [1.5, 1.0]])
+        with patch(
+            "kinetix_risk.var_monte_carlo._nearest_positive_definite",
+            return_value=bad_corr,
+        ):
+            with pytest.raises(ValueError, match="correlation matrix is not positive"):
+                calculate_monte_carlo_var(exposures, ConfidenceLevel.CL_95, 1, bad_corr, seed=42)

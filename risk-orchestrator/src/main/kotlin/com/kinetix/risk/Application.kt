@@ -2,6 +2,7 @@ package com.kinetix.risk
 
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.resilience.CircuitBreaker
+import com.kinetix.common.resilience.CircuitBreakerOpenException
 import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
@@ -105,7 +106,7 @@ fun Application.module() {
 }
 
 @Serializable
-private data class ErrorBody(val error: String, val message: String)
+internal data class ErrorBody(val error: String, val message: String)
 
 fun Application.moduleWithRoutes() {
     val grpcConfig = environment.config.config("grpc")
@@ -274,6 +275,42 @@ fun Application.moduleWithRoutes() {
                 HttpStatusCode.BadRequest,
                 ErrorBody("bad_request", cause.message ?: "Invalid request"),
             )
+        }
+        exception<CircuitBreakerOpenException> { call, _ ->
+            call.response.header("Retry-After", "30")
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ErrorBody("service_unavailable", "Risk engine temporarily unavailable"),
+            )
+        }
+        exception<io.grpc.StatusRuntimeException> { call, cause ->
+            when (cause.status.code) {
+                io.grpc.Status.Code.DEADLINE_EXCEEDED -> {
+                    call.respond(
+                        HttpStatusCode.GatewayTimeout,
+                        ErrorBody("gateway_timeout", "Risk calculation timed out"),
+                    )
+                }
+                io.grpc.Status.Code.INVALID_ARGUMENT -> {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorBody("bad_request", cause.status.description ?: "Invalid argument"),
+                    )
+                }
+                io.grpc.Status.Code.UNAVAILABLE, io.grpc.Status.Code.RESOURCE_EXHAUSTED -> {
+                    call.response.header("Retry-After", "5")
+                    call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        ErrorBody("service_unavailable", cause.status.description ?: "Service unavailable"),
+                    )
+                }
+                else -> {
+                    call.respond(
+                        HttpStatusCode.BadGateway,
+                        ErrorBody("bad_gateway", cause.status.description ?: "Risk engine error"),
+                    )
+                }
+            }
         }
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception", cause)
