@@ -22,6 +22,7 @@ const completedJobs = [
     varValue: 500.0,
     expectedShortfall: 600.0,
     pvValue: null,
+    delta: null, gamma: null, vega: null, theta: null, rho: null,
   },
   {
     jobId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
@@ -36,6 +37,7 @@ const completedJobs = [
     varValue: 450.0,
     expectedShortfall: 550.0,
     pvValue: null,
+    delta: null, gamma: null, vega: null, theta: null, rho: null,
   },
 ]
 
@@ -112,6 +114,7 @@ describe('JobPickerDialog', () => {
         varValue: null,
         expectedShortfall: null,
         pvValue: null,
+        delta: null, gamma: null, vega: null, theta: null, rho: null,
       },
     ]
     mockFetchValuationJobs.mockResolvedValue({ items: mixedJobs, totalCount: 3 })

@@ -17,6 +17,7 @@ const runs: ValuationJobSummaryDto[] = [
     varValue: 5000.0,
     expectedShortfall: 6250.0,
     pvValue: 1800000.0,
+    delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
   },
   {
     jobId: 'job-2',
@@ -31,6 +32,7 @@ const runs: ValuationJobSummaryDto[] = [
     varValue: null,
     expectedShortfall: null,
     pvValue: null,
+    delta: null, gamma: null, vega: null, theta: null, rho: null,
   },
 ]
 
@@ -351,6 +353,7 @@ describe('JobHistoryTable', () => {
         varValue: null,
         expectedShortfall: null,
         pvValue: null,
+        delta: null, gamma: null, vega: null, theta: null, rho: null,
       }
 
       render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
@@ -389,6 +392,7 @@ describe('JobHistoryTable', () => {
         varValue: null,
         expectedShortfall: null,
         pvValue: null,
+        delta: null, gamma: null, vega: null, theta: null, rho: null,
       }
 
       const { unmount } = render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
