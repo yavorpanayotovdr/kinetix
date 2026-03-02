@@ -3,6 +3,7 @@ package com.kinetix.risk.kafka
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.kafka.events.PriceEvent
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.TriggerType
@@ -22,6 +23,7 @@ class PriceEventConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val varCalculationService: VaRCalculationService,
     private val affectedPortfolios: suspend () -> List<PortfolioId>,
+    private val varCache: VaRCache? = null,
     private val topic: String = "price.updates",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
@@ -55,7 +57,7 @@ class PriceEventConsumer(
                         MDC.put("correlationId", priceCorrelationId ?: "")
                         try {
                             logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
-                            varCalculationService.calculateVaR(
+                            val result = varCalculationService.calculateVaR(
                                 VaRCalculationRequest(
                                     portfolioId = portfolioId,
                                     calculationType = CalculationType.PARAMETRIC,
@@ -63,6 +65,9 @@ class PriceEventConsumer(
                                 ),
                                 triggerType = TriggerType.PRICE_EVENT,
                             )
+                            if (result != null) {
+                                varCache?.put(portfolioId.value, result)
+                            }
                         } finally {
                             MDC.remove("correlationId")
                         }

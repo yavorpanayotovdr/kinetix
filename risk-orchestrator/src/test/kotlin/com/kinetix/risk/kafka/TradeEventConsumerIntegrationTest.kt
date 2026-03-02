@@ -2,6 +2,8 @@ package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
@@ -16,17 +18,19 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 class TradeEventConsumerIntegrationTest : FunSpec({
 
-    test("consumes trade event and triggers VaR calculation for the portfolio") {
+    test("consumes trade event and triggers VaR calculation for the portfolio and caches result") {
         val bootstrapServers = KafkaTestSetup.start()
         val topic = "trades.lifecycle.test-1"
         val varService = mockk<VaRCalculationService>()
+        val varCache = mockk<VaRCache>(relaxed = true)
         val kafkaConsumer = KafkaTestSetup.createConsumer(bootstrapServers, "trade-consumer-test-1")
-        val consumer = TradeEventConsumer(kafkaConsumer, varService, topic)
+        val consumer = TradeEventConsumer(kafkaConsumer, varService, varCache = varCache, topic = topic)
 
+        val mockResult = mockk<ValuationResult>()
         var capturedPortfolioId: String? = null
         coEvery { varService.calculateVaR(any(), any()) } answers {
             capturedPortfolioId = firstArg<VaRCalculationRequest>().portfolioId.value
-            null
+            mockResult
         }
 
         val job = launch { consumer.start() }
@@ -54,6 +58,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         capturedPortfolioId shouldBe "port-1"
         coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == PortfolioId("port-1") }, any()) }
+        coVerify(exactly = 1) { varCache.put("port-1", mockResult) }
 
         job.cancel()
         producer.close()
@@ -64,7 +69,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         val topic = "trades.lifecycle.test-2"
         val varService = mockk<VaRCalculationService>()
         val kafkaConsumer = KafkaTestSetup.createConsumer(bootstrapServers, "trade-consumer-test-2")
-        val consumer = TradeEventConsumer(kafkaConsumer, varService, topic)
+        val consumer = TradeEventConsumer(kafkaConsumer, varService, topic = topic)
 
         val portfoliosCalculated = mutableListOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {

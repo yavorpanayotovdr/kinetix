@@ -345,6 +345,7 @@ fun Application.moduleWithRoutes() {
     val tradeEventConsumer = TradeEventConsumer(
         KafkaConsumer<String, String>(tradeConsumerProps),
         varCalculationService,
+        varCache = varCache,
         retryableConsumer = tradeRetryableConsumer,
     )
 
@@ -366,6 +367,7 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+        varCache = varCache,
         retryableConsumer = priceRetryableConsumer,
     )
 

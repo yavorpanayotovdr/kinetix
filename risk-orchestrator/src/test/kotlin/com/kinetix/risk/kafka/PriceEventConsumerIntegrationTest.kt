@@ -2,6 +2,8 @@ package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.PriceEvent
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
@@ -16,22 +18,25 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 class PriceEventConsumerIntegrationTest : FunSpec({
 
-    test("consumes price event and triggers VaR recalculation for affected portfolios") {
+    test("consumes price event and triggers VaR recalculation for affected portfolios and caches results") {
         val bootstrapServers = KafkaTestSetup.start()
         val topic = "price.updates.test-1"
         val varService = mockk<VaRCalculationService>()
+        val varCache = mockk<VaRCache>(relaxed = true)
         val kafkaConsumer = KafkaTestSetup.createConsumer(bootstrapServers, "price-consumer-test-1")
 
+        val mockResult = mockk<ValuationResult>()
         val portfoliosCalculated = mutableListOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {
             portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
-            null
+            mockResult
         }
 
         val consumer = PriceEventConsumer(
             consumer = kafkaConsumer,
             varCalculationService = varService,
             affectedPortfolios = { listOf(PortfolioId("port-1"), PortfolioId("port-2")) },
+            varCache = varCache,
             topic = topic,
         )
 
@@ -55,6 +60,7 @@ class PriceEventConsumerIntegrationTest : FunSpec({
         }
 
         portfoliosCalculated.toSet() shouldBe setOf("port-1", "port-2")
+        coVerify(exactly = 2) { varCache.put(any(), mockResult) }
 
         job.cancel()
         producer.close()

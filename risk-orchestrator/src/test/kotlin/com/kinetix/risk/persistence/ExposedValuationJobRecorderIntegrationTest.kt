@@ -358,39 +358,11 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         portfolios shouldContainExactlyInAnyOrder listOf("port-1", "port-2")
     }
 
-    test("findLatestCompleted returns most recent COMPLETED job with position risk") {
-        val olderJob = completedJob(startedAt = Instant.parse("2025-01-15T10:00:00Z")).copy(
-            positionRiskSnapshot = listOf(
-                PositionRisk(
-                    instrumentId = InstrumentId("AAPL"),
-                    assetClass = AssetClass.EQUITY,
-                    marketValue = BigDecimal("17000.00"),
-                    delta = 0.5,
-                    gamma = null,
-                    vega = null,
-                    varContribution = BigDecimal("2000.00"),
-                    esContribution = BigDecimal("2500.00"),
-                    percentageOfTotal = BigDecimal("100.00"),
-                ),
-            ),
-        )
+    test("findLatestCompleted returns most recent COMPLETED job") {
+        val olderJob = completedJob(startedAt = Instant.parse("2025-01-15T10:00:00Z"))
         recorder.save(olderJob)
 
-        val newerJob = completedJob(startedAt = Instant.parse("2025-01-15T12:00:00Z"), varValue = 7000.0).copy(
-            positionRiskSnapshot = listOf(
-                PositionRisk(
-                    instrumentId = InstrumentId("GOOGL"),
-                    assetClass = AssetClass.EQUITY,
-                    marketValue = BigDecimal("25000.00"),
-                    delta = 1.2,
-                    gamma = null,
-                    vega = null,
-                    varContribution = BigDecimal("7000.00"),
-                    esContribution = BigDecimal("8750.00"),
-                    percentageOfTotal = BigDecimal("100.00"),
-                ),
-            ),
-        )
+        val newerJob = completedJob(startedAt = Instant.parse("2025-01-15T12:00:00Z"), varValue = 7000.0)
         recorder.save(newerJob)
 
         // Also save a RUNNING job (should be skipped)
@@ -400,17 +372,16 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         latest.shouldNotBeNull()
         latest.jobId shouldBe newerJob.jobId
         latest.varValue shouldBe 7000.0
-        latest.positionRiskSnapshot shouldHaveSize 1
-        latest.positionRiskSnapshot[0].instrumentId shouldBe InstrumentId("GOOGL")
     }
 
-    test("findLatestCompleted returns null when no completed jobs with position risk exist") {
-        // Save a completed job WITHOUT position risk (pre-migration data)
+    test("findLatestCompleted returns completed job even without position risk data") {
         recorder.save(completedJob())
-        // Save a RUNNING job
         recorder.save(startedJob(startedAt = Instant.parse("2025-01-15T11:00:00Z")))
 
-        recorder.findLatestCompleted("port-1").shouldBeNull()
+        val latest = recorder.findLatestCompleted("port-1")
+        latest.shouldNotBeNull()
+        latest.status shouldBe RunStatus.COMPLETED
+        latest.positionRiskSnapshot shouldHaveSize 0
     }
 
     test("findLatestCompleted returns null for unknown portfolio") {

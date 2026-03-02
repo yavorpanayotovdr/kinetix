@@ -3,6 +3,7 @@ package com.kinetix.risk.kafka
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.kafka.events.TradeEvent
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.TriggerType
@@ -21,6 +22,7 @@ import kotlin.coroutines.coroutineContext
 class TradeEventConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val varCalculationService: VaRCalculationService,
+    private val varCache: VaRCache? = null,
     private val topic: String = "trades.lifecycle",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
@@ -44,7 +46,7 @@ class TradeEventConsumer(
 
                             logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
 
-                            varCalculationService.calculateVaR(
+                            val result = varCalculationService.calculateVaR(
                                 VaRCalculationRequest(
                                     portfolioId = portfolioId,
                                     calculationType = CalculationType.PARAMETRIC,
@@ -53,6 +55,9 @@ class TradeEventConsumer(
                                 triggerType = TriggerType.TRADE_EVENT,
                                 correlationId = event.correlationId,
                             )
+                            if (result != null) {
+                                varCache?.put(portfolioId.value, result)
+                            }
                         } finally {
                             MDC.remove("correlationId")
                         }

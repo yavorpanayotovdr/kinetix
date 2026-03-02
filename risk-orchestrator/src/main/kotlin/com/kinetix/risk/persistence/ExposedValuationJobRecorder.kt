@@ -132,8 +132,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .selectAll()
             .where {
                 (ValuationJobsTable.portfolioId eq portfolioId) and
-                    (ValuationJobsTable.status eq "COMPLETED") and
-                    (ValuationJobsTable.positionRisk.isNotNull())
+                    (ValuationJobsTable.status eq "COMPLETED")
             }
             .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
             .limit(1)
