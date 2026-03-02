@@ -22,6 +22,11 @@ function makeJob(
     varValue: null,
     expectedShortfall: null,
     pvValue: null,
+    delta: null,
+    gamma: null,
+    vega: null,
+    theta: null,
+    rho: null,
   }
 }
 
