@@ -194,6 +194,9 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      - name: Build risk-engine Docker image
+        if: matrix.module == 'risk-orchestrator'
+        run: docker build -t kinetix-risk-engine-test -f deploy/docker/Dockerfile.risk-engine .
       - name: Integration tests (${{ matrix.module }})
         run: ./gradlew :${{ matrix.module }}:integrationTest
       - name: Upload test reports

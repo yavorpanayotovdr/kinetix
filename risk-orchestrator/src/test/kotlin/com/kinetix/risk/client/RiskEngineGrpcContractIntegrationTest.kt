@@ -8,7 +8,6 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.ValuationOutput
 import io.grpc.ManagedChannelBuilder
-import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.doubles.shouldBeGreaterThan
@@ -36,14 +35,6 @@ private val USD = Currency.getInstance("USD")
  * Requires Docker and a pre-built `kinetix-risk-engine-test` image.
  * Build with: `docker build -t kinetix-risk-engine-test -f deploy/docker/Dockerfile.risk-engine .`
  */
-class RiskEngineImageAvailable : io.kotest.core.annotation.EnabledCondition {
-    override fun enabled(kclass: kotlin.reflect.KClass<out io.kotest.core.spec.Spec>): Boolean = try {
-        org.testcontainers.DockerClientFactory.instance().client()
-            .listImagesCmd().withImageNameFilter("kinetix-risk-engine-test").exec().isNotEmpty()
-    } catch (_: Exception) { false }
-}
-
-@EnabledIf(RiskEngineImageAvailable::class)
 class RiskEngineGrpcContractIntegrationTest : FunSpec({
 
     val container = GenericContainer(DockerImageName.parse("kinetix-risk-engine-test:latest"))
