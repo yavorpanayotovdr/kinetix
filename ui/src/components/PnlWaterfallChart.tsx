@@ -37,7 +37,7 @@ export function PnlWaterfallChart({ data }: PnlWaterfallChartProps) {
   const maxAbsValue = Math.max(...absValues, 1)
 
   return (
-    <div data-testid="waterfall-chart" className="space-y-2">
+    <div data-testid="waterfall-chart" className="space-y-2 overflow-hidden">
       {factors.map((factor) => {
         const barWidthPercent = (Math.abs(factor.value) / maxAbsValue) * 50
         const isPositive = factor.value >= 0
@@ -53,7 +53,7 @@ export function PnlWaterfallChart({ data }: PnlWaterfallChartProps) {
               {factor.label}
             </span>
 
-            <div className="flex-1 relative h-7">
+            <div className="flex-1 min-w-0 relative h-7">
               <div className="absolute inset-0 flex items-center">
                 {/* Zero line in the center */}
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300" />
@@ -83,7 +83,7 @@ export function PnlWaterfallChart({ data }: PnlWaterfallChartProps) {
 
             <span
               data-testid={`waterfall-value-${factor.key}`}
-              className={`w-28 text-right text-sm font-mono tabular-nums shrink-0 ${pnlColorClass(valueStr)}`}
+              className={`w-36 text-right text-sm font-mono tabular-nums whitespace-nowrap shrink-0 ${pnlColorClass(valueStr)}`}
             >
               {formatNum(factor.value)}
             </span>
