@@ -66,6 +66,7 @@ describe('RiskTab', () => {
     })
     mockUseJobHistory.mockReturnValue({
       runs: [],
+      chartRuns: [],
       expandedJobs: {},
       loadingJobIds: new Set(),
       loading: false,

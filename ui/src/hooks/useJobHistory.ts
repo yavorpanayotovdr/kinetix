@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail, fetchValuationJobsForChart } from '../api/jobHistory'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto, TimeRange } from '../types'
 
 function defaultTimeRange(): TimeRange {
@@ -30,6 +30,7 @@ function resolveQueryRange(range: TimeRange): { from: string; to: string } {
 
 export interface UseJobHistoryResult {
   runs: ValuationJobSummaryDto[]
+  chartRuns: ValuationJobSummaryDto[]
   expandedJobs: Record<string, ValuationJobDetailDto>
   loadingJobIds: Set<string>
   loading: boolean
@@ -61,6 +62,7 @@ const DEFAULT_PAGE_SIZE = 10
 
 export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const [runs, setRuns] = useState<ValuationJobSummaryDto[]>([])
+  const [chartRuns, setChartRuns] = useState<ValuationJobSummaryDto[]>([])
   const [expandedJobs, setExpandedJobs] = useState<Record<string, ValuationJobDetailDto>>({})
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -103,9 +105,22 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
   }, [portfolioId])
 
+  const loadChart = useCallback(async () => {
+    if (!portfolioId) return
+
+    try {
+      const { from, to } = resolveQueryRange(timeRangeRef.current)
+      const items = await fetchValuationJobsForChart(portfolioId, from, to)
+      setChartRuns(items)
+    } catch {
+      // Chart fetch failure is non-critical; table data is still available
+    }
+  }, [portfolioId])
+
   useEffect(() => {
     if (!portfolioId) {
       setRuns([])
+      setChartRuns([])
       setExpandedJobs({})
       setLoadingJobIds(new Set())
       return
@@ -115,6 +130,10 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     const interval = setInterval(load, POLL_INTERVAL)
     return () => clearInterval(interval)
   }, [portfolioId, load, fetchVersion, page, pageSize])
+
+  useEffect(() => {
+    if (portfolioId) loadChart()
+  }, [portfolioId, loadChart, fetchVersion])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {
@@ -228,5 +247,5 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     load()
   }, [load])
 
-  return { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
+  return { runs, chartRuns, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
 }

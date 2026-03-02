@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchValuationJobs, fetchValuationJobDetail } from './jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail, fetchValuationJobsForChart } from './jobHistory'
 
 describe('jobHistory API', () => {
   const mockFetch = vi.fn()
@@ -117,6 +117,47 @@ describe('jobHistory API', () => {
 
       await expect(fetchValuationJobs('port-1')).rejects.toThrow(
         'Failed to fetch valuation jobs: 500 Internal Server Error',
+      )
+    })
+  })
+
+  describe('fetchValuationJobsForChart', () => {
+    it('fetches with large limit and no offset', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ items: [jobSummary], totalCount: 1 }),
+      })
+
+      const result = await fetchValuationJobsForChart('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+
+      expect(result).toEqual([jobSummary])
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/jobs/port-1?limit=10000&offset=0&from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+      )
+    })
+
+    it('returns items array from response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ items: [jobSummary, jobSummary], totalCount: 2 }),
+      })
+
+      const result = await fetchValuationJobsForChart('port-1')
+
+      expect(result).toHaveLength(2)
+    })
+
+    it('throws on error response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })
+
+      await expect(fetchValuationJobsForChart('port-1')).rejects.toThrow(
+        'Failed to fetch chart data: 500 Internal Server Error',
       )
     })
   })

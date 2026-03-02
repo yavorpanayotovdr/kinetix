@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../api/jobHistory')
 
-import { fetchValuationJobs, fetchValuationJobDetail } from '../api/jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail, fetchValuationJobsForChart } from '../api/jobHistory'
 import { useJobHistory } from './useJobHistory'
 
 const mockFetchJobs = vi.mocked(fetchValuationJobs)
 const mockFetchJobDetail = vi.mocked(fetchValuationJobDetail)
+const mockFetchChartJobs = vi.mocked(fetchValuationJobsForChart)
 
 const jobSummary = {
   jobId: 'job-1',
@@ -87,6 +88,7 @@ describe('useJobHistory', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockFetchChartJobs.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -965,5 +967,165 @@ describe('useJobHistory', () => {
     })
 
     expect(mockFetchJobs).toHaveBeenCalledTimes(1)
+  })
+
+  describe('chartRuns', () => {
+    it('fetches chart data on mount via fetchValuationJobsForChart', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+      mockFetchChartJobs.mockResolvedValue([jobSummary, jobSummary2])
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(2)
+      })
+
+      expect(mockFetchChartJobs).toHaveBeenCalledWith(
+        'port-1',
+        expect.any(String),
+        expect.any(String),
+      )
+    })
+
+    it('returns empty chartRuns when portfolioId is null', () => {
+      const { result } = renderHook(() => useJobHistory(null))
+
+      expect(result.current.chartRuns).toEqual([])
+      expect(mockFetchChartJobs).not.toHaveBeenCalled()
+    })
+
+    it('clears chartRuns when portfolioId becomes null', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+      mockFetchChartJobs.mockResolvedValue([jobSummary])
+
+      const { result, rerender } = renderHook(
+        ({ pid }) => useJobHistory(pid),
+        { initialProps: { pid: 'port-1' as string | null } },
+      )
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(1)
+      })
+
+      rerender({ pid: null })
+
+      expect(result.current.chartRuns).toEqual([])
+    })
+
+    it('re-fetches chart data when time range changes', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+      mockFetchChartJobs.mockResolvedValue([jobSummary])
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(1)
+      })
+
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+
+      mockFetchChartJobs.mockResolvedValue([jobSummary, jobSummary2])
+
+      act(() => {
+        result.current.setTimeRange({
+          from: '2025-01-14T00:00:00Z',
+          to: '2025-01-15T00:00:00Z',
+          label: 'Custom',
+        })
+      })
+
+      await waitFor(() => {
+        expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+      })
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(2)
+      })
+    })
+
+    it('does not re-fetch chart data on page navigation', async () => {
+      mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
+      mockFetchChartJobs.mockResolvedValue([jobSummary])
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(1)
+      })
+
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+
+      act(() => {
+        result.current.nextPage()
+      })
+
+      await waitFor(() => {
+        expect(result.current.page).toBe(1)
+      })
+
+      // Chart fetch should NOT have been called again
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not re-fetch chart data on 5-second poll', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+      mockFetchChartJobs.mockResolvedValue([jobSummary])
+
+      renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(5_000)
+      })
+
+      await waitFor(() => {
+        expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+      })
+
+      // Chart should still be 1 — not polled
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-fetches chart data on zoom', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
+      mockFetchChartJobs.mockResolvedValue([])
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+
+      act(() => {
+        result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
+      })
+
+      await waitFor(() => {
+        expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+      })
+    })
+
+    it('silently ignores chart fetch errors', async () => {
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+      mockFetchChartJobs.mockRejectedValue(new Error('Network error'))
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      // Table data should still load
+      expect(result.current.runs).toEqual([jobSummary])
+      // chartRuns should remain empty
+      expect(result.current.chartRuns).toEqual([])
+      // error should not be set (chart failure is non-critical)
+      expect(result.current.error).toBeNull()
+    })
   })
 })

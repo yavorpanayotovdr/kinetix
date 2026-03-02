@@ -24,6 +24,31 @@ export async function fetchValuationJobs(
   return response.json()
 }
 
+const CHART_LIMIT = 10_000
+
+export async function fetchValuationJobsForChart(
+  portfolioId: string,
+  from?: string,
+  to?: string,
+): Promise<ValuationJobSummaryDto[]> {
+  const params = new URLSearchParams({
+    limit: CHART_LIMIT.toString(),
+    offset: '0',
+  })
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
+  const response = await fetch(
+    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}?${params}`,
+  )
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch chart data: ${response.status} ${response.statusText}`,
+    )
+  }
+  const data: { items: ValuationJobSummaryDto[] } = await response.json()
+  return data.items
+}
+
 export async function fetchValuationJobDetail(
   jobId: string,
 ): Promise<ValuationJobDetailDto | null> {

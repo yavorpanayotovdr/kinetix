@@ -11,6 +11,7 @@ const mockUseJobHistory = vi.mocked(useJobHistory)
 
 const defaultHookResult = {
   runs: [],
+  chartRuns: [],
   expandedJobs: {} as Record<string, ValuationJobDetailDto>,
   loadingJobIds: new Set<string>(),
   loading: false,
@@ -111,7 +112,7 @@ describe('JobHistory', () => {
     render(<JobHistory portfolioId="port-1" />)
 
     const summary = screen.getByTestId('job-history-summary')
-    expect(summary).toHaveTextContent('No calculations today')
+    expect(summary).toHaveTextContent('No calculations')
   })
 
   it('passes portfolioId to hook on initial render', () => {

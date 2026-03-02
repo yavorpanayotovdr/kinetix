@@ -53,12 +53,12 @@ function formatJobTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-function buildSummaryText(runs: ValuationJobSummaryDto[]): string {
-  if (runs.length === 0) return 'No calculations today'
+function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): string {
+  if (runs.length === 0) return 'No calculations'
   const last = runs[0]
   const time = formatJobTime(last.startedAt)
   const status = last.status === 'COMPLETED' ? 'success' : last.status
-  return `Last calc: ${time} (${status}) · ${runs.length} job${runs.length !== 1 ? 's' : ''} today`
+  return `Last calc: ${time} (${status}) · ${totalCount} job${totalCount !== 1 ? 's' : ''}`
 }
 
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
@@ -70,7 +70,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
     }
   })
   const [search, setSearch] = useState('')
-  const { runs, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
+  const { runs, chartRuns, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     portfolioId,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
@@ -133,7 +133,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
     })
   }
 
-  const buckets = useTimeBuckets(runs, timeRange)
+  const buckets = useTimeBuckets(chartRuns.length > 0 ? chartRuns : runs, timeRange)
 
   const filteredRuns = search.trim()
     ? runs.filter((r) => jobMatchesSearch(r, search, expandedJobs[r.jobId]))
@@ -171,7 +171,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
 
       {!expanded && !loading && !error && (
         <div data-testid="job-history-summary" className="mt-2 text-xs text-slate-500">
-          {buildSummaryText(runs)}
+          {buildSummaryText(runs, totalCount)}
         </div>
       )}
 
