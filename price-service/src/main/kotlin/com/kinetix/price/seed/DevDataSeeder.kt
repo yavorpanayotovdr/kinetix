@@ -1,5 +1,6 @@
 package com.kinetix.price.seed
 
+import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.PricePoint
 import com.kinetix.common.model.PriceSource
@@ -65,6 +66,7 @@ class DevDataSeeder(
         val currency: String,
         val startPrice: Double,
         val latestPrice: Double,
+        val assetClass: AssetClass,
         val scale: Int = 2,
     )
 
@@ -83,32 +85,32 @@ class DevDataSeeder(
 
         internal val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
             // Equities
-            InstrumentId("AAPL") to InstrumentConfig("USD", 187.10, 189.25),
-            InstrumentId("GOOGL") to InstrumentConfig("USD", 176.50, 178.90),
-            InstrumentId("MSFT") to InstrumentConfig("USD", 422.30, 425.60),
-            InstrumentId("AMZN") to InstrumentConfig("USD", 207.80, 210.30),
-            InstrumentId("TSLA") to InstrumentConfig("USD", 244.50, 242.15),
-            InstrumentId("NVDA") to InstrumentConfig("USD", 875.00, 892.50),
-            InstrumentId("META") to InstrumentConfig("USD", 498.20, 508.40),
-            InstrumentId("JPM") to InstrumentConfig("USD", 206.50, 211.80),
-            InstrumentId("BABA") to InstrumentConfig("USD", 82.40, 86.10),
+            InstrumentId("AAPL") to InstrumentConfig("USD", 187.10, 189.25, AssetClass.EQUITY),
+            InstrumentId("GOOGL") to InstrumentConfig("USD", 176.50, 178.90, AssetClass.EQUITY),
+            InstrumentId("MSFT") to InstrumentConfig("USD", 422.30, 425.60, AssetClass.EQUITY),
+            InstrumentId("AMZN") to InstrumentConfig("USD", 207.80, 210.30, AssetClass.EQUITY),
+            InstrumentId("TSLA") to InstrumentConfig("USD", 244.50, 242.15, AssetClass.EQUITY),
+            InstrumentId("NVDA") to InstrumentConfig("USD", 875.00, 892.50, AssetClass.EQUITY),
+            InstrumentId("META") to InstrumentConfig("USD", 498.20, 508.40, AssetClass.EQUITY),
+            InstrumentId("JPM") to InstrumentConfig("USD", 206.50, 211.80, AssetClass.EQUITY),
+            InstrumentId("BABA") to InstrumentConfig("USD", 82.40, 86.10, AssetClass.EQUITY),
             // FX
-            InstrumentId("EURUSD") to InstrumentConfig("USD", 1.0830, 1.0856, scale = 4),
-            InstrumentId("GBPUSD") to InstrumentConfig("USD", 1.2550, 1.2620, scale = 4),
-            InstrumentId("USDJPY") to InstrumentConfig("USD", 149.20, 150.80, scale = 4),
+            InstrumentId("EURUSD") to InstrumentConfig("USD", 1.0830, 1.0856, AssetClass.FX, scale = 4),
+            InstrumentId("GBPUSD") to InstrumentConfig("USD", 1.2550, 1.2620, AssetClass.FX, scale = 4),
+            InstrumentId("USDJPY") to InstrumentConfig("USD", 149.20, 150.80, AssetClass.FX, scale = 4),
             // Fixed Income
-            InstrumentId("US2Y") to InstrumentConfig("USD", 99.30, 99.40),
-            InstrumentId("US10Y") to InstrumentConfig("USD", 96.85, 97.10),
-            InstrumentId("US30Y") to InstrumentConfig("USD", 92.80, 93.25),
-            InstrumentId("DE10Y") to InstrumentConfig("EUR", 97.50, 98.20),
+            InstrumentId("US2Y") to InstrumentConfig("USD", 99.30, 99.40, AssetClass.FIXED_INCOME),
+            InstrumentId("US10Y") to InstrumentConfig("USD", 96.85, 97.10, AssetClass.FIXED_INCOME),
+            InstrumentId("US30Y") to InstrumentConfig("USD", 92.80, 93.25, AssetClass.FIXED_INCOME),
+            InstrumentId("DE10Y") to InstrumentConfig("EUR", 97.50, 98.20, AssetClass.FIXED_INCOME),
             // Commodities
-            InstrumentId("GC") to InstrumentConfig("USD", 2038.20, 2058.40),
-            InstrumentId("CL") to InstrumentConfig("USD", 75.80, 78.30),
-            InstrumentId("SI") to InstrumentConfig("USD", 22.80, 23.65),
+            InstrumentId("GC") to InstrumentConfig("USD", 2038.20, 2058.40, AssetClass.COMMODITY),
+            InstrumentId("CL") to InstrumentConfig("USD", 75.80, 78.30, AssetClass.COMMODITY),
+            InstrumentId("SI") to InstrumentConfig("USD", 22.80, 23.65, AssetClass.COMMODITY),
             // Derivatives
-            InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75),
-            InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80),
-            InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60),
+            InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75, AssetClass.DERIVATIVE),
+            InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80, AssetClass.DERIVATIVE),
+            InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60, AssetClass.DERIVATIVE),
         )
     }
 }
