@@ -57,7 +57,7 @@ class DevDataSeeder(
         volSurfaceRepository.save(surface)
     }
 
-    private data class SurfaceConfig(
+    internal data class SurfaceConfig(
         val spotPrice: Double,
         val atmVol: Double,
     )
@@ -68,7 +68,7 @@ class DevDataSeeder(
         val STRIKE_PERCENTS = listOf(80, 90, 95, 100, 105, 110, 120)
         val MATURITY_DAYS = listOf(30, 60, 90, 180, 365)
 
-        private val SURFACE_CONFIGS: Map<String, SurfaceConfig> = mapOf(
+        internal val SURFACE_CONFIGS: Map<String, SurfaceConfig> = mapOf(
             "SPX" to SurfaceConfig(spotPrice = 5000.0, atmVol = 0.18),
             "VIX" to SurfaceConfig(spotPrice = 15.0, atmVol = 0.80),
             "NVDA" to SurfaceConfig(spotPrice = 892.50, atmVol = 0.45),

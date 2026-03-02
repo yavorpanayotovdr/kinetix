@@ -1,6 +1,11 @@
 package com.kinetix.volatility
 
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.VolPoint
+import com.kinetix.common.model.VolSurface
+import com.kinetix.common.model.VolatilitySource
 import com.kinetix.volatility.cache.RedisVolatilityCache
+import com.kinetix.volatility.feed.VolSurfaceFeedSimulator
 import com.kinetix.volatility.kafka.KafkaVolatilityPublisher
 import com.kinetix.volatility.persistence.DatabaseConfig
 import com.kinetix.volatility.seed.DevDataSeeder
@@ -19,6 +24,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -34,6 +41,7 @@ import io.ktor.server.routing.routing
 import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import java.math.RoundingMode
 import kotlinx.serialization.Serializable
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -137,6 +145,38 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(volSurfaceRepository).seed()
+        }
+    }
+
+    val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true
+    if (feedEnabled) {
+        val seedSurfaces = DevDataSeeder.SURFACE_CONFIGS.map { (underlying, config) ->
+            val points = DevDataSeeder.MATURITY_DAYS.flatMap { matDays ->
+                DevDataSeeder.STRIKE_PERCENTS.map { pct ->
+                    val strike = (config.spotPrice * pct / 100.0).toBigDecimal()
+                        .setScale(2, RoundingMode.HALF_UP)
+                    val impliedVol = DevDataSeeder.computeImpliedVol(config.atmVol, pct, matDays)
+                    VolPoint(strike = strike, maturityDays = matDays, impliedVol = impliedVol)
+                }
+            }
+            VolSurface(
+                instrumentId = InstrumentId(underlying),
+                asOf = DevDataSeeder.AS_OF,
+                points = points,
+                source = VolatilitySource.EXCHANGE,
+            )
+        }
+        val simulator = VolSurfaceFeedSimulator(seedSurfaces)
+        launch {
+            while (isActive) {
+                delay(30_000)
+                try {
+                    val tick = simulator.tick(java.time.Instant.now())
+                    tick.forEach { ingestionService.ingest(it) }
+                } catch (e: Exception) {
+                    log.error("Vol surface feed simulator tick failed", e)
+                }
+            }
         }
     }
 }
