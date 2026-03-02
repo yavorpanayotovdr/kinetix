@@ -166,14 +166,23 @@ fun Application.moduleWithRoutes() {
     val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true
     if (feedEnabled) {
         val seeds = DevDataSeeder.INSTRUMENTS.map { (id, config) ->
-            InstrumentSeed(id, BigDecimal(config.latestPrice.toString()), Currency.getInstance(config.currency))
+            InstrumentSeed(
+                instrumentId = id,
+                initialPrice = BigDecimal(config.latestPrice.toString()),
+                currency = Currency.getInstance(config.currency),
+                assetClass = config.assetClass,
+            )
         }
         val simulator = PriceFeedSimulator(seeds)
         launch {
             while (isActive) {
-                delay(5000)
-                simulator.tick(Instant.now(), PriceSource.INTERNAL).forEach { point ->
-                    ingestionService.ingest(point)
+                delay(1000)
+                try {
+                    simulator.tick(Instant.now(), PriceSource.INTERNAL).forEach { point ->
+                        ingestionService.ingest(point)
+                    }
+                } catch (e: Exception) {
+                    log.error("Price feed simulator tick failed", e)
                 }
             }
         }
