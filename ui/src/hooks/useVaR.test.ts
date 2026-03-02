@@ -758,6 +758,78 @@ describe('useVaR', () => {
     })
   })
 
+  it('preserves Greeks from polled entry when historical entry lacks them', async () => {
+    const timestamp = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+
+    // fetchVaR returns a result with full Greeks
+    mockFetchVaR.mockResolvedValue({
+      portfolioId: 'port-1',
+      calculationType: 'HISTORICAL',
+      confidenceLevel: 'CL_95',
+      varValue: '1400000',
+      expectedShortfall: '1700000',
+      componentBreakdown: [],
+      calculatedAt: timestamp,
+      greeks: {
+        portfolioId: 'port-1',
+        assetClassGreeks: [
+          { assetClass: 'EQUITY', delta: '1000.5', gamma: '50.25', vega: '3000.1' },
+        ],
+        theta: '-100',
+        rho: '200',
+        calculatedAt: timestamp,
+      },
+    })
+
+    // History API returns the same job but with null Greeks (pre-V12 migration)
+    let resolveHistory!: (value: any[]) => void
+    const historyPromise = new Promise<any[]>((resolve) => {
+      resolveHistory = resolve
+    })
+    mockFetchChartJobs.mockReturnValue(historyPromise)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    // Wait for fetchVaR to complete — entry with Greeks appears in history
+    await waitFor(() => {
+      expect(result.current.history).toHaveLength(1)
+    })
+
+    expect(result.current.history[0].delta).toBeCloseTo(1000.5)
+
+    // Now resolve history with matching timestamp but null Greeks
+    await act(async () => {
+      resolveHistory([
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: timestamp,
+          completedAt: timestamp,
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_95',
+          varValue: 1400000,
+          expectedShortfall: 1700000,
+          pvValue: 10000000,
+          delta: null,
+          gamma: null,
+          vega: null,
+          theta: null,
+          rho: null,
+        },
+      ])
+    })
+
+    // After merge, the entry should still retain its Greeks from the polled result
+    expect(result.current.history).toHaveLength(1)
+    expect(result.current.history[0].delta).toBeCloseTo(1000.5)
+    expect(result.current.history[0].gamma).toBeCloseTo(50.25)
+    expect(result.current.history[0].vega).toBeCloseTo(3000.1)
+    expect(result.current.history[0].theta).toBeCloseTo(-100)
+  })
+
   describe('polling overlap guard', () => {
     beforeEach(() => {
       vi.useFakeTimers()

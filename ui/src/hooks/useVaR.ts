@@ -91,9 +91,16 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
 
       setHistory((prev) => {
         if (historical.length === 0) return prev
-        const timestamps = new Set(historical.map((e) => e.calculatedAt))
-        const extra = prev.filter((e) => !timestamps.has(e.calculatedAt))
-        return [...historical, ...extra].sort(
+        const historicalMap = new Map(historical.map((e) => [e.calculatedAt, e]))
+        const merged = prev.map((e) => {
+          const h = historicalMap.get(e.calculatedAt)
+          if (!h) return e
+          historicalMap.delete(e.calculatedAt)
+          // Preserve the entry that has Greeks
+          if (e.delta !== undefined && h.delta === undefined) return e
+          return h
+        })
+        return [...merged, ...historicalMap.values()].sort(
           (a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime(),
         )
       })
