@@ -73,10 +73,26 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipLeft, setTooltipLeft] = useState(0)
-  const [isolatedSeries, setIsolatedSeries] = useState<string | null>(null)
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
-  const handleLegendClick = useCallback((seriesKey: string) => {
-    setIsolatedSeries((prev) => (prev === seriesKey ? null : seriesKey))
+  const handleLegendClick = useCallback((seriesKey: string, e: React.MouseEvent) => {
+    const allKeys = SERIES.map(s => s.key)
+    const isMultiSelect = e.ctrlKey || e.metaKey
+    setHiddenSeries((prev) => {
+      if (isMultiSelect) {
+        const next = new Set(prev)
+        if (next.has(seriesKey)) {
+          next.delete(seriesKey)
+        } else {
+          const visibleAfter = allKeys.filter(k => k !== seriesKey && !next.has(k))
+          if (visibleAfter.length > 0) next.add(seriesKey)
+        }
+        return next
+      }
+      const othersHidden = allKeys.filter(k => k !== seriesKey).every(k => prev.has(k))
+      if (othersHidden && !prev.has(seriesKey)) return new Set()
+      return new Set(allKeys.filter(k => k !== seriesKey))
+    })
   }, [])
 
   // Filter to entries that have greeks data
@@ -106,9 +122,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
 
   const { min, max } = useMemo(() => {
-    const visibleKeys = isolatedSeries !== null
-      ? [isolatedSeries]
-      : SERIES.map((s) => s.key)
+    const visibleKeys = SERIES.map((s) => s.key).filter(k => !hiddenSeries.has(k))
 
     const values = greeksHistory.flatMap((e) =>
       visibleKeys.flatMap((key) => {
@@ -122,7 +136,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
     const range = maxVal - minVal
     const padding = range * 0.1 || Math.abs(maxVal) * 0.1 || 1
     return { min: minVal - padding, max: maxVal + padding }
-  }, [greeksHistory, isolatedSeries])
+  }, [greeksHistory, hiddenSeries])
 
   const gridLines = useMemo(() => computeNiceGridLines(min, max, 4), [min, max])
 
@@ -300,13 +314,13 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
 
       <div className="flex items-center gap-3 mb-1 text-xs text-slate-400">
         {SERIES.map((s) => {
-          const isVisible = isolatedSeries === null || isolatedSeries === s.key
+          const isVisible = !hiddenSeries.has(s.key)
           return (
             <button
               key={s.key}
               type="button"
               data-testid={`legend-toggle-${s.key}`}
-              onClick={() => handleLegendClick(s.key)}
+              onClick={(e) => handleLegendClick(s.key, e)}
               className="flex items-center gap-1 bg-transparent border-0 p-0 text-xs text-slate-400"
               style={{ cursor: 'pointer', opacity: isVisible ? 1 : 0.35 }}
             >
@@ -367,7 +381,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
           const validPoints = s.points.filter((p): p is { x: number; y: number } => p.y !== null)
           if (validPoints.length < 2) return null
           const polyline = validPoints.map((p) => `${p.x},${p.y}`).join(' ')
-          const isVisible = isolatedSeries === null || isolatedSeries === s.key
+          const isVisible = !hiddenSeries.has(s.key)
           return (
             <polyline
               key={s.key}

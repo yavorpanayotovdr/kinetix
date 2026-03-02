@@ -173,6 +173,64 @@ describe('GreeksTrendChart', () => {
       expect(screen.getByTestId('legend-label-theta')).not.toHaveStyle({ textDecoration: 'line-through' })
     })
 
+    it('Ctrl+click toggles individual series without affecting others', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#a855f7"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Ctrl+click multiple series hides each individually', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { ctrlKey: true })
+      fireEvent.click(screen.getByTestId('legend-toggle-gamma'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#a855f7"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Ctrl+click restores a previously hidden series', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { ctrlKey: true })
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Ctrl+click does not hide the last visible series', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { ctrlKey: true })
+      fireEvent.click(screen.getByTestId('legend-toggle-gamma'), { ctrlKey: true })
+      fireEvent.click(screen.getByTestId('legend-toggle-vega'), { ctrlKey: true })
+      // Theta is the last visible — Ctrl+click should be a no-op
+      fireEvent.click(screen.getByTestId('legend-toggle-theta'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Cmd+click (metaKey) works the same as Ctrl+click', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'), { metaKey: true })
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '1')
+    })
+
     it('rescales Y-axis to only isolated series data', () => {
       // Delta: 1500-1700, Gamma: 61-70, Vega: 5001-5400, Theta: -142 to -120
       // When Delta is isolated, Y-axis should not show Vega-range values (~5000)

@@ -349,6 +349,51 @@ describe('VaRTrendChart', () => {
       expect(yLabelsBefore).not.toEqual(yLabelsAfter)
     })
 
+    it('Ctrl+click toggles individual series without affecting others', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-es'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#6366f1"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '0.35')
+    })
+
+    it('Ctrl+click restores a hidden series without affecting others', () => {
+      render(<VaRTrendChart history={history} />)
+
+      // Click VaR to isolate (hides ES)
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+      // Ctrl+click ES to bring it back
+      fireEvent.click(screen.getByTestId('legend-toggle-es'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#6366f1"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Ctrl+click does not hide the last visible series', () => {
+      render(<VaRTrendChart history={history} />)
+
+      // Ctrl+click ES to hide it
+      fireEvent.click(screen.getByTestId('legend-toggle-es'), { ctrlKey: true })
+      // Try Ctrl+click VaR — should NOT hide because it is the last visible
+      fireEvent.click(screen.getByTestId('legend-toggle-var'), { ctrlKey: true })
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#6366f1"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('Cmd+click (metaKey) works the same as Ctrl+click', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-es'), { metaKey: true })
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      expect(svg.querySelector('polyline[stroke="#6366f1"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '0.35')
+    })
+
     it('area fills are also dimmed when their series is hidden', () => {
       render(<VaRTrendChart history={history} />)
 

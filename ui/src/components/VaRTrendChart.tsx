@@ -58,14 +58,29 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipLeft, setTooltipLeft] = useState(0)
-  const [isolatedSeries, setIsolatedSeries] = useState<string | null>(null)
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
-  const handleLegendClick = useCallback((seriesKey: string) => {
-    setIsolatedSeries((prev) => (prev === seriesKey ? null : seriesKey))
+  const handleLegendClick = useCallback((seriesKey: string, e: React.MouseEvent) => {
+    const isMultiSelect = e.ctrlKey || e.metaKey
+    setHiddenSeries((prev) => {
+      if (isMultiSelect) {
+        const next = new Set(prev)
+        if (next.has(seriesKey)) {
+          next.delete(seriesKey)
+        } else {
+          const visibleAfter = ['var', 'es'].filter(k => k !== seriesKey && !next.has(k))
+          if (visibleAfter.length > 0) next.add(seriesKey)
+        }
+        return next
+      }
+      const othersHidden = ['var', 'es'].filter(k => k !== seriesKey).every(k => prev.has(k))
+      if (othersHidden && !prev.has(seriesKey)) return new Set()
+      return new Set(['var', 'es'].filter(k => k !== seriesKey))
+    })
   }, [])
 
-  const varVisible = isolatedSeries === null || isolatedSeries === 'var'
-  const esVisible = isolatedSeries === null || isolatedSeries === 'es'
+  const varVisible = !hiddenSeries.has('var')
+  const esVisible = !hiddenSeries.has('es')
 
   const hasChart = history.length >= 2
 
@@ -323,7 +338,7 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
         <button
           type="button"
           data-testid="legend-toggle-var"
-          onClick={() => handleLegendClick('var')}
+          onClick={(e) => handleLegendClick('var', e)}
           className="flex items-center gap-1 bg-transparent border-0 p-0 text-xs text-slate-400"
           style={{ cursor: 'pointer', opacity: varVisible ? 1 : 0.35 }}
         >
@@ -333,7 +348,7 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
         <button
           type="button"
           data-testid="legend-toggle-es"
-          onClick={() => handleLegendClick('es')}
+          onClick={(e) => handleLegendClick('es', e)}
           className="flex items-center gap-1 bg-transparent border-0 p-0 text-xs text-slate-400"
           style={{ cursor: 'pointer', opacity: esVisible ? 1 : 0.35 }}
         >
