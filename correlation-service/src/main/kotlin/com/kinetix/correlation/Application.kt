@@ -1,6 +1,9 @@
 package com.kinetix.correlation
 
+import com.kinetix.common.model.CorrelationMatrix
+import com.kinetix.common.model.EstimationMethod
 import com.kinetix.correlation.cache.RedisCorrelationCache
+import com.kinetix.correlation.feed.CorrelationFeedSimulator
 import com.kinetix.correlation.kafka.KafkaCorrelationPublisher
 import com.kinetix.correlation.persistence.CorrelationMatrixRepository
 import com.kinetix.correlation.persistence.DatabaseConfig
@@ -19,6 +22,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -137,6 +142,29 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(correlationMatrixRepository).seed()
+        }
+    }
+
+    val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true
+    if (feedEnabled) {
+        val seedMatrix = CorrelationMatrix(
+            labels = DevDataSeeder.LABELS,
+            values = DevDataSeeder.CORRELATION_VALUES,
+            windowDays = DevDataSeeder.WINDOW_DAYS,
+            asOfDate = DevDataSeeder.AS_OF,
+            method = EstimationMethod.HISTORICAL,
+        )
+        val simulator = CorrelationFeedSimulator(seedMatrix)
+        launch {
+            while (isActive) {
+                delay(60_000)
+                try {
+                    val tick = simulator.tick(java.time.Instant.now())
+                    ingestionService.ingest(tick)
+                } catch (e: Exception) {
+                    log.error("Correlation feed simulator tick failed", e)
+                }
+            }
         }
     }
 }
