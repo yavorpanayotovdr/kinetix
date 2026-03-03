@@ -27,6 +27,7 @@ import com.kinetix.gateway.routes.sodSnapshotRoutes
 import com.kinetix.gateway.routes.stressScenarioRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.whatIfRoutes
+import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
@@ -163,6 +164,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
+        positionRiskRoutes(riskClient)
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
@@ -197,6 +199,7 @@ fun Application.module(
         varRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
+        positionRiskRoutes(riskClient)
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
@@ -343,6 +346,7 @@ fun Application.module(
                 requirePermission(Permission.CALCULATE_RISK) {
                     varRoutes(riskClient)
                     whatIfRoutes(riskClient)
+                    positionRiskRoutes(riskClient)
                     dependenciesRoutes(riskClient)
                     sodSnapshotRoutes(riskClient)
                 }

@@ -297,4 +297,5 @@ interface RiskServiceClient {
     suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
     suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
     suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary
+    suspend fun getPositionRisk(portfolioId: String): List<PositionRiskSummaryItem>?
 }

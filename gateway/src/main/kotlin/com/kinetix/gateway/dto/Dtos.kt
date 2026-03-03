@@ -780,6 +780,9 @@ fun WhatIfGatewayRequest.toParams(portfolioId: String): com.kinetix.gateway.clie
         confidenceLevel = confidenceLevel,
     )
 
+fun com.kinetix.gateway.client.PositionRiskSummaryItem.toPositionRiskResponse(): WhatIfGatewayPositionRiskDto =
+    toWhatIfDto()
+
 fun com.kinetix.gateway.client.PositionRiskSummaryItem.toWhatIfDto(): WhatIfGatewayPositionRiskDto =
     WhatIfGatewayPositionRiskDto(
         instrumentId = instrumentId,

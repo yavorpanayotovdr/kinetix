@@ -248,6 +248,14 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
+    override suspend fun getPositionRisk(portfolioId: String): List<PositionRiskSummaryItem>? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/positions/$portfolioId")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dtos: List<PositionRiskClientDto> = response.body()
+        return dtos.map { it.toDomain() }
+    }
+
     override suspend fun getPnlAttribution(portfolioId: String, date: String?): PnlAttributionSummary? {
         val response = httpClient.get("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId") {
             if (date != null) {
