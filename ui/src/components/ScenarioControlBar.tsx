@@ -1,4 +1,4 @@
-import { Zap, BarChart3 } from 'lucide-react'
+import { Zap, BarChart3, Settings } from 'lucide-react'
 import { Button, Select } from './ui'
 
 interface ScenarioControlBarProps {
@@ -11,6 +11,7 @@ interface ScenarioControlBarProps {
   onCustomScenario?: () => void
   compareCount?: number
   onCompare?: () => void
+  onManageScenarios?: () => void
 }
 
 export function ScenarioControlBar({
@@ -23,6 +24,7 @@ export function ScenarioControlBar({
   onCustomScenario,
   compareCount = 0,
   onCompare,
+  onManageScenarios,
 }: ScenarioControlBarProps) {
   const canCompare = compareCount >= 2 && compareCount <= 3
 
@@ -80,6 +82,18 @@ export function ScenarioControlBar({
           onClick={onCompare}
         >
           Compare ({compareCount})
+        </Button>
+      )}
+
+      {onManageScenarios && (
+        <Button
+          data-testid="manage-scenarios-btn"
+          variant="secondary"
+          size="md"
+          icon={<Settings className="h-3.5 w-3.5" />}
+          onClick={onManageScenarios}
+        >
+          Manage Scenarios
         </Button>
       )}
     </div>

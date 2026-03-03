@@ -47,3 +47,32 @@ export async function submitScenario(id: string): Promise<StressScenarioDto> {
   }
   return response.json()
 }
+
+export async function approveScenario(
+  id: string,
+  approvedBy: string,
+): Promise<StressScenarioDto> {
+  const response = await fetch(`/api/v1/stress-scenarios/${id}/approve`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approvedBy }),
+  })
+  if (!response.ok) {
+    throw new Error(
+      `Failed to approve scenario: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}
+
+export async function retireScenario(id: string): Promise<StressScenarioDto> {
+  const response = await fetch(`/api/v1/stress-scenarios/${id}/retire`, {
+    method: 'PATCH',
+  })
+  if (!response.ok) {
+    throw new Error(
+      `Failed to retire scenario: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}

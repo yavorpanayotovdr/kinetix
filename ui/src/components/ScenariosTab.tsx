@@ -4,11 +4,13 @@ import type { StressTestResultDto } from '../types'
 import { runStressTest } from '../api/stress'
 import { createScenario, submitScenario } from '../api/scenarios'
 import type { ScenarioSavePayload, ScenarioRunPayload } from '../hooks/useCustomScenario'
+import { useScenarioGovernance } from '../hooks/useScenarioGovernance'
 import { Card, Spinner } from './ui'
 import { ScenarioControlBar } from './ScenarioControlBar'
 import { ScenarioComparisonTable } from './ScenarioComparisonTable'
 import { ScenarioDetailPanel } from './ScenarioDetailPanel'
 import { ScenarioComparisonView } from './ScenarioComparisonView'
+import { ScenarioGovernancePanel } from './ScenarioGovernancePanel'
 import { CustomScenarioBuilder } from './CustomScenarioBuilder'
 
 export interface ScenariosTabProps {
@@ -45,6 +47,8 @@ export function ScenariosTab({
   const [running, setRunning] = useState(false)
   const [checkedScenarios, setCheckedScenarios] = useState<Set<string>>(new Set())
   const [showComparison, setShowComparison] = useState(false)
+  const [showGovernance, setShowGovernance] = useState(false)
+  const governance = useScenarioGovernance()
 
   const handleToggleCheck = useCallback((scenario: string) => {
     setCheckedScenarios((prev) => {
@@ -129,6 +133,7 @@ export function ScenariosTab({
           onCustomScenario={() => setBuilderOpen(true)}
           compareCount={checkedScenarios.size}
           onCompare={handleCompare}
+          onManageScenarios={() => setShowGovernance((v) => !v)}
         />
 
         {loading && (
@@ -154,6 +159,16 @@ export function ScenariosTab({
 
         {showComparison && comparedScenarios.length >= 2 && (
           <ScenarioComparisonView scenarios={comparedScenarios} />
+        )}
+
+        {showGovernance && (
+          <ScenarioGovernancePanel
+            scenarios={governance.scenarios}
+            onSubmit={governance.submit}
+            onApprove={governance.approve}
+            onRetire={governance.retire}
+            loading={governance.loading}
+          />
         )}
 
         <ScenarioDetailPanel
