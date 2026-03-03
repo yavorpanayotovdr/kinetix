@@ -7,10 +7,14 @@ import com.kinetix.regulatory.persistence.DatabaseConfig
 import com.kinetix.regulatory.persistence.DatabaseFactory
 import com.kinetix.regulatory.persistence.ExposedBacktestResultRepository
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
+import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
+import com.kinetix.regulatory.stress.StressScenarioRepository
+import com.kinetix.regulatory.stress.StressScenarioService
+import com.kinetix.regulatory.stress.stressScenarioRoutes
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -83,12 +87,16 @@ fun Application.module(
     repository: FrtbCalculationRepository,
     client: RiskOrchestratorClient,
     backtestRepository: BacktestResultRepository? = null,
+    stressScenarioRepository: StressScenarioRepository? = null,
 ) {
     module()
     routing {
         regulatoryRoutes(repository, client)
         if (backtestRepository != null) {
             backtestRoutes(backtestRepository)
+        }
+        if (stressScenarioRepository != null) {
+            stressScenarioRoutes(StressScenarioService(stressScenarioRepository))
         }
     }
 }
@@ -105,6 +113,7 @@ fun Application.moduleWithRoutes() {
 
     val repository = ExposedFrtbCalculationRepository(db)
     val backtestRepository = ExposedBacktestResultRepository(db)
+    val stressScenarioRepository = ExposedStressScenarioRepository(db)
 
     val riskOrchestratorUrl = environment.config
         .config("services.riskOrchestrator")
@@ -119,7 +128,7 @@ fun Application.moduleWithRoutes() {
 
     val client = RiskOrchestratorClient(httpClient, riskOrchestratorUrl)
 
-    module(repository, client, backtestRepository)
+    module(repository, client, backtestRepository, stressScenarioRepository)
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
