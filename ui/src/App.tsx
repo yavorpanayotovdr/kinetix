@@ -99,7 +99,7 @@ function App() {
   const portfolioId = isAllSelected ? ALL_PORTFOLIOS : rawPortfolioId
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
-  const whatIf = useWhatIf(portfolioId)
+  const whatIf = useWhatIf(effectivePortfolioId)
   const stress = useStressTest(portfolioId)
   const scenariosAll = useRunAllScenarios(portfolioId)
   const portfolioSummary = usePortfolioSummary(portfolioId)
