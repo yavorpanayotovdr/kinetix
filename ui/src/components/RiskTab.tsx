@@ -67,7 +67,8 @@ export function RiskTab({
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
   const handleRefresh = useCallback(async () => {
-    await Promise.all([refresh(), refreshPositionRisk()])
+    await refresh()
+    await refreshPositionRisk()
     setJobRefreshSignal((prev) => prev + 1)
   }, [refresh, refreshPositionRisk])
 
