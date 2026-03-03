@@ -54,7 +54,7 @@ class ExposedPriceRepository(private val db: Database? = null) : PriceRepository
                     (PriceTable.timestamp greaterEq fromOffset) and
                     (PriceTable.timestamp lessEq toOffset)
             }
-            .orderBy(PriceTable.timestamp, SortOrder.ASC)
+            .orderBy(PriceTable.timestamp, SortOrder.DESC)
             .map { it.toPricePoint() }
     }
 
