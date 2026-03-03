@@ -168,20 +168,40 @@ done
 
 # ── Rebuild targeted Kotlin services ─────────────────────────────────────────
 
-COMPILE_TASKS=()
+CLEAN_TASKS=(":proto:clean" ":common:clean")
 INSTALL_TASKS=()
 for target in "${TARGETS[@]}"; do
   port=$(port_for_service "$target" 2>/dev/null || true)
   if [[ -n "$port" ]]; then
-    COMPILE_TASKS+=(":${target}:compileKotlin")
+    CLEAN_TASKS+=(":${target}:clean")
     INSTALL_TASKS+=(":${target}:installDist")
   fi
 done
 
 if [[ ${#INSTALL_TASKS[@]} -gt 0 ]]; then
-  echo "==> Compiling and repackaging: ${INSTALL_TASKS[*]}"
-  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" "${COMPILE_TASKS[@]}" "${INSTALL_TASKS[@]}" --no-build-cache
+  echo "==> Clean-building: ${INSTALL_TASKS[*]}"
+  "$ROOT_DIR/gradlew" -p "$ROOT_DIR" "${CLEAN_TASKS[@]}" "${INSTALL_TASKS[@]}"
 fi
+
+# ── Regenerate Python proto stubs if risk-engine is targeted ─────────────────
+
+for target in "${TARGETS[@]}"; do
+  if [[ "$target" == "risk-engine" ]]; then
+    echo "==> Regenerating Python proto stubs..."
+    bash "$ROOT_DIR/risk-engine/scripts/generate_proto.sh"
+    break
+  fi
+done
+
+# ── Install UI dependencies if ui is targeted ───────────────────────────────
+
+for target in "${TARGETS[@]}"; do
+  if [[ "$target" == "ui" ]]; then
+    echo "==> Installing UI dependencies..."
+    (cd "$ROOT_DIR/ui" && npm install --prefer-offline --no-audit --no-fund)
+    break
+  fi
+done
 
 # ── Launch services ──────────────────────────────────────────────────────────
 
