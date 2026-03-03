@@ -11,6 +11,9 @@ import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
+import com.kinetix.regulatory.stress.StressScenarioRepository
+import com.kinetix.regulatory.stress.StressScenarioService
+import com.kinetix.regulatory.stress.stressScenarioRoutes
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -83,12 +86,16 @@ fun Application.module(
     repository: FrtbCalculationRepository,
     client: RiskOrchestratorClient,
     backtestRepository: BacktestResultRepository? = null,
+    stressScenarioRepository: StressScenarioRepository? = null,
 ) {
     module()
     routing {
         regulatoryRoutes(repository, client)
         if (backtestRepository != null) {
             backtestRoutes(backtestRepository)
+        }
+        if (stressScenarioRepository != null) {
+            stressScenarioRoutes(StressScenarioService(stressScenarioRepository))
         }
     }
 }
