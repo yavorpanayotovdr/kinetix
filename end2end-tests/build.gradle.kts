@@ -14,6 +14,7 @@ dependencies {
     testImplementation(project(":position-service"))
     testImplementation(project(":audit-service"))
     testImplementation(project(":risk-orchestrator"))
+    testImplementation(project(":regulatory-service"))
     testImplementation(libs.bundles.exposed)
     testImplementation(libs.bundles.database)
     testImplementation(libs.testcontainers.core)
@@ -22,4 +23,5 @@ dependencies {
     testImplementation(libs.kafka.clients)
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.micrometer.prometheus)
+    testImplementation(libs.ktor.server.test.host)
 }
