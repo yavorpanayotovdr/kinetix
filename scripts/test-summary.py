@@ -25,6 +25,7 @@ PATTERNS = [
     ("**/build/test-results/integrationTest/**/*.xml", "integration"),
     ("**/build/test-results/end2EndTest/**/*.xml", "e2e"),
     ("**/risk-engine/**/pytest.xml", "unit"),
+    ("**/ui/test-results/e2e/junit.xml", "e2e"),
     ("**/ui/**/junit.xml", "unit"),
     # CI artifact layout (download-artifact@v4 preserves directory structure)
     ("**/unit-test-xml-*/**/*.xml", "unit"),
@@ -33,6 +34,7 @@ PATTERNS = [
     ("**/e2e-test-xml/**/*.xml", "e2e"),
     ("**/python-test-xml/pytest.xml", "unit"),
     ("**/ui-test-xml/junit.xml", "unit"),
+    ("**/playwright-e2e-xml-*/junit.xml", "e2e"),
 ]
 
 TEST_TYPES = ["unit", "acceptance", "integration", "e2e"]
@@ -73,6 +75,11 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
             return part.removeprefix("acceptance-test-xml-")
         if part.startswith("integration-test-xml-"):
             return part.removeprefix("integration-test-xml-")
+
+    # Playwright E2E CI artifact: playwright-e2e-xml-<spec>/junit.xml
+    for part in parts:
+        if part.startswith("playwright-e2e-xml-"):
+            return "ui"
 
     # CI artifact: e2e-test-xml/...
     if "e2e-test-xml" in parts:
