@@ -70,8 +70,9 @@ class WhatIfRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} returns 404 when service returns null") {
-        coEvery { riskClient.runWhatIf(any()) } returns null
+    test("POST /api/v1/risk/what-if/{portfolioId} propagates upstream errors") {
+        coEvery { riskClient.runWhatIf(any()) } throws
+            com.kinetix.gateway.client.UpstreamErrorException(502, "risk-orchestrator unavailable")
 
         testApplication {
             application { module(riskClient) }
@@ -80,7 +81,9 @@ class WhatIfRoutesTest : FunSpec({
                 setBody("""{"hypotheticalTrades": []}""")
             }
 
-            response.status shouldBe HttpStatusCode.NotFound
+            response.status shouldBe HttpStatusCode.BadGateway
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["message"]?.jsonPrimitive?.content shouldBe "risk-orchestrator unavailable"
         }
     }
 

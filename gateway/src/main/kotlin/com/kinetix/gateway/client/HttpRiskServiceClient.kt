@@ -223,7 +223,7 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary? {
+    override suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary {
         val response = httpClient.post("$baseUrl/api/v1/risk/what-if/${params.portfolioId}") {
             contentType(ContentType.Application.Json)
             setBody(
@@ -243,7 +243,6 @@ class HttpRiskServiceClient(
                 )
             )
         }
-        if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: WhatIfResultClientDto = response.body()
         return dto.toDomain()

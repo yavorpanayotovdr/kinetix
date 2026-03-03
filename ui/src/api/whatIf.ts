@@ -3,7 +3,7 @@ import type { WhatIfRequestDto, WhatIfResponseDto } from '../types'
 export async function runWhatIfAnalysis(
   portfolioId: string,
   request: WhatIfRequestDto,
-): Promise<WhatIfResponseDto | null> {
+): Promise<WhatIfResponseDto> {
   const response = await fetch(
     `/api/v1/risk/what-if/${encodeURIComponent(portfolioId)}`,
     {
@@ -12,9 +12,6 @@ export async function runWhatIfAnalysis(
       body: JSON.stringify(request),
     },
   )
-  if (response.status === 404) {
-    return null
-  }
   if (!response.ok) {
     throw new Error(
       `Failed to run what-if analysis: ${response.status} ${response.statusText}`,

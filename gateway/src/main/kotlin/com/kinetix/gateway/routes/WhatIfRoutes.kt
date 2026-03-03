@@ -23,11 +23,7 @@ fun Route.whatIfRoutes(client: RiskServiceClient) {
             val request = call.receive<WhatIfGatewayRequest>()
             val params = request.toParams(portfolioId)
             val result = client.runWhatIf(params)
-            if (result != null) {
-                call.respond(result.toResponse())
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
+            call.respond(result.toResponse())
         }
     }
 }

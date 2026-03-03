@@ -73,16 +73,16 @@ describe('whatIf API', () => {
       )
     })
 
-    it('returns null on 404', async () => {
+    it('throws on 404', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 404,
         statusText: 'Not Found',
       })
 
-      const result = await runWhatIfAnalysis('port-1', request)
-
-      expect(result).toBeNull()
+      await expect(runWhatIfAnalysis('port-1', request)).rejects.toThrow(
+        'Failed to run what-if analysis: 404 Not Found',
+      )
     })
 
     it('throws on 500', async () => {

@@ -119,12 +119,7 @@ export function useWhatIf(portfolioId: string | null): UseWhatIfResult {
       }))
 
       const data = await runWhatIfAnalysis(portfolioId, { hypotheticalTrades })
-      if (data === null) {
-        setError('Portfolio not found')
-        setResult(null)
-      } else {
-        setResult(data)
-      }
+      setResult(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setResult(null)

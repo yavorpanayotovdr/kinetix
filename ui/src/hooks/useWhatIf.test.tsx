@@ -324,8 +324,10 @@ describe('useWhatIf', () => {
     expect(result.current.validationErrors).toEqual({})
   })
 
-  it('sets error when API returns null (portfolio not found)', async () => {
-    mockRunWhatIfAnalysis.mockResolvedValue(null)
+  it('displays actual error message from failed API call', async () => {
+    mockRunWhatIfAnalysis.mockRejectedValue(
+      new Error('Failed to run what-if analysis: 502 Bad Gateway'),
+    )
 
     const { result } = renderHook(() => useWhatIf('port-1'))
 
@@ -343,7 +345,9 @@ describe('useWhatIf', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.error).toBe('Portfolio not found')
+    expect(result.current.error).toBe(
+      'Failed to run what-if analysis: 502 Bad Gateway',
+    )
     expect(result.current.result).toBeNull()
   })
 })
