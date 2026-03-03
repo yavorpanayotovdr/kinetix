@@ -1,6 +1,7 @@
 import { ChevronRight, ChevronDown } from 'lucide-react'
-import type { StressTestResultDto } from '../types'
+import type { StressScenarioDto, StressTestResultDto } from '../types'
 import { formatCurrency } from '../utils/format'
+import { ScenarioTooltip } from './ScenarioTooltip'
 
 interface ScenarioComparisonTableProps {
   results: StressTestResultDto[]
@@ -8,6 +9,7 @@ interface ScenarioComparisonTableProps {
   onSelectScenario: (scenario: string | null) => void
   checkedScenarios?: Set<string>
   onToggleCheck?: (scenario: string) => void
+  scenarioMetadata?: StressScenarioDto[]
 }
 
 function formatMultiplier(baseVar: string, stressedVar: string): string {
@@ -23,6 +25,7 @@ export function ScenarioComparisonTable({
   onSelectScenario,
   checkedScenarios,
   onToggleCheck,
+  scenarioMetadata,
 }: ScenarioComparisonTableProps) {
   if (results.length === 0) {
     return (
@@ -88,7 +91,25 @@ export function ScenarioComparisonTable({
                     <ChevronRight className="h-4 w-4" />
                   )}
                 </td>
-                <td className="py-1.5 font-medium">{r.scenarioName.replace(/_/g, ' ')}</td>
+                <td className="py-1.5 font-medium">
+                  {(() => {
+                    const meta = scenarioMetadata?.find(
+                      (s) => s.name === r.scenarioName || s.name.replace(/_/g, ' ') === r.scenarioName.replace(/_/g, ' '),
+                    )
+                    return meta ? (
+                      <ScenarioTooltip
+                        scenarioName={r.scenarioName}
+                        description={meta.description}
+                        shocks={meta.shocks}
+                        lastRunAt={r.calculatedAt}
+                        status={meta.status}
+                        approvedBy={meta.approvedBy}
+                      />
+                    ) : (
+                      r.scenarioName.replace(/_/g, ' ')
+                    )
+                  })()}
+                </td>
                 <td className="py-1.5 text-right">{formatCurrency(r.baseVar)}</td>
                 <td className="py-1.5 text-right font-medium text-red-600 dark:text-red-400">
                   {formatCurrency(r.stressedVar)}

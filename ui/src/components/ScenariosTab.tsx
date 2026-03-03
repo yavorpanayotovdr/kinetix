@@ -157,6 +157,7 @@ export function ScenariosTab({
           onSelectScenario={onSelectScenario}
           checkedScenarios={checkedScenarios}
           onToggleCheck={handleToggleCheck}
+          scenarioMetadata={governance.scenarios}
         />
 
         {showComparison && comparedScenarios.length >= 2 && (
