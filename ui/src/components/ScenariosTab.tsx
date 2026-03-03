@@ -8,6 +8,7 @@ import { Card, Spinner } from './ui'
 import { ScenarioControlBar } from './ScenarioControlBar'
 import { ScenarioComparisonTable } from './ScenarioComparisonTable'
 import { ScenarioDetailPanel } from './ScenarioDetailPanel'
+import { ScenarioComparisonView } from './ScenarioComparisonView'
 import { CustomScenarioBuilder } from './CustomScenarioBuilder'
 
 export interface ScenariosTabProps {
@@ -42,6 +43,24 @@ export function ScenariosTab({
   const [builderOpen, setBuilderOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
+  const [checkedScenarios, setCheckedScenarios] = useState<Set<string>>(new Set())
+  const [showComparison, setShowComparison] = useState(false)
+
+  const handleToggleCheck = useCallback((scenario: string) => {
+    setCheckedScenarios((prev) => {
+      const next = new Set(prev)
+      if (next.has(scenario)) {
+        next.delete(scenario)
+      } else if (next.size < 3) {
+        next.add(scenario)
+      }
+      return next
+    })
+  }, [])
+
+  const handleCompare = useCallback(() => {
+    setShowComparison(true)
+  }, [])
 
   const handleSave = useCallback(
     async (payload: ScenarioSavePayload) => {
@@ -87,6 +106,8 @@ export function ScenariosTab({
     [portfolioId, confidenceLevel, timeHorizonDays, onAppendResult],
   )
 
+  const comparedScenarios = results.filter((r) => checkedScenarios.has(r.scenarioName))
+
   return (
     <>
       <Card
@@ -106,6 +127,8 @@ export function ScenariosTab({
           timeHorizonDays={timeHorizonDays}
           onTimeHorizonDaysChange={onTimeHorizonDaysChange}
           onCustomScenario={() => setBuilderOpen(true)}
+          compareCount={checkedScenarios.size}
+          onCompare={handleCompare}
         />
 
         {loading && (
@@ -125,7 +148,13 @@ export function ScenariosTab({
           results={results}
           selectedScenario={selectedScenario}
           onSelectScenario={onSelectScenario}
+          checkedScenarios={checkedScenarios}
+          onToggleCheck={handleToggleCheck}
         />
+
+        {showComparison && comparedScenarios.length >= 2 && (
+          <ScenarioComparisonView scenarios={comparedScenarios} />
+        )}
 
         <ScenarioDetailPanel
           result={selectedScenario ? results.find((r) => r.scenarioName === selectedScenario) ?? null : null}
