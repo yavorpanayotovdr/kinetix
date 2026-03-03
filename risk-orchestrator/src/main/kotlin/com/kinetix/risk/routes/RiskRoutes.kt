@@ -29,6 +29,9 @@ import com.kinetix.risk.model.SnapshotType
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -311,24 +314,44 @@ fun Route.riskRoutes(
                 .build()
 
             val response = stressTestStub.runStressTest(protoRequest)
-            call.respond(
-                StressTestResponse(
-                    scenarioName = response.scenarioName,
-                    baseVar = "%.2f".format(response.baseVar),
-                    stressedVar = "%.2f".format(response.stressedVar),
-                    pnlImpact = "%.2f".format(response.pnlImpact),
-                    assetClassImpacts = response.assetClassImpactsList.map {
-                        AssetClassImpactDto(
-                            assetClass = (PROTO_ASSET_CLASS_TO_DOMAIN[it.assetClass] ?: AssetClass.EQUITY).name,
-                            baseExposure = "%.2f".format(it.baseExposure),
-                            stressedExposure = "%.2f".format(it.stressedExposure),
-                            pnlImpact = "%.2f".format(it.pnlImpact),
-                        )
-                    },
-                    calculatedAt = Instant.ofEpochSecond(response.calculatedAt.seconds, response.calculatedAt.nanos.toLong()).toString(),
-                )
-            )
+            call.respond(response.toStressTestResponse())
         }
+    }
+
+    // Batch stress test route
+    post("/api/v1/risk/stress/{portfolioId}/batch", {
+        summary = "Run all stress tests for a portfolio"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            body<StressTestBatchRequestBody>()
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+        val body = call.receive<StressTestBatchRequestBody>()
+        val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+        val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
+        val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
+        val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
+        val protoPositions = positions.map { it.toProto() }
+
+        val results = coroutineScope {
+            body.scenarioNames.map { scenarioName ->
+                async {
+                    val protoRequest = StressTestRequest.newBuilder()
+                        .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
+                        .setScenarioName(scenarioName)
+                        .setCalculationType(calcType.toProto())
+                        .setConfidenceLevel(confLevel.toProto())
+                        .setTimeHorizonDays(timeHorizon)
+                        .addAllPositions(protoPositions)
+                        .build()
+                    stressTestStub.runStressTest(protoRequest).toStressTestResponse()
+                }
+            }.awaitAll()
+        }
+
+        call.respond(results)
     }
 
     get("/api/v1/risk/stress/scenarios", {

@@ -1,6 +1,7 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.dto.StressTestBatchRequest
 import com.kinetix.gateway.dto.StressTestRequest
 import com.kinetix.gateway.dto.VaRCalculationRequest
 import com.kinetix.gateway.dto.toParams
@@ -31,6 +32,20 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
+    }
+
+    post("/api/v1/risk/stress/{portfolioId}/batch", {
+        summary = "Run all stress tests"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+        val request = call.receive<StressTestBatchRequest>()
+        val params = request.toParams(portfolioId)
+        val results = client.runBatchStressTest(params)
+        call.respond(results.map { it.toResponse() })
     }
 
     get("/api/v1/risk/stress/scenarios", {

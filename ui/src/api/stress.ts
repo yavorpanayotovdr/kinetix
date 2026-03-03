@@ -33,3 +33,32 @@ export async function runStressTest(
   }
   return response.json()
 }
+
+export interface RunAllParams {
+  confidenceLevel?: string
+  timeHorizonDays?: string
+}
+
+export async function runAllStressTests(
+  portfolioId: string,
+  scenarioNames: string[],
+  params: RunAllParams = {},
+): Promise<StressTestResultDto[]> {
+  const response = await fetch(
+    `/api/v1/risk/stress/${encodeURIComponent(portfolioId)}/batch`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenarioNames,
+        ...params,
+      }),
+    },
+  )
+  if (!response.ok) {
+    throw new Error(
+      `Failed to run batch stress tests: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}

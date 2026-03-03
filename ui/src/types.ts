@@ -98,6 +98,15 @@ export interface AssetClassImpactDto {
   pnlImpact: string
 }
 
+export interface PositionStressImpactDto {
+  instrumentId: string
+  assetClass: string
+  baseMarketValue: string
+  stressedMarketValue: string
+  pnlImpact: string
+  percentageOfTotal: string
+}
+
 export interface StressTestResultDto {
   scenarioName: string
   baseVar: string
@@ -105,6 +114,7 @@ export interface StressTestResultDto {
   pnlImpact: string
   assetClassImpacts: AssetClassImpactDto[]
   calculatedAt: string
+  positionImpacts: PositionStressImpactDto[]
 }
 
 export interface GreekValuesDto {

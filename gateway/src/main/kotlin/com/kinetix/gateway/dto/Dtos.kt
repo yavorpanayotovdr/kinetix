@@ -14,6 +14,8 @@ import com.kinetix.gateway.client.MarketDataDependencyItem
 import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.CreateAlertRuleParams
+import com.kinetix.gateway.client.PositionStressImpactItem
+import com.kinetix.gateway.client.StressTestBatchParams
 import com.kinetix.gateway.client.CurrencyExposureSummary
 import com.kinetix.gateway.client.FrtbResultSummary
 import com.kinetix.gateway.client.GreekValuesItem
@@ -282,6 +284,16 @@ data class AssetClassImpactDto(
 )
 
 @Serializable
+data class PositionStressImpactDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val baseMarketValue: String,
+    val stressedMarketValue: String,
+    val pnlImpact: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
 data class StressTestResponse(
     val scenarioName: String,
     val baseVar: String,
@@ -289,6 +301,15 @@ data class StressTestResponse(
     val pnlImpact: String,
     val assetClassImpacts: List<AssetClassImpactDto>,
     val calculatedAt: String,
+    val positionImpacts: List<PositionStressImpactDto> = emptyList(),
+)
+
+@Serializable
+data class StressTestBatchRequest(
+    val scenarioNames: List<String>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
 )
 
 @Serializable
@@ -338,6 +359,15 @@ fun AssetClassImpactItem.toDto(): AssetClassImpactDto = AssetClassImpactDto(
     pnlImpact = "%.2f".format(pnlImpact),
 )
 
+fun PositionStressImpactItem.toDto(): PositionStressImpactDto = PositionStressImpactDto(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    baseMarketValue = "%.2f".format(baseMarketValue),
+    stressedMarketValue = "%.2f".format(stressedMarketValue),
+    pnlImpact = "%.2f".format(pnlImpact),
+    percentageOfTotal = "%.2f".format(percentageOfTotal),
+)
+
 fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestResponse(
     scenarioName = scenarioName,
     baseVar = "%.2f".format(baseVar),
@@ -345,7 +375,26 @@ fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestRespons
     pnlImpact = "%.2f".format(pnlImpact),
     assetClassImpacts = assetClassImpacts.map { it.toDto() },
     calculatedAt = calculatedAt.toString(),
+    positionImpacts = positionImpacts.map { it.toDto() },
 )
+
+fun StressTestBatchRequest.toParams(portfolioId: String): StressTestBatchParams {
+    val calcType = calculationType ?: "PARAMETRIC"
+    require(calcType in validCalculationTypes) {
+        "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
+    }
+    val confLevel = confidenceLevel ?: "CL_95"
+    require(confLevel in validConfidenceLevels) {
+        "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
+    }
+    return StressTestBatchParams(
+        portfolioId = portfolioId,
+        scenarioNames = scenarioNames,
+        calculationType = calcType,
+        confidenceLevel = confLevel,
+        timeHorizonDays = timeHorizonDays?.toInt() ?: 1,
+    )
+}
 
 fun GreekValuesItem.toDto(): GreekValuesDto = GreekValuesDto(
     assetClass = assetClass,

@@ -135,6 +135,16 @@ data class AssetClassImpactDto(
 )
 
 @Serializable
+data class PositionStressImpactDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val baseMarketValue: String,
+    val stressedMarketValue: String,
+    val pnlImpact: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
 data class StressTestResultDto(
     val scenarioName: String,
     val baseVar: String,
@@ -142,6 +152,15 @@ data class StressTestResultDto(
     val pnlImpact: String,
     val assetClassImpacts: List<AssetClassImpactDto>,
     val calculatedAt: String,
+    val positionImpacts: List<PositionStressImpactDto> = emptyList(),
+)
+
+@Serializable
+data class StressTestBatchRequestDto(
+    val scenarioNames: List<String>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+    val timeHorizonDays: String? = null,
 )
 
 @Serializable
@@ -484,6 +503,16 @@ fun StressTestResultDto.toDomain() = StressTestResultSummary(
         )
     },
     calculatedAt = Instant.parse(calculatedAt),
+    positionImpacts = positionImpacts.map {
+        PositionStressImpactItem(
+            instrumentId = it.instrumentId,
+            assetClass = it.assetClass,
+            baseMarketValue = it.baseMarketValue.toDouble(),
+            stressedMarketValue = it.stressedMarketValue.toDouble(),
+            pnlImpact = it.pnlImpact.toDouble(),
+            percentageOfTotal = it.percentageOfTotal.toDouble(),
+        )
+    },
 )
 
 fun GreeksResultDto.toDomain() = GreeksResultSummary(

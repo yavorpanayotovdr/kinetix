@@ -28,6 +28,15 @@ message AssetClassImpact {
   double pnl_impact = 4;
 }
 
+message PositionStressImpact {
+  string instrument_id = 1;
+  kinetix.common.AssetClass asset_class = 2;
+  double base_market_value = 3;
+  double stressed_market_value = 4;
+  double pnl_impact = 5;
+  double percentage_of_total = 6;
+}
+
 message StressTestResponse {
   string scenario_name = 1;
   double base_var = 2;
@@ -35,6 +44,7 @@ message StressTestResponse {
   double pnl_impact = 4;
   repeated AssetClassImpact asset_class_impacts = 5;
   google.protobuf.Timestamp calculated_at = 6;
+  repeated PositionStressImpact position_impacts = 7;
 }
 
 message ListScenariosRequest {}

@@ -201,3 +201,30 @@ internal val MARKET_DATA_TYPE_NAMES = mapOf(
     MarketDataType.FORWARD_CURVE to "FORWARD_CURVE",
     MarketDataType.CORRELATION_MATRIX to "CORRELATION_MATRIX",
 )
+
+internal fun com.kinetix.proto.risk.StressTestResponse.toStressTestResponse() =
+    com.kinetix.risk.routes.dtos.StressTestResponse(
+        scenarioName = scenarioName,
+        baseVar = "%.2f".format(baseVar),
+        stressedVar = "%.2f".format(stressedVar),
+        pnlImpact = "%.2f".format(pnlImpact),
+        assetClassImpacts = assetClassImpactsList.map {
+            com.kinetix.risk.routes.dtos.AssetClassImpactDto(
+                assetClass = (PROTO_ASSET_CLASS_TO_DOMAIN[it.assetClass] ?: AssetClass.EQUITY).name,
+                baseExposure = "%.2f".format(it.baseExposure),
+                stressedExposure = "%.2f".format(it.stressedExposure),
+                pnlImpact = "%.2f".format(it.pnlImpact),
+            )
+        },
+        calculatedAt = java.time.Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()).toString(),
+        positionImpacts = positionImpactsList.map {
+            com.kinetix.risk.routes.dtos.PositionStressImpactDto(
+                instrumentId = it.instrumentId,
+                assetClass = (PROTO_ASSET_CLASS_TO_DOMAIN[it.assetClass] ?: AssetClass.EQUITY).name,
+                baseMarketValue = "%.2f".format(it.baseMarketValue),
+                stressedMarketValue = "%.2f".format(it.stressedMarketValue),
+                pnlImpact = "%.2f".format(it.pnlImpact),
+                percentageOfTotal = "%.2f".format(it.percentageOfTotal),
+            )
+        },
+    )

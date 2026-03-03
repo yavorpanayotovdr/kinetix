@@ -89,12 +89,23 @@ class StressScenario:
 
 
 @dataclass(frozen=True)
+class PositionStressImpact:
+    instrument_id: str
+    asset_class: AssetClass
+    base_market_value: float
+    stressed_market_value: float
+    pnl_impact: float
+    percentage_of_total: float
+
+
+@dataclass(frozen=True)
 class StressTestResult:
     scenario_name: str
     base_var: float
     stressed_var: float
     pnl_impact: float
     asset_class_impacts: list[AssetClassImpact]
+    position_impacts: list[PositionStressImpact] = ()
 
 
 @dataclass(frozen=True)

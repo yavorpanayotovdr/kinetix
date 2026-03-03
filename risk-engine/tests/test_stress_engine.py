@@ -1,7 +1,8 @@
 import pytest
 
 from kinetix_risk.models import (
-    AssetClass, CalculationType, ConfidenceLevel, PositionRisk, StressTestResult,
+    AssetClass, CalculationType, ConfidenceLevel, PositionRisk,
+    PositionStressImpact, StressTestResult,
 )
 from kinetix_risk.stress.engine import run_stress_test
 from kinetix_risk.stress.scenarios import get_scenario
@@ -69,6 +70,32 @@ class TestStressEngine:
         result = run_stress_test(positions, scenario)
         total_pnl = sum(i.pnl_impact for i in result.asset_class_impacts)
         assert result.pnl_impact == pytest.approx(total_pnl)
+
+    def test_position_impacts_returned_for_each_position(self):
+        positions = _sample_positions()
+        scenario = get_scenario("GFC_2008")
+        result = run_stress_test(positions, scenario)
+        assert len(result.position_impacts) == len(positions)
+        for pi in result.position_impacts:
+            assert isinstance(pi, PositionStressImpact)
+
+    def test_position_impacts_match_price_shocks(self):
+        positions = _sample_positions()
+        scenario = get_scenario("GFC_2008")
+        result = run_stress_test(positions, scenario)
+        aapl = next(pi for pi in result.position_impacts if pi.instrument_id == "AAPL")
+        assert aapl.base_market_value == 1_000_000.0
+        # GFC equity price shock is 0.60
+        assert aapl.stressed_market_value == pytest.approx(600_000.0)
+        assert aapl.pnl_impact == pytest.approx(-400_000.0)
+
+    def test_position_impacts_percentage_sums_correctly(self):
+        positions = _sample_positions()
+        scenario = get_scenario("GFC_2008")
+        result = run_stress_test(positions, scenario)
+        total_pct = sum(pi.percentage_of_total for pi in result.position_impacts)
+        # Percentages should sum to ~100% (or more if there are offsetting positions)
+        assert total_pct == pytest.approx(100.0, abs=0.1)
 
 
 class TestHypotheticalBuilder:

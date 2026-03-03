@@ -91,8 +91,13 @@ export function WhatIfPanel({
 }: WhatIfPanelProps) {
   const firstInputRef = useRef<HTMLInputElement>(null)
 
+  const prevOpenRef = useRef(false)
+
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      prevOpenRef.current = false
+      return
+    }
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
@@ -102,8 +107,11 @@ export function WhatIfPanel({
 
     document.addEventListener('keydown', handleKeyDown)
 
-    // Auto-focus first input on open
-    setTimeout(() => firstInputRef.current?.focus(), 0)
+    // Auto-focus first input only when panel first opens
+    if (!prevOpenRef.current) {
+      prevOpenRef.current = true
+      setTimeout(() => firstInputRef.current?.focus(), 0)
+    }
 
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])

@@ -6,8 +6,8 @@ from kinetix.common import types_pb2
 from kinetix.risk import market_data_dependencies_pb2, regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, FrtbResult, FrtbRiskClass,
-    GreeksResult, PositionRisk, StressScenario, StressTestResult, VaRResult,
-    ValuationResult,
+    GreeksResult, PositionRisk, PositionStressImpact, StressScenario,
+    StressTestResult, VaRResult, ValuationResult,
 )
 
 _PROTO_ASSET_CLASS_TO_DOMAIN = {
@@ -203,6 +203,19 @@ def proto_stress_request_to_scenario(request) -> StressScenario:
     )
 
 
+def position_stress_impact_to_proto(
+    impact: PositionStressImpact,
+) -> stress_testing_pb2.PositionStressImpact:
+    return stress_testing_pb2.PositionStressImpact(
+        instrument_id=impact.instrument_id,
+        asset_class=_DOMAIN_ASSET_CLASS_TO_PROTO[impact.asset_class],
+        base_market_value=impact.base_market_value,
+        stressed_market_value=impact.stressed_market_value,
+        pnl_impact=impact.pnl_impact,
+        percentage_of_total=impact.percentage_of_total,
+    )
+
+
 def stress_result_to_proto(result: StressTestResult) -> stress_testing_pb2.StressTestResponse:
     impacts = []
     for impact in result.asset_class_impacts:
@@ -214,6 +227,11 @@ def stress_result_to_proto(result: StressTestResult) -> stress_testing_pb2.Stres
             pnl_impact=impact.pnl_impact,
         ))
 
+    position_impacts = [
+        position_stress_impact_to_proto(pi)
+        for pi in result.position_impacts
+    ]
+
     now = Timestamp()
     now.FromSeconds(int(time.time()))
 
@@ -224,6 +242,7 @@ def stress_result_to_proto(result: StressTestResult) -> stress_testing_pb2.Stres
         pnl_impact=result.pnl_impact,
         asset_class_impacts=impacts,
         calculated_at=now,
+        position_impacts=position_impacts,
     )
 
 

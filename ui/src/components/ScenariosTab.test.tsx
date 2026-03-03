@@ -1,28 +1,46 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ScenariosTab } from './ScenariosTab'
+import { ALL_STRESS_RESULTS } from '../test-utils/stressMocks'
 
 const defaultProps = {
-  scenarios: ['MARKET_CRASH', 'RATE_SHOCK'],
-  result: null,
+  results: [],
   loading: false,
   error: null,
-  selectedScenario: 'MARKET_CRASH',
-  onScenarioChange: vi.fn(),
-  onRun: vi.fn(),
+  selectedScenario: null,
+  onSelectScenario: vi.fn(),
+  confidenceLevel: 'CL_95',
+  onConfidenceLevelChange: vi.fn(),
+  timeHorizonDays: '1',
+  onTimeHorizonDaysChange: vi.fn(),
+  onRunAll: vi.fn(),
 }
 
 describe('ScenariosTab', () => {
-  it('renders the stress test panel', () => {
+  it('renders the scenarios tab with control bar and empty state', () => {
     render(<ScenariosTab {...defaultProps} />)
 
-    expect(screen.getByTestId('stress-test-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('scenarios-tab')).toBeInTheDocument()
+    expect(screen.getByTestId('scenario-control-bar')).toBeInTheDocument()
+    expect(screen.getByTestId('no-results')).toBeInTheDocument()
   })
 
-  it('passes scenarios to StressTestPanel', () => {
-    render(<ScenariosTab {...defaultProps} />)
+  it('renders comparison table when results are provided', () => {
+    render(<ScenariosTab {...defaultProps} results={ALL_STRESS_RESULTS} />)
 
-    const dropdown = screen.getByTestId('scenario-dropdown')
-    expect(dropdown).toHaveValue('MARKET_CRASH')
+    expect(screen.getByTestId('scenario-comparison-table')).toBeInTheDocument()
+    expect(screen.getAllByTestId('scenario-row')).toHaveLength(4)
+  })
+
+  it('shows loading state', () => {
+    render(<ScenariosTab {...defaultProps} loading={true} />)
+
+    expect(screen.getByTestId('stress-loading')).toBeInTheDocument()
+  })
+
+  it('shows error message', () => {
+    render(<ScenariosTab {...defaultProps} error="Something went wrong" />)
+
+    expect(screen.getByTestId('stress-error')).toHaveTextContent('Something went wrong')
   })
 })

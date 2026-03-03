@@ -18,6 +18,7 @@ import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
+import { useRunAllScenarios } from './hooks/useRunAllScenarios'
 import { usePortfolioSummary } from './hooks/usePortfolioSummary'
 import { useTheme } from './hooks/useTheme'
 import { useDataQuality } from './hooks/useDataQuality'
@@ -100,6 +101,7 @@ function App() {
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(portfolioId)
   const stress = useStressTest(portfolioId)
+  const scenariosAll = useRunAllScenarios(portfolioId)
   const portfolioSummary = usePortfolioSummary(portfolioId)
   const { isDark, toggle: toggleTheme } = useTheme()
   const dataQuality = useDataQuality()
@@ -256,13 +258,16 @@ function App() {
 
                 {activeTab === 'scenarios' && (
                   <ScenariosTab
-                    scenarios={stress.scenarios}
-                    result={stress.result}
-                    loading={stress.loading}
-                    error={stress.error}
-                    selectedScenario={stress.selectedScenario}
-                    onScenarioChange={stress.setSelectedScenario}
-                    onRun={stress.run}
+                    results={scenariosAll.results}
+                    loading={scenariosAll.loading}
+                    error={scenariosAll.error}
+                    selectedScenario={scenariosAll.selectedScenario}
+                    onSelectScenario={scenariosAll.setSelectedScenario}
+                    confidenceLevel={scenariosAll.confidenceLevel}
+                    onConfidenceLevelChange={scenariosAll.setConfidenceLevel}
+                    timeHorizonDays={scenariosAll.timeHorizonDays}
+                    onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
+                    onRunAll={scenariosAll.runAll}
                   />
                 )}
 

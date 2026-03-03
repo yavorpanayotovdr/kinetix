@@ -47,6 +47,15 @@ data class AssetClassImpactItem(
     val pnlImpact: Double,
 )
 
+data class PositionStressImpactItem(
+    val instrumentId: String,
+    val assetClass: String,
+    val baseMarketValue: Double,
+    val stressedMarketValue: Double,
+    val pnlImpact: Double,
+    val percentageOfTotal: Double,
+)
+
 data class StressTestResultSummary(
     val scenarioName: String,
     val baseVar: Double,
@@ -54,6 +63,15 @@ data class StressTestResultSummary(
     val pnlImpact: Double,
     val assetClassImpacts: List<AssetClassImpactItem>,
     val calculatedAt: Instant,
+    val positionImpacts: List<PositionStressImpactItem> = emptyList(),
+)
+
+data class StressTestBatchParams(
+    val portfolioId: String,
+    val scenarioNames: List<String>,
+    val calculationType: String,
+    val confidenceLevel: String,
+    val timeHorizonDays: Int,
 )
 
 data class GreekValuesItem(
@@ -255,6 +273,7 @@ interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
     suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
+    suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary>
     suspend fun listScenarios(): List<String>
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?

@@ -1,6 +1,6 @@
 from kinetix_risk.models import (
     AssetClass, AssetClassImpact, CalculationType, ConfidenceLevel,
-    PositionRisk, StressScenario, StressTestResult,
+    PositionRisk, PositionStressImpact, StressScenario, StressTestResult,
 )
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
 from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider, get_sub_correlation_matrix
@@ -26,16 +26,19 @@ def run_stress_test(
     for pos in positions:
         base_exposures[pos.asset_class] = base_exposures.get(pos.asset_class, 0.0) + pos.market_value
 
-    # Apply price shocks to create stressed positions
+    # Apply price shocks to create stressed positions and capture per-position impacts
     stressed_positions = []
+    position_impacts_raw: list[tuple[PositionRisk, PositionRisk]] = []
     for pos in positions:
         price_shock = scenario.price_shocks.get(pos.asset_class, 1.0)
-        stressed_positions.append(PositionRisk(
+        stressed_pos = PositionRisk(
             instrument_id=pos.instrument_id,
             asset_class=pos.asset_class,
             market_value=pos.market_value * price_shock,
             currency=pos.currency,
-        ))
+        )
+        stressed_positions.append(stressed_pos)
+        position_impacts_raw.append((pos, stressed_pos))
 
     # Build stressed volatilities
     stressed_vols = {}
@@ -78,10 +81,25 @@ def run_stress_test(
             pnl_impact=pnl,
         ))
 
+    # Build per-position stress impacts
+    abs_total_pnl = abs(total_pnl) if total_pnl != 0.0 else 1.0
+    position_impacts = []
+    for base_pos, stressed_pos in position_impacts_raw:
+        pos_pnl = stressed_pos.market_value - base_pos.market_value
+        position_impacts.append(PositionStressImpact(
+            instrument_id=base_pos.instrument_id,
+            asset_class=base_pos.asset_class,
+            base_market_value=base_pos.market_value,
+            stressed_market_value=stressed_pos.market_value,
+            pnl_impact=pos_pnl,
+            percentage_of_total=abs(pos_pnl) / abs_total_pnl * 100.0,
+        ))
+
     return StressTestResult(
         scenario_name=scenario.name,
         base_var=base_result.var_value,
         stressed_var=stressed_result.var_value,
         pnl_impact=total_pnl,
         asset_class_impacts=asset_class_impacts,
+        position_impacts=position_impacts,
     )
