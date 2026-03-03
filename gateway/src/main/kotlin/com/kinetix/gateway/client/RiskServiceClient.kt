@@ -208,6 +208,48 @@ data class MarginEstimateSummary(
     val currency: String,
 )
 
+data class HypotheticalTradeParam(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+)
+
+data class WhatIfRequestParams(
+    val portfolioId: String,
+    val hypotheticalTrades: List<HypotheticalTradeParam>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+data class PositionRiskSummaryItem(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val delta: String?,
+    val gamma: String?,
+    val vega: String?,
+    val varContribution: String,
+    val esContribution: String,
+    val percentageOfTotal: String,
+)
+
+data class WhatIfResultSummary(
+    val baseVaR: String,
+    val baseExpectedShortfall: String,
+    val baseGreeks: GreeksResultSummary?,
+    val basePositionRisk: List<PositionRiskSummaryItem>,
+    val hypotheticalVaR: String,
+    val hypotheticalExpectedShortfall: String,
+    val hypotheticalGreeks: GreeksResultSummary?,
+    val hypotheticalPositionRisk: List<PositionRiskSummaryItem>,
+    val varChange: String,
+    val esChange: String,
+    val calculatedAt: String,
+)
+
 interface RiskServiceClient {
     suspend fun getMarginEstimate(portfolioId: String, previousMTM: String? = null): MarginEstimateSummary?
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
@@ -225,4 +267,5 @@ interface RiskServiceClient {
     suspend fun resetSodBaseline(portfolioId: String)
     suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
     suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
+    suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary?
 }

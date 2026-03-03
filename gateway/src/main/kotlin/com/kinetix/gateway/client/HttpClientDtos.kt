@@ -367,6 +367,53 @@ data class MarginEstimateClientDto(
     val currency: String,
 )
 
+// --- What-If DTOs ---
+
+@Serializable
+data class WhatIfRequestClientDto(
+    val hypotheticalTrades: List<HypotheticalTradeClientDto>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class HypotheticalTradeClientDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+)
+
+@Serializable
+data class PositionRiskClientDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val delta: String? = null,
+    val gamma: String? = null,
+    val vega: String? = null,
+    val varContribution: String,
+    val esContribution: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
+data class WhatIfResultClientDto(
+    val baseVaR: String,
+    val baseExpectedShortfall: String,
+    val baseGreeks: GreeksResultDto? = null,
+    val basePositionRisk: List<PositionRiskClientDto> = emptyList(),
+    val hypotheticalVaR: String,
+    val hypotheticalExpectedShortfall: String,
+    val hypotheticalGreeks: GreeksResultDto? = null,
+    val hypotheticalPositionRisk: List<PositionRiskClientDto> = emptyList(),
+    val varChange: String,
+    val esChange: String,
+    val calculatedAt: String,
+)
+
 // --- Domain mappers ---
 
 fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
@@ -622,4 +669,30 @@ fun PortfolioAggregationDto.toDomain() = PortfolioAggregationSummary(
     totalNav = totalNav.toDomainMoney(),
     totalUnrealizedPnl = totalUnrealizedPnl.toDomainMoney(),
     currencyBreakdown = currencyBreakdown.map { it.toDomain() },
+)
+
+fun PositionRiskClientDto.toDomain() = PositionRiskSummaryItem(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    marketValue = marketValue,
+    delta = delta,
+    gamma = gamma,
+    vega = vega,
+    varContribution = varContribution,
+    esContribution = esContribution,
+    percentageOfTotal = percentageOfTotal,
+)
+
+fun WhatIfResultClientDto.toDomain() = WhatIfResultSummary(
+    baseVaR = baseVaR,
+    baseExpectedShortfall = baseExpectedShortfall,
+    baseGreeks = baseGreeks?.toDomain(),
+    basePositionRisk = basePositionRisk.map { it.toDomain() },
+    hypotheticalVaR = hypotheticalVaR,
+    hypotheticalExpectedShortfall = hypotheticalExpectedShortfall,
+    hypotheticalGreeks = hypotheticalGreeks?.toDomain(),
+    hypotheticalPositionRisk = hypotheticalPositionRisk.map { it.toDomain() },
+    varChange = varChange,
+    esChange = esChange,
+    calculatedAt = calculatedAt,
 )

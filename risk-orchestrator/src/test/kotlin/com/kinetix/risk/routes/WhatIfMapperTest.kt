@@ -3,6 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.*
 import com.kinetix.risk.model.*
 import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
@@ -129,6 +130,36 @@ class WhatIfMapperTest : FunSpec({
                 priceCurrency = "USD",
             )
             dto.toDomain().assetClass shouldBe assetClass
+        }
+    }
+
+    test("throws IllegalArgumentException for invalid assetClass string") {
+        val dto = HypotheticalTradeDto(
+            instrumentId = "SPY",
+            assetClass = "CRYPTO",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "450.00",
+            priceCurrency = "USD",
+        )
+
+        shouldThrow<IllegalArgumentException> {
+            dto.toDomain()
+        }
+    }
+
+    test("throws IllegalArgumentException for invalid side string") {
+        val dto = HypotheticalTradeDto(
+            instrumentId = "SPY",
+            assetClass = "EQUITY",
+            side = "SHORT",
+            quantity = "100",
+            priceAmount = "450.00",
+            priceCurrency = "USD",
+        )
+
+        shouldThrow<IllegalArgumentException> {
+            dto.toDomain()
         }
     }
 })

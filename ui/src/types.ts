@@ -248,6 +248,8 @@ export interface WhatIfImpactDto {
   deltaChange: number
   gammaChange: number
   vegaChange: number
+  thetaChange: number
+  rhoChange: number
 }
 
 export interface WhatIfResponseDto {

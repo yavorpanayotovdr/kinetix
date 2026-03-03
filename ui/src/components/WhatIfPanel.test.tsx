@@ -49,6 +49,8 @@ const impact: WhatIfImpactDto = {
   deltaChange: -5000,
   gammaChange: -100,
   vegaChange: -500,
+  thetaChange: 50,
+  rhoChange: -20,
 }
 
 const defaultProps = {
@@ -232,6 +234,90 @@ describe('WhatIfPanel', () => {
     expect(screen.getByTestId('whatif-es-after')).toHaveTextContent('110,000.00')
   })
 
+  it('renders Theta row in comparison table', () => {
+    render(
+      <WhatIfPanel
+        {...defaultProps}
+        result={whatIfResponse}
+        impact={impact}
+      />,
+    )
+
+    expect(screen.getByTestId('whatif-theta-base')).toHaveTextContent('-500.00')
+    expect(screen.getByTestId('whatif-theta-after')).toHaveTextContent('-450.00')
+    expect(screen.getByTestId('whatif-theta-change')).toBeInTheDocument()
+  })
+
+  it('renders Rho row in comparison table', () => {
+    render(
+      <WhatIfPanel
+        {...defaultProps}
+        result={whatIfResponse}
+        impact={impact}
+      />,
+    )
+
+    expect(screen.getByTestId('whatif-rho-base')).toHaveTextContent('200.00')
+    expect(screen.getByTestId('whatif-rho-after')).toHaveTextContent('180.00')
+    expect(screen.getByTestId('whatif-rho-change')).toBeInTheDocument()
+  })
+
+  it('shows notional value per trade leg', () => {
+    const trades = [{
+      ...emptyTrade,
+      instrumentId: 'SPY',
+      quantity: '100',
+      priceAmount: '450.00',
+    }]
+
+    render(<WhatIfPanel {...defaultProps} trades={trades} />)
+
+    expect(screen.getByTestId('whatif-notional-0')).toHaveTextContent('45,000.00')
+  })
+
+  it('renders position risk breakdown when results have position risk data', () => {
+    const responseWithPositionRisk: WhatIfResponseDto = {
+      ...whatIfResponse,
+      basePositionRisk: [
+        {
+          instrumentId: 'AAPL',
+          assetClass: 'EQUITY',
+          marketValue: '17000.00',
+          delta: '0.850000',
+          gamma: '0.020000',
+          vega: '1500.000000',
+          varContribution: '5000.00',
+          esContribution: '6250.00',
+          percentageOfTotal: '100.00',
+        },
+      ],
+      hypotheticalPositionRisk: [
+        {
+          instrumentId: 'AAPL',
+          assetClass: 'EQUITY',
+          marketValue: '20000.00',
+          delta: '1.000000',
+          gamma: '0.025000',
+          vega: '1800.000000',
+          varContribution: '7000.00',
+          esContribution: '8750.00',
+          percentageOfTotal: '100.00',
+        },
+      ],
+    }
+
+    render(
+      <WhatIfPanel
+        {...defaultProps}
+        result={responseWithPositionRisk}
+        impact={impact}
+      />,
+    )
+
+    expect(screen.getByTestId('whatif-position-breakdown')).toBeInTheDocument()
+    expect(screen.getByText('AAPL')).toBeInTheDocument()
+  })
+
   it('calls onReset when reset button is clicked', () => {
     const onReset = vi.fn()
     render(
@@ -246,5 +332,76 @@ describe('WhatIfPanel', () => {
     fireEvent.click(screen.getByTestId('whatif-reset'))
 
     expect(onReset).toHaveBeenCalled()
+  })
+
+  it('has role="dialog" and aria-modal on root panel', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    const panel = screen.getByTestId('whatif-panel')
+    expect(panel).toHaveAttribute('role', 'dialog')
+    expect(panel).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('has aria-labelledby pointing to the title', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    const panel = screen.getByTestId('whatif-panel')
+    expect(panel).toHaveAttribute('aria-labelledby', 'whatif-title')
+    expect(screen.getByText('What-If Analysis')).toHaveAttribute('id', 'whatif-title')
+  })
+
+  it('has aria-label on close button', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    expect(screen.getByTestId('whatif-close')).toHaveAttribute('aria-label', 'Close what-if panel')
+  })
+
+  it('has aria-pressed on Buy/Sell buttons', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    expect(screen.getByTestId('whatif-side-buy-0')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('whatif-side-sell-0')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('wraps results in aria-live polite region', () => {
+    render(
+      <WhatIfPanel
+        {...defaultProps}
+        result={whatIfResponse}
+        impact={impact}
+      />,
+    )
+
+    const liveRegion = screen.getByTestId('whatif-results-live')
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('renders a backdrop overlay that calls onClose', () => {
+    const onClose = vi.fn()
+    render(<WhatIfPanel {...defaultProps} onClose={onClose} />)
+
+    const backdrop = screen.getByTestId('whatif-backdrop')
+    fireEvent.click(backdrop)
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('applies dark mode classes to panel', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    const panel = screen.getByTestId('whatif-panel')
+    expect(panel.className).toContain('dark:bg-surface-800')
+  })
+
+  it('has aria-label on remove trade button', () => {
+    const trades = [emptyTrade, { ...emptyTrade, instrumentId: 'MSFT' }]
+    render(<WhatIfPanel {...defaultProps} trades={trades} />)
+
+    expect(screen.getByTestId('whatif-remove-trade-0')).toHaveAttribute('aria-label', 'Remove trade 1')
+  })
+
+  it('has aria-label on add trade button', () => {
+    render(<WhatIfPanel {...defaultProps} />)
+
+    expect(screen.getByTestId('whatif-add-trade')).toHaveAttribute('aria-label', 'Add another hypothetical trade')
   })
 })

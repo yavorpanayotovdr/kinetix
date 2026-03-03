@@ -206,6 +206,32 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
+    override suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/what-if/${params.portfolioId}") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                WhatIfRequestClientDto(
+                    hypotheticalTrades = params.hypotheticalTrades.map {
+                        HypotheticalTradeClientDto(
+                            instrumentId = it.instrumentId,
+                            assetClass = it.assetClass,
+                            side = it.side,
+                            quantity = it.quantity,
+                            priceAmount = it.priceAmount,
+                            priceCurrency = it.priceCurrency,
+                        )
+                    },
+                    calculationType = params.calculationType,
+                    confidenceLevel = params.confidenceLevel,
+                )
+            )
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: WhatIfResultClientDto = response.body()
+        return dto.toDomain()
+    }
+
     override suspend fun getPnlAttribution(portfolioId: String, date: String?): PnlAttributionSummary? {
         val response = httpClient.get("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId") {
             if (date != null) {

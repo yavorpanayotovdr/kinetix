@@ -38,6 +38,7 @@ import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
@@ -323,7 +324,8 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService)
+        val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService)
         jobHistoryRoutes(jobRecorder)
     }
 

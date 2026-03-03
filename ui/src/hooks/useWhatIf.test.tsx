@@ -183,7 +183,8 @@ describe('useWhatIf', () => {
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
-      result.current.addTrade()
+      result.current.updateTrade(0, 'quantity', '100')
+      result.current.updateTrade(0, 'priceAmount', '450.00')
     })
 
     await act(async () => {
@@ -193,6 +194,12 @@ describe('useWhatIf', () => {
     await waitFor(() => {
       expect(result.current.result).not.toBeNull()
     })
+
+    act(() => {
+      result.current.addTrade()
+    })
+
+    expect(result.current.trades).toHaveLength(2)
 
     act(() => {
       result.current.reset()
@@ -233,6 +240,10 @@ describe('useWhatIf', () => {
     expect(result.current.impact!.gammaChange).toBe(-100)
     // Vega: base 8000 - hypothetical 7500 = -500
     expect(result.current.impact!.vegaChange).toBe(-500)
+    // Theta: hypothetical -450 - base -500 = 50
+    expect(result.current.impact!.thetaChange).toBe(50)
+    // Rho: hypothetical 180 - base 200 = -20
+    expect(result.current.impact!.rhoChange).toBe(-20)
   })
 
   it('does not submit when portfolioId is null', async () => {
@@ -243,5 +254,96 @@ describe('useWhatIf', () => {
     })
 
     expect(mockRunWhatIfAnalysis).not.toHaveBeenCalled()
+  })
+
+  it('rejects submission with empty instrumentId and sets validation errors', async () => {
+    const { result } = renderHook(() => useWhatIf('port-1'))
+
+    // Leave instrumentId empty but fill other fields
+    act(() => {
+      result.current.updateTrade(0, 'quantity', '100')
+      result.current.updateTrade(0, 'priceAmount', '450.00')
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mockRunWhatIfAnalysis).not.toHaveBeenCalled()
+    expect(result.current.validationErrors[0]?.instrumentId).toBeDefined()
+  })
+
+  it('rejects submission with non-numeric quantity', async () => {
+    const { result } = renderHook(() => useWhatIf('port-1'))
+
+    act(() => {
+      result.current.updateTrade(0, 'instrumentId', 'SPY')
+      result.current.updateTrade(0, 'quantity', 'abc')
+      result.current.updateTrade(0, 'priceAmount', '450.00')
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mockRunWhatIfAnalysis).not.toHaveBeenCalled()
+    expect(result.current.validationErrors[0]?.quantity).toBeDefined()
+  })
+
+  it('rejects submission with negative price', async () => {
+    const { result } = renderHook(() => useWhatIf('port-1'))
+
+    act(() => {
+      result.current.updateTrade(0, 'instrumentId', 'SPY')
+      result.current.updateTrade(0, 'quantity', '100')
+      result.current.updateTrade(0, 'priceAmount', '-10')
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mockRunWhatIfAnalysis).not.toHaveBeenCalled()
+    expect(result.current.validationErrors[0]?.priceAmount).toBeDefined()
+  })
+
+  it('clears validation errors on reset', async () => {
+    const { result } = renderHook(() => useWhatIf('port-1'))
+
+    // Trigger validation errors
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(Object.keys(result.current.validationErrors).length).toBeGreaterThan(0)
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(result.current.validationErrors).toEqual({})
+  })
+
+  it('sets error when API returns null (portfolio not found)', async () => {
+    mockRunWhatIfAnalysis.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useWhatIf('port-1'))
+
+    act(() => {
+      result.current.updateTrade(0, 'instrumentId', 'SPY')
+      result.current.updateTrade(0, 'quantity', '100')
+      result.current.updateTrade(0, 'priceAmount', '450.00')
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.error).toBe('Portfolio not found')
+    expect(result.current.result).toBeNull()
   })
 })

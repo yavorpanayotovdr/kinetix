@@ -642,6 +642,100 @@ fun PnlAttributionSummary.toResponse(): PnlAttributionResponse = PnlAttributionR
     calculatedAt = calculatedAt,
 )
 
+// --- What-If DTOs ---
+
+@Serializable
+data class WhatIfGatewayTradeDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+)
+
+@Serializable
+data class WhatIfGatewayRequest(
+    val hypotheticalTrades: List<WhatIfGatewayTradeDto>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class WhatIfGatewayPositionRiskDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val delta: String? = null,
+    val gamma: String? = null,
+    val vega: String? = null,
+    val varContribution: String,
+    val esContribution: String,
+    val percentageOfTotal: String,
+)
+
+@Serializable
+data class WhatIfGatewayResponse(
+    val baseVaR: String,
+    val baseExpectedShortfall: String,
+    val baseGreeks: GreeksResponse? = null,
+    val basePositionRisk: List<WhatIfGatewayPositionRiskDto>,
+    val hypotheticalVaR: String,
+    val hypotheticalExpectedShortfall: String,
+    val hypotheticalGreeks: GreeksResponse? = null,
+    val hypotheticalPositionRisk: List<WhatIfGatewayPositionRiskDto>,
+    val varChange: String,
+    val esChange: String,
+    val calculatedAt: String,
+)
+
+// --- What-If mappers ---
+
+fun WhatIfGatewayRequest.toParams(portfolioId: String): com.kinetix.gateway.client.WhatIfRequestParams =
+    com.kinetix.gateway.client.WhatIfRequestParams(
+        portfolioId = portfolioId,
+        hypotheticalTrades = hypotheticalTrades.map {
+            com.kinetix.gateway.client.HypotheticalTradeParam(
+                instrumentId = it.instrumentId,
+                assetClass = it.assetClass,
+                side = it.side,
+                quantity = it.quantity,
+                priceAmount = it.priceAmount,
+                priceCurrency = it.priceCurrency,
+            )
+        },
+        calculationType = calculationType,
+        confidenceLevel = confidenceLevel,
+    )
+
+fun com.kinetix.gateway.client.PositionRiskSummaryItem.toWhatIfDto(): WhatIfGatewayPositionRiskDto =
+    WhatIfGatewayPositionRiskDto(
+        instrumentId = instrumentId,
+        assetClass = assetClass,
+        marketValue = marketValue,
+        delta = delta,
+        gamma = gamma,
+        vega = vega,
+        varContribution = varContribution,
+        esContribution = esContribution,
+        percentageOfTotal = percentageOfTotal,
+    )
+
+fun com.kinetix.gateway.client.WhatIfResultSummary.toResponse(): WhatIfGatewayResponse =
+    WhatIfGatewayResponse(
+        baseVaR = baseVaR,
+        baseExpectedShortfall = baseExpectedShortfall,
+        baseGreeks = baseGreeks?.toResponse(),
+        basePositionRisk = basePositionRisk.map { it.toWhatIfDto() },
+        hypotheticalVaR = hypotheticalVaR,
+        hypotheticalExpectedShortfall = hypotheticalExpectedShortfall,
+        hypotheticalGreeks = hypotheticalGreeks?.toResponse(),
+        hypotheticalPositionRisk = hypotheticalPositionRisk.map { it.toWhatIfDto() },
+        varChange = varChange,
+        esChange = esChange,
+        calculatedAt = calculatedAt,
+    )
+
 // --- Data Quality DTOs ---
 
 @Serializable

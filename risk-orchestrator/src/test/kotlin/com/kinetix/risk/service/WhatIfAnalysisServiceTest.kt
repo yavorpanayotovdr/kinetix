@@ -131,15 +131,13 @@ class WhatIfAnalysisServiceTest : FunSpec({
             tsla.portfolioId shouldBe PortfolioId("port-1")
         }
 
-        test("keeps position with zero quantity when trade exactly closes it") {
+        test("removes position when trade exactly closes it to zero quantity") {
             val positions = listOf(position(quantity = "100", averageCost = "150.00"))
             val trades = listOf(hypotheticalTrade(side = Side.SELL, quantity = "100", price = "175.00"))
 
             val result = service.applyHypotheticalTrades(positions, trades)
 
-            result shouldHaveSize 1
-            val pos = result[0]
-            pos.quantity.compareTo(BigDecimal.ZERO) shouldBe 0
+            result shouldHaveSize 0
         }
 
         test("applies multiple hypothetical trades sequentially") {

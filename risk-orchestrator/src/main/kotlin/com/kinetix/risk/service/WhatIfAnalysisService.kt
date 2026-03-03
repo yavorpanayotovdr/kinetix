@@ -47,7 +47,7 @@ class WhatIfAnalysisService(
             }
         }
 
-        return positionsByInstrument.values.toList()
+        return positionsByInstrument.values.filter { it.quantity.compareTo(BigDecimal.ZERO) != 0 }
     }
 
     suspend fun analyzeWhatIf(
