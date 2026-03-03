@@ -3,6 +3,7 @@ import type { StressTestResultDto } from '../types'
 import { Card, Spinner } from './ui'
 import { ScenarioControlBar } from './ScenarioControlBar'
 import { ScenarioComparisonTable } from './ScenarioComparisonTable'
+import { ScenarioDetailPanel } from './ScenarioDetailPanel'
 
 export interface ScenariosTabProps {
   results: StressTestResultDto[]
@@ -68,6 +69,10 @@ export function ScenariosTab({
         results={results}
         selectedScenario={selectedScenario}
         onSelectScenario={onSelectScenario}
+      />
+
+      <ScenarioDetailPanel
+        result={selectedScenario ? results.find((r) => r.scenarioName === selectedScenario) ?? null : null}
       />
     </Card>
   )
