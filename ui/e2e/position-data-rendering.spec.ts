@@ -1,0 +1,118 @@
+import { test, expect } from '@playwright/test'
+import { mockAllApiRoutes } from './fixtures'
+
+test.describe('Position Data Rendering', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+  })
+
+  test('displays all three test positions as separate rows', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    await expect(page.getByTestId('position-row-AAPL')).toBeVisible()
+    await expect(page.getByTestId('position-row-GOOGL')).toBeVisible()
+    await expect(page.getByTestId('position-row-EUR_USD')).toBeVisible()
+
+    const rows = page.locator('tbody tr')
+    await expect(rows).toHaveCount(3)
+  })
+
+  test('renders instrument name and asset class in correct columns', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    const aaplRow = page.getByTestId('position-row-AAPL')
+    await expect(aaplRow.locator('td').nth(0)).toHaveText('AAPL')
+    await expect(aaplRow.locator('td').nth(1)).toHaveText('EQUITY')
+
+    const googlRow = page.getByTestId('position-row-GOOGL')
+    await expect(googlRow.locator('td').nth(0)).toHaveText('GOOGL')
+    await expect(googlRow.locator('td').nth(1)).toHaveText('EQUITY')
+
+    const eurRow = page.getByTestId('position-row-EUR_USD')
+    await expect(eurRow.locator('td').nth(0)).toHaveText('EUR_USD')
+    await expect(eurRow.locator('td').nth(1)).toHaveText('FX')
+  })
+
+  test('formats quantity without trailing zeros', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    const aaplQty = page.getByTestId('position-row-AAPL').locator('td').nth(2)
+    await expect(aaplQty).toHaveText('100')
+
+    const googlQty = page.getByTestId('position-row-GOOGL').locator('td').nth(2)
+    await expect(googlQty).toHaveText('50')
+
+    const eurQty = page.getByTestId('position-row-EUR_USD').locator('td').nth(2)
+    await expect(eurQty).toHaveText('10000')
+  })
+
+  test('formats monetary values with currency symbols', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    const aaplRow = page.getByTestId('position-row-AAPL')
+    // Avg Cost
+    await expect(aaplRow.locator('td').nth(3)).toHaveText('$150.00')
+    // Market Price
+    await expect(aaplRow.locator('td').nth(4)).toHaveText('$155.00')
+    // Market Value
+    await expect(aaplRow.locator('td').nth(5)).toHaveText('$15,500.00')
+
+    const googlRow = page.getByTestId('position-row-GOOGL')
+    await expect(googlRow.locator('td').nth(5)).toHaveText('$142,500.00')
+  })
+
+  test('displays P&L values with currency formatting', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="pnl-AAPL"]')
+
+    await expect(page.getByTestId('pnl-AAPL')).toHaveText('$500.00')
+    await expect(page.getByTestId('pnl-GOOGL')).toHaveText('$2,500.00')
+    await expect(page.getByTestId('pnl-EUR_USD')).toHaveText('$50.00')
+  })
+
+  test('shows all seven column headers when no columns hidden', async ({ page }) => {
+    // Clear any stored column visibility preferences
+    await page.addInitScript(() => {
+      localStorage.removeItem('kinetix:column-visibility')
+    })
+
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    const headers = ['Instrument', 'Asset Class', 'Quantity', 'Avg Cost', 'Market Price', 'Market Value', 'Unrealized P&L']
+    for (const header of headers) {
+      await expect(page.locator('th', { hasText: header })).toBeVisible()
+    }
+  })
+
+  test('does not show risk column headers when no risk data available', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="position-row-AAPL"]')
+
+    await expect(page.getByTestId('header-group-risk')).not.toBeVisible()
+    await expect(page.getByTestId('sort-delta')).not.toBeVisible()
+    await expect(page.getByTestId('sort-gamma')).not.toBeVisible()
+    await expect(page.getByTestId('sort-vega')).not.toBeVisible()
+    await expect(page.getByTestId('sort-var-pct')).not.toBeVisible()
+  })
+
+  test('displays summary cards with correct totals', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="portfolio-summary"]')
+
+    const summary = page.getByTestId('portfolio-summary')
+
+    // Positions count
+    await expect(summary.locator('text=Positions').locator('..')).toContainText('3')
+
+    // Market Value = 15500 + 142500 + 10850 = 168850
+    await expect(summary).toContainText('$168,850.00')
+
+    // P&L = 500 + 2500 + 50 = 3050
+    await expect(summary).toContainText('$3,050.00')
+  })
+})

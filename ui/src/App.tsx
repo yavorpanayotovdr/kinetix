@@ -306,6 +306,7 @@ function App() {
         impact={whatIf.impact}
         loading={whatIf.loading}
         error={whatIf.error}
+        validationErrors={whatIf.validationErrors}
       />
     </div>
   )
