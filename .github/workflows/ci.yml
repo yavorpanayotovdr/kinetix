@@ -382,8 +382,13 @@ jobs:
       - name: Install promtool
         run: |
           PROM_VERSION=2.53.0
-          curl -sL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar xz
-          sudo mv "prometheus-${PROM_VERSION}.linux-amd64/promtool" /usr/local/bin/
+          case "$(uname -m)" in
+            x86_64)  ARCH=amd64 ;;
+            aarch64) ARCH=arm64 ;;
+            *)       echo "Unsupported architecture: $(uname -m)" && exit 1 ;;
+          esac
+          curl -sL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-${ARCH}.tar.gz" | tar xz
+          sudo mv "prometheus-${PROM_VERSION}.linux-${ARCH}/promtool" /usr/local/bin/
       - name: Validate alert rules syntax
         run: promtool check rules infra/prometheus/alert-rules.yml
       - name: Run alert rule tests

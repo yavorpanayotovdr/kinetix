@@ -13,7 +13,7 @@ import java.util.Properties
 object KafkaTestSetup {
 
     private val kafka = org.testcontainers.containers.KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
+        DockerImageName.parse("apache/kafka:3.9.0"),
     )
 
     fun start(): String {

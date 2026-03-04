@@ -35,7 +35,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
         .withPassword("test")
 
     val kafka = KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
+        DockerImageName.parse("apache/kafka:3.9.0"),
     )
 
     // --- Services (initialized in beforeSpec) ---
