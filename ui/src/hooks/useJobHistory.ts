@@ -124,6 +124,12 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
   }, [portfolioId])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
+  const loadChartRef = useRef(loadChart)
+  loadChartRef.current = loadChart
+
   useEffect(() => {
     if (!portfolioId) {
       setRuns([])
@@ -132,15 +138,15 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       setLoadingJobIds(new Set())
       return
     }
-    load()
+    loadRef.current()
 
-    const interval = setInterval(load, POLL_INTERVAL)
+    const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, load, fetchVersion, page, pageSize])
+  }, [portfolioId, fetchVersion, page, pageSize])
 
   useEffect(() => {
-    if (portfolioId) loadChart()
-  }, [portfolioId, loadChart, fetchVersion])
+    if (portfolioId) loadChartRef.current()
+  }, [portfolioId, fetchVersion])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {
@@ -251,8 +257,8 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   }, [])
 
   const refresh = useCallback(() => {
-    load()
-  }, [load])
+    loadRef.current()
+  }, [])
 
   return { runs, chartRuns, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, clearSelection, refresh, zoomIn, resetZoom, zoomDepth: zoomStack.length, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage }
 }

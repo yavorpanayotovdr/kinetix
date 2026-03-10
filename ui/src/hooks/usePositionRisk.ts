@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchPositionRisk } from '../api/risk'
 import type { PositionRiskDto } from '../types'
 
@@ -31,6 +31,9 @@ export function usePositionRisk(portfolioId: string | null): UsePositionRiskResu
     }
   }, [portfolioId])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
     if (!portfolioId) {
       setPositionRisk([])
@@ -39,12 +42,12 @@ export function usePositionRisk(portfolioId: string | null): UsePositionRiskResu
       return
     }
 
-    load()
-  }, [portfolioId, load])
+    loadRef.current()
+  }, [portfolioId])
 
   const refresh = useCallback(async () => {
-    await load()
-  }, [load])
+    await loadRef.current()
+  }, [])
 
   return { positionRisk, loading, error, refresh }
 }

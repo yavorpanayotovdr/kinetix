@@ -156,19 +156,25 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     }
   }, [portfolioId])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
     if (!portfolioId) return
 
     initialLoadDone.current = false
-    load()
+    loadRef.current()
 
-    const interval = setInterval(load, POLL_INTERVAL)
+    const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, load])
+  }, [portfolioId])
+
+  const loadHistoryRef = useRef(loadHistory)
+  loadHistoryRef.current = loadHistory
 
   useEffect(() => {
-    if (portfolioId) loadHistory()
-  }, [portfolioId, loadHistory, fetchVersion])
+    if (portfolioId) loadHistoryRef.current()
+  }, [portfolioId, fetchVersion])
 
   const refresh = useCallback(async () => {
     if (!portfolioId) return
