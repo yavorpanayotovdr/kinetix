@@ -118,16 +118,20 @@ fun Application.moduleWithRoutes() {
     val grpcPort = grpcConfig.property("port").getString().toInt()
 
     val tlsEnabled = grpcConfig.propertyOrNull("tls.enabled")?.getString()?.toBoolean() ?: false
+    val maxMessageSize = 50 * 1024 * 1024 // 50 MB
     val channel = if (tlsEnabled) {
         val caPath = grpcConfig.property("tls.caPath").getString()
         val creds = TlsChannelCredentials.newBuilder()
             .trustManager(File(caPath))
             .build()
-        io.grpc.Grpc.newChannelBuilder("$grpcHost:$grpcPort", creds).build()
+        io.grpc.Grpc.newChannelBuilder("$grpcHost:$grpcPort", creds)
+            .maxInboundMessageSize(maxMessageSize)
+            .build()
     } else {
         ManagedChannelBuilder
             .forAddress(grpcHost, grpcPort)
             .usePlaintext()
+            .maxInboundMessageSize(maxMessageSize)
             .build()
     }
 

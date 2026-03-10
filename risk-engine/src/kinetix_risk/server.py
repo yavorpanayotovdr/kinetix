@@ -158,7 +158,14 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
     prometheus_client.start_http_server(metrics_port)
     logger.info("Prometheus metrics server started on port %d", metrics_port)
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    max_message_size = 50 * 1024 * 1024  # 50 MB
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        options=[
+            ("grpc.max_send_message_length", max_message_size),
+            ("grpc.max_receive_message_length", max_message_size),
+        ],
+    )
     risk_calculation_pb2_grpc.add_RiskCalculationServiceServicer_to_server(
         RiskCalculationServicer(), server
     )
