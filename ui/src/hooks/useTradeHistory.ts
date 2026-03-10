@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchTradeHistory } from '../api/tradeHistory'
 import type { TradeHistoryDto } from '../types'
 
@@ -28,9 +28,16 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
     }
   }, [portfolioId])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const loadRef = useRef(load)
+  loadRef.current = load
 
-  return { trades, loading, error, refetch: load }
+  useEffect(() => {
+    loadRef.current()
+  }, [portfolioId])
+
+  const refetch = useCallback(() => {
+    loadRef.current()
+  }, [])
+
+  return { trades, loading, error, refetch }
 }

@@ -26,13 +26,16 @@ export function useSystemHealth(): UseSystemHealthResult {
     }
   }, [])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
-    load()
-    intervalRef.current = setInterval(load, 30_000)
+    loadRef.current()
+    intervalRef.current = setInterval(() => loadRef.current(), 30_000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [load])
+  }, [])
 
   return { health, loading, error, refresh: load }
 }

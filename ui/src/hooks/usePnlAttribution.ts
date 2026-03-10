@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchPnlAttribution } from '../api/pnlAttribution'
 import type { PnlAttributionDto } from '../types'
 
@@ -33,6 +33,9 @@ export function usePnlAttribution(
     }
   }, [portfolioId, date])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
     if (!portfolioId) {
       setData(null)
@@ -41,8 +44,8 @@ export function usePnlAttribution(
       return
     }
 
-    load()
-  }, [portfolioId, load])
+    loadRef.current()
+  }, [portfolioId, date])
 
   return { data, loading, error }
 }

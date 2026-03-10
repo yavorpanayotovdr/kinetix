@@ -105,10 +105,13 @@ export function useJobPicker(
     }
   }, [portfolioId, open])
 
+  const loadRef = useRef(load)
+  loadRef.current = load
+
   useEffect(() => {
     if (!portfolioId || !open) return
-    load()
-  }, [portfolioId, open, load, fetchVersion, page])
+    loadRef.current()
+  }, [portfolioId, open, fetchVersion, page])
 
   const setTimeRange = useCallback((range: TimeRange) => {
     setPage(0)

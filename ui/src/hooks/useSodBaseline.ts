@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   fetchSodBaselineStatus,
   createSodSnapshot,
@@ -44,6 +44,9 @@ export function useSodBaseline(
     }
   }, [portfolioId])
 
+  const loadStatusRef = useRef(loadStatus)
+  loadStatusRef.current = loadStatus
+
   useEffect(() => {
     if (!portfolioId) {
       setStatus(null)
@@ -51,8 +54,8 @@ export function useSodBaseline(
       setError(null)
       return
     }
-    loadStatus()
-  }, [portfolioId, loadStatus])
+    loadStatusRef.current()
+  }, [portfolioId])
 
   const handleCreateSnapshot = useCallback(async (jobId?: string) => {
     if (!portfolioId) return
@@ -107,6 +110,6 @@ export function useSodBaseline(
     createSnapshot: handleCreateSnapshot,
     resetBaseline: handleResetBaseline,
     computeAttribution: handleComputeAttribution,
-    refresh: loadStatus,
+    refresh: useCallback(async () => { await loadStatusRef.current() }, []),
   }
 }

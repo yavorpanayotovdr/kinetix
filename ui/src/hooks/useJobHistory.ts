@@ -83,10 +83,14 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const pageSizeRef = useRef(pageSize)
   pageSizeRef.current = pageSize
 
+  const initialLoadDone = useRef(false)
+
   const load = useCallback(async () => {
     if (!portfolioId) return
 
-    setLoading(true)
+    if (!initialLoadDone.current) {
+      setLoading(true)
+    }
     setError(null)
 
     try {
@@ -101,14 +105,11 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
         if (newItems.length === 0) return prev
         return [...prev, ...newItems]
       })
-      setTimeRangeInternal((prev) => {
-        if (prev.from === from && prev.to === to) return prev
-        return { ...prev, from, to }
-      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
+      initialLoadDone.current = true
     }
   }, [portfolioId])
 
@@ -138,6 +139,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       setLoadingJobIds(new Set())
       return
     }
+    initialLoadDone.current = false
     loadRef.current()
 
     const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
