@@ -328,7 +328,6 @@ services:
         SERVICE_NAME: risk-orchestrator
     environment:
       SERVICE_NAME: risk-orchestrator
-      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m"
       RISK_DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_risk
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379

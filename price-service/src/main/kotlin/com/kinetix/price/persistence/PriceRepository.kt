@@ -8,4 +8,5 @@ interface PriceRepository {
     suspend fun save(point: PricePoint)
     suspend fun findLatest(instrumentId: InstrumentId): PricePoint?
     suspend fun findByInstrumentId(instrumentId: InstrumentId, from: Instant, to: Instant): List<PricePoint>
+    suspend fun findDailyCloseByInstrumentId(instrumentId: InstrumentId, from: Instant, to: Instant): List<PricePoint>
 }

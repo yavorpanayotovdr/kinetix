@@ -171,7 +171,7 @@ class MarketDataFetcher(
             val lookbackDays = parameters["lookbackDays"]?.toLongOrNull() ?: 252L
             val now = Instant.now()
             val from = now.minus(lookbackDays, ChronoUnit.DAYS)
-            when (val response = priceServiceClient.getPriceHistory(InstrumentId(instrumentId), from, now)) {
+            when (val response = priceServiceClient.getPriceHistory(InstrumentId(instrumentId), from, now, interval = "1d")) {
                 is ClientResponse.Success -> {
                     val history = response.value
                     if (history.isNotEmpty()) {

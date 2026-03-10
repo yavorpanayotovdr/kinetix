@@ -103,6 +103,71 @@ class PriceRepositoryIntegrationTest : FunSpec({
         found.price.amount.compareTo(BigDecimal("98765.432109876543")) shouldBe 0
     }
 
+    test("findDailyCloseByInstrumentId returns one price per calendar day with the latest timestamp") {
+        // Day 1: 3 prices — expect the 16:00 one (latest)
+        repository.save(point(timestamp = Instant.parse("2025-01-15T09:00:00Z"), priceAmount = BigDecimal("148.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-15T12:00:00Z"), priceAmount = BigDecimal("150.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-15T16:00:00Z"), priceAmount = BigDecimal("152.00")))
+        // Day 2: 2 prices — expect the 15:00 one (latest)
+        repository.save(point(timestamp = Instant.parse("2025-01-16T10:00:00Z"), priceAmount = BigDecimal("153.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-16T15:00:00Z"), priceAmount = BigDecimal("155.00")))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-16T23:59:59Z"),
+        )
+
+        results shouldHaveSize 2
+        // Descending order: day 2 first, then day 1
+        results[0].price.amount.compareTo(BigDecimal("155.00")) shouldBe 0
+        results[0].timestamp shouldBe Instant.parse("2025-01-16T15:00:00Z")
+        results[1].price.amount.compareTo(BigDecimal("152.00")) shouldBe 0
+        results[1].timestamp shouldBe Instant.parse("2025-01-15T16:00:00Z")
+    }
+
+    test("findDailyCloseByInstrumentId returns results in descending order") {
+        repository.save(point(timestamp = Instant.parse("2025-01-13T10:00:00Z"), priceAmount = BigDecimal("140.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-14T10:00:00Z"), priceAmount = BigDecimal("145.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00")))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-13T00:00:00Z"),
+            to = Instant.parse("2025-01-15T23:59:59Z"),
+        )
+
+        results shouldHaveSize 3
+        results[0].timestamp shouldBe Instant.parse("2025-01-15T10:00:00Z")
+        results[1].timestamp shouldBe Instant.parse("2025-01-14T10:00:00Z")
+        results[2].timestamp shouldBe Instant.parse("2025-01-13T10:00:00Z")
+    }
+
+    test("findDailyCloseByInstrumentId returns empty list for no matches") {
+        repository.save(point(instrumentId = "AAPL"))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("MSFT"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-15T23:59:59Z"),
+        )
+        results shouldHaveSize 0
+    }
+
+    test("findDailyCloseByInstrumentId respects time range boundaries") {
+        repository.save(point(timestamp = Instant.parse("2025-01-14T10:00:00Z"), priceAmount = BigDecimal("140.00"))) // outside
+        repository.save(point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00"))) // inside
+        repository.save(point(timestamp = Instant.parse("2025-01-16T10:00:00Z"), priceAmount = BigDecimal("160.00"))) // outside
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-15T23:59:59Z"),
+        )
+        results shouldHaveSize 1
+        results[0].price.amount.compareTo(BigDecimal("150.00")) shouldBe 0
+    }
+
     test("save and retrieve with all price sources") {
         PriceSource.entries.forEachIndexed { idx, src ->
             repository.save(

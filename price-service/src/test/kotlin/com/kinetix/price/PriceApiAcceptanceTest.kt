@@ -209,6 +209,68 @@ class PriceApiAcceptanceTest : FunSpec({
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Daily close downsampling (interval=1d)
+    // -------------------------------------------------------------------------
+
+    test("price history with interval=1d returns one closing price per day") {
+        val instrument = "DAILY-CLOSE-1"
+        // Day 1: 3 ticks — close is 16:00
+        repository.save(pricePoint(instrument, "100.00", "2025-09-01T09:00:00Z"))
+        repository.save(pricePoint(instrument, "105.00", "2025-09-01T12:00:00Z"))
+        repository.save(pricePoint(instrument, "110.00", "2025-09-01T16:00:00Z"))
+        // Day 2: 2 ticks — close is 15:30
+        repository.save(pricePoint(instrument, "112.00", "2025-09-02T10:00:00Z"))
+        repository.save(pricePoint(instrument, "115.00", "2025-09-02T15:30:00Z"))
+        // Day 3: 1 tick
+        repository.save(pricePoint(instrument, "120.00", "2025-09-03T11:00:00Z"))
+
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.get(
+                "/api/v1/prices/$instrument/history" +
+                    "?from=2025-09-01T00:00:00Z&to=2025-09-03T23:59:59Z&interval=1d",
+            )
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 3
+
+            // Descending: day 3, day 2, day 1
+            body[0].jsonObject["timestamp"]!!.jsonPrimitive.content shouldBe "2025-09-03T11:00:00Z"
+            BigDecimal(body[0].jsonObject["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content).compareTo(BigDecimal("120.00")) shouldBe 0
+
+            body[1].jsonObject["timestamp"]!!.jsonPrimitive.content shouldBe "2025-09-02T15:30:00Z"
+            BigDecimal(body[1].jsonObject["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content).compareTo(BigDecimal("115.00")) shouldBe 0
+
+            body[2].jsonObject["timestamp"]!!.jsonPrimitive.content shouldBe "2025-09-01T16:00:00Z"
+            BigDecimal(body[2].jsonObject["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content).compareTo(BigDecimal("110.00")) shouldBe 0
+        }
+    }
+
+    test("price history without interval still returns all ticks") {
+        val instrument = "ALL-TICKS-1"
+        repository.save(pricePoint(instrument, "100.00", "2025-09-01T09:00:00Z"))
+        repository.save(pricePoint(instrument, "105.00", "2025-09-01T12:00:00Z"))
+        repository.save(pricePoint(instrument, "110.00", "2025-09-01T16:00:00Z"))
+
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.get(
+                "/api/v1/prices/$instrument/history" +
+                    "?from=2025-09-01T00:00:00Z&to=2025-09-01T23:59:59Z",
+            )
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 3
+        }
+    }
+
     test("price history time range boundary is inclusive on both ends") {
         val instrument = "BOUNDARY-INST-1"
         repository.save(pricePoint(instrument, "50.00", "2025-08-01T09:00:00Z"))  // exactly at 'from'

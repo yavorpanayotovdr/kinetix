@@ -14,6 +14,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -105,6 +106,63 @@ class PriceRoutesTest : FunSpec({
             val last = body[2].jsonObject
             last["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content shouldBe "150.75"
             last["timestamp"]!!.jsonPrimitive.content shouldBe "2025-01-15T10:30:00Z"
+        }
+    }
+
+    test("GET /api/v1/prices/{id}/history with interval=1d calls findDailyCloseByInstrumentId") {
+        val from = Instant.parse("2025-01-15T09:00:00Z")
+        val to = Instant.parse("2025-01-15T11:00:00Z")
+        val points = listOf(
+            point(timestamp = Instant.parse("2025-01-15T10:30:00Z"), priceAmount = BigDecimal("150.75")),
+        )
+
+        coEvery { repository.findDailyCloseByInstrumentId(InstrumentId("AAPL"), from, to) } returns points
+
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z&interval=1d")
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 1
+            body[0].jsonObject["price"]!!.jsonObject["amount"]!!.jsonPrimitive.content shouldBe "150.75"
+        }
+
+        coVerify(exactly = 0) { repository.findByInstrumentId(any(), any(), any()) }
+        coVerify(exactly = 1) { repository.findDailyCloseByInstrumentId(InstrumentId("AAPL"), from, to) }
+    }
+
+    test("GET /api/v1/prices/{id}/history without interval calls findByInstrumentId") {
+        val from = Instant.parse("2025-01-15T09:00:00Z")
+        val to = Instant.parse("2025-01-15T11:00:00Z")
+
+        coEvery { repository.findByInstrumentId(InstrumentId("AAPL"), from, to) } returns emptyList()
+
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z")
+
+            response.status shouldBe HttpStatusCode.OK
+        }
+
+        coVerify(exactly = 1) { repository.findByInstrumentId(InstrumentId("AAPL"), from, to) }
+        coVerify(exactly = 0) { repository.findDailyCloseByInstrumentId(any(), any(), any()) }
+    }
+
+    test("GET /api/v1/prices/{id}/history with unsupported interval returns 400") {
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.get("/api/v1/prices/AAPL/history?from=2025-01-15T09:00:00Z&to=2025-01-15T11:00:00Z&interval=5m")
+
+            response.status shouldBe HttpStatusCode.BadRequest
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["error"]!!.jsonPrimitive.content shouldBe "bad_request"
+            body["message"]!!.jsonPrimitive.content shouldBe "Unsupported interval: 5m. Supported values: 1d"
         }
     }
 

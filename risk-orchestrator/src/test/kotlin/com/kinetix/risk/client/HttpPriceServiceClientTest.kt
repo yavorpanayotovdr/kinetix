@@ -96,6 +96,47 @@ class HttpPriceServiceClientTest : FunSpec({
         success.value.shouldBeEmpty()
     }
 
+    test("getPriceHistory passes interval query parameter when provided") {
+        var capturedUrl: String? = null
+        val httpClient = mockClient { request ->
+            capturedUrl = request.url.toString()
+            respond(
+                content = "[]",
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPriceServiceClient(httpClient, "http://localhost:8082")
+
+        client.getPriceHistory(
+            InstrumentId("AAPL"),
+            Instant.parse("2026-02-22T00:00:00Z"),
+            Instant.parse("2026-02-24T00:00:00Z"),
+            interval = "1d",
+        )
+
+        capturedUrl shouldBe "http://localhost:8082/api/v1/prices/AAPL/history?from=2026-02-22T00%3A00%3A00Z&to=2026-02-24T00%3A00%3A00Z&interval=1d"
+    }
+
+    test("getPriceHistory omits interval query parameter when null") {
+        var capturedUrl: String? = null
+        val httpClient = mockClient { request ->
+            capturedUrl = request.url.toString()
+            respond(
+                content = "[]",
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPriceServiceClient(httpClient, "http://localhost:8082")
+
+        client.getPriceHistory(
+            InstrumentId("AAPL"),
+            Instant.parse("2026-02-22T00:00:00Z"),
+            Instant.parse("2026-02-24T00:00:00Z"),
+        )
+
+        capturedUrl shouldBe "http://localhost:8082/api/v1/prices/AAPL/history?from=2026-02-22T00%3A00%3A00Z&to=2026-02-24T00%3A00%3A00Z"
+    }
+
     test("returns NotFound for price history when not found") {
         val httpClient = mockClient {
             respond(content = "", status = HttpStatusCode.NotFound)

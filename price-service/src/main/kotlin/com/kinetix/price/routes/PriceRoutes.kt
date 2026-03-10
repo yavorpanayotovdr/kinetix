@@ -87,7 +87,14 @@ fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngest
                     ?: throw IllegalArgumentException("Missing required query parameter: from")
                 val to = call.queryParameters["to"]
                     ?: throw IllegalArgumentException("Missing required query parameter: to")
-                val points = repository.findByInstrumentId(instrumentId, Instant.parse(from), Instant.parse(to))
+                val interval = call.queryParameters["interval"]
+                val parsedFrom = Instant.parse(from)
+                val parsedTo = Instant.parse(to)
+                val points = when (interval) {
+                    null -> repository.findByInstrumentId(instrumentId, parsedFrom, parsedTo)
+                    "1d" -> repository.findDailyCloseByInstrumentId(instrumentId, parsedFrom, parsedTo)
+                    else -> throw IllegalArgumentException("Unsupported interval: $interval. Supported values: 1d")
+                }
                 call.respond(points.map { it.toResponse() })
             }
         }

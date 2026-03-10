@@ -58,6 +58,45 @@ class ExposedPriceRepository(private val db: Database? = null) : PriceRepository
             .map { it.toPricePoint() }
     }
 
+    override suspend fun findDailyCloseByInstrumentId(
+        instrumentId: InstrumentId,
+        from: Instant,
+        to: Instant,
+    ): List<PricePoint> = newSuspendedTransaction(db = db) {
+        val fromOffset = from.atOffset(ZoneOffset.UTC)
+        val toOffset = to.atOffset(ZoneOffset.UTC)
+        val sql = """
+            SELECT DISTINCT ON (instrument_id, date(timestamp AT TIME ZONE 'UTC'))
+                   instrument_id, price_amount, price_currency, timestamp, source, created_at
+            FROM prices
+            WHERE instrument_id = ? AND timestamp >= ? AND timestamp <= ?
+            ORDER BY instrument_id, date(timestamp AT TIME ZONE 'UTC'), timestamp DESC
+        """.trimIndent()
+        val conn = this.connection.connection as java.sql.Connection
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, instrumentId.value)
+            stmt.setObject(2, fromOffset)
+            stmt.setObject(3, toOffset)
+            val rs = stmt.executeQuery()
+            val results = mutableListOf<PricePoint>()
+            while (rs.next()) {
+                results.add(
+                    PricePoint(
+                        instrumentId = InstrumentId(rs.getString("instrument_id")),
+                        price = Money(
+                            rs.getBigDecimal("price_amount"),
+                            Currency.getInstance(rs.getString("price_currency")),
+                        ),
+                        timestamp = rs.getObject("timestamp", java.time.OffsetDateTime::class.java).toInstant(),
+                        source = PriceSource.valueOf(rs.getString("source")),
+                    )
+                )
+            }
+            // The DISTINCT ON query orders by date ASC; reverse for descending
+            results.reversed()
+        }
+    }
+
     private fun ResultRow.toPricePoint(): PricePoint = PricePoint(
         instrumentId = InstrumentId(this[PriceTable.instrumentId]),
         price = Money(

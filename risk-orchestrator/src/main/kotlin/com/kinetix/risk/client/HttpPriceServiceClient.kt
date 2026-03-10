@@ -25,10 +25,12 @@ class HttpPriceServiceClient(
         instrumentId: InstrumentId,
         from: Instant,
         to: Instant,
+        interval: String?,
     ): ClientResponse<List<PricePoint>> {
         val response = httpClient.get("$baseUrl/api/v1/prices/${instrumentId.value}/history") {
             parameter("from", from.toString())
             parameter("to", to.toString())
+            if (interval != null) parameter("interval", interval)
         }
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dtos: List<PricePointDto> = response.body()

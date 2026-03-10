@@ -17,8 +17,8 @@ class DelayingPriceServiceClient(
         return delegate.getLatestPrice(instrumentId)
     }
 
-    override suspend fun getPriceHistory(instrumentId: InstrumentId, from: Instant, to: Instant): ClientResponse<List<PricePoint>> {
+    override suspend fun getPriceHistory(instrumentId: InstrumentId, from: Instant, to: Instant, interval: String?): ClientResponse<List<PricePoint>> {
         delay(delayMs.random())
-        return delegate.getPriceHistory(instrumentId, from, to)
+        return delegate.getPriceHistory(instrumentId, from, to, interval)
     }
 }

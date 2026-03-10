@@ -66,7 +66,7 @@ class MarketDataFetcherTest : FunSpec({
             DiscoveredDependency("HISTORICAL_PRICES", "AAPL", "EQUITY", mapOf("lookbackDays" to "252")),
         )
 
-        coEvery { priceServiceClient.getPriceHistory(InstrumentId("AAPL"), any(), any()) } returns ClientResponse.Success(
+        coEvery { priceServiceClient.getPriceHistory(InstrumentId("AAPL"), any(), any(), interval = "1d") } returns ClientResponse.Success(
             listOf(
                 pricePoint(amount = "168.00", timestamp = Instant.parse("2026-02-22T10:00:00Z")),
                 pricePoint(amount = "170.50", timestamp = Instant.parse("2026-02-23T10:00:00Z")),
