@@ -9,12 +9,6 @@ services:
       - "4317:4317"
       - "4318:4318"
       - "13133:13133"
-    healthcheck:
-      test: ["CMD", "test", "-f", "/proc/1/status"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     restart: unless-stopped
     depends_on:
       prometheus:
