@@ -13,6 +13,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -42,6 +43,8 @@ class PriceRoutesTest : FunSpec({
 
     val repository = mockk<PriceRepository>()
     val ingestionService = mockk<PriceIngestionService>()
+
+    beforeTest { clearMocks(repository, ingestionService) }
 
     test("GET /api/v1/prices/{id}/latest returns 200 with price point") {
         val p = point()
