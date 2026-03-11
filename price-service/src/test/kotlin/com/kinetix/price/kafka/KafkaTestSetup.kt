@@ -6,15 +6,11 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
-import org.testcontainers.utility.DockerImageName
 import java.util.Properties
 
-@Suppress("DEPRECATION")
 object KafkaTestSetup {
 
-    private val kafka = org.testcontainers.containers.KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
-    )
+    private val kafka = org.testcontainers.kafka.KafkaContainer("apache/kafka:3.8.1")
 
     fun start(): String {
         if (!kafka.isRunning) {

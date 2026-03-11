@@ -23,7 +23,6 @@ import java.time.Instant
 import java.util.Currency
 import java.util.Properties
 
-@Suppress("DEPRECATION")
 class TradeBookingEnd2EndTest : BehaviorSpec({
 
     // --- Infrastructure ---
@@ -41,9 +40,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
         .withUsername("test")
         .withPassword("test")
 
-    val kafka = org.testcontainers.containers.KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
-    )
+    val kafka = org.testcontainers.kafka.KafkaContainer("apache/kafka:3.8.1")
 
     // --- Services (initialized in beforeSpec) ---
 

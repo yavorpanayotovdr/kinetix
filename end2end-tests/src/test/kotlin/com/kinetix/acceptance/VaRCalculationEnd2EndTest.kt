@@ -28,7 +28,6 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.utility.DockerImageName
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
@@ -133,7 +132,6 @@ private class StubRiskEngineClient : RiskEngineClient {
     ) = throw UnsupportedOperationException("Not used in VaR acceptance test")
 }
 
-@Suppress("DEPRECATION")
 class VaRCalculationEnd2EndTest : BehaviorSpec({
 
     // --- Infrastructure ---
@@ -143,9 +141,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
         .withUsername("test")
         .withPassword("test")
 
-    val kafka = org.testcontainers.containers.KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.7.1"),
-    )
+    val kafka = org.testcontainers.kafka.KafkaContainer("apache/kafka:3.8.1")
 
     // --- Services (initialized in beforeSpec) ---
 

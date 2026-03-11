@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 class ExposedAuditEventRepository(private val db: Database? = null) : AuditEventRepository {
 
@@ -22,7 +23,12 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .firstOrNull()
             ?.takeIf { it.isNotEmpty() }
 
-        val recordHash = AuditHasher.computeHash(event, latestHash)
+        // Truncate receivedAt to microseconds to match PostgreSQL TIMESTAMPTZ precision.
+        // Without this, the hash computed from nanosecond-precision Instant.now() would
+        // differ from one recomputed after a DB round-trip (which loses nanoseconds).
+        val storedReceivedAt = event.receivedAt.truncatedTo(ChronoUnit.MICROS)
+        val eventForHash = event.copy(receivedAt = storedReceivedAt)
+        val recordHash = AuditHasher.computeHash(eventForHash, latestHash)
 
         AuditEventsTable.insert {
             it[tradeId] = event.tradeId
@@ -34,7 +40,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             it[priceAmount] = event.priceAmount.toBigDecimal()
             it[priceCurrency] = event.priceCurrency
             it[tradedAt] = OffsetDateTime.ofInstant(Instant.parse(event.tradedAt), ZoneOffset.UTC)
-            it[receivedAt] = OffsetDateTime.ofInstant(event.receivedAt, ZoneOffset.UTC)
+            it[receivedAt] = OffsetDateTime.ofInstant(storedReceivedAt, ZoneOffset.UTC)
             it[AuditEventsTable.previousHash] = latestHash
             it[AuditEventsTable.recordHash] = recordHash
             it[userId] = event.userId
