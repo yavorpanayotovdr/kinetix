@@ -38,14 +38,23 @@ docker compose \
 echo "==> Ensuring databases exist..."
 docker exec kinetix-postgres psql -U kinetix -f /docker-entrypoint-initdb.d/01-create-databases.sql 2>/dev/null || true
 
-# ── Start the full stack with forced rebuild ────────────────────────────────
-echo "==> Rebuilding and starting all services (this may take several minutes)..."
+# ── Rebuild all service images from scratch ──────────────────────────────────
+echo "==> Rebuilding all service images (this may take several minutes)..."
 docker compose \
   -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
   -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
   -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
   -f "$ROOT_DIR/docker-compose.services.yml" \
-  up -d --build --no-cache --wait
+  build --no-cache
+
+# ── Start the full stack ────────────────────────────────────────────────────
+echo "==> Starting all services..."
+docker compose \
+  -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
+  -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
+  -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
+  -f "$ROOT_DIR/docker-compose.services.yml" \
+  up -d --wait
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
