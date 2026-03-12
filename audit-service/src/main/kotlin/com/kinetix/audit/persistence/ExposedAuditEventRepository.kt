@@ -64,6 +64,19 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .map { it.toAuditEvent() }
     }
 
+    override suspend fun findPage(afterId: Long, limit: Int): List<AuditEvent> = newSuspendedTransaction(db = db) {
+        AuditEventsTable
+            .selectAll()
+            .where { AuditEventsTable.id greater afterId }
+            .orderBy(AuditEventsTable.id, SortOrder.ASC)
+            .limit(limit)
+            .map { it.toAuditEvent() }
+    }
+
+    override suspend fun countAll(): Long = newSuspendedTransaction(db = db) {
+        AuditEventsTable.selectAll().count()
+    }
+
     private fun ResultRow.toAuditEvent(): AuditEvent = AuditEvent(
         id = this[AuditEventsTable.id],
         tradeId = this[AuditEventsTable.tradeId],

@@ -49,7 +49,7 @@ class AuditRoutesTest : FunSpec({
                 receivedAt = Instant.parse("2025-01-15T11:00:01Z"),
             ),
         )
-        coEvery { repository.findAll() } returns events
+        coEvery { repository.findPage(0L, 1000) } returns events
 
         testApplication {
             application { module(repository) }
@@ -65,7 +65,7 @@ class AuditRoutesTest : FunSpec({
     }
 
     test("GET /api/v1/audit/events returns empty array when no events") {
-        coEvery { repository.findAll() } returns emptyList()
+        coEvery { repository.findPage(0L, 1000) } returns emptyList()
 
         testApplication {
             application { module(repository) }
@@ -137,7 +137,7 @@ class AuditRoutesTest : FunSpec({
         val hash2 = AuditHasher.computeHash(event2, hash1)
         val chained2 = event2.copy(previousHash = hash1, recordHash = hash2)
 
-        coEvery { repository.findAll() } returns listOf(chained1, chained2)
+        coEvery { repository.findPage(0L, 10000) } returns listOf(chained1, chained2)
 
         testApplication {
             application { module(repository) }
@@ -150,7 +150,7 @@ class AuditRoutesTest : FunSpec({
     }
 
     test("GET /api/v1/audit/verify returns valid true for empty chain") {
-        coEvery { repository.findAll() } returns emptyList()
+        coEvery { repository.findPage(0L, 10000) } returns emptyList()
 
         testApplication {
             application { module(repository) }

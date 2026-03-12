@@ -45,4 +45,26 @@ object AuditHasher {
         }
         return ChainVerificationResult(valid = true, eventCount = events.size)
     }
+
+    fun verifyChainIncremental(
+        events: List<AuditEvent>,
+        startingPreviousHash: String?,
+    ): IncrementalVerificationResult {
+        if (events.isEmpty()) {
+            return IncrementalVerificationResult(valid = true, lastHash = startingPreviousHash, eventsVerified = 0)
+        }
+
+        var previousHash = startingPreviousHash
+        for (event in events) {
+            if (event.previousHash != previousHash) {
+                return IncrementalVerificationResult(valid = false, lastHash = previousHash, eventsVerified = 0)
+            }
+            val expectedHash = computeHash(event, previousHash)
+            if (event.recordHash != expectedHash) {
+                return IncrementalVerificationResult(valid = false, lastHash = previousHash, eventsVerified = 0)
+            }
+            previousHash = event.recordHash
+        }
+        return IncrementalVerificationResult(valid = true, lastHash = previousHash, eventsVerified = events.size)
+    }
 }
