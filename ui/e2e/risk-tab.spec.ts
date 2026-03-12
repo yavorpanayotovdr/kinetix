@@ -800,28 +800,27 @@ test.describe('Job History', () => {
       jobHistory: TEST_JOB_HISTORY,
     })
 
-    await goToRiskTab(page)
+    // Force collapsed state (default is now expanded)
+    await page.goto('/')
+    await page.evaluate(() => localStorage.setItem('kinetix:job-history-expanded', 'false'))
+    await page.getByTestId('tab-risk').click()
     await page.waitForSelector('[data-testid="job-history"]')
 
-    // Default: collapsed -> shows summary
+    // Collapsed -> shows summary
     await expect(page.getByTestId('job-history-summary')).toBeVisible()
     await expect(page.getByTestId('job-history-summary')).toContainText('Last calc:')
     await expect(page.getByTestId('job-history-summary')).toContainText('1 job')
   })
 
-  test('expanding shows the job table', async ({ page }) => {
+  test('shows job table when expanded by default', async ({ page }) => {
     await mockRiskTabRoutes(page, {
       jobHistory: TEST_JOB_HISTORY,
     })
 
     await goToRiskTab(page)
-    await page.waitForSelector('[data-testid="job-history-header"]')
-
-    // Click to expand
-    await page.getByTestId('job-history-header').click()
-
-    // Job table should appear with the completed job
     await page.waitForSelector('[data-testid="job-history-table"]')
+
+    // Job table is visible by default (expanded)
     await expect(page.getByTestId('job-row-job-1')).toBeVisible()
   })
 
@@ -881,10 +880,6 @@ test.describe('Job History', () => {
     })
 
     await goToRiskTab(page)
-    await page.waitForSelector('[data-testid="job-history-header"]')
-
-    // Expand job history
-    await page.getByTestId('job-history-header').click()
     await page.waitForSelector('[data-testid="job-history-table"]')
 
     // Total count shows 25

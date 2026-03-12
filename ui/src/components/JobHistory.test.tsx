@@ -45,7 +45,7 @@ describe('JobHistory', () => {
     mockUseJobHistory.mockReturnValue(defaultHookResult)
   })
 
-  it('renders collapsed when localStorage is set to false', () => {
+  it('renders collapsed by default with summary', () => {
     localStorage.setItem('kinetix:job-history-expanded', 'false')
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
@@ -107,7 +107,7 @@ describe('JobHistory', () => {
     expect(screen.queryByTestId('job-history-summary')).not.toBeInTheDocument()
   })
 
-  it('shows empty summary when collapsed and no jobs exist', () => {
+  it('shows empty summary when no jobs exist', () => {
     localStorage.setItem('kinetix:job-history-expanded', 'false')
     render(<JobHistory portfolioId="port-1" />)
 
