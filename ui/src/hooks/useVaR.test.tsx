@@ -66,7 +66,7 @@ describe('useVaR', () => {
 
     expect(result.current.varResult).toEqual(varResult)
     expect(result.current.error).toBeNull()
-    expect(mockFetchVaR).toHaveBeenCalledWith('port-1')
+    expect(mockFetchVaR).toHaveBeenCalledWith('port-1', null)
   })
 
   it('sets error on fetch failure', async () => {

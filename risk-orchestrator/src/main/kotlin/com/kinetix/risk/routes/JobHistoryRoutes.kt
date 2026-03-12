@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.time.Instant
+import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import java.util.UUID
 
@@ -55,8 +56,15 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             return@get
         }
 
-        val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to)
-        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to)
+        val valuationDate = try {
+            call.request.queryParameters["valuationDate"]?.let { LocalDate.parse(it) }
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'valuationDate' format. Expected YYYY-MM-DD.")
+            return@get
+        }
+
+        val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to, valuationDate)
+        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to, valuationDate)
         call.respond(PaginatedJobsResponse(jobs.map { it.toSummaryResponse() }, totalCount))
     }
 

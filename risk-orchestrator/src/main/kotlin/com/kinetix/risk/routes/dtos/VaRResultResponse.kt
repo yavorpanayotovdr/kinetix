@@ -15,4 +15,5 @@ data class VaRResultResponse(
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
     val positionRisk: List<PositionRiskDto>? = null,
+    val valuationDate: String? = null,
 )

@@ -831,6 +831,112 @@ describe('useVaR', () => {
     expect(result.current.history[0].theta).toBeCloseTo(-100)
   })
 
+  describe('historical mode (valuationDate)', () => {
+    it('isLive is true when valuationDate is null', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue(null)
+
+      const { result } = renderHook(() => useVaR('port-1', null))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.isLive).toBe(true)
+    })
+
+    it('isLive is true when valuationDate is omitted', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue(null)
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.isLive).toBe(true)
+    })
+
+    it('isLive is false when valuationDate is set', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue(null)
+
+      const { result } = renderHook(() => useVaR('port-1', '2025-03-10'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.isLive).toBe(false)
+    })
+
+    it('passes valuationDate to fetchVaR in historical mode', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue(null)
+
+      renderHook(() => useVaR('port-1', '2025-03-10'))
+
+      await waitFor(() => {
+        expect(mockFetchVaR).toHaveBeenCalledWith('port-1', '2025-03-10')
+      })
+    })
+
+    it('does not append historical result to history array', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue({
+        portfolioId: 'port-1',
+        calculationType: 'HISTORICAL',
+        confidenceLevel: 'CL_95',
+        varValue: '1400000',
+        expectedShortfall: '1700000',
+        componentBreakdown: [],
+        calculatedAt: '2025-03-10T06:00:00Z',
+        valuationDate: '2025-03-10',
+      })
+
+      const { result } = renderHook(() => useVaR('port-1', '2025-03-10'))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.varResult).not.toBeNull()
+      expect(result.current.history).toHaveLength(0)
+    })
+  })
+
+  describe('historical mode — no polling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('does not poll in historical mode', async () => {
+      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchVaR.mockResolvedValue(null)
+
+      renderHook(() => useVaR('port-1', '2025-03-10'))
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+
+      expect(mockFetchVaR).toHaveBeenCalledTimes(1)
+
+      // Advance past multiple poll intervals
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(90_000)
+      })
+
+      // Still only 1 call — no polling
+      expect(mockFetchVaR).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('polling overlap guard', () => {
     beforeEach(() => {
       vi.useFakeTimers()

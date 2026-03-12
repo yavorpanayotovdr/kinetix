@@ -220,6 +220,7 @@ data class ValuationResultResponse(
     val greeks: GreeksResponse? = null,
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
+    val valuationDate: String? = null,
 )
 
 // --- VaR mappers ---
@@ -262,6 +263,7 @@ fun ValuationResultSummary.toResponse(): ValuationResultResponse = ValuationResu
     calculatedAt = calculatedAt.toString(),
     greeks = greeks?.toResponse(),
     pvValue = pvValue?.let { "%.2f".format(it) },
+    valuationDate = valuationDate,
 )
 
 // --- Stress Test DTOs ---
@@ -858,6 +860,7 @@ data class ValuationJobSummaryResponse(
     val vega: Double? = null,
     val theta: Double? = null,
     val rho: Double? = null,
+    val valuationDate: String? = null,
 )
 
 @Serializable
@@ -876,6 +879,7 @@ data class ValuationJobDetailResponse(
     val pvValue: Double? = null,
     val steps: List<JobStepDto> = emptyList(),
     val error: String? = null,
+    val valuationDate: String? = null,
 )
 
 @Serializable
@@ -913,6 +917,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     vega = vega,
     theta = theta,
     rho = rho,
+    valuationDate = valuationDate,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -930,6 +935,7 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     pvValue = pvValue,
     steps = steps.map { it.toDto() },
     error = error,
+    valuationDate = valuationDate,
 )
 
 // --- Stress Scenario Governance DTOs ---

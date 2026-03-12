@@ -13,10 +13,15 @@ fun Route.positionRiskRoutes(client: RiskServiceClient) {
         tags = listOf("Position Risk")
         request {
             pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("valuationDate") {
+                description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
+                required = false
+            }
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
-        val result = client.getPositionRisk(portfolioId)
+        val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
+        val result = client.getPositionRisk(portfolioId, valuationDate)
         if (result != null) {
             call.respond(result.map { it.toPositionRiskResponse() })
         } else {

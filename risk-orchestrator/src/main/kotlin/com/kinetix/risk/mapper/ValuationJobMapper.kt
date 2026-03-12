@@ -24,6 +24,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     vega = vega,
     theta = theta,
     rho = rho,
+    valuationDate = valuationDate.toString(),
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -41,6 +42,7 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     pvValue = pvValue,
     steps = steps.map { it.toResponse() },
     error = error,
+    valuationDate = valuationDate.toString(),
 )
 
 fun ValuationJob.toValuationResult(): ValuationResult? {
@@ -67,6 +69,7 @@ fun ValuationJob.toValuationResult(): ValuationResult? {
         pvValue = pvValue,
         positionRisk = positionRiskSnapshot,
         jobId = jobId,
+        valuationDate = valuationDate,
     )
 }
 

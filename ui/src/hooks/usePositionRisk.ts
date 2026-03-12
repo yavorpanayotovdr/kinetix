@@ -9,7 +9,7 @@ export interface UsePositionRiskResult {
   refresh: () => Promise<void>
 }
 
-export function usePositionRisk(portfolioId: string | null): UsePositionRiskResult {
+export function usePositionRisk(portfolioId: string | null, valuationDate: string | null = null): UsePositionRiskResult {
   const [positionRisk, setPositionRisk] = useState<PositionRiskDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +21,7 @@ export function usePositionRisk(portfolioId: string | null): UsePositionRiskResu
     setError(null)
 
     try {
-      const data = await fetchPositionRisk(portfolioId)
+      const data = await fetchPositionRisk(portfolioId, valuationDate)
       setPositionRisk(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -29,7 +29,7 @@ export function usePositionRisk(portfolioId: string | null): UsePositionRiskResu
     } finally {
       setLoading(false)
     }
-  }, [portfolioId])
+  }, [portfolioId, valuationDate])
 
   const loadRef = useRef(load)
   loadRef.current = load
@@ -43,7 +43,7 @@ export function usePositionRisk(portfolioId: string | null): UsePositionRiskResu
     }
 
     loadRef.current()
-  }, [portfolioId])
+  }, [portfolioId, valuationDate])
 
   const refresh = useCallback(async () => {
     await loadRef.current()

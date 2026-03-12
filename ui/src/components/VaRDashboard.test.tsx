@@ -592,6 +592,103 @@ describe('VaRDashboard', () => {
     })
   })
 
+  describe('historical mode', () => {
+    it('shows historical badge when isLive is false', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          isLive={false}
+          valuationDate="2025-03-10"
+        />,
+      )
+
+      const badge = screen.getByTestId('historical-badge')
+      expect(badge).toBeInTheDocument()
+      expect(badge).toHaveTextContent('Historical — 2025-03-10')
+    })
+
+    it('does not show historical badge when isLive is true', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          isLive={true}
+        />,
+      )
+
+      expect(screen.queryByTestId('historical-badge')).not.toBeInTheDocument()
+    })
+
+    it('disables Refresh button in historical mode', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          isLive={false}
+          valuationDate="2025-03-10"
+        />,
+      )
+
+      expect(screen.getByTestId('var-recalculate')).toBeDisabled()
+    })
+
+    it('enables Refresh button in live mode', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          isLive={true}
+        />,
+      )
+
+      expect(screen.getByTestId('var-recalculate')).not.toBeDisabled()
+    })
+
+    it('applies amber background tint in historical mode', () => {
+      render(
+        <VaRDashboard
+          varResult={varResult}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+          isLive={false}
+          valuationDate="2025-03-10"
+        />,
+      )
+
+      const card = screen.getByTestId('var-dashboard')
+      expect(card.className).toContain('bg-amber-50/30')
+    })
+
+    it('shows valuation date label in footer when valuationDate is present in result', () => {
+      render(
+        <VaRDashboard
+          varResult={{ ...varResult, valuationDate: '2025-03-10' }}
+          loading={false}
+          error={null}
+          onRefresh={() => {}}
+          {...defaultZoomProps}
+        />,
+      )
+
+      expect(screen.getByTestId('valuation-date-label')).toHaveTextContent('Risk as of: 2025-03-10')
+    })
+  })
+
   describe('chart toggle', () => {
     it('renders toggle buttons for VaR/ES and Greeks', () => {
       render(

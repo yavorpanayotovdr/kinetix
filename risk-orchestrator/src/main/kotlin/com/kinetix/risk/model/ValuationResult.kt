@@ -2,6 +2,7 @@ package com.kinetix.risk.model
 
 import com.kinetix.common.model.PortfolioId
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class ValuationResult(
@@ -18,4 +19,5 @@ data class ValuationResult(
     val positionRisk: List<PositionRisk> = emptyList(),
     val jobId: UUID? = null,
     val modelVersion: String? = null,
+    val valuationDate: LocalDate? = null,
 )

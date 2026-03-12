@@ -66,6 +66,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
     mockUseJobHistory.mockReturnValue({
       runs: [],
@@ -131,7 +132,7 @@ describe('RiskTab', () => {
   it('calls useVaR with the given portfolioId', () => {
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
-    expect(mockUseVaR).toHaveBeenCalledWith('port-1')
+    expect(mockUseVaR).toHaveBeenCalledWith('port-1', null)
   })
 
   it('renders VaR dashboard and job history', () => {
@@ -144,7 +145,7 @@ describe('RiskTab', () => {
   it('calls usePositionRisk with the given portfolioId', () => {
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
 
-    expect(mockUsePositionRisk).toHaveBeenCalledWith('port-1')
+    expect(mockUsePositionRisk).toHaveBeenCalledWith('port-1', null)
   })
 
   it('renders PositionRiskTable between VaR dashboard and job history', () => {
@@ -204,6 +205,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
@@ -280,6 +282,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
     mockUsePositionRisk.mockReturnValue({
       positionRisk: [],
@@ -450,6 +453,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} onWhatIf={() => {}} />)
@@ -483,6 +487,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
@@ -544,6 +549,7 @@ describe('RiskTab', () => {
       zoomDepth: 0,
       selectedConfidenceLevel: 'CL_95',
       setSelectedConfidenceLevel: vi.fn(),
+      isLive: true,
     })
 
     render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)

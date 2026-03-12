@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.UUID
 
 private data class AggregateGreeks(val delta: Double, val gamma: Double, val vega: Double, val theta: Double, val rho: Double)
@@ -38,6 +40,7 @@ class VaRCalculationService(
     ): ValuationResult? {
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
+        val valuationDate = LocalDate.now(ZoneOffset.UTC)
         val steps = mutableListOf<JobStep>()
         var jobError: String? = null
 
@@ -48,6 +51,7 @@ class VaRCalculationService(
                 triggerType = triggerType,
                 status = RunStatus.RUNNING,
                 startedAt = jobStartedAt,
+                valuationDate = valuationDate,
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
             )
@@ -261,7 +265,7 @@ class VaRCalculationService(
                 )
             )
 
-            val enrichedResult = result.copy(positionRisk = positionRiskList, jobId = jobId)
+            val enrichedResult = result.copy(positionRisk = positionRiskList, jobId = jobId, valuationDate = valuationDate)
 
             logger.info(
                 "VaR calculation complete for portfolio {}: VaR={}, ES={}",
@@ -287,6 +291,7 @@ class VaRCalculationService(
                 triggerType = triggerType,
                 status = RunStatus.COMPLETED,
                 startedAt = jobStartedAt,
+                valuationDate = valuationDate,
                 completedAt = jobCompletedAt,
                 durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,
@@ -317,6 +322,7 @@ class VaRCalculationService(
                 triggerType = triggerType,
                 status = RunStatus.FAILED,
                 startedAt = jobStartedAt,
+                valuationDate = valuationDate,
                 completedAt = jobCompletedAt,
                 durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
@@ -13,6 +13,7 @@ import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
 import { PnlSummaryCard } from './PnlSummaryCard'
 import { LastUpdatedIndicator } from './LastUpdatedIndicator'
+import { ValuationDatePicker } from './ValuationDatePicker'
 
 interface RiskTabProps {
   portfolioId: string | null
@@ -33,6 +34,8 @@ export function RiskTab({
   onWhatIf,
   onViewPnlTab,
 }: RiskTabProps) {
+  const [valuationDate, setValuationDate] = useState<string | null>(null)
+
   const {
     varResult,
     greeksResult,
@@ -49,14 +52,15 @@ export function RiskTab({
     zoomDepth: varZoomDepth,
     selectedConfidenceLevel,
     setSelectedConfidenceLevel,
-  } = useVaR(portfolioId)
+    isLive,
+  } = useVaR(portfolioId, valuationDate)
 
   const {
     positionRisk,
     loading: positionRiskLoading,
     error: positionRiskError,
     refresh: refreshPositionRisk,
-  } = usePositionRisk(portfolioId)
+  } = usePositionRisk(portfolioId, valuationDate)
 
   const { varLimit } = useVarLimit()
   const { alerts, dismissAlert } = useAlerts()
@@ -77,13 +81,14 @@ export function RiskTab({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        {alerts.length > 0 ? (
-          <div className="flex-1 mr-4">
-            <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
-          </div>
-        ) : (
-          <div />
-        )}
+        <div className="flex items-center gap-4">
+          {alerts.length > 0 && (
+            <div className="flex-1 mr-4">
+              <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
+            </div>
+          )}
+          <ValuationDatePicker value={valuationDate} onChange={setValuationDate} />
+        </div>
         <LastUpdatedIndicator timestamp={lastUpdated} />
       </div>
       <VaRDashboard
@@ -104,6 +109,8 @@ export function RiskTab({
         onWhatIf={onWhatIf}
         selectedConfidenceLevel={selectedConfidenceLevel}
         onConfidenceLevelChange={setSelectedConfidenceLevel}
+        isLive={isLive}
+        valuationDate={valuationDate}
       />
       <div className="mt-4">
         <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FlaskRound, Info, RefreshCw, X } from 'lucide-react'
+import { Calendar, FlaskRound, Info, RefreshCw, X } from 'lucide-react'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import type { VaRHistoryEntry } from '../hooks/useVaR'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -35,9 +35,11 @@ interface VaRDashboardProps {
   onWhatIf?: () => void
   selectedConfidenceLevel?: string
   onConfidenceLevelChange?: (level: string) => void
+  isLive?: boolean
+  valuationDate?: string | null
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, historyLoading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, historyLoading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange, isLive = true, valuationDate }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [chartView, setChartView] = useState<'var' | 'greeks'>('var')
   const calcTypeRef = useRef<HTMLSpanElement>(null)
@@ -89,7 +91,13 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
   const previousVaR = filteredHistory.length >= 2 ? filteredHistory[filteredHistory.length - 2].varValue : null
 
   return (
-    <Card data-testid="var-dashboard" className="mb-4">
+    <Card data-testid="var-dashboard" className={`mb-4${!isLive ? ' bg-amber-50/30 dark:bg-amber-950/20' : ''}`}>
+      {!isLive && (
+        <div data-testid="historical-badge" className="flex items-center gap-1.5 mb-3 text-xs font-medium text-amber-700 dark:text-amber-400" aria-live="polite">
+          <Calendar className="h-3.5 w-3.5" />
+          Historical — {valuationDate}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <VaRGauge
           varValue={varValue}
@@ -168,7 +176,10 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
             </span>
           )}
           {' '}&middot;{' '}
-          {new Date(varResult.calculatedAt).toLocaleString()}
+          Calculated: {new Date(varResult.calculatedAt).toLocaleString()}
+          {varResult.valuationDate && (
+            <span data-testid="valuation-date-label"> &middot; Risk as of: {varResult.valuationDate}</span>
+          )}
         </span>
         <div className="flex items-center gap-2">
           {onWhatIf && (
@@ -187,7 +198,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
             size="sm"
             icon={<RefreshCw className={`h-3 w-3${refreshing ? ' animate-spin' : ''}`} />}
             onClick={onRefresh}
-            disabled={refreshing}
+            disabled={refreshing || !isLive}
           >
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>

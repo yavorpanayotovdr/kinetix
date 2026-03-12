@@ -9,9 +9,12 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toKotlinLocalDate
 
 class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJobRecorder {
 
@@ -21,6 +24,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[portfolioId] = job.portfolioId
             it[triggerType] = job.triggerType.name
             it[status] = job.status.name
+            it[valuationDate] = job.valuationDate.toKotlinLocalDate()
             it[startedAt] = OffsetDateTime.ofInstant(job.startedAt, ZoneOffset.UTC)
             it[completedAt] = job.completedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[durationMs] = job.durationMs
@@ -73,6 +77,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         offset: Int,
         from: Instant?,
         to: Instant?,
+        valuationDate: LocalDate?,
     ): List<ValuationJob> = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
@@ -83,6 +88,9 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                 }
                 if (to != null) {
                     condition = condition and (ValuationJobsTable.startedAt lessEq OffsetDateTime.ofInstant(to, ZoneOffset.UTC))
+                }
+                if (valuationDate != null) {
+                    condition = condition and (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate())
                 }
                 condition
             }
@@ -96,6 +104,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         portfolioId: String,
         from: Instant?,
         to: Instant?,
+        valuationDate: LocalDate?,
     ): Long = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
@@ -106,6 +115,9 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                 }
                 if (to != null) {
                     condition = condition and (ValuationJobsTable.startedAt lessEq OffsetDateTime.ofInstant(to, ZoneOffset.UTC))
+                }
+                if (valuationDate != null) {
+                    condition = condition and (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate())
                 }
                 condition
             }
@@ -125,6 +137,23 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .select(ValuationJobsTable.portfolioId)
             .withDistinct()
             .map { it[ValuationJobsTable.portfolioId] }
+    }
+
+    override suspend fun findLatestCompletedByDate(
+        portfolioId: String,
+        valuationDate: LocalDate,
+    ): ValuationJob? = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
+            .selectAll()
+            .where {
+                (ValuationJobsTable.portfolioId eq portfolioId) and
+                    (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate()) and
+                    (ValuationJobsTable.status eq "COMPLETED")
+            }
+            .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
+            .limit(1)
+            .firstOrNull()
+            ?.toValuationJob()
     }
 
     override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = newSuspendedTransaction(db = db) {
@@ -221,6 +250,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         triggerType = TriggerType.valueOf(this[ValuationJobsTable.triggerType]),
         status = RunStatus.valueOf(this[ValuationJobsTable.status]),
         startedAt = this[ValuationJobsTable.startedAt].toInstant(),
+        valuationDate = this[ValuationJobsTable.valuationDate].toJavaLocalDate(),
         completedAt = this[ValuationJobsTable.completedAt]?.toInstant(),
         durationMs = this[ValuationJobsTable.durationMs],
         calculationType = this[ValuationJobsTable.calculationType],

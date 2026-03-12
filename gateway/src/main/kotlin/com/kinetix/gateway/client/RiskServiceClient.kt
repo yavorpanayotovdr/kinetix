@@ -27,6 +27,7 @@ data class ValuationResultSummary(
     val calculatedAt: Instant,
     val greeks: GreeksResultSummary? = null,
     val pvValue: Double? = null,
+    val valuationDate: String? = null,
 )
 
 data class StressTestParams(
@@ -175,6 +176,7 @@ data class ValuationJobSummaryItem(
     val vega: Double?,
     val theta: Double?,
     val rho: Double?,
+    val valuationDate: String? = null,
 )
 
 data class ValuationJobDetailItem(
@@ -192,6 +194,7 @@ data class ValuationJobDetailItem(
     val pvValue: Double?,
     val steps: List<JobStepItem>,
     val error: String?,
+    val valuationDate: String? = null,
 )
 
 data class SodBaselineStatusSummary(
@@ -281,7 +284,7 @@ data class WhatIfResultSummary(
 interface RiskServiceClient {
     suspend fun getMarginEstimate(portfolioId: String, previousMTM: String? = null): MarginEstimateSummary?
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
-    suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary?
+    suspend fun getLatestVaR(portfolioId: String, valuationDate: String? = null): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
     suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary>
     suspend fun listScenarios(): List<String>
@@ -289,7 +292,7 @@ interface RiskServiceClient {
     suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
     suspend fun generateReport(portfolioId: String, format: String): ReportResult?
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
-    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null): Pair<List<ValuationJobSummaryItem>, Long>
+    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null, valuationDate: String? = null): Pair<List<ValuationJobSummaryItem>, Long>
     suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
     suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary?
     suspend fun createSodSnapshot(portfolioId: String, jobId: String? = null): SodBaselineStatusSummary
@@ -297,5 +300,5 @@ interface RiskServiceClient {
     suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
     suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
     suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary
-    suspend fun getPositionRisk(portfolioId: String): List<PositionRiskSummaryItem>?
+    suspend fun getPositionRisk(portfolioId: String, valuationDate: String? = null): List<PositionRiskSummaryItem>?
 }

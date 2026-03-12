@@ -57,7 +57,7 @@ describe('usePositionRisk', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1')
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
     expect(result.current.positionRisk).toEqual(positionRiskData)
     expect(result.current.error).toBeNull()
   })
@@ -95,13 +95,59 @@ describe('usePositionRisk', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1')
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
 
     mockFetchPositionRisk.mockResolvedValue([])
     rerender({ portfolioId: 'port-2' })
 
     await waitFor(() => {
-      expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-2')
+      expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-2', null)
+    })
+  })
+
+  it('passes valuationDate to fetchPositionRisk when provided', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result } = renderHook(() => usePositionRisk('port-1', '2025-03-10'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', '2025-03-10')
+  })
+
+  it('passes null valuationDate to fetchPositionRisk when omitted', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result } = renderHook(() => usePositionRisk('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
+  })
+
+  it('re-fetches when valuationDate changes', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result, rerender } = renderHook(
+      ({ portfolioId, valuationDate }) => usePositionRisk(portfolioId, valuationDate),
+      { initialProps: { portfolioId: 'port-1' as string | null, valuationDate: null as string | null } },
+    )
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetchPositionRisk).toHaveBeenCalledTimes(1)
+
+    mockFetchPositionRisk.mockResolvedValue([])
+    rerender({ portfolioId: 'port-1', valuationDate: '2025-03-10' })
+
+    await waitFor(() => {
+      expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', '2025-03-10')
     })
   })
 

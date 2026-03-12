@@ -10,6 +10,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 private val BASE_TIME = Instant.parse("2025-06-15T10:00:00Z")
@@ -42,6 +43,7 @@ private fun completedJobWithSnapshots(
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = BASE_TIME,
+    valuationDate = LocalDate.of(2025, 6, 15),
     completedAt = BASE_TIME.plusMillis(200),
     durationMs = 200,
     calculationType = "PARAMETRIC",
@@ -102,6 +104,7 @@ class ValuationJobMapperTest : FunSpec({
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.RUNNING,
             startedAt = BASE_TIME,
+            valuationDate = LocalDate.of(2025, 6, 15),
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
         )
@@ -115,6 +118,7 @@ class ValuationJobMapperTest : FunSpec({
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.FAILED,
             startedAt = BASE_TIME,
+            valuationDate = LocalDate.of(2025, 6, 15),
             completedAt = BASE_TIME.plusMillis(50),
             durationMs = 50,
             calculationType = "PARAMETRIC",
@@ -156,5 +160,27 @@ class ValuationJobMapperTest : FunSpec({
 
         result.shouldNotBeNull()
         result.calculatedAt shouldBe BASE_TIME
+    }
+
+    test("toSummaryResponse includes valuationDate as ISO-8601 string") {
+        val job = completedJobWithSnapshots()
+        val response = job.toSummaryResponse()
+
+        response.valuationDate shouldBe "2025-06-15"
+    }
+
+    test("toDetailResponse includes valuationDate as ISO-8601 string") {
+        val job = completedJobWithSnapshots()
+        val response = job.toDetailResponse()
+
+        response.valuationDate shouldBe "2025-06-15"
+    }
+
+    test("toValuationResult includes valuationDate as LocalDate") {
+        val job = completedJobWithSnapshots()
+        val result = job.toValuationResult()
+
+        result.shouldNotBeNull()
+        result.valuationDate shouldBe LocalDate.of(2025, 6, 15)
     }
 })

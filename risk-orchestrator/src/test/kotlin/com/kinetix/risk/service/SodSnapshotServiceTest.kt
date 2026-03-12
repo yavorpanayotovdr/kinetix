@@ -238,6 +238,7 @@ class SodSnapshotServiceTest : FunSpec({
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+            valuationDate = TODAY,
             completedAt = Instant.parse("2025-01-15T07:01:00Z"),
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
@@ -280,6 +281,7 @@ class SodSnapshotServiceTest : FunSpec({
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.RUNNING,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+            valuationDate = TODAY,
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 
@@ -301,6 +303,7 @@ class SodSnapshotServiceTest : FunSpec({
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
+            valuationDate = TODAY,
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 

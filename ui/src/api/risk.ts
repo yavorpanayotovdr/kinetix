@@ -2,10 +2,13 @@ import type { PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '..
 
 export async function fetchVaR(
   portfolioId: string,
+  valuationDate?: string | null,
 ): Promise<VaRResultDto | null> {
-  const response = await fetch(
-    `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`,
-  )
+  let url = `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`
+  if (valuationDate) {
+    url += `?valuationDate=${encodeURIComponent(valuationDate)}`
+  }
+  const response = await fetch(url)
   if (response.status === 404) {
     return null
   }
@@ -53,10 +56,13 @@ export async function triggerVaRCalculation(
 
 export async function fetchPositionRisk(
   portfolioId: string,
+  valuationDate?: string | null,
 ): Promise<PositionRiskDto[]> {
-  const response = await fetch(
-    `/api/v1/risk/positions/${encodeURIComponent(portfolioId)}`,
-  )
+  let url = `/api/v1/risk/positions/${encodeURIComponent(portfolioId)}`
+  if (valuationDate) {
+    url += `?valuationDate=${encodeURIComponent(valuationDate)}`
+  }
+  const response = await fetch(url)
   if (response.status === 404) {
     return []
   }

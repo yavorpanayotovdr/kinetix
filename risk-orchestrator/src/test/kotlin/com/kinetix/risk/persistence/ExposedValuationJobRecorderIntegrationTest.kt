@@ -13,18 +13,21 @@ import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 private fun startedJob(
     portfolioId: String = "port-1",
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
+    valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = RunStatus.RUNNING,
     startedAt = startedAt,
+    valuationDate = valuationDate,
     calculationType = "PARAMETRIC",
     confidenceLevel = "CL_95",
 )
@@ -34,12 +37,14 @@ private fun completedJob(
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
     varValue: Double = 5000.0,
+    valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
     portfolioId = portfolioId,
     triggerType = triggerType,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
+    valuationDate = valuationDate,
     completedAt = startedAt.plusMillis(150),
     durationMs = 150,
     calculationType = "PARAMETRIC",
@@ -387,5 +392,127 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
     test("findLatestCompleted returns null for unknown portfolio") {
         recorder.save(completedJob())
         recorder.findLatestCompleted("unknown-portfolio").shouldBeNull()
+    }
+
+    test("saves and reads back valuationDate correctly") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = completedJob(valuationDate = date)
+        recorder.save(job)
+
+        val found = recorder.findByJobId(job.jobId)
+        found.shouldNotBeNull()
+        found.valuationDate shouldBe date
+    }
+
+    test("update does NOT change valuationDate — prevents midnight-crossing bug") {
+        val originalDate = LocalDate.of(2025, 1, 15)
+        val job = startedJob(
+            startedAt = Instant.parse("2025-01-15T23:59:00Z"),
+            valuationDate = originalDate,
+        )
+        recorder.save(job)
+
+        val updatedJob = job.copy(
+            status = RunStatus.COMPLETED,
+            completedAt = Instant.parse("2025-01-16T00:01:00Z"),
+            durationMs = 120_000,
+            valuationDate = LocalDate.of(2025, 1, 16), // caller might wrongly pass new date
+        )
+        recorder.update(updatedJob)
+
+        val found = recorder.findByJobId(job.jobId)
+        found.shouldNotBeNull()
+        found.valuationDate shouldBe originalDate // date stays at original
+    }
+
+    test("findLatestCompletedByDate returns the job with latest startedAt for that date") {
+        val date = LocalDate.of(2025, 3, 10)
+        val olderJob = completedJob(
+            startedAt = Instant.parse("2025-03-10T06:00:00Z"),
+            valuationDate = date,
+            varValue = 4000.0,
+        )
+        val newerJob = completedJob(
+            startedAt = Instant.parse("2025-03-10T14:00:00Z"),
+            valuationDate = date,
+            varValue = 5000.0,
+        )
+        recorder.save(olderJob)
+        recorder.save(newerJob)
+
+        val found = recorder.findLatestCompletedByDate("port-1", date)
+        found.shouldNotBeNull()
+        found.jobId shouldBe newerJob.jobId
+        found.varValue shouldBe 5000.0
+    }
+
+    test("findLatestCompletedByDate returns null when only RUNNING jobs exist for date") {
+        val date = LocalDate.of(2025, 3, 10)
+        recorder.save(startedJob(
+            startedAt = Instant.parse("2025-03-10T10:00:00Z"),
+            valuationDate = date,
+        ))
+
+        recorder.findLatestCompletedByDate("port-1", date).shouldBeNull()
+    }
+
+    test("findLatestCompletedByDate returns null when only FAILED jobs exist for date") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = startedJob(
+            startedAt = Instant.parse("2025-03-10T10:00:00Z"),
+            valuationDate = date,
+        )
+        recorder.save(job)
+        recorder.update(job.copy(
+            status = RunStatus.FAILED,
+            completedAt = job.startedAt.plusMillis(50),
+            durationMs = 50,
+            error = "Engine down",
+        ))
+
+        recorder.findLatestCompletedByDate("port-1", date).shouldBeNull()
+    }
+
+    test("findLatestCompletedByDate returns null for wrong date even if other dates have completions") {
+        val date10 = LocalDate.of(2025, 3, 10)
+        val date11 = LocalDate.of(2025, 3, 11)
+        recorder.save(completedJob(
+            startedAt = Instant.parse("2025-03-10T10:00:00Z"),
+            valuationDate = date10,
+        ))
+
+        recorder.findLatestCompletedByDate("port-1", date11).shouldBeNull()
+    }
+
+    test("findLatestCompletedByDate returns null for unknown portfolio") {
+        val date = LocalDate.of(2025, 3, 10)
+        recorder.save(completedJob(
+            startedAt = Instant.parse("2025-03-10T10:00:00Z"),
+            valuationDate = date,
+        ))
+
+        recorder.findLatestCompletedByDate("unknown-portfolio", date).shouldBeNull()
+    }
+
+    test("findByPortfolioId with valuationDate filter returns only jobs for that date") {
+        val date10 = LocalDate.of(2025, 3, 10)
+        val date11 = LocalDate.of(2025, 3, 11)
+        val job10 = completedJob(
+            startedAt = Instant.parse("2025-03-10T10:00:00Z"),
+            valuationDate = date10,
+        )
+        val job11 = completedJob(
+            startedAt = Instant.parse("2025-03-11T10:00:00Z"),
+            valuationDate = date11,
+        )
+        recorder.save(job10)
+        recorder.save(job11)
+
+        val filtered = recorder.findByPortfolioId("port-1", valuationDate = date10)
+        filtered shouldHaveSize 1
+        filtered[0].jobId shouldBe job10.jobId
+
+        val all = recorder.findByPortfolioId("port-1")
+        all shouldHaveSize 2
     }
 })

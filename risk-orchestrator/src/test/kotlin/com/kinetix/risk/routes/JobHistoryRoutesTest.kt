@@ -14,6 +14,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.*
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 private val JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111")
@@ -29,6 +30,7 @@ private fun completedJob(
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
+    valuationDate = LocalDate.of(2025, 1, 15),
     completedAt = startedAt.plusMillis(150),
     durationMs = 150,
     calculationType = "PARAMETRIC",

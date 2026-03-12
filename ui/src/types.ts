@@ -81,6 +81,7 @@ export interface VaRResultDto {
   greeks?: GreeksResultDto
   computedOutputs?: string[]
   pvValue?: string
+  valuationDate?: string
 }
 
 export interface VaRCalculationRequestDto {
@@ -252,6 +253,7 @@ export interface ValuationJobSummaryDto {
   vega: number | null
   theta: number | null
   rho: number | null
+  valuationDate?: string
 }
 
 export interface HypotheticalTradeDto {
@@ -358,6 +360,7 @@ export interface ValuationJobDetailDto {
   pvValue: number | null
   steps: JobStepDto[]
   error: string | null
+  valuationDate?: string
 }
 
 export interface CurrencyExposureDto {

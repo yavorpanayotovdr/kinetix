@@ -32,6 +32,7 @@ export interface UseVaRResult {
   zoomIn: (range: TimeRange) => void
   resetZoom: () => void
   zoomDepth: number
+  isLive: boolean
 }
 
 const POLL_INTERVAL = 30_000
@@ -56,7 +57,8 @@ function defaultTimeRange(): TimeRange {
   return { from: from.toISOString(), to: now.toISOString(), label: 'Last 24h' }
 }
 
-export function useVaR(portfolioId: string | null): UseVaRResult {
+export function useVaR(portfolioId: string | null, valuationDate: string | null = null): UseVaRResult {
+  const isLive = valuationDate === null
   const [varResult, setVarResult] = useState<VaRResultDto | null>(null)
   const [history, setHistory] = useState<VaRHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -127,11 +129,11 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     }
 
     try {
-      const result = await fetchVaR(portfolioId)
+      const result = await fetchVaR(portfolioId, valuationDate)
       setVarResult(result)
       setError(null)
 
-      if (result) {
+      if (result && isLive) {
         setHistory((prev) => {
           if (prev.some((e) => e.calculatedAt === result.calculatedAt)) {
             return prev
@@ -154,7 +156,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
       initialLoadDone.current = true
       isPolling.current = false
     }
-  }, [portfolioId])
+  }, [portfolioId, valuationDate, isLive])
 
   const loadRef = useRef(load)
   loadRef.current = load
@@ -165,9 +167,11 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
     initialLoadDone.current = false
     loadRef.current()
 
+    if (!isLive) return // Historical mode: single fetch, no polling
+
     const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId])
+  }, [portfolioId, isLive])
 
   const loadHistoryRef = useRef(loadHistory)
   loadHistoryRef.current = loadHistory
@@ -274,5 +278,5 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
 
   const greeksResult = varResult?.greeks ?? null
 
-  return { varResult, greeksResult, history, filteredHistory, loading, historyLoading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length }
+  return { varResult, greeksResult, history, filteredHistory, loading, historyLoading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length, isLive }
 }

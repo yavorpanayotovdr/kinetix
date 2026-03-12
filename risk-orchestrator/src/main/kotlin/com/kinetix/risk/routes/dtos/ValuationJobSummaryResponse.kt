@@ -21,4 +21,5 @@ data class ValuationJobSummaryResponse(
     val vega: Double? = null,
     val theta: Double? = null,
     val rho: Double? = null,
+    val valuationDate: String? = null,
 )

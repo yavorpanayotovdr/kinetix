@@ -75,6 +75,44 @@ describe('risk API', () => {
         '/api/v1/risk/var/port%2Fspecial%20%26%20id',
       )
     })
+
+    it('appends valuationDate query param when provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(varResult),
+      })
+
+      await fetchVaR('port-1', '2025-03-10')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/var/port-1?valuationDate=2025-03-10',
+      )
+    })
+
+    it('does not append valuationDate when null', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(varResult),
+      })
+
+      await fetchVaR('port-1', null)
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1')
+    })
+
+    it('does not append valuationDate when undefined', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(varResult),
+      })
+
+      await fetchVaR('port-1')
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1')
+    })
   })
 
   describe('triggerVaRCalculation', () => {
@@ -207,6 +245,32 @@ describe('risk API', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/v1/risk/positions/port%2Fspecial%20%26%20id',
       )
+    })
+
+    it('appends valuationDate query param when provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(positionRiskData),
+      })
+
+      await fetchPositionRisk('port-1', '2025-03-10')
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/positions/port-1?valuationDate=2025-03-10',
+      )
+    })
+
+    it('does not append valuationDate when null', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(positionRiskData),
+      })
+
+      await fetchPositionRisk('port-1', null)
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/port-1')
     })
   })
 

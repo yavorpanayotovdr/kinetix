@@ -37,10 +37,15 @@ fun Route.varRoutes(client: RiskServiceClient) {
             tags = listOf("VaR")
             request {
                 pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                queryParameter<String>("valuationDate") {
+                    description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
+                    required = false
+                }
             }
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
-            val result = client.getLatestVaR(portfolioId)
+            val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
+            val result = client.getLatestVaR(portfolioId, valuationDate)
             if (result != null) {
                 call.respond(result.toResponse())
             } else {

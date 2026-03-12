@@ -1,6 +1,7 @@
 package com.kinetix.risk.persistence
 
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 import org.jetbrains.exposed.sql.json.jsonb
 import kotlinx.serialization.json.Json
@@ -10,6 +11,7 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val portfolioId = varchar("portfolio_id", 255)
     val triggerType = varchar("trigger_type", 50)
     val status = varchar("status", 20)
+    val valuationDate = date("valuation_date")
     val startedAt = timestampWithTimeZone("started_at")
     val completedAt = timestampWithTimeZone("completed_at").nullable()
     val durationMs = long("duration_ms").nullable()

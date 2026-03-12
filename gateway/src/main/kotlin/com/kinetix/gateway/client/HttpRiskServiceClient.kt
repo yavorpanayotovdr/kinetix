@@ -72,8 +72,12 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getLatestVaR(portfolioId: String): ValuationResultSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/var/$portfolioId")
+    override suspend fun getLatestVaR(portfolioId: String, valuationDate: String?): ValuationResultSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/var/$portfolioId") {
+            if (!valuationDate.isNullOrBlank()) {
+                url { parameters.append("valuationDate", valuationDate) }
+            }
+        }
         if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: ValuationResultDto = response.body()
@@ -168,13 +172,14 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun listValuationJobs(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?): Pair<List<ValuationJobSummaryItem>, Long> {
+    override suspend fun listValuationJobs(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: String?): Pair<List<ValuationJobSummaryItem>, Long> {
         val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId") {
             url {
                 parameters.append("limit", limit.toString())
                 parameters.append("offset", offset.toString())
                 if (from != null) parameters.append("from", from.toString())
                 if (to != null) parameters.append("to", to.toString())
+                if (!valuationDate.isNullOrBlank()) parameters.append("valuationDate", valuationDate)
             }
         }
         if (!response.status.isSuccess()) handleErrorResponse(response)
@@ -248,8 +253,12 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getPositionRisk(portfolioId: String): List<PositionRiskSummaryItem>? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/positions/$portfolioId")
+    override suspend fun getPositionRisk(portfolioId: String, valuationDate: String?): List<PositionRiskSummaryItem>? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/positions/$portfolioId") {
+            if (!valuationDate.isNullOrBlank()) {
+                url { parameters.append("valuationDate", valuationDate) }
+            }
+        }
         if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         val dtos: List<PositionRiskClientDto> = response.body()

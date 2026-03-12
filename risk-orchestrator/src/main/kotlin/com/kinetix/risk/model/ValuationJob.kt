@@ -1,6 +1,7 @@
 package com.kinetix.risk.model
 
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class ValuationJob(
@@ -9,6 +10,8 @@ data class ValuationJob(
     val triggerType: TriggerType,
     val status: RunStatus,
     val startedAt: Instant,
+    /** UTC business date for which positions and market data are current. */
+    val valuationDate: LocalDate,
     val completedAt: Instant? = null,
     val durationMs: Long? = null,
     val calculationType: String? = null,

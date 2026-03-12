@@ -113,6 +113,7 @@ data class ValuationResultDto(
     val greeks: GreeksResultDto? = null,
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
+    val valuationDate: String? = null,
 )
 
 @Serializable
@@ -319,6 +320,7 @@ data class ValuationJobSummaryClientDto(
     val vega: Double? = null,
     val theta: Double? = null,
     val rho: Double? = null,
+    val valuationDate: String? = null,
 )
 
 @Serializable
@@ -337,6 +339,7 @@ data class ValuationJobDetailClientDto(
     val pvValue: Double? = null,
     val steps: List<JobStepClientDto> = emptyList(),
     val error: String? = null,
+    val valuationDate: String? = null,
 )
 
 @Serializable
@@ -498,6 +501,7 @@ fun ValuationResultDto.toDomain() = ValuationResultSummary(
     calculatedAt = Instant.parse(calculatedAt),
     greeks = greeks?.toDomain(),
     pvValue = pvValue?.toDoubleOrNull(),
+    valuationDate = valuationDate,
 )
 
 fun StressTestResultDto.toDomain() = StressTestResultSummary(
@@ -645,6 +649,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     vega = vega,
     theta = theta,
     rho = rho,
+    valuationDate = valuationDate,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
@@ -662,6 +667,7 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     pvValue = pvValue,
     steps = steps.map { it.toDomain() },
     error = error,
+    valuationDate = valuationDate,
 )
 
 fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(

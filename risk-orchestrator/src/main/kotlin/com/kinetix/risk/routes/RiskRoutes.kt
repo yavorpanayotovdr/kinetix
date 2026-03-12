@@ -6,7 +6,9 @@ import com.kinetix.risk.routes.dtos.*
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
-import com.kinetix.risk.mapper.*
+import com.kinetix.risk.mapper.toDetailResponse
+import com.kinetix.risk.mapper.toProto
+import com.kinetix.risk.mapper.toValuationResult
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
@@ -17,6 +19,7 @@ import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.ValuationJobRecorder
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
 import com.kinetix.proto.risk.FrtbRequest
@@ -52,6 +55,7 @@ fun Route.riskRoutes(
     sodSnapshotService: SodSnapshotService? = null,
     pnlComputationService: PnlComputationService? = null,
     stressLimitCheckService: StressLimitCheckService? = null,
+    jobRecorder: ValuationJobRecorder? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -91,14 +95,44 @@ fun Route.riskRoutes(
             tags = listOf("VaR")
             request {
                 pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                queryParameter<String>("valuationDate") {
+                    description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
+                    required = false
+                }
             }
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
-            val cached = varCache.get(portfolioId)
-            if (cached != null) {
-                call.respond(cached.toResponse())
+            val valuationDateParam = call.request.queryParameters["valuationDate"]
+
+            if (valuationDateParam != null) {
+                val valuationDate = try {
+                    LocalDate.parse(valuationDateParam)
+                } catch (_: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid 'valuationDate' format. Expected YYYY-MM-DD.")
+                    return@get
+                }
+                if (valuationDate > LocalDate.now(java.time.ZoneOffset.UTC)) {
+                    call.respond(HttpStatusCode.NotFound, "No risk snapshot for future date")
+                    return@get
+                }
+                val job = jobRecorder?.findLatestCompletedByDate(portfolioId, valuationDate)
+                if (job != null) {
+                    val result = job.toValuationResult()
+                    if (result != null) {
+                        call.respond(result.toResponse())
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
+                    }
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
             } else {
-                call.respond(HttpStatusCode.NotFound)
+                val cached = varCache.get(portfolioId)
+                if (cached != null) {
+                    call.respond(cached.toResponse())
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
             }
         }
     }
@@ -109,14 +143,35 @@ fun Route.riskRoutes(
         tags = listOf("Position Risk")
         request {
             pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("valuationDate") {
+                description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
+                required = false
+            }
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
-        val cached = varCache.get(portfolioId)
-        if (cached != null && cached.positionRisk.isNotEmpty()) {
-            call.respond(cached.positionRisk.map { it.toDto() })
+        val valuationDateParam = call.request.queryParameters["valuationDate"]
+
+        if (valuationDateParam != null) {
+            val valuationDate = try {
+                LocalDate.parse(valuationDateParam)
+            } catch (_: Exception) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid 'valuationDate' format. Expected YYYY-MM-DD.")
+                return@get
+            }
+            val job = jobRecorder?.findLatestCompletedByDate(portfolioId, valuationDate)
+            if (job != null && job.positionRiskSnapshot.isNotEmpty()) {
+                call.respond(job.positionRiskSnapshot.map { it.toDto() })
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         } else {
-            call.respond(HttpStatusCode.NotFound)
+            val cached = varCache.get(portfolioId)
+            if (cached != null && cached.positionRisk.isNotEmpty()) {
+                call.respond(cached.positionRisk.map { it.toDto() })
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
     }
 

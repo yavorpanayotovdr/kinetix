@@ -33,6 +33,10 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
                 description = "End timestamp (ISO-8601)"
                 required = false
             }
+            queryParameter<String>("valuationDate") {
+                description = "Valuation date (YYYY-MM-DD). When set, filters to jobs for that business date."
+                required = false
+            }
         }
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
@@ -53,7 +57,9 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             return@get
         }
 
-        val (jobs, totalCount) = client.listValuationJobs(portfolioId, limit, offset, from, to)
+        val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
+
+        val (jobs, totalCount) = client.listValuationJobs(portfolioId, limit, offset, from, to, valuationDate)
         call.respond(PaginatedJobsResponse(jobs.map { it.toResponse() }, totalCount))
     }
 

@@ -18,6 +18,7 @@ import io.ktor.server.testing.*
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 private fun completedJob(
@@ -28,6 +29,7 @@ private fun completedJob(
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
+    valuationDate = LocalDate.of(2025, 1, 15),
     completedAt = startedAt.plusMillis(150),
     durationMs = 150,
     calculationType = "PARAMETRIC",
