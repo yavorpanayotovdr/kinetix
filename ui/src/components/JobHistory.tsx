@@ -30,9 +30,9 @@ function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): s
 export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(() => {
     try {
-      return localStorage.getItem('kinetix:job-history-expanded') === 'true'
+      return localStorage.getItem('kinetix:job-history-expanded') !== 'false'
     } catch {
-      return false
+      return true
     }
   })
   const [search, setSearch] = useState('')

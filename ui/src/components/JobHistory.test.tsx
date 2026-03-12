@@ -46,7 +46,7 @@ describe('JobHistory', () => {
   })
 
   it('renders collapsed by default with summary', () => {
-    localStorage.removeItem('kinetix:job-history-expanded')
+    localStorage.setItem('kinetix:job-history-expanded', 'false')
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -77,7 +77,7 @@ describe('JobHistory', () => {
   })
 
   it('expands table when header is clicked', () => {
-    localStorage.removeItem('kinetix:job-history-expanded')
+    localStorage.setItem('kinetix:job-history-expanded', 'false')
     mockUseJobHistory.mockReturnValue({
       ...defaultHookResult,
       runs: [
@@ -108,7 +108,7 @@ describe('JobHistory', () => {
   })
 
   it('shows empty summary when no jobs exist', () => {
-    localStorage.removeItem('kinetix:job-history-expanded')
+    localStorage.setItem('kinetix:job-history-expanded', 'false')
     render(<JobHistory portfolioId="port-1" />)
 
     const summary = screen.getByTestId('job-history-summary')
