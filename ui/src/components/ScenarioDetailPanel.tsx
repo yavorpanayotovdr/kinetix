@@ -28,13 +28,13 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
 
   return (
     <div data-testid="detail-panel" aria-live="polite" className="mt-4 border-t pt-4">
-      <div className="flex items-center gap-1 mb-4">
+      <div className="inline-flex rounded-md border border-slate-300 dark:border-slate-600 mb-4" role="group">
         <button
           data-testid="view-toggle-asset-class"
-          className={`px-3 py-1.5 text-sm font-medium rounded-l-md border transition-colors ${
+          className={`px-3 py-1.5 text-sm font-medium rounded-l-md transition-colors ${
             view === 'asset-class'
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('asset-class')}
         >
@@ -42,10 +42,10 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
         </button>
         <button
           data-testid="view-toggle-positions"
-          className={`px-3 py-1.5 text-sm font-medium border transition-colors ${
+          className={`-ml-px px-3 py-1.5 text-sm font-medium border-l border-slate-300 dark:border-slate-600 transition-colors ${
             view === 'positions'
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('positions')}
         >
@@ -53,10 +53,10 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
         </button>
         <button
           data-testid="view-toggle-greeks"
-          className={`px-3 py-1.5 text-sm font-medium rounded-r-md border transition-colors ${
+          className={`-ml-px px-3 py-1.5 text-sm font-medium rounded-r-md border-l border-slate-300 dark:border-slate-600 transition-colors ${
             view === 'greeks'
-              ? 'bg-indigo-600 text-white border-indigo-600'
-              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('greeks')}
         >
