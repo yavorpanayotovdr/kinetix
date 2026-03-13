@@ -163,20 +163,22 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-        <span ref={calcTypeRef} className="relative">
+      <div className="flex items-center flex-wrap justify-between gap-2 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+        <span ref={calcTypeRef} className="relative min-w-0">
           <span data-testid="calc-type-label" className="inline-flex items-center gap-1">
             {varResult.calculationType}
-            <Info data-testid="calc-type-info" className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors" onClick={toggleTooltip} />
+            <Info data-testid="calc-type-info" className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0" onClick={toggleTooltip} />
           </span>
           {tooltipOpen && description && (
-            <span data-testid="calc-type-tooltip" className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs text-white text-justify shadow-lg z-10">
+            <span data-testid="calc-type-tooltip" className="absolute bottom-full left-0 mb-1 w-64 rounded bg-slate-800 px-3 py-2 text-xs text-white shadow-lg z-10">
               <button data-testid="calc-type-tooltip-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closeTooltip}><X className="h-3 w-3" /></button>
               {description}
             </span>
           )}
           {' '}&middot;{' '}
-          Calculated: {new Date(varResult.calculatedAt).toLocaleString()}
+          <span title={new Date(varResult.calculatedAt).toLocaleString()}>
+            {new Date(varResult.calculatedAt).toLocaleTimeString()}
+          </span>
           {varResult.valuationDate && (
             <span data-testid="valuation-date-label"> &middot; Risk as of: {varResult.valuationDate}</span>
           )}
