@@ -324,4 +324,22 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun promoteJobLabel(jobId: String, body: JsonObject): JsonObject {
+        val response = httpClient.patch("$baseUrl/api/v1/risk/jobs/$jobId/label") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getOfficialEod(portfolioId: String, date: String): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId/official-eod") {
+            url { parameters.append("date", date) }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }

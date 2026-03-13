@@ -321,6 +321,9 @@ data class ValuationJobSummaryClientDto(
     val theta: Double? = null,
     val rho: Double? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 @Serializable
@@ -340,6 +343,9 @@ data class ValuationJobDetailClientDto(
     val steps: List<JobStepClientDto> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 @Serializable
@@ -650,6 +656,9 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     theta = theta,
     rho = rho,
     valuationDate = valuationDate,
+    runLabel = runLabel,
+    promotedAt = promotedAt,
+    promotedBy = promotedBy,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
@@ -668,6 +677,9 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     steps = steps.map { it.toDomain() },
     error = error,
     valuationDate = valuationDate,
+    runLabel = runLabel,
+    promotedAt = promotedAt,
+    promotedBy = promotedBy,
 )
 
 fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(

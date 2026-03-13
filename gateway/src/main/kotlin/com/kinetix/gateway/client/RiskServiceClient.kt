@@ -177,6 +177,9 @@ data class ValuationJobSummaryItem(
     val theta: Double?,
     val rho: Double?,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 data class ValuationJobDetailItem(
@@ -195,6 +198,9 @@ data class ValuationJobDetailItem(
     val steps: List<JobStepItem>,
     val error: String?,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 data class SodBaselineStatusSummary(
@@ -305,4 +311,6 @@ interface RiskServiceClient {
     suspend fun compareDayOverDay(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject?
     suspend fun compareDayOverDayAttribution(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject
     suspend fun compareModel(portfolioId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun promoteJobLabel(jobId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun getOfficialEod(portfolioId: String, date: String): kotlinx.serialization.json.JsonObject?
 }

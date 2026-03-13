@@ -861,6 +861,9 @@ data class ValuationJobSummaryResponse(
     val theta: Double? = null,
     val rho: Double? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 @Serializable
@@ -880,6 +883,9 @@ data class ValuationJobDetailResponse(
     val steps: List<JobStepDto> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
 
 @Serializable
@@ -918,6 +924,9 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     theta = theta,
     rho = rho,
     valuationDate = valuationDate,
+    runLabel = runLabel,
+    promotedAt = promotedAt,
+    promotedBy = promotedBy,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -936,6 +945,9 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     steps = steps.map { it.toDto() },
     error = error,
     valuationDate = valuationDate,
+    runLabel = runLabel,
+    promotedAt = promotedAt,
+    promotedBy = promotedBy,
 )
 
 // --- Stress Scenario Governance DTOs ---

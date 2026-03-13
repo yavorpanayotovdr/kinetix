@@ -4,9 +4,12 @@ import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.PaginatedJobsResponse
 import com.kinetix.gateway.dto.toResponse
 import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.patch
 import io.ktor.http.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.JsonObject
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
@@ -76,6 +79,48 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             call.respond(job.toResponse())
         } else {
             call.respond(HttpStatusCode.NotFound)
+        }
+    }
+
+    patch("/api/v1/risk/jobs/{jobId}/label", {
+        summary = "Promote or demote a job's EOD label"
+        tags = listOf("EOD Promotion")
+        request {
+            pathParameter<String>("jobId") { description = "Job identifier" }
+        }
+    }) {
+        val jobId = call.requirePathParam("jobId")
+        val body = call.receive<JsonObject>()
+        try {
+            val result = client.promoteJobLabel(jobId, body)
+            call.respond(result)
+        } catch (e: com.kinetix.gateway.client.UpstreamErrorException) {
+            call.respond(HttpStatusCode.fromValue(e.statusCode), mapOf("error" to e.message))
+        }
+    }
+
+    get("/api/v1/risk/jobs/{portfolioId}/official-eod", {
+        summary = "Get the Official EOD designation for a portfolio and date"
+        tags = listOf("EOD Promotion")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("date") {
+                description = "Valuation date (YYYY-MM-DD)"
+                required = true
+            }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+        val date = call.request.queryParameters["date"]
+        if (date.isNullOrBlank()) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date parameter is required"))
+            return@get
+        }
+        val result = client.getOfficialEod(portfolioId, date)
+        if (result != null) {
+            call.respond(result)
+        } else {
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "No Official EOD designation"))
         }
     }
 }
