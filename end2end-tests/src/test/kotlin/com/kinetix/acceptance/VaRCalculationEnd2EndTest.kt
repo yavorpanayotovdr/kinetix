@@ -63,6 +63,7 @@ private class StubRiskEngineClient : RiskEngineClient {
     ): Pair<Double, List<ComponentBreakdown>> {
         val zScore = when (request.confidenceLevel) {
             ConfidenceLevel.CL_95 -> 1.645
+            ConfidenceLevel.CL_975 -> 1.96
             ConfidenceLevel.CL_99 -> 2.326
         }
         val sqrtTime = sqrt(request.timeHorizonDays.toDouble() / 252.0)
