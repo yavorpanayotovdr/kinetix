@@ -56,6 +56,15 @@ fun Route.runReplayRoutes(replayService: ReplayService) {
         when (val result = replayService.replay(jobId)) {
             is ReplayResult.ManifestNotFound ->
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "No manifest found for job $jobId"))
+            is ReplayResult.BlobMissing ->
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity,
+                    ErrorResponse(
+                        "BLOB_MISSING",
+                        "Market data blob ${result.contentHash} (${result.dataType}/${result.instrumentId}) " +
+                            "is no longer available for manifest ${result.manifestId}",
+                    ),
+                )
             is ReplayResult.Error ->
                 call.respond(HttpStatusCode.InternalServerError, ErrorResponse("REPLAY_ERROR", result.message))
             is ReplayResult.Success ->
@@ -68,6 +77,8 @@ fun Route.runReplayRoutes(replayService: ReplayService) {
                         inputDigestMatch = result.inputDigestMatch,
                         originalInputDigest = result.originalInputDigest,
                         replayInputDigest = result.replayInputDigest,
+                        originalVarValue = result.originalVarValue,
+                        originalExpectedShortfall = result.originalExpectedShortfall,
                     )
                 )
         }
@@ -91,4 +102,7 @@ private fun RunManifest.toResponse() = RunManifestResponse(
     marketDataDigest = marketDataDigest,
     inputDigest = inputDigest,
     status = status.name,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+    outputDigest = outputDigest,
 )

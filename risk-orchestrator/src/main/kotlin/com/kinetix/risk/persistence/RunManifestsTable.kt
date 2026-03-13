@@ -21,6 +21,9 @@ object RunManifestsTable : Table("run_manifests") {
     val marketDataDigest = varchar("market_data_digest", 64)
     val inputDigest = varchar("input_digest", 64)
     val status = varchar("status", 20)
+    val varValue = double("var_value").nullable()
+    val expectedShortfall = double("expected_shortfall").nullable()
+    val outputDigest = varchar("output_digest", 64).nullable()
 
     override val primaryKey = PrimaryKey(manifestId)
 }

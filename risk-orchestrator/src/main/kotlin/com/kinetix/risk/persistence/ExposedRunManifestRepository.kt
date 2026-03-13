@@ -2,6 +2,7 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.RunManifestRepository
+import java.time.Instant
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
 import org.jetbrains.exposed.sql.*
@@ -119,6 +120,25 @@ class ExposedRunManifestRepository(private val db: Database? = null) : RunManife
                 }
         }
 
+    override suspend fun finaliseManifest(
+        manifestId: UUID,
+        modelVersion: String,
+        varValue: Double?,
+        expectedShortfall: Double?,
+        outputDigest: String?,
+        inputDigest: String,
+        status: ManifestStatus,
+    ): Unit = newSuspendedTransaction(db = db) {
+        RunManifestsTable.update({ RunManifestsTable.manifestId eq manifestId }) {
+            it[RunManifestsTable.modelVersion] = modelVersion
+            it[RunManifestsTable.varValue] = varValue
+            it[RunManifestsTable.expectedShortfall] = expectedShortfall
+            it[RunManifestsTable.outputDigest] = outputDigest
+            it[RunManifestsTable.inputDigest] = inputDigest
+            it[RunManifestsTable.status] = status.name
+        }
+    }
+
     private fun ResultRow.toRunManifest(): RunManifest = RunManifest(
         manifestId = this[RunManifestsTable.manifestId],
         jobId = this[RunManifestsTable.jobId],
@@ -136,5 +156,8 @@ class ExposedRunManifestRepository(private val db: Database? = null) : RunManife
         marketDataDigest = this[RunManifestsTable.marketDataDigest],
         inputDigest = this[RunManifestsTable.inputDigest],
         status = ManifestStatus.valueOf(this[RunManifestsTable.status]),
+        varValue = this[RunManifestsTable.varValue],
+        expectedShortfall = this[RunManifestsTable.expectedShortfall],
+        outputDigest = this[RunManifestsTable.outputDigest],
     )
 }

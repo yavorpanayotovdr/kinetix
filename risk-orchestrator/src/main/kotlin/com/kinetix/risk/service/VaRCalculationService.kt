@@ -210,7 +210,7 @@ class VaRCalculationService(
                 )
             )
 
-            // Step 3b: Generate MC seed if needed and capture run manifest
+            // Step 3b: Generate MC seed if needed and capture run manifest inputs
             val effectiveRequest = if (request.calculationType == CalculationType.MONTE_CARLO && request.monteCarloSeed == 0L) {
                 request.copy(monteCarloSeed = System.nanoTime())
             } else {
@@ -220,17 +220,16 @@ class VaRCalculationService(
             var manifestId: UUID? = null
             if (runManifestCapture != null) {
                 try {
-                    val manifest = runManifestCapture.capture(
+                    val manifest = runManifestCapture.captureInputs(
                         jobId = jobId,
                         request = effectiveRequest,
                         positions = positions,
                         fetchResults = fetchResults,
-                        modelVersion = "",  // model version not yet known; updated after valuation
                         valuationDate = valuationDate,
                     )
                     manifestId = manifest.manifestId
                 } catch (e: Exception) {
-                    logger.warn("Failed to capture run manifest for job {}", jobId, e)
+                    logger.warn("Failed to capture run manifest inputs for job {}", jobId, e)
                 }
             }
 
@@ -246,6 +245,21 @@ class VaRCalculationService(
                 "var.calculation.count",
                 "calculationType", request.calculationType.name,
             ).increment()
+
+            // Step 4b: Finalise manifest with outputs and real model version
+            if (manifestId != null && runManifestCapture != null) {
+                try {
+                    runManifestCapture.finaliseOutputs(
+                        manifestId = manifestId,
+                        modelVersion = result.modelVersion ?: "",
+                        varValue = result.varValue,
+                        expectedShortfall = result.expectedShortfall,
+                        componentBreakdown = result.componentBreakdown,
+                    )
+                } catch (e: Exception) {
+                    logger.warn("Failed to finalise run manifest {} for job {}", manifestId, jobId, e)
+                }
+            }
 
             val calcDuration = java.time.Duration.between(calcStart, Instant.now()).toMillis()
 

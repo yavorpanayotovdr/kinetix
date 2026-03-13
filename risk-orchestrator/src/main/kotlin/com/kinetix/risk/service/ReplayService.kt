@@ -17,6 +17,7 @@ class ReplayService(
     private val blobStore: MarketDataBlobStore,
     private val riskEngineClient: RiskEngineClient,
     private val jobRecorder: ValuationJobRecorder,
+    private val auditPublisher: RiskAuditEventPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(ReplayService::class.java)
 
@@ -38,10 +39,18 @@ class ReplayService(
             if (ref.status == MarketDataSnapshotStatus.MISSING) continue
             val blob = blobStore.get(ref.contentHash)
             if (blob == null) {
-                logger.warn("Market data blob {} not found for manifest {}", ref.contentHash, manifest.manifestId)
-                continue
+                logger.error(
+                    "Blob resolution failed during replay of job {}: contentHash={}, dataType={}, instrumentId={}",
+                    jobId, ref.contentHash, ref.dataType, ref.instrumentId,
+                )
+                return ReplayResult.BlobMissing(
+                    manifestId = manifest.manifestId.toString(),
+                    contentHash = ref.contentHash,
+                    dataType = ref.dataType,
+                    instrumentId = ref.instrumentId,
+                )
             }
-            val value = deserializeMarketData(blob)
+            val value = deserializeMarketData(blob, ref.contentHash)
             if (value != null) {
                 marketDataValues.add(value)
             }
@@ -77,26 +86,54 @@ class ReplayService(
 
         val digestMatch = replayInputDigest == manifest.inputDigest
 
+        // 8. Get original values for comparison
+        val originalJob = jobRecorder.findByJobId(jobId)
+        val originalVarValue = manifest.varValue ?: originalJob?.varValue
+        val originalExpectedShortfall = manifest.expectedShortfall ?: originalJob?.expectedShortfall
+
         logger.info(
             "Replay complete for job {}: digest match={}, original VaR={}, replay VaR={}",
-            jobId, digestMatch,
-            jobRecorder.findByJobId(jobId)?.varValue,
-            result.varValue,
+            jobId, digestMatch, originalVarValue, result.varValue,
         )
 
-        return ReplayResult.Success(
+        val replayResult = ReplayResult.Success(
             manifest = manifest,
             replayResult = result,
             inputDigestMatch = digestMatch,
             originalInputDigest = manifest.inputDigest,
             replayInputDigest = replayInputDigest,
+            originalVarValue = originalVarValue,
+            originalExpectedShortfall = originalExpectedShortfall,
         )
+
+        // 9. Emit audit event
+        try {
+            auditPublisher?.publish(
+                RunReplayedAuditEvent(
+                    jobId = jobId.toString(),
+                    portfolioId = manifest.portfolioId,
+                    valuationDate = manifest.valuationDate.toString(),
+                    manifestId = manifest.manifestId.toString(),
+                    replayedAt = Instant.now().toString(),
+                    inputDigestMatch = digestMatch,
+                    originalVarValue = originalVarValue,
+                    replayVarValue = result.varValue,
+                    originalExpectedShortfall = originalExpectedShortfall,
+                    replayExpectedShortfall = result.expectedShortfall,
+                    replayModelVersion = result.modelVersion,
+                )
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to publish RISK_RUN_REPLAYED audit event for job {}", jobId, e)
+        }
+
+        return replayResult
     }
 
     suspend fun getManifest(jobId: UUID): RunManifest? =
         manifestRepo.findByJobId(jobId)
 
-    private fun deserializeMarketData(blob: String): MarketDataValue? {
+    private fun deserializeMarketData(blob: String, contentHash: String): MarketDataValue? {
         return try {
             val obj = Json.parseToJsonElement(blob).jsonObject
             val dataType = obj["dataType"]?.jsonPrimitive?.content ?: return null
@@ -151,7 +188,7 @@ class ReplayService(
                 else -> null
             }
         } catch (e: Exception) {
-            logger.warn("Failed to deserialize market data blob", e)
+            logger.warn("Failed to deserialize market data blob {}", contentHash, e)
             null
         }
     }

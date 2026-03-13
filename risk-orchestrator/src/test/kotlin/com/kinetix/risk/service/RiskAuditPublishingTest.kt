@@ -38,7 +38,7 @@ class RiskAuditPublishingTest : FunSpec({
         coEvery { auditPublisher.publish(any()) } just Runs
     }
 
-    test("manifest capture publishes RISK_RUN_MANIFEST_FROZEN audit event") {
+    test("finaliseOutputs publishes RISK_RUN_MANIFEST_FROZEN audit event with real model version") {
         val capture = DefaultRunManifestCapture(manifestRepo, blobStore, auditPublisher)
         val request = VaRCalculationRequest(
             portfolioId = PortfolioId("port-1"),
@@ -46,13 +46,27 @@ class RiskAuditPublishingTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = listOf(testPosition()),
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.of(2026, 3, 13),
+        )
+
+        // No audit event during captureInputs
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
+
+        // Now finalise with real model version
+        coEvery { manifestRepo.findByManifestId(manifest.manifestId) } returns manifest
+        coEvery { manifestRepo.finaliseManifest(any(), any(), any(), any(), any(), any(), any()) } just Runs
+
+        capture.finaliseOutputs(
+            manifestId = manifest.manifestId,
+            modelVersion = "0.1.0-dev",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = emptyList(),
         )
 
         val eventSlot = slot<RiskAuditEvent>()
@@ -152,7 +166,7 @@ class RiskAuditPublishingTest : FunSpec({
         coVerify(exactly = 0) { auditPublisher.publish(any()) }
     }
 
-    test("manifest capture succeeds even when audit publishing fails") {
+    test("finaliseOutputs succeeds even when audit publishing fails") {
         val failingPublisher = mockk<RiskAuditEventPublisher>()
         coEvery { failingPublisher.publish(any()) } throws RuntimeException("Kafka unavailable")
 
@@ -163,18 +177,32 @@ class RiskAuditPublishingTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = listOf(testPosition()),
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.of(2026, 3, 13),
         )
 
-        // Manifest is still returned successfully despite audit failure
+        // Manifest is captured successfully
         manifest.portfolioId shouldBe "port-1"
-        manifest.status shouldBe ManifestStatus.COMPLETE
+        manifest.status shouldBe ManifestStatus.INPUTS_FROZEN
         coVerify { manifestRepo.save(manifest) }
+
+        // finaliseOutputs should not throw even if audit publishing fails
+        coEvery { manifestRepo.findByManifestId(manifest.manifestId) } returns manifest
+        coEvery { manifestRepo.finaliseManifest(any(), any(), any(), any(), any(), any(), any()) } just Runs
+
+        capture.finaliseOutputs(
+            manifestId = manifest.manifestId,
+            modelVersion = "0.1.0-dev",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = emptyList(),
+        )
+
+        // Finalise still persisted despite audit failure
+        coVerify { manifestRepo.finaliseManifest(manifest.manifestId, any(), any(), any(), any(), any(), any()) }
     }
 })

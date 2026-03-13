@@ -7,12 +7,11 @@ import java.time.LocalDate
 import java.util.UUID
 
 class NoOpRunManifestCapture : RunManifestCapture {
-    override suspend fun capture(
+    override suspend fun captureInputs(
         jobId: UUID,
         request: VaRCalculationRequest,
         positions: List<Position>,
         fetchResults: List<FetchResult>,
-        modelVersion: String,
         valuationDate: LocalDate,
     ): RunManifest = RunManifest(
         manifestId = UUID.randomUUID(),
@@ -20,7 +19,7 @@ class NoOpRunManifestCapture : RunManifestCapture {
         portfolioId = request.portfolioId.value,
         valuationDate = valuationDate,
         capturedAt = Instant.now(),
-        modelVersion = modelVersion,
+        modelVersion = "",
         calculationType = request.calculationType.name,
         confidenceLevel = request.confidenceLevel.name,
         timeHorizonDays = request.timeHorizonDays,
@@ -30,6 +29,16 @@ class NoOpRunManifestCapture : RunManifestCapture {
         positionDigest = "",
         marketDataDigest = "",
         inputDigest = "",
-        status = ManifestStatus.COMPLETE,
+        status = ManifestStatus.INPUTS_FROZEN,
     )
+
+    override suspend fun finaliseOutputs(
+        manifestId: UUID,
+        modelVersion: String,
+        varValue: Double?,
+        expectedShortfall: Double?,
+        componentBreakdown: List<ComponentBreakdown>,
+    ) {
+        // no-op
+    }
 }

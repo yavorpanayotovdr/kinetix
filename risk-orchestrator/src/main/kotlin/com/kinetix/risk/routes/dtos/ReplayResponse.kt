@@ -11,4 +11,6 @@ data class ReplayResponse(
     val inputDigestMatch: Boolean,
     val originalInputDigest: String,
     val replayInputDigest: String,
+    val originalVarValue: Double?,
+    val originalExpectedShortfall: Double?,
 )

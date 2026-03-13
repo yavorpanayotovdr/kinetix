@@ -21,8 +21,9 @@ class ReplayServiceTest : FunSpec({
     val blobStore = mockk<MarketDataBlobStore>()
     val riskEngineClient = mockk<RiskEngineClient>()
     val jobRecorder = mockk<ValuationJobRecorder>()
+    val auditPublisher = mockk<RiskAuditEventPublisher>()
 
-    val replayService = ReplayService(manifestRepo, blobStore, riskEngineClient, jobRecorder)
+    val replayService = ReplayService(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher)
 
     val testManifest = RunManifest(
         manifestId = UUID.randomUUID(),
@@ -41,6 +42,8 @@ class ReplayServiceTest : FunSpec({
         marketDataDigest = "def",
         inputDigest = "ghi",
         status = ManifestStatus.COMPLETE,
+        varValue = 5000.0,
+        expectedShortfall = 6250.0,
     )
 
     val testPositionEntries = listOf(
@@ -56,8 +59,21 @@ class ReplayServiceTest : FunSpec({
         )
     )
 
+    val testValuationResult = ValuationResult(
+        portfolioId = PortfolioId("port-1"),
+        calculationType = CalculationType.PARAMETRIC,
+        confidenceLevel = ConfidenceLevel.CL_95,
+        varValue = 5000.0,
+        expectedShortfall = 6250.0,
+        componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
+        greeks = null,
+        calculatedAt = Instant.now(),
+        computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
+    )
+
     beforeEach {
-        clearMocks(manifestRepo, blobStore, riskEngineClient, jobRecorder)
+        clearMocks(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher)
+        coEvery { auditPublisher.publish(any()) } just Runs
     }
 
     test("returns ManifestNotFound when no manifest exists for job") {
@@ -77,24 +93,40 @@ class ReplayServiceTest : FunSpec({
         result.shouldBeInstanceOf<ReplayResult.Error>()
     }
 
-    test("replays a valuation using snapshot positions and no market data") {
+    test("returns BlobMissing when a FETCHED market data blob is not found in the blob store") {
         val jobId = testManifest.jobId
-        val valuationResult = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
-            calculationType = CalculationType.PARAMETRIC,
-            confidenceLevel = ConfidenceLevel.CL_95,
-            varValue = 5000.0,
-            expectedShortfall = 6250.0,
-            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
-            greeks = null,
-            calculatedAt = Instant.now(),
-            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
+        val contentHash = "abcdef1234567890"
+        val refs = listOf(
+            MarketDataRef(
+                dataType = "SPOT_PRICE",
+                instrumentId = "AAPL",
+                assetClass = "EQUITY",
+                contentHash = contentHash,
+                status = MarketDataSnapshotStatus.FETCHED,
+                sourceService = "price-service",
+                sourcedAt = Instant.now(),
+            )
         )
 
         coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
         coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns refs
+        coEvery { blobStore.get(contentHash) } returns null
+
+        val result = replayService.replay(jobId)
+        result.shouldBeInstanceOf<ReplayResult.BlobMissing>()
+        result.contentHash shouldBe contentHash
+        result.dataType shouldBe "SPOT_PRICE"
+        result.instrumentId shouldBe "AAPL"
+    }
+
+    test("replays a valuation using snapshot positions and no market data") {
+        val jobId = testManifest.jobId
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
+        coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
         coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns emptyList()
-        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
         coEvery { jobRecorder.findByJobId(jobId) } returns null
 
         val result = replayService.replay(jobId)
@@ -103,6 +135,36 @@ class ReplayServiceTest : FunSpec({
         result.manifest shouldBe testManifest
         result.replayResult.varValue shouldBe 5000.0
         result.replayResult.expectedShortfall shouldBe 6250.0
+        // Original values come from manifest when job record is null
+        result.originalVarValue shouldBe 5000.0
+        result.originalExpectedShortfall shouldBe 6250.0
+    }
+
+    test("replay result includes original VaR and ES from job record when manifest has no outputs") {
+        val manifestNoOutputs = testManifest.copy(varValue = null, expectedShortfall = null)
+        val jobId = manifestNoOutputs.jobId
+
+        val jobWithValues = ValuationJob(
+            jobId = jobId,
+            portfolioId = "port-1",
+            triggerType = TriggerType.ON_DEMAND,
+            status = RunStatus.COMPLETED,
+            startedAt = Instant.now(),
+            valuationDate = LocalDate.now(),
+            varValue = 4800.0,
+            expectedShortfall = 6000.0,
+        )
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns manifestNoOutputs
+        coEvery { manifestRepo.findPositionSnapshot(manifestNoOutputs.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(manifestNoOutputs.manifestId) } returns emptyList()
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
+        coEvery { jobRecorder.findByJobId(jobId) } returns jobWithValues
+
+        val result = replayService.replay(jobId)
+        result.shouldBeInstanceOf<ReplayResult.Success>()
+        result.originalVarValue shouldBe 4800.0
+        result.originalExpectedShortfall shouldBe 6000.0
     }
 
     test("replays with market data blobs resolved from blob store") {
@@ -122,23 +184,11 @@ class ReplayServiceTest : FunSpec({
             )
         )
 
-        val valuationResult = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
-            calculationType = CalculationType.PARAMETRIC,
-            confidenceLevel = ConfidenceLevel.CL_95,
-            varValue = 5000.0,
-            expectedShortfall = 6250.0,
-            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
-            greeks = null,
-            calculatedAt = Instant.now(),
-            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
-        )
-
         coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
         coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
         coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns refs
         coEvery { blobStore.get(contentHash) } returns blob
-        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
         coEvery { jobRecorder.findByJobId(jobId) } returns null
 
         val result = replayService.replay(jobId)
@@ -167,22 +217,10 @@ class ReplayServiceTest : FunSpec({
             )
         )
 
-        val valuationResult = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
-            calculationType = CalculationType.PARAMETRIC,
-            confidenceLevel = ConfidenceLevel.CL_95,
-            varValue = 5000.0,
-            expectedShortfall = 6250.0,
-            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
-            greeks = null,
-            calculatedAt = Instant.now(),
-            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
-        )
-
         coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
         coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
         coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns refs
-        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
         coEvery { jobRecorder.findByJobId(jobId) } returns null
 
         val result = replayService.replay(jobId)
@@ -216,22 +254,12 @@ class ReplayServiceTest : FunSpec({
             timeHorizonDays = 10,
         )
 
-        val valuationResult = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
-            calculationType = CalculationType.MONTE_CARLO,
-            confidenceLevel = ConfidenceLevel.CL_95,
-            varValue = 5000.0,
-            expectedShortfall = 6250.0,
-            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
-            greeks = null,
-            calculatedAt = Instant.now(),
-            computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
-        )
-
         coEvery { manifestRepo.findByJobId(jobId) } returns manifest
         coEvery { manifestRepo.findPositionSnapshot(manifest.manifestId) } returns testPositionEntries
         coEvery { manifestRepo.findMarketDataRefs(manifest.manifestId) } returns emptyList()
-        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult.copy(
+            calculationType = CalculationType.MONTE_CARLO,
+        )
         coEvery { jobRecorder.findByJobId(jobId) } returns null
 
         replayService.replay(jobId)
@@ -242,5 +270,51 @@ class ReplayServiceTest : FunSpec({
         requestSlot.captured.numSimulations shouldBe 50_000
         requestSlot.captured.monteCarloSeed shouldBe 42
         requestSlot.captured.timeHorizonDays shouldBe 10
+    }
+
+    test("successful replay publishes RISK_RUN_REPLAYED audit event") {
+        val jobId = testManifest.jobId
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
+        coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns emptyList()
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
+        coEvery { jobRecorder.findByJobId(jobId) } returns null
+
+        replayService.replay(jobId)
+
+        val eventSlot = slot<RiskAuditEvent>()
+        coVerify { auditPublisher.publish(capture(eventSlot)) }
+        val event = eventSlot.captured
+        event.shouldBeInstanceOf<RunReplayedAuditEvent>()
+        event.eventType shouldBe "RISK_RUN_REPLAYED"
+        event.portfolioId shouldBe "port-1"
+        event.manifestId shouldBe testManifest.manifestId.toString()
+        event.replayVarValue shouldBe 5000.0
+        event.originalVarValue shouldBe 5000.0
+    }
+
+    test("replay succeeds even when audit publishing fails") {
+        val jobId = testManifest.jobId
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
+        coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns emptyList()
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
+        coEvery { jobRecorder.findByJobId(jobId) } returns null
+        coEvery { auditPublisher.publish(any()) } throws RuntimeException("Kafka unavailable")
+
+        val result = replayService.replay(jobId)
+        result.shouldBeInstanceOf<ReplayResult.Success>()
+        result.replayResult.varValue shouldBe 5000.0
+    }
+
+    test("does not publish audit event when manifest is not found") {
+        val jobId = UUID.randomUUID()
+        coEvery { manifestRepo.findByJobId(jobId) } returns null
+
+        replayService.replay(jobId)
+
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
     }
 })

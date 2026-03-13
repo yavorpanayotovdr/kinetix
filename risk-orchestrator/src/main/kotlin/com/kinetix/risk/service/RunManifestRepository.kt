@@ -1,5 +1,6 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.model.ManifestStatus
 import com.kinetix.risk.model.MarketDataRef
 import com.kinetix.risk.model.PositionSnapshotEntry
 import com.kinetix.risk.model.RunManifest
@@ -13,4 +14,13 @@ interface RunManifestRepository {
     suspend fun findByManifestId(manifestId: UUID): RunManifest?
     suspend fun findPositionSnapshot(manifestId: UUID): List<PositionSnapshotEntry>
     suspend fun findMarketDataRefs(manifestId: UUID): List<MarketDataRef>
+    suspend fun finaliseManifest(
+        manifestId: UUID,
+        modelVersion: String,
+        varValue: Double?,
+        expectedShortfall: Double?,
+        outputDigest: String?,
+        inputDigest: String,
+        status: ManifestStatus,
+    )
 }

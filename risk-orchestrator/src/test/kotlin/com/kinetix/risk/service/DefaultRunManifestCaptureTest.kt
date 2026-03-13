@@ -44,7 +44,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
         coEvery { blobStore.putIfAbsent(any(), any(), any(), any(), any()) } just Runs
     }
 
-    test("captures manifest with correct fields from request and result") {
+    test("captureInputs sets INPUTS_FROZEN status and empty model version") {
         val positions = listOf(testPosition())
         val request = VaRCalculationRequest(
             portfolioId = PortfolioId("port-1"),
@@ -57,12 +57,11 @@ class DefaultRunManifestCaptureTest : FunSpec({
         val jobId = UUID.randomUUID()
         val valuationDate = LocalDate.of(2026, 3, 13)
 
-        val result = capture.capture(
+        val result = capture.captureInputs(
             jobId = jobId,
             request = request,
             positions = positions,
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-abc12345",
             valuationDate = valuationDate,
         )
 
@@ -73,10 +72,13 @@ class DefaultRunManifestCaptureTest : FunSpec({
         result.timeHorizonDays shouldBe 1
         result.numSimulations shouldBe 10_000
         result.monteCarloSeed shouldBe 42
-        result.modelVersion shouldBe "0.1.0-abc12345"
+        result.modelVersion shouldBe ""
         result.valuationDate shouldBe valuationDate
         result.positionCount shouldBe 1
-        result.status shouldBe ManifestStatus.COMPLETE
+        result.status shouldBe ManifestStatus.INPUTS_FROZEN
+        result.varValue shouldBe null
+        result.expectedShortfall shouldBe null
+        result.outputDigest shouldBe null
         result.positionDigest shouldMatch "[a-f0-9]{64}"
         result.marketDataDigest shouldMatch "[a-f0-9]{64}"
         result.inputDigest shouldMatch "[a-f0-9]{64}"
@@ -95,12 +97,11 @@ class DefaultRunManifestCaptureTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = positions,
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
@@ -128,12 +129,11 @@ class DefaultRunManifestCaptureTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = positions,
             fetchResults = fetchResults,
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
@@ -174,12 +174,11 @@ class DefaultRunManifestCaptureTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = positions,
             fetchResults = fetchResults,
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
@@ -197,7 +196,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
         refs[0].sourceService shouldBe "rates-service"
     }
 
-    test("manifest status is COMPLETE when all fetches succeed") {
+    test("manifest status is INPUTS_FROZEN when all fetches succeed") {
         val positions = listOf(testPosition())
         val dependency = DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY")
         val spotValue = ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.5)
@@ -209,19 +208,18 @@ class DefaultRunManifestCaptureTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = positions,
             fetchResults = fetchResults,
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
-        manifest.status shouldBe ManifestStatus.COMPLETE
+        manifest.status shouldBe ManifestStatus.INPUTS_FROZEN
     }
 
-    test("capture with no fetch results produces COMPLETE status") {
+    test("captureInputs with no fetch results produces INPUTS_FROZEN status") {
         val positions = listOf(testPosition())
         val request = VaRCalculationRequest(
             portfolioId = PortfolioId("port-1"),
@@ -229,16 +227,15 @@ class DefaultRunManifestCaptureTest : FunSpec({
             confidenceLevel = ConfidenceLevel.CL_95,
         )
 
-        val manifest = capture.capture(
+        val manifest = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request,
             positions = positions,
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
-        manifest.status shouldBe ManifestStatus.COMPLETE
+        manifest.status shouldBe ManifestStatus.INPUTS_FROZEN
     }
 
     test("input digest changes when request parameters change") {
@@ -250,21 +247,19 @@ class DefaultRunManifestCaptureTest : FunSpec({
         )
         val request2 = request1.copy(calculationType = CalculationType.MONTE_CARLO)
 
-        val manifest1 = capture.capture(
+        val manifest1 = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request1,
             positions = positions,
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
-        val manifest2 = capture.capture(
+        val manifest2 = capture.captureInputs(
             jobId = UUID.randomUUID(),
             request = request2,
             positions = positions,
             fetchResults = emptyList(),
-            modelVersion = "0.1.0-dev",
             valuationDate = LocalDate.now(),
         )
 
@@ -272,5 +267,134 @@ class DefaultRunManifestCaptureTest : FunSpec({
         (manifest1.inputDigest != manifest2.inputDigest) shouldBe true
         // But same position digest since positions are unchanged
         manifest1.positionDigest shouldBe manifest2.positionDigest
+    }
+
+    test("finaliseOutputs updates manifest with model version, outputs, and emits audit event") {
+        val auditPublisher = mockk<RiskAuditEventPublisher>()
+        coEvery { auditPublisher.publish(any()) } just Runs
+
+        val captureWithAudit = DefaultRunManifestCapture(manifestRepo, blobStore, auditPublisher)
+
+        val manifestId = UUID.randomUUID()
+        val existingManifest = RunManifest(
+            manifestId = manifestId,
+            jobId = UUID.randomUUID(),
+            portfolioId = "port-1",
+            valuationDate = LocalDate.of(2026, 3, 13),
+            capturedAt = Instant.now(),
+            modelVersion = "",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+            monteCarloSeed = 0,
+            positionCount = 1,
+            positionDigest = "abc123",
+            marketDataDigest = "def456",
+            inputDigest = "old-digest",
+            status = ManifestStatus.INPUTS_FROZEN,
+        )
+
+        coEvery { manifestRepo.findByManifestId(manifestId) } returns existingManifest
+        coEvery { manifestRepo.finaliseManifest(any(), any(), any(), any(), any(), any(), any()) } just Runs
+
+        captureWithAudit.finaliseOutputs(
+            manifestId = manifestId,
+            modelVersion = "1.2.0-prod",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = emptyList(),
+        )
+
+        // Verify manifest was finalised with correct values
+        coVerify {
+            manifestRepo.finaliseManifest(
+                manifestId = manifestId,
+                modelVersion = "1.2.0-prod",
+                varValue = 5000.0,
+                expectedShortfall = 6250.0,
+                outputDigest = any(),
+                inputDigest = any(),
+                status = ManifestStatus.COMPLETE,
+            )
+        }
+
+        // Verify audit event was emitted with real model version
+        val eventSlot = slot<RiskAuditEvent>()
+        coVerify { auditPublisher.publish(capture(eventSlot)) }
+        val event = eventSlot.captured as ManifestFrozenEvent
+        event.eventType shouldBe "RISK_RUN_MANIFEST_FROZEN"
+        event.modelVersion shouldBe "1.2.0-prod"
+        event.status shouldBe "COMPLETE"
+    }
+
+    test("finaliseOutputs preserves PARTIAL status when manifest had missing market data") {
+        val captureNoAudit = DefaultRunManifestCapture(manifestRepo, blobStore)
+
+        val manifestId = UUID.randomUUID()
+        val existingManifest = RunManifest(
+            manifestId = manifestId,
+            jobId = UUID.randomUUID(),
+            portfolioId = "port-1",
+            valuationDate = LocalDate.of(2026, 3, 13),
+            capturedAt = Instant.now(),
+            modelVersion = "",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+            monteCarloSeed = 0,
+            positionCount = 1,
+            positionDigest = "abc123",
+            marketDataDigest = "def456",
+            inputDigest = "old-digest",
+            status = ManifestStatus.PARTIAL,
+        )
+
+        coEvery { manifestRepo.findByManifestId(manifestId) } returns existingManifest
+        coEvery { manifestRepo.finaliseManifest(any(), any(), any(), any(), any(), any(), any()) } just Runs
+
+        captureNoAudit.finaliseOutputs(
+            manifestId = manifestId,
+            modelVersion = "1.2.0-prod",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            componentBreakdown = emptyList(),
+        )
+
+        coVerify {
+            manifestRepo.finaliseManifest(
+                manifestId = manifestId,
+                modelVersion = "1.2.0-prod",
+                varValue = 5000.0,
+                expectedShortfall = 6250.0,
+                outputDigest = any(),
+                inputDigest = any(),
+                status = ManifestStatus.PARTIAL,
+            )
+        }
+    }
+
+    test("audit event is not emitted during captureInputs") {
+        val auditPublisher = mockk<RiskAuditEventPublisher>()
+        val captureWithAudit = DefaultRunManifestCapture(manifestRepo, blobStore, auditPublisher)
+
+        val positions = listOf(testPosition())
+        val request = VaRCalculationRequest(
+            portfolioId = PortfolioId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+        )
+
+        captureWithAudit.captureInputs(
+            jobId = UUID.randomUUID(),
+            request = request,
+            positions = positions,
+            fetchResults = emptyList(),
+            valuationDate = LocalDate.now(),
+        )
+
+        // No audit event should be emitted during input capture
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
     }
 })

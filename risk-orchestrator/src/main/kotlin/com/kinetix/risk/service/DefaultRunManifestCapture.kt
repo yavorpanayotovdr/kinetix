@@ -20,12 +20,11 @@ class DefaultRunManifestCapture(
 
     private val logger = LoggerFactory.getLogger(DefaultRunManifestCapture::class.java)
 
-    override suspend fun capture(
+    override suspend fun captureInputs(
         jobId: UUID,
         request: VaRCalculationRequest,
         positions: List<Position>,
         fetchResults: List<FetchResult>,
-        modelVersion: String,
         valuationDate: LocalDate,
     ): RunManifest {
         val manifestId = UUID.randomUUID()
@@ -92,12 +91,12 @@ class DefaultRunManifestCapture(
             }
         }
 
-        // 3. Compute digests
+        // 3. Compute digests (model version unknown at this stage — use empty string)
         val positionDigest = InputDigest.digestPositions(positions)
         val marketDataDigest = InputDigest.digestMarketData(successValues)
-        val inputDigest = InputDigest.digestInputs(request, positionDigest, marketDataDigest, modelVersion)
+        val inputDigest = InputDigest.digestInputs(request, positionDigest, marketDataDigest, "")
 
-        val status = if (hasFailures) ManifestStatus.PARTIAL else ManifestStatus.COMPLETE
+        val status = if (hasFailures) ManifestStatus.PARTIAL else ManifestStatus.INPUTS_FROZEN
 
         val manifest = RunManifest(
             manifestId = manifestId,
@@ -105,7 +104,7 @@ class DefaultRunManifestCapture(
             portfolioId = request.portfolioId.value,
             valuationDate = valuationDate,
             capturedAt = capturedAt,
-            modelVersion = modelVersion,
+            modelVersion = "",
             calculationType = request.calculationType.name,
             confidenceLevel = request.confidenceLevel.name,
             timeHorizonDays = request.timeHorizonDays,
@@ -126,33 +125,87 @@ class DefaultRunManifestCapture(
         }
 
         logger.info(
-            "Run manifest {} captured for job {} ({} positions, {} market data refs, status={})",
+            "Run manifest {} inputs captured for job {} ({} positions, {} market data refs, status={})",
             manifestId, jobId, positions.size, marketDataRefs.size, status,
         )
 
-        // 5. Emit audit event
+        return manifest
+    }
+
+    override suspend fun finaliseOutputs(
+        manifestId: UUID,
+        modelVersion: String,
+        varValue: Double?,
+        expectedShortfall: Double?,
+        componentBreakdown: List<ComponentBreakdown>,
+    ) {
+        // 1. Load the manifest to get the digests for recomputation
+        val manifest = manifestRepo.findByManifestId(manifestId)
+        if (manifest == null) {
+            logger.warn("Cannot finalise manifest {} — not found", manifestId)
+            return
+        }
+
+        // 2. Recompute input digest with the real model version
+        val request = VaRCalculationRequest(
+            portfolioId = com.kinetix.common.model.PortfolioId(manifest.portfolioId),
+            calculationType = CalculationType.valueOf(manifest.calculationType),
+            confidenceLevel = ConfidenceLevel.valueOf(manifest.confidenceLevel),
+            timeHorizonDays = manifest.timeHorizonDays,
+            numSimulations = manifest.numSimulations,
+            monteCarloSeed = manifest.monteCarloSeed,
+        )
+        val finalInputDigest = InputDigest.digestInputs(
+            request, manifest.positionDigest, manifest.marketDataDigest, modelVersion,
+        )
+
+        // 3. Compute output digest
+        val outputDigest = InputDigest.digestOutputs(varValue, expectedShortfall)
+
+        // 4. Determine final status
+        val finalStatus = if (manifest.status == ManifestStatus.PARTIAL) {
+            ManifestStatus.PARTIAL
+        } else {
+            ManifestStatus.COMPLETE
+        }
+
+        // 5. Persist the finalisation
+        manifestRepo.finaliseManifest(
+            manifestId = manifestId,
+            modelVersion = modelVersion,
+            varValue = varValue,
+            expectedShortfall = expectedShortfall,
+            outputDigest = outputDigest,
+            inputDigest = finalInputDigest,
+            status = finalStatus,
+        )
+
+        logger.info(
+            "Run manifest {} finalised for job {}: modelVersion={}, VaR={}, ES={}, status={}",
+            manifestId, manifest.jobId, modelVersion, varValue, expectedShortfall, finalStatus,
+        )
+
+        // 6. Emit audit event with final accurate data
         try {
             auditPublisher?.publish(
                 ManifestFrozenEvent(
-                    jobId = jobId.toString(),
-                    portfolioId = request.portfolioId.value,
-                    valuationDate = valuationDate.toString(),
+                    jobId = manifest.jobId.toString(),
+                    portfolioId = manifest.portfolioId,
+                    valuationDate = manifest.valuationDate.toString(),
                     manifestId = manifestId.toString(),
-                    capturedAt = capturedAt.toString(),
-                    positionCount = positions.size,
-                    positionDigest = positionDigest,
-                    marketDataDigest = marketDataDigest,
-                    inputDigest = inputDigest,
+                    capturedAt = manifest.capturedAt.toString(),
+                    positionCount = manifest.positionCount,
+                    positionDigest = manifest.positionDigest,
+                    marketDataDigest = manifest.marketDataDigest,
+                    inputDigest = finalInputDigest,
                     modelVersion = modelVersion,
-                    calculationType = request.calculationType.name,
-                    status = status.name,
+                    calculationType = manifest.calculationType,
+                    status = finalStatus.name,
                 )
             )
         } catch (e: Exception) {
-            logger.warn("Failed to publish RISK_RUN_MANIFEST_FROZEN audit event for job {}", jobId, e)
+            logger.warn("Failed to publish RISK_RUN_MANIFEST_FROZEN audit event for manifest {}", manifestId, e)
         }
-
-        return manifest
     }
 
     private fun serializeMarketData(value: MarketDataValue): String = when (value) {

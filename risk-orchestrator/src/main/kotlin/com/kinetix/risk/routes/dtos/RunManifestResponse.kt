@@ -20,4 +20,7 @@ data class RunManifestResponse(
     val marketDataDigest: String,
     val inputDigest: String,
     val status: String,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+    val outputDigest: String? = null,
 )

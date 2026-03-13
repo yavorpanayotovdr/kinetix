@@ -9,6 +9,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.string.shouldNotBeEmpty
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.*
 import java.math.BigDecimal
@@ -28,7 +29,7 @@ private fun pos(instrumentId: String = "AAPL") = Position(
     marketPrice = Money(BigDecimal("170.00"), USD),
 )
 
-private fun result() = ValuationResult(
+private fun result(modelVersion: String? = "0.1.0-abc12345") = ValuationResult(
     portfolioId = PortfolioId("port-1"),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
@@ -38,6 +39,7 @@ private fun result() = ValuationResult(
     greeks = null,
     calculatedAt = Instant.now(),
     computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
+    modelVersion = modelVersion,
 )
 
 class VaRCalculationServiceManifestCaptureTest : FunSpec({
@@ -58,9 +60,10 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         clearMocks(positionProvider, riskEngineClient, resultPublisher, jobRecorder, manifestCapture)
         coEvery { jobRecorder.save(any()) } just Runs
         coEvery { jobRecorder.update(any()) } just Runs
+        coEvery { manifestCapture.finaliseOutputs(any(), any(), any(), any(), any()) } just Runs
     }
 
-    test("invokes manifest capture and links manifest ID to completed job") {
+    test("invokes captureInputs before valuation and finaliseOutputs after, linking manifest ID to completed job") {
         val positions = listOf(pos())
         val expectedResult = result()
         val manifestId = UUID.randomUUID()
@@ -68,7 +71,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
-        coEvery { manifestCapture.capture(any(), any(), any(), any(), any(), any()) } returns RunManifest(
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
             manifestId = manifestId,
             jobId = UUID.randomUUID(),
             portfolioId = "port-1",
@@ -84,7 +87,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
             positionDigest = "abc",
             marketDataDigest = "def",
             inputDigest = "ghi",
-            status = ManifestStatus.COMPLETE,
+            status = ManifestStatus.INPUTS_FROZEN,
         )
 
         service.calculateVaR(
@@ -95,8 +98,23 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
             )
         )
 
-        coVerify { manifestCapture.capture(any(), any(), positions, any(), any(), any()) }
+        // Verify captureInputs was called with positions
+        coVerify { manifestCapture.captureInputs(any(), any(), positions, any(), any()) }
 
+        // Verify finaliseOutputs was called with real model version and outputs
+        val modelVersionSlot = slot<String>()
+        coVerify {
+            manifestCapture.finaliseOutputs(
+                manifestId,
+                capture(modelVersionSlot),
+                5000.0,
+                6250.0,
+                any(),
+            )
+        }
+        modelVersionSlot.captured shouldBe "0.1.0-abc12345"
+
+        // Verify manifest ID linked to job
         val updateSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(updateSlot)) }
         updateSlot.captured.manifestId shouldBe manifestId
@@ -110,7 +128,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
-        coEvery { manifestCapture.capture(any(), any(), any(), any(), any(), any()) } returns RunManifest(
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
             manifestId = manifestId,
             jobId = UUID.randomUUID(),
             portfolioId = "port-1",
@@ -126,7 +144,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
             positionDigest = "abc",
             marketDataDigest = "def",
             inputDigest = "ghi",
-            status = ManifestStatus.COMPLETE,
+            status = ManifestStatus.INPUTS_FROZEN,
         )
 
         service.calculateVaR(
@@ -138,9 +156,9 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
             )
         )
 
-        // Verify the request passed to capture has a non-zero seed
+        // Verify the request passed to captureInputs has a non-zero seed
         val captureRequestSlot = slot<VaRCalculationRequest>()
-        coVerify { manifestCapture.capture(any(), capture(captureRequestSlot), any(), any(), any(), any()) }
+        coVerify { manifestCapture.captureInputs(any(), capture(captureRequestSlot), any(), any(), any()) }
         captureRequestSlot.captured.monteCarloSeed shouldBeGreaterThan 0
 
         // Verify the same seeded request was passed to the risk engine
@@ -157,7 +175,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
-        coEvery { manifestCapture.capture(any(), any(), any(), any(), any(), any()) } returns RunManifest(
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
             manifestId = manifestId,
             jobId = UUID.randomUUID(),
             portfolioId = "port-1",
@@ -173,7 +191,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
             positionDigest = "abc",
             marketDataDigest = "def",
             inputDigest = "ghi",
-            status = ManifestStatus.COMPLETE,
+            status = ManifestStatus.INPUTS_FROZEN,
         )
 
         service.calculateVaR(
@@ -186,18 +204,18 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         )
 
         val captureRequestSlot = slot<VaRCalculationRequest>()
-        coVerify { manifestCapture.capture(any(), capture(captureRequestSlot), any(), any(), any(), any()) }
+        coVerify { manifestCapture.captureInputs(any(), capture(captureRequestSlot), any(), any(), any()) }
         captureRequestSlot.captured.monteCarloSeed shouldBe 0
     }
 
-    test("calculation succeeds even if manifest capture fails") {
+    test("calculation succeeds even if captureInputs fails") {
         val positions = listOf(pos())
         val expectedResult = result()
 
         coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
-        coEvery { manifestCapture.capture(any(), any(), any(), any(), any(), any()) } throws RuntimeException("DB down")
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } throws RuntimeException("DB down")
 
         val calcResult = service.calculateVaR(
             VaRCalculationRequest(
@@ -214,5 +232,133 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val updateSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(updateSlot)) }
         updateSlot.captured.manifestId shouldBe null
+
+        // finaliseOutputs should not be called since captureInputs failed
+        coVerify(exactly = 0) { manifestCapture.finaliseOutputs(any(), any(), any(), any(), any()) }
+    }
+
+    test("calculation succeeds even if finaliseOutputs fails") {
+        val positions = listOf(pos())
+        val expectedResult = result()
+        val manifestId = UUID.randomUUID()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
+            manifestId = manifestId,
+            jobId = UUID.randomUUID(),
+            portfolioId = "port-1",
+            valuationDate = LocalDate.now(),
+            capturedAt = Instant.now(),
+            modelVersion = "",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+            monteCarloSeed = 0,
+            positionCount = 1,
+            positionDigest = "abc",
+            marketDataDigest = "def",
+            inputDigest = "ghi",
+            status = ManifestStatus.INPUTS_FROZEN,
+        )
+        coEvery { manifestCapture.finaliseOutputs(any(), any(), any(), any(), any()) } throws RuntimeException("DB down")
+
+        val calcResult = service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        calcResult.shouldNotBeNull()
+        calcResult.varValue shouldBe 5000.0
+
+        // manifestId should still be set since captureInputs succeeded
+        val updateSlot = slot<ValuationJob>()
+        coVerify { jobRecorder.update(capture(updateSlot)) }
+        updateSlot.captured.manifestId shouldBe manifestId
+    }
+
+    test("passes model version from valuation result to finaliseOutputs") {
+        val positions = listOf(pos())
+        val expectedResult = result(modelVersion = "2.3.1-prod-deadbeef")
+        val manifestId = UUID.randomUUID()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
+            manifestId = manifestId,
+            jobId = UUID.randomUUID(),
+            portfolioId = "port-1",
+            valuationDate = LocalDate.now(),
+            capturedAt = Instant.now(),
+            modelVersion = "",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+            monteCarloSeed = 0,
+            positionCount = 1,
+            positionDigest = "abc",
+            marketDataDigest = "def",
+            inputDigest = "ghi",
+            status = ManifestStatus.INPUTS_FROZEN,
+        )
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val modelVersionSlot = slot<String>()
+        coVerify { manifestCapture.finaliseOutputs(manifestId, capture(modelVersionSlot), any(), any(), any()) }
+        modelVersionSlot.captured shouldBe "2.3.1-prod-deadbeef"
+    }
+
+    test("passes empty model version to finaliseOutputs when valuation result has null model version") {
+        val positions = listOf(pos())
+        val expectedResult = result(modelVersion = null)
+        val manifestId = UUID.randomUUID()
+
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+        coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
+            manifestId = manifestId,
+            jobId = UUID.randomUUID(),
+            portfolioId = "port-1",
+            valuationDate = LocalDate.now(),
+            capturedAt = Instant.now(),
+            modelVersion = "",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            timeHorizonDays = 1,
+            numSimulations = 10_000,
+            monteCarloSeed = 0,
+            positionCount = 1,
+            positionDigest = "abc",
+            marketDataDigest = "def",
+            inputDigest = "ghi",
+            status = ManifestStatus.INPUTS_FROZEN,
+        )
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val modelVersionSlot = slot<String>()
+        coVerify { manifestCapture.finaliseOutputs(manifestId, capture(modelVersionSlot), any(), any(), any()) }
+        modelVersionSlot.captured shouldBe ""
     }
 })

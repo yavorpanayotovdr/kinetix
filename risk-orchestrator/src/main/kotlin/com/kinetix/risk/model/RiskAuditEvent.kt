@@ -42,3 +42,20 @@ data class EodPromotedAuditEvent(
 ) : RiskAuditEvent {
     override val eventType: String = "RISK_RUN_EOD_PROMOTED"
 }
+
+@Serializable
+data class RunReplayedAuditEvent(
+    override val jobId: String,
+    override val portfolioId: String,
+    override val valuationDate: String,
+    override val manifestId: String,
+    val replayedAt: String,
+    val inputDigestMatch: Boolean,
+    val originalVarValue: Double?,
+    val replayVarValue: Double?,
+    val originalExpectedShortfall: Double?,
+    val replayExpectedShortfall: Double?,
+    val replayModelVersion: String?,
+) : RiskAuditEvent {
+    override val eventType: String = "RISK_RUN_REPLAYED"
+}

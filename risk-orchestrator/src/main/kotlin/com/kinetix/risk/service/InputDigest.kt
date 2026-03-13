@@ -41,6 +41,14 @@ object InputDigest {
 
     fun digestMarketDataBlob(blob: String): String = sha256(blob)
 
+    fun digestOutputs(varValue: Double?, expectedShortfall: Double?): String {
+        val canonical = listOf(
+            "var=${varValue?.let { "%.15g".format(it) } ?: "null"}",
+            "es=${expectedShortfall?.let { "%.15g".format(it) } ?: "null"}",
+        ).joinToString(separator = "|")
+        return sha256(canonical)
+    }
+
     fun digestInputs(
         request: VaRCalculationRequest,
         positionDigest: String,
