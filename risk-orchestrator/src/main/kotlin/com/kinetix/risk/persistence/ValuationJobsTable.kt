@@ -31,6 +31,10 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val assetClassGreeks = jsonb<List<AssetClassGreeksJson>>("asset_class_greeks", Json).nullable()
     val steps = jsonb<List<JobStepJson>>("steps", Json)
     val error = text("error").nullable()
+    val triggeredBy = varchar("triggered_by", 255).nullable()
+    val runLabel = varchar("run_label", 20).nullable()
+    val promotedAt = timestampWithTimeZone("promoted_at").nullable()
+    val promotedBy = varchar("promoted_by", 255).nullable()
 
     override val primaryKey = PrimaryKey(jobId)
 }

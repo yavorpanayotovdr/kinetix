@@ -5,6 +5,7 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.ValuationJobRecorder
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
@@ -44,6 +45,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
+            it[triggeredBy] = job.triggeredBy
+            it[runLabel] = job.runLabel?.name
+            it[promotedAt] = job.promotedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
+            it[promotedBy] = job.promotedBy
         }
     }
 
@@ -78,6 +83,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         from: Instant?,
         to: Instant?,
         valuationDate: LocalDate?,
+        runLabel: RunLabel?,
     ): List<ValuationJob> = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
@@ -92,6 +98,9 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                 if (valuationDate != null) {
                     condition = condition and (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate())
                 }
+                if (runLabel != null) {
+                    condition = condition and (ValuationJobsTable.runLabel eq runLabel.name)
+                }
                 condition
             }
             .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
@@ -105,6 +114,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         from: Instant?,
         to: Instant?,
         valuationDate: LocalDate?,
+        runLabel: RunLabel?,
     ): Long = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
@@ -118,6 +128,9 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                 }
                 if (valuationDate != null) {
                     condition = condition and (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate())
+                }
+                if (runLabel != null) {
+                    condition = condition and (ValuationJobsTable.runLabel eq runLabel.name)
                 }
                 condition
             }
@@ -185,6 +198,88 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .limit(1)
             .firstOrNull()
             ?.toValuationJob()
+    }
+
+    override suspend fun findOfficialEodByDate(
+        portfolioId: String,
+        valuationDate: LocalDate,
+    ): ValuationJob? = newSuspendedTransaction(db = db) {
+        val designation = OfficialEodDesignationsTable
+            .selectAll()
+            .where {
+                (OfficialEodDesignationsTable.portfolioId eq portfolioId) and
+                    (OfficialEodDesignationsTable.valuationDate eq valuationDate.toKotlinLocalDate())
+            }
+            .firstOrNull() ?: return@newSuspendedTransaction null
+
+        val jobId = designation[OfficialEodDesignationsTable.jobId]
+        ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq jobId }
+            .firstOrNull()
+            ?.toValuationJob()
+    }
+
+    override suspend fun promoteToOfficialEod(
+        jobId: UUID,
+        promotedBy: String,
+        promotedAt: Instant,
+    ): ValuationJob = newSuspendedTransaction(db = db) {
+        val job = ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq jobId }
+            .firstOrNull()
+            ?.toValuationJob()
+            ?: throw EodPromotionException.JobNotFound(jobId)
+
+        try {
+            OfficialEodDesignationsTable.insert {
+                it[OfficialEodDesignationsTable.portfolioId] = job.portfolioId
+                it[OfficialEodDesignationsTable.valuationDate] = job.valuationDate.toKotlinLocalDate()
+                it[OfficialEodDesignationsTable.jobId] = jobId
+                it[OfficialEodDesignationsTable.promotedAt] = OffsetDateTime.ofInstant(promotedAt, ZoneOffset.UTC)
+                it[OfficialEodDesignationsTable.promotedBy] = promotedBy
+            }
+        } catch (e: org.jetbrains.exposed.exceptions.ExposedSQLException) {
+            if (e.message?.contains("duplicate key") == true || e.message?.contains("unique constraint") == true) {
+                throw EodPromotionException.ConflictingOfficialEod(job.portfolioId, job.valuationDate.toString())
+            }
+            throw e
+        }
+
+        ValuationJobsTable.update({ ValuationJobsTable.jobId eq jobId }) {
+            it[runLabel] = RunLabel.OFFICIAL_EOD.name
+            it[ValuationJobsTable.promotedAt] = OffsetDateTime.ofInstant(promotedAt, ZoneOffset.UTC)
+            it[ValuationJobsTable.promotedBy] = promotedBy
+        }
+
+        job.copy(
+            runLabel = RunLabel.OFFICIAL_EOD,
+            promotedAt = promotedAt,
+            promotedBy = promotedBy,
+        )
+    }
+
+    override suspend fun demoteOfficialEod(jobId: UUID): ValuationJob = newSuspendedTransaction(db = db) {
+        val job = ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq jobId }
+            .firstOrNull()
+            ?.toValuationJob()
+            ?: throw EodPromotionException.JobNotFound(jobId)
+
+        OfficialEodDesignationsTable.deleteWhere {
+            (OfficialEodDesignationsTable.portfolioId eq job.portfolioId) and
+                (OfficialEodDesignationsTable.valuationDate eq job.valuationDate.toKotlinLocalDate())
+        }
+
+        ValuationJobsTable.update({ ValuationJobsTable.jobId eq jobId }) {
+            it[runLabel] = null
+            it[promotedAt] = null
+            it[promotedBy] = null
+        }
+
+        job.copy(runLabel = null, promotedAt = null, promotedBy = null)
     }
 
     private fun JobStep.toJson(): JobStepJson = JobStepJson(
@@ -287,5 +382,9 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         assetClassGreeksSnapshot = this[ValuationJobsTable.assetClassGreeks]?.map { it.toDomain() } ?: emptyList(),
         steps = this[ValuationJobsTable.steps].map { it.toDomain() },
         error = this[ValuationJobsTable.error],
+        triggeredBy = this[ValuationJobsTable.triggeredBy],
+        runLabel = this[ValuationJobsTable.runLabel]?.let { RunLabel.valueOf(it) },
+        promotedAt = this[ValuationJobsTable.promotedAt]?.toInstant(),
+        promotedBy = this[ValuationJobsTable.promotedBy],
     )
 }

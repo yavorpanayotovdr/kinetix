@@ -30,4 +30,8 @@ data class ValuationJob(
     val assetClassGreeksSnapshot: List<GreekValues> = emptyList(),
     val steps: List<JobStep> = emptyList(),
     val error: String? = null,
+    val triggeredBy: String? = null,
+    val runLabel: RunLabel? = null,
+    val promotedAt: Instant? = null,
+    val promotedBy: String? = null,
 )
