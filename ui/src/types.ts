@@ -254,6 +254,9 @@ export interface ValuationJobSummaryDto {
   theta: number | null
   rho: number | null
   valuationDate?: string
+  runLabel: string | null
+  promotedAt: string | null
+  promotedBy: string | null
 }
 
 export interface HypotheticalTradeDto {
@@ -361,6 +364,9 @@ export interface ValuationJobDetailDto {
   steps: JobStepDto[]
   error: string | null
   valuationDate?: string
+  runLabel: string | null
+  promotedAt: string | null
+  promotedBy: string | null
 }
 
 export interface CurrencyExposureDto {

@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useState } from 'react'
-import { Info, Search } from 'lucide-react'
+import { Info, Search, Star } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
+import { ConfirmDialog } from './ui/ConfirmDialog'
 import { JobTimeline } from './JobTimeline'
 import { formatTimeOnly, formatDuration, formatMoney } from '../utils/format'
+import { useEodPromotion } from '../hooks/useEodPromotion'
 
 interface JobHistoryTableProps {
   runs: ValuationJobSummaryDto[]
@@ -13,6 +15,7 @@ interface JobHistoryTableProps {
   onCloseJob: (jobId: string) => void
   selectedForCompare?: Set<string>
   onToggleCompareSelection?: (jobId: string) => void
+  onJobPromoted?: () => void
 }
 
 const STATUS_VARIANT: Record<string, 'success' | 'critical' | 'info' | 'neutral'> = {
@@ -42,8 +45,10 @@ function ElapsedDuration({ startedAt }: { startedAt: string }) {
   return <>{formatDuration(Math.max(0, elapsedMs))}</>
 }
 
-export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob, selectedForCompare, onToggleCompareSelection }: JobHistoryTableProps) {
+export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob, selectedForCompare, onToggleCompareSelection, onJobPromoted }: JobHistoryTableProps) {
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
+  const [promoteTarget, setPromoteTarget] = useState<string | null>(null)
+  const { state: promoteState, error: promoteError, promote, reset: resetPromotion } = useEodPromotion()
 
   if (runs.length === 0) {
     return (
@@ -107,7 +112,9 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                   onClick={() => onSelectJob(run.jobId)}
                   className={`cursor-pointer hover:bg-slate-50 border-b border-slate-100 ${
                     isExpanded || isLoading ? 'bg-primary-50' : ''
-                  } ${selectedForCompare?.has(run.jobId) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
+                  } ${selectedForCompare?.has(run.jobId) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''} ${
+                    run.runLabel === 'OFFICIAL_EOD' ? 'border-l-2 border-l-amber-400' : ''
+                  }`}
                 >
                   {onToggleCompareSelection && (
                     <td className="py-2 pr-2">
@@ -138,7 +145,14 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                     <Badge variant={TRIGGER_VARIANT[run.triggerType] ?? 'neutral'}>{run.triggerType}</Badge>
                   </td>
                   <td className="py-2 pr-3">
-                    <Badge variant={STATUS_VARIANT[run.status] ?? 'neutral'}>{run.status}</Badge>
+                    <span className="inline-flex items-center gap-1">
+                      <Badge variant={STATUS_VARIANT[run.status] ?? 'neutral'}>{run.status}</Badge>
+                      {run.runLabel === 'OFFICIAL_EOD' && (
+                        <Badge variant="eod" data-testid={`eod-badge-${run.jobId}`}>
+                          <Star className="h-3 w-3 mr-0.5 inline" />EOD
+                        </Badge>
+                      )}
+                    </span>
                   </td>
                   <td data-testid={`duration-${run.jobId}`} className="py-2 pr-3 text-slate-600">
                     {run.status === 'RUNNING'
@@ -205,6 +219,26 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                             {detail.error && (
                               <p className="mt-2 text-xs text-red-600">Error: {detail.error}</p>
                             )}
+                            {run.status === 'COMPLETED' && run.runLabel !== 'OFFICIAL_EOD' && (
+                              <button
+                                data-testid={`promote-eod-${run.jobId}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setPromoteTarget(run.jobId)
+                                }}
+                                className="mt-2 px-3 py-1 text-xs font-medium text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition-colors"
+                              >
+                                <Star className="h-3 w-3 mr-1 inline" />
+                                Promote to Official EOD
+                              </button>
+                            )}
+                            {run.runLabel === 'OFFICIAL_EOD' && (
+                              <div data-testid={`eod-info-${run.jobId}`} className="mt-2 text-xs text-amber-700">
+                                <Star className="h-3 w-3 mr-1 inline" />
+                                Official EOD — promoted by {run.promotedBy}
+                                {run.promotedAt && ` at ${new Date(run.promotedAt).toLocaleTimeString()}`}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -216,6 +250,35 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
           })}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={promoteTarget !== null}
+        title="Promote to Official EOD"
+        message={
+          <>
+            <p>Are you sure you want to designate this run as the Official End-of-Day calculation?</p>
+            <p className="mt-2 text-xs text-slate-500">This action will mark the run as the authoritative EOD result for regulatory reporting.</p>
+            {promoteError && (
+              <p className="mt-2 text-sm text-red-600" data-testid="promote-error">{promoteError}</p>
+            )}
+          </>
+        }
+        confirmLabel="Promote"
+        variant="primary"
+        loading={promoteState === 'loading'}
+        onConfirm={async () => {
+          if (!promoteTarget) return
+          const result = await promote(promoteTarget, 'current-user')
+          if (result) {
+            setPromoteTarget(null)
+            resetPromotion()
+            onJobPromoted?.()
+          }
+        }}
+        onCancel={() => {
+          setPromoteTarget(null)
+          resetPromotion()
+        }}
+      />
     </div>
   )
 }

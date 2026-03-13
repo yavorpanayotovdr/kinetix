@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search, Star } from 'lucide-react'
 
 import type { ValuationJobSummaryDto } from '../types'
 import { useJobHistory } from '../hooks/useJobHistory'
@@ -37,6 +37,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
     }
   })
   const [search, setSearch] = useState('')
+  const [eodFilter, setEodFilter] = useState(false)
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
 
   const toggleCompareSelection = (jobId: string) => {
@@ -120,9 +121,9 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
 
   const buckets = useTimeBuckets(chartRuns.length > 0 ? chartRuns : runs, timeRange)
 
-  const filteredRuns = search.trim()
-    ? runs.filter((r) => jobMatchesSearch(r, search, expandedJobs[r.jobId]))
-    : runs
+  const filteredRuns = runs
+    .filter((r) => !eodFilter || r.runLabel === 'OFFICIAL_EOD')
+    .filter((r) => !search.trim() || jobMatchesSearch(r, search, expandedJobs[r.jobId]))
 
   return (
     <Card data-testid="job-history">
@@ -173,7 +174,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
                 />
               )}
               {runs.length > 0 && (
-                <div className="mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <div className="relative inline-block">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
                     <input
@@ -186,6 +187,18 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
+                  <button
+                    data-testid="eod-filter-chip"
+                    onClick={(e) => { e.stopPropagation(); setEodFilter((prev) => !prev) }}
+                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border transition-colors ${
+                      eodFilter
+                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-amber-300 hover:text-amber-700'
+                    }`}
+                  >
+                    <Star className="h-3 w-3" />
+                    Official EOD
+                  </button>
                 </div>
               )}
               {onCompareJobs && selectedForCompare.size === 2 && (
