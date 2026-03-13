@@ -1,3 +1,4 @@
+import { Button } from './ui/Button'
 import type { StressScenarioDto } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -68,28 +69,31 @@ export function ScenarioGovernancePanel({
 
           <div className="flex items-center gap-2">
             {scenario.status === 'DRAFT' && (
-              <button
-                className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => onSubmit(scenario.id)}
               >
                 Submit for Approval
-              </button>
+              </Button>
             )}
             {scenario.status === 'PENDING_APPROVAL' && (
-              <button
-                className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+              <Button
+                variant="success"
+                size="sm"
                 onClick={() => onApprove(scenario.id)}
               >
                 Approve
-              </button>
+              </Button>
             )}
             {scenario.status === 'APPROVED' && (
-              <button
-                className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={() => onRetire(scenario.id)}
               >
                 Retire
-              </button>
+              </Button>
             )}
           </div>
         </div>
