@@ -4,6 +4,7 @@ import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -12,7 +13,9 @@ class EodPromotionService(
     private val jobRecorder: ValuationJobRecorder,
     private val eventPublisher: OfficialEodEventPublisher,
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
+    private val riskAuditPublisher: RiskAuditEventPublisher? = null,
 ) {
+    private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
 
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String): ValuationJob {
         val sample = Timer.start(meterRegistry)
@@ -51,6 +54,26 @@ class EodPromotionService(
                     expectedShortfall = promoted.expectedShortfall,
                 )
             )
+
+            // Emit risk audit event for EOD promotion
+            if (riskAuditPublisher != null && promoted.manifestId != null) {
+                try {
+                    riskAuditPublisher.publish(
+                        EodPromotedAuditEvent(
+                            jobId = promoted.jobId.toString(),
+                            portfolioId = promoted.portfolioId,
+                            valuationDate = promoted.valuationDate.toString(),
+                            manifestId = promoted.manifestId.toString(),
+                            promotedBy = promotedBy,
+                            promotedAt = promoted.promotedAt.toString(),
+                            varValue = promoted.varValue,
+                            expectedShortfall = promoted.expectedShortfall,
+                        )
+                    )
+                } catch (e: Exception) {
+                    logger.warn("Failed to publish RISK_RUN_EOD_PROMOTED audit event for job {}", promoted.jobId, e)
+                }
+            }
 
             sample.stop(meterRegistry.timer("eod.promotion.duration"))
             meterRegistry.counter("eod.promotion.requests", "result", "success").increment()

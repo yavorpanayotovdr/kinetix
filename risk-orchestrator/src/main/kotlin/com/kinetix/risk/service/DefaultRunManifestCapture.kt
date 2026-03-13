@@ -15,6 +15,7 @@ import java.util.UUID
 class DefaultRunManifestCapture(
     private val manifestRepo: RunManifestRepository,
     private val blobStore: MarketDataBlobStore,
+    private val auditPublisher: RiskAuditEventPublisher? = null,
 ) : RunManifestCapture {
 
     private val logger = LoggerFactory.getLogger(DefaultRunManifestCapture::class.java)
@@ -128,6 +129,28 @@ class DefaultRunManifestCapture(
             "Run manifest {} captured for job {} ({} positions, {} market data refs, status={})",
             manifestId, jobId, positions.size, marketDataRefs.size, status,
         )
+
+        // 5. Emit audit event
+        try {
+            auditPublisher?.publish(
+                ManifestFrozenEvent(
+                    jobId = jobId.toString(),
+                    portfolioId = request.portfolioId.value,
+                    valuationDate = valuationDate.toString(),
+                    manifestId = manifestId.toString(),
+                    capturedAt = capturedAt.toString(),
+                    positionCount = positions.size,
+                    positionDigest = positionDigest,
+                    marketDataDigest = marketDataDigest,
+                    inputDigest = inputDigest,
+                    modelVersion = modelVersion,
+                    calculationType = request.calculationType.name,
+                    status = status.name,
+                )
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to publish RISK_RUN_MANIFEST_FROZEN audit event for job {}", jobId, e)
+        }
 
         return manifest
     }

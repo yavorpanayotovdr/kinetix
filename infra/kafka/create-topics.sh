@@ -26,6 +26,7 @@ create_topic "risk.results"      3
 
 # ── Risk ─────────────────────────────────────────────────────────────
 create_topic "risk.anomalies"    3
+create_topic "risk.audit"        3
 
 # ── Rates ────────────────────────────────────────────────────────────
 create_topic "rates.yield-curves" 3
