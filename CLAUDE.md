@@ -1,5 +1,53 @@
 # CLAUDE.md
 
+Kinetix is a multi-service financial risk management platform: Kotlin/Ktor microservices, a Python risk engine, and a React/TypeScript UI.
+
+## Project Structure
+
+```
+kinetix/
+  common/                  # Shared Kotlin library (DTOs, Kafka, HTTP utils)
+  proto/                   # Protobuf definitions (gRPC contracts)
+  gateway/                 # API gateway — aggregates backend services for the UI
+  position-service/        # Trade booking, position management, P&L, limits
+  price-service/           # Market data ingestion and price history
+  rates-service/           # Interest rate curves
+  volatility-service/      # Volatility surfaces
+  correlation-service/     # Correlation matrices
+  reference-data-service/  # Instrument and counterparty reference data
+  risk-engine/             # Python — VaR, Greeks, Monte Carlo, stress testing (gRPC)
+  risk-orchestrator/       # Orchestrates risk calculations across services
+  regulatory-service/      # Model governance, backtesting, submissions
+  notification-service/    # WebSocket push to the UI
+  audit-service/           # Hash-chained audit trail
+  ui/                      # React + TypeScript + Vite frontend
+  end2end-tests/           # Kotlin E2E tests against running services
+  schema-tests/            # Kafka event schema compatibility tests
+  deploy/                  # Helm charts, infrastructure config
+```
+
+## Build & Run
+
+```bash
+# Kotlin services
+./gradlew build                              # Build all
+./gradlew test                               # Unit tests only
+./gradlew acceptanceTest                     # Acceptance tests (*AcceptanceTest)
+./gradlew integrationTest                    # Integration tests (*IntegrationTest)
+./gradlew :end2end-tests:end2EndTest         # End-to-end tests (*End2EndTest)
+
+# Risk engine (Python)
+cd risk-engine && uv run pytest              # All tests
+cd risk-engine && uv run pytest -m unit      # Unit only
+cd risk-engine && uv run pytest -m integration  # Integration only
+
+# UI
+cd ui && npm run dev                         # Dev server
+cd ui && npm run test                        # Vitest unit tests
+cd ui && npx playwright test                 # Playwright browser tests
+cd ui && npx playwright test --ui            # Playwright UI mode
+```
+
 ## Testing Philosophy
 
 Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) practices:
@@ -13,6 +61,17 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 
+## Project Conventions
+
+- **Kotlin tests** use Kotest `FunSpec` with `shouldBe` / `shouldThrow` matchers and MockK for mocking.
+- **Python tests** use pytest with `@pytest.mark.unit` / `@pytest.mark.integration` / `@pytest.mark.performance` markers.
+- **UI unit tests** use Vitest.
+- **UI browser tests** use Playwright and live in `ui/e2e/`. Mock API routes using the patterns in `ui/e2e/fixtures.ts` and test user-visible behaviour: empty states, data rendering, user interactions, validation, and error paths.
+- **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`. These are contract and behaviour tests that live in each service module.
+- **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
+- **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
+- Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
+
 ## Design Principles
 
 - **Single responsibility.** Each class or function should have one reason to change. If a class is doing parsing, validation, persistence, and notification, split it up. A service orchestrates; a repository persists; a mapper converts — don't blend these roles.
@@ -21,28 +80,37 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 ## Code Organisation
 
+### Kotlin services
+
 - **One type per file.** Data classes, enums, sealed classes, and interfaces should each live in their own file rather than being inlined in the implementation class that uses them. This keeps files focused and easy to navigate.
 - **DTOs live in a `dtos` sub-package, one per file.** For example, route DTOs go in `routes/dtos/VaRResultResponse.kt`, not grouped in a single `RiskDtos.kt`. Each file contains exactly one `@Serializable` data class. The same applies to events and domain types — e.g. `PriceEvent` in `PriceEvent.kt`, not inside `KafkaPricePublisher.kt`.
 - **Keep implementation files focused on behaviour.** A service or route file should contain the logic, not a mix of logic and type definitions.
 
-## Project Conventions
+### Python risk engine
 
-- **Kotlin tests** use Kotest `FunSpec` with `shouldBe` / `shouldThrow` matchers and MockK for mocking.
-- **Python tests** use pytest.
-- **UI unit tests** use Vitest.
-- **UI browser tests** use Playwright and live in `ui/e2e/`. Mock API routes using the patterns in `ui/e2e/fixtures.ts` and test user-visible behaviour: empty states, data rendering, user interactions, validation, and error paths. Run via `npx playwright test` from the `ui/` directory.
-- **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`. These are contract and behaviour tests that live in each service module.
-- **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
-- **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
-- Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
+- Source lives in `risk-engine/src/kinetix_risk/`. Tests live in `risk-engine/tests/`.
+- Modules are flat files (e.g. `greeks.py`, `monte_carlo.py`, `valuation.py`) — no deep package nesting.
+- Use dataclasses or Pydantic models for structured data. Keep gRPC server wiring (`server.py`) separate from calculation logic.
 
 ## Architectural Decisions
 
-- **Ask before changing architecture.** Before introducing a new service, module, library, messaging topic, database table, or API contract — or before significantly restructuring existing ones — explain the trade-offs and get my approval. Within an existing service's boundaries, follow the established patterns and conventions autonomously.
+- **Ask before changing architecture.** Before introducing a new service, module, library, messaging topic, database table, or API contract — or before significantly restructuring existing ones — explain the trade-offs and get my approval.
+- **Act autonomously within existing boundaries.** Adding a class/file within an existing service, writing tests, refactoring internals, or adding a route to an existing API — follow established patterns without asking.
 
 ## Guardrails
 
 - **Never delete or remove a test** (test file, test function, or test assertion) without my explicit permission. If a test is failing, fix the code under test or fix the test — do not delete it to make the build pass. Always explain the failure and ask before removing any test.
+- **Never force-push or rewrite published git history** without my explicit permission.
+- **Never modify CI/CD pipeline files** without my approval.
+- **Never add a new library/dependency** without my approval.
+- **Never skip pre-commit hooks** (no `--no-verify`).
+- **When stuck, explain the problem** and your proposed fix before silently retrying or working around it.
+
+## Known Gotchas
+
+- **Testcontainers in `common` module** — Docker connectivity fails because `common` is a library module missing Docker client deps on its classpath. Place integration tests in service modules instead.
+- **Exposed + Kotest `shouldThrow`** — Exceptions thrown inside `newSuspendedTransaction` cannot be caught by `shouldThrow`. Workaround: move validation before the `transactional.run{}` block.
+- **Risk engine PYTHONPATH** — The Dockerfile needs `PYTHONPATH=/app/src` because `uv sync` doesn't install the project in editable mode.
 
 ## Commit Practices
 
