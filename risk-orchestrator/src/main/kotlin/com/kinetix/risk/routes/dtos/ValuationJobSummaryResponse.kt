@@ -22,4 +22,7 @@ data class ValuationJobSummaryResponse(
     val theta: Double? = null,
     val rho: Double? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )

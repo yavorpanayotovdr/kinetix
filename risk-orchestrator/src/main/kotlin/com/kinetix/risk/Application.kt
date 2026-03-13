@@ -31,6 +31,7 @@ import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
+import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
 import com.kinetix.risk.service.RunComparisonService
 import com.kinetix.risk.service.SnapshotDiffer
@@ -239,6 +240,8 @@ fun Application.moduleWithRoutes() {
     }
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
+    val eodEventPublisher = com.kinetix.risk.kafka.KafkaOfficialEodPublisher(kafkaProducer)
+    val eodPromotionService = com.kinetix.risk.service.EodPromotionService(jobRecorder, eodEventPublisher)
 
     val varCalculationService = VaRCalculationService(
         effectivePositionProvider, effectiveRiskEngineClient, resultPublisher,
@@ -343,6 +346,7 @@ fun Application.moduleWithRoutes() {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         jobHistoryRoutes(jobRecorder)
+        eodPromotionRoutes(eodPromotionService)
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider)
     }
 

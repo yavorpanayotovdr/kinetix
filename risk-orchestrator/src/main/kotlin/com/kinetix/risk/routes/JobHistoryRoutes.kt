@@ -2,6 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.risk.mapper.toDetailResponse
 import com.kinetix.risk.mapper.toSummaryResponse
+import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.routes.dtos.PaginatedJobsResponse
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.github.smiley4.ktoropenapi.get
@@ -63,8 +64,15 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             return@get
         }
 
-        val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to, valuationDate)
-        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to, valuationDate)
+        val runLabel = try {
+            call.request.queryParameters["runLabel"]?.let { RunLabel.valueOf(it) }
+        } catch (_: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'runLabel'. Expected one of: ${RunLabel.entries.joinToString()}")
+            return@get
+        }
+
+        val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to, valuationDate, runLabel)
+        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to, valuationDate, runLabel)
         call.respond(PaginatedJobsResponse(jobs.map { it.toSummaryResponse() }, totalCount))
     }
 

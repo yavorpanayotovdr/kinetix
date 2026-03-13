@@ -25,6 +25,9 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     theta = theta,
     rho = rho,
     valuationDate = valuationDate.toString(),
+    runLabel = runLabel?.name,
+    promotedAt = promotedAt?.toString(),
+    promotedBy = promotedBy,
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -43,6 +46,9 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     steps = steps.map { it.toResponse() },
     error = error,
     valuationDate = valuationDate.toString(),
+    runLabel = runLabel?.name,
+    promotedAt = promotedAt?.toString(),
+    promotedBy = promotedBy,
 )
 
 fun ValuationJob.toValuationResult(): ValuationResult? {

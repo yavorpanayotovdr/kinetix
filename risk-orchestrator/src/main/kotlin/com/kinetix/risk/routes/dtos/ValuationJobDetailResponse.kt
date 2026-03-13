@@ -19,4 +19,7 @@ data class ValuationJobDetailResponse(
     val steps: List<JobStepResponse> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
+    val runLabel: String? = null,
+    val promotedAt: String? = null,
+    val promotedBy: String? = null,
 )
