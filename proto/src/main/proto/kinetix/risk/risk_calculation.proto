@@ -115,6 +115,7 @@ message ValuationRequest {
   repeated kinetix.common.Position positions = 6;
   repeated MarketDataValue market_data = 7;
   repeated ValuationOutput requested_outputs = 8;
+  int64 monte_carlo_seed = 9;             // 0 = unseeded (non-deterministic); >0 = deterministic
 }
 
 message GreeksSummary {
@@ -141,6 +142,8 @@ message ValuationResponse {
   GreeksSummary greeks = 8;
   repeated ValuationOutput computed_outputs = 9;
   double pv_value = 10;
+  string model_version = 11;              // risk-engine version, e.g. "0.1.0-abc1234"
+  int64 monte_carlo_seed = 12;            // seed used (0 = not applicable / unseeded)
 }
 
 service RiskCalculationService {
