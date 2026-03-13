@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Card } from './ui'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
@@ -69,7 +70,9 @@ export function PositionDiffTable({ diffs, threshold, onThresholdChange }: Posit
 
   const sortIndicator = (field: SortField) => {
     if (sortField !== field) return null
-    return sortDir === 'asc' ? ' ↑' : ' ↓'
+    return sortDir === 'asc'
+      ? <ChevronUp className="inline h-3 w-3" />
+      : <ChevronDown className="inline h-3 w-3" />
   }
 
   return (
