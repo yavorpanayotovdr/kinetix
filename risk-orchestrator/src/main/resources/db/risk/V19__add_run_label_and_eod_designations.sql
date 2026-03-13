@@ -6,15 +6,15 @@ SELECT remove_compression_policy('valuation_jobs', if_exists => true);
 
 -- Step 2: Decompress all compressed chunks
 DO $$
-DECLARE
-    chunk RECORD;
+DECLARE chunk REGCLASS;
 BEGIN
     FOR chunk IN
-        SELECT show_chunks.chunk_schema || '.' || show_chunks.chunk_name AS chunk_full_name
-        FROM show_chunks('valuation_jobs')
-        WHERE is_compressed
+        SELECT format('%I.%I', c.chunk_schema, c.chunk_name)::regclass
+        FROM timescaledb_information.chunks c
+        WHERE c.hypertable_name = 'valuation_jobs'
+          AND c.is_compressed = true
     LOOP
-        EXECUTE format('SELECT decompress_chunk(%L)', chunk.chunk_full_name);
+        PERFORM decompress_chunk(chunk);
     END LOOP;
 END $$;
 

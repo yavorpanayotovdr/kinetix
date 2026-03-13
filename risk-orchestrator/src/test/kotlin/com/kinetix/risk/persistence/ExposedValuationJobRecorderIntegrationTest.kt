@@ -8,7 +8,11 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
@@ -102,7 +106,10 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
     val recorder = ExposedValuationJobRecorder(db)
 
     beforeEach {
-        newSuspendedTransaction(db = db) { ValuationJobsTable.deleteAll() }
+        newSuspendedTransaction(db = db) {
+            ValuationJobsTable.deleteAll()
+            OfficialEodDesignationsTable.deleteAll()
+        }
     }
 
     test("saves and retrieves a completed valuation job") {
@@ -514,5 +521,98 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
 
         val all = recorder.findByPortfolioId("port-1")
         all shouldHaveSize 2
+    }
+
+    test("promoteToOfficialEod sets runLabel, promotedAt, promotedBy and creates designation") {
+        val job = completedJob(valuationDate = LocalDate.of(2025, 3, 10))
+        recorder.save(job)
+
+        val promoted = recorder.promoteToOfficialEod(job.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        promoted.runLabel shouldBe RunLabel.OFFICIAL_EOD
+        promoted.promotedBy shouldBe "risk-mgr"
+        promoted.promotedAt shouldBe Instant.parse("2025-03-10T18:00:00Z")
+
+        val found = recorder.findOfficialEodByDate("port-1", LocalDate.of(2025, 3, 10))
+        found.shouldNotBeNull()
+        found.jobId shouldBe job.jobId
+    }
+
+    test("promoteToOfficialEod rejects duplicate designation for same portfolio and date") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job1 = completedJob(startedAt = Instant.parse("2025-03-10T10:00:00Z"), valuationDate = date)
+        val job2 = completedJob(startedAt = Instant.parse("2025-03-10T14:00:00Z"), valuationDate = date)
+        recorder.save(job1)
+        recorder.save(job2)
+
+        recorder.promoteToOfficialEod(job1.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        shouldThrow<EodPromotionException.ConflictingOfficialEod> {
+            withContext(Dispatchers.IO) {
+                recorder.promoteToOfficialEod(job2.jobId, "risk-mgr", Instant.parse("2025-03-10T18:30:00Z"))
+            }
+        }
+    }
+
+    test("findOfficialEodByDate returns null when no designation exists") {
+        recorder.save(completedJob(valuationDate = LocalDate.of(2025, 3, 10)))
+
+        recorder.findOfficialEodByDate("port-1", LocalDate.of(2025, 3, 10)).shouldBeNull()
+    }
+
+    test("demoteOfficialEod clears designation and resets runLabel") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = completedJob(valuationDate = date)
+        recorder.save(job)
+        recorder.promoteToOfficialEod(job.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        val demoted = recorder.demoteOfficialEod(job.jobId)
+
+        demoted.runLabel.shouldBeNull()
+        demoted.promotedAt.shouldBeNull()
+        demoted.promotedBy.shouldBeNull()
+        recorder.findOfficialEodByDate("port-1", date).shouldBeNull()
+    }
+
+    test("supersedeOfficialEod marks job as SUPERSEDED_EOD and removes designation") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = completedJob(valuationDate = date)
+        recorder.save(job)
+        recorder.promoteToOfficialEod(job.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        val superseded = recorder.supersedeOfficialEod(job.jobId)
+
+        superseded.runLabel shouldBe RunLabel.SUPERSEDED_EOD
+        superseded.promotedAt.shouldBeNull()
+        superseded.promotedBy.shouldBeNull()
+        recorder.findOfficialEodByDate("port-1", date).shouldBeNull()
+    }
+
+    test("update rejects modification of promoted Official EOD job") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = completedJob(valuationDate = date)
+        recorder.save(job)
+        recorder.promoteToOfficialEod(job.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        val modified = job.copy(varValue = 9999.0)
+        val ex = shouldThrow<IllegalStateException> {
+            withContext(Dispatchers.IO) {
+                recorder.update(modified)
+            }
+        }
+        ex.message shouldBe "Cannot modify promoted Official EOD job ${job.jobId}"
+    }
+
+    test("findByPortfolioId filters by runLabel") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job1 = completedJob(startedAt = Instant.parse("2025-03-10T10:00:00Z"), valuationDate = date)
+        val job2 = completedJob(startedAt = Instant.parse("2025-03-10T14:00:00Z"), valuationDate = date)
+        recorder.save(job1)
+        recorder.save(job2)
+        recorder.promoteToOfficialEod(job1.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        val eodJobs = recorder.findByPortfolioId("port-1", runLabel = RunLabel.OFFICIAL_EOD)
+        eodJobs shouldHaveSize 1
+        eodJobs[0].jobId shouldBe job1.jobId
     }
 })

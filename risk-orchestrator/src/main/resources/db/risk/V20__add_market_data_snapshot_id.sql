@@ -10,7 +10,7 @@ DO $$
 DECLARE chunk REGCLASS;
 BEGIN
     FOR chunk IN
-        SELECT format('%I.%I', c.schema_name, c.table_name)::regclass
+        SELECT format('%I.%I', c.chunk_schema, c.chunk_name)::regclass
         FROM timescaledb_information.chunks c
         WHERE c.hypertable_name = 'valuation_jobs'
           AND c.is_compressed = true
