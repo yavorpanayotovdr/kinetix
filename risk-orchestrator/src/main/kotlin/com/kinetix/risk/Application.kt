@@ -31,6 +31,10 @@ import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
+import com.kinetix.risk.routes.runComparisonRoutes
+import com.kinetix.risk.service.RunComparisonService
+import com.kinetix.risk.service.SnapshotDiffer
+import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DependenciesDiscoverer
@@ -331,10 +335,15 @@ fun Application.moduleWithRoutes() {
         }
     }
 
+    val snapshotDiffer = SnapshotDiffer()
+    val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer)
+    val varAttributionService = VaRAttributionService(effectiveRiskEngineClient, effectivePositionProvider)
+
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         jobHistoryRoutes(jobRecorder)
+        runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider)
     }
 
     launch {

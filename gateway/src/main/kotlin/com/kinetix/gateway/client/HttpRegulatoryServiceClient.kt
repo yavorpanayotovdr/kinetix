@@ -5,6 +5,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class StressScenarioDto(
@@ -96,5 +97,16 @@ class HttpRegulatoryServiceClient(
         val response = httpClient.patch("$baseUrl/api/v1/stress-scenarios/$id/retire")
         val dto: StressScenarioDto = response.body()
         return dto.toDomain()
+    }
+
+    override suspend fun compareBacktests(baseId: String, targetId: String): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/regulatory/backtest/compare") {
+            url {
+                parameters.append("baseId", baseId)
+                parameters.append("targetId", targetId)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        return response.body()
     }
 }

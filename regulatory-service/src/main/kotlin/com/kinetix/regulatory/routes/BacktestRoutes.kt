@@ -1,10 +1,13 @@
 package com.kinetix.regulatory.routes
 
+import com.kinetix.regulatory.dto.BacktestComparisonResponse
 import com.kinetix.regulatory.dto.BacktestHistoryResponse
 import com.kinetix.regulatory.dto.BacktestRequest
 import com.kinetix.regulatory.dto.BacktestResultResponse
+import com.kinetix.regulatory.model.BacktestComparison
 import com.kinetix.regulatory.model.BacktestResultRecord
 import com.kinetix.regulatory.persistence.BacktestResultRepository
+import com.kinetix.regulatory.service.BacktestComparisonService
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
@@ -19,7 +22,10 @@ import kotlin.math.ln
 
 private val backtestLogger = LoggerFactory.getLogger("com.kinetix.regulatory.routes.BacktestRoutes")
 
-fun Route.backtestRoutes(repository: BacktestResultRepository) {
+fun Route.backtestRoutes(
+    repository: BacktestResultRepository,
+    comparisonService: BacktestComparisonService? = null,
+) {
     route("/api/v1/regulatory/backtest/{portfolioId}") {
         post({
             summary = "Trigger VaR backtest for a portfolio"
@@ -82,6 +88,26 @@ fun Route.backtestRoutes(repository: BacktestResultRepository) {
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }
+        }
+
+        get("/compare", {
+            summary = "Compare two backtest results"
+            tags = listOf("Backtesting")
+            request {
+                queryParameter<String>("baseId") { description = "ID of the base backtest result" }
+                queryParameter<String>("targetId") { description = "ID of the target backtest result" }
+            }
+        }) {
+            val service = comparisonService
+                ?: return@get call.respond(HttpStatusCode.NotImplemented, "Comparison service not available")
+
+            val baseId = call.request.queryParameters["baseId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing baseId parameter")
+            val targetId = call.request.queryParameters["targetId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing targetId parameter")
+
+            val comparison = service.compare(baseId, targetId)
+            call.respond(comparison.toResponse())
         }
 
         get("/history", {
@@ -289,6 +315,26 @@ private fun lnGamma(x: Double): Double {
     }
     return -tmp + ln(2.5066282746310005 * ser / x)
 }
+
+private fun BacktestComparison.toResponse() = BacktestComparisonResponse(
+    baseCalculationType = baseConfig.calculationType,
+    baseConfidenceLevel = "%.4f".format(baseConfig.confidenceLevel),
+    baseTotalDays = baseConfig.totalDays,
+    baseViolationCount = baseViolationCount,
+    baseViolationRate = "%.4f".format(baseViolationRate),
+    baseKupiecPValue = "%.4f".format(baseKupiecPValue),
+    baseChristoffersenPValue = "%.4f".format(baseChristoffersenPValue),
+    baseTrafficLightZone = baseTrafficLightZone,
+    targetCalculationType = targetConfig.calculationType,
+    targetConfidenceLevel = "%.4f".format(targetConfig.confidenceLevel),
+    targetTotalDays = targetConfig.totalDays,
+    targetViolationCount = targetViolationCount,
+    targetViolationRate = "%.4f".format(targetViolationRate),
+    targetKupiecPValue = "%.4f".format(targetKupiecPValue),
+    targetChristoffersenPValue = "%.4f".format(targetChristoffersenPValue),
+    targetTrafficLightZone = targetTrafficLightZone,
+    trafficLightChanged = trafficLightChanged,
+)
 
 private fun BacktestResultRecord.toResponse() = BacktestResultResponse(
     id = id,

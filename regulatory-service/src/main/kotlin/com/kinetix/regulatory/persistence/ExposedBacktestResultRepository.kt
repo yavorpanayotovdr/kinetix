@@ -51,6 +51,14 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
             .map { it.toRecord() }
     }
 
+    override suspend fun findById(id: String): BacktestResultRecord? = newSuspendedTransaction(db = db) {
+        BacktestResultsTable
+            .selectAll()
+            .where { BacktestResultsTable.id eq id }
+            .firstOrNull()
+            ?.toRecord()
+    }
+
     override suspend fun findLatestByPortfolioId(portfolioId: String): BacktestResultRecord? =
         newSuspendedTransaction(db = db) {
             BacktestResultsTable

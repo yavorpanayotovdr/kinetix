@@ -7,6 +7,9 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 
 class HttpRiskServiceClient(
@@ -275,5 +278,50 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: PnlAttributionClientDto = response.body()
         return dto.toDomain()
+    }
+
+    override suspend fun compareRuns(portfolioId: String, baseJobId: String, targetJobId: String): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId") {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("baseJobId", baseJobId)
+                put("targetJobId", targetJobId)
+            })
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun compareDayOverDay(portfolioId: String, targetDate: String?, baseDate: String?): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$portfolioId/day-over-day") {
+            url {
+                if (targetDate != null) parameters.append("targetDate", targetDate)
+                if (baseDate != null) parameters.append("baseDate", baseDate)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun compareDayOverDayAttribution(portfolioId: String, targetDate: String?, baseDate: String?): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId/day-over-day/attribution") {
+            contentType(ContentType.Application.Json)
+            url {
+                if (targetDate != null) parameters.append("targetDate", targetDate)
+                if (baseDate != null) parameters.append("baseDate", baseDate)
+            }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun compareModel(portfolioId: String, request: JsonObject): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId/model") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
     }
 }

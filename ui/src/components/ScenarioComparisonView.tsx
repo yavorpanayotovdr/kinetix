@@ -10,6 +10,7 @@ const SCENARIO_COLORS = [
 
 interface ScenarioComparisonViewProps {
   scenarios: StressTestResultDto[]
+  onFullComparison?: () => void
 }
 
 function formatMultiplier(baseVar: string, stressedVar: string): string {
@@ -19,7 +20,7 @@ function formatMultiplier(baseVar: string, stressedVar: string): string {
   return `${(stressed / base).toFixed(1)}x`
 }
 
-export function ScenarioComparisonView({ scenarios }: ScenarioComparisonViewProps) {
+export function ScenarioComparisonView({ scenarios, onFullComparison }: ScenarioComparisonViewProps) {
   if (scenarios.length < 2) {
     return (
       <Card>
@@ -138,6 +139,18 @@ export function ScenarioComparisonView({ scenarios }: ScenarioComparisonViewProp
           ))}
         </div>
       </Card>
+
+      {onFullComparison && display.length === 2 && (
+        <div className="flex justify-end">
+          <button
+            data-testid="scenario-full-comparison"
+            onClick={onFullComparison}
+            className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+          >
+            Full Comparison
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,4 +5,5 @@ enum class TriggerType {
     SCHEDULED,
     TRADE_EVENT,
     PRICE_EVENT,
+    MODEL_COMPARISON,
 }

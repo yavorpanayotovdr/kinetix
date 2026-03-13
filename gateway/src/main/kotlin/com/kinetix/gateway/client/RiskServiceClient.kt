@@ -301,4 +301,8 @@ interface RiskServiceClient {
     suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
     suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary
     suspend fun getPositionRisk(portfolioId: String, valuationDate: String? = null): List<PositionRiskSummaryItem>?
+    suspend fun compareRuns(portfolioId: String, baseJobId: String, targetJobId: String): kotlinx.serialization.json.JsonObject
+    suspend fun compareDayOverDay(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject?
+    suspend fun compareDayOverDayAttribution(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject
+    suspend fun compareModel(portfolioId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
 }

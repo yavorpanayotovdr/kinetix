@@ -13,6 +13,7 @@ import { Card, Badge, Spinner } from './ui'
 interface JobHistoryProps {
   portfolioId: string | null
   refreshSignal?: number
+  onCompareJobs?: (baseJobId: string, targetJobId: string) => void
 }
 
 function formatJobTime(iso: string): string {
@@ -27,7 +28,7 @@ function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): s
   return `Last calc: ${time} (${status}) · ${totalCount} job${totalCount !== 1 ? 's' : ''}`
 }
 
-export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) {
+export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(() => {
     try {
       return localStorage.getItem('kinetix:job-history-expanded') !== 'false'
@@ -36,6 +37,24 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
     }
   })
   const [search, setSearch] = useState('')
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
+
+  const toggleCompareSelection = (jobId: string) => {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev)
+      if (next.has(jobId)) {
+        next.delete(jobId)
+      } else if (next.size < 2) {
+        next.add(jobId)
+      } else {
+        // Replace the oldest selection with the new one
+        const [first] = next
+        next.delete(first)
+        next.add(jobId)
+      }
+      return next
+    })
+  }
   const { runs, chartRuns, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     portfolioId,
   )
@@ -169,12 +188,35 @@ export function JobHistory({ portfolioId, refreshSignal = 0 }: JobHistoryProps) 
                   </div>
                 </div>
               )}
+              {onCompareJobs && selectedForCompare.size === 2 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    data-testid="compare-selected-btn"
+                    onClick={() => {
+                      const ids = Array.from(selectedForCompare)
+                      onCompareJobs(ids[0], ids[1])
+                    }}
+                    className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                  >
+                    Compare Selected
+                  </button>
+                  <button
+                    data-testid="clear-compare-selection"
+                    onClick={() => setSelectedForCompare(new Set())}
+                    className="text-xs text-slate-400 hover:text-slate-600"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
               <JobHistoryTable
                 runs={filteredRuns}
                 expandedJobs={expandedJobs}
                 loadingJobIds={loadingJobIds}
                 onSelectJob={toggleJob}
                 onCloseJob={closeJob}
+                selectedForCompare={onCompareJobs ? selectedForCompare : undefined}
+                onToggleCompareSelection={onCompareJobs ? toggleCompareSelection : undefined}
               />
               {filteredRuns.length > 0 && (
                 <div data-testid="pagination-bar" className="flex items-center justify-center gap-2 mt-2 py-2">

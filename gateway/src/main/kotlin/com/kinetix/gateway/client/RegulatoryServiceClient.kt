@@ -30,4 +30,5 @@ interface RegulatoryServiceClient {
     suspend fun submitForApproval(id: String): StressScenarioItem
     suspend fun approve(id: String, params: ApproveScenarioParams): StressScenarioItem
     suspend fun retire(id: String): StressScenarioItem
+    suspend fun compareBacktests(baseId: String, targetId: String): kotlinx.serialization.json.JsonObject?
 }

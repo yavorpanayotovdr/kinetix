@@ -413,3 +413,125 @@ export interface ScenarioShocksDto {
   volShocks: Record<string, number>
   priceShocks: Record<string, number>
 }
+
+// --- Run Comparison Types ---
+
+export type ComparisonMode = 'DAILY_VAR' | 'MODEL' | 'BACKTEST'
+
+export type PositionChangeType = 'NEW' | 'REMOVED' | 'MODIFIED' | 'UNCHANGED'
+
+export interface RunSnapshotDto {
+  jobId: string | null
+  label: string
+  valuationDate: string
+  calcType: string | null
+  confLevel: string | null
+  varValue: string | null
+  es: string | null
+  pv: string | null
+  delta: string | null
+  gamma: string | null
+  vega: string | null
+  theta: string | null
+  rho: string | null
+  componentBreakdown: ComponentBreakdownDto[]
+  positionRisk: PositionRiskDto[]
+  modelVersion: string | null
+  parameters: Record<string, string>
+  calculatedAt: string | null
+}
+
+export interface PortfolioDiffDto {
+  varChange: string
+  varChangePercent: string | null
+  esChange: string
+  esChangePercent: string | null
+  pvChange: string
+  deltaChange: string
+  gammaChange: string
+  vegaChange: string
+  thetaChange: string
+  rhoChange: string
+}
+
+export interface ComponentDiffDto {
+  assetClass: string
+  baseContribution: string
+  targetContribution: string
+  change: string
+  changePercent: string | null
+}
+
+export interface PositionDiffDto {
+  instrumentId: string
+  assetClass: string
+  changeType: PositionChangeType
+  baseMarketValue: string
+  targetMarketValue: string
+  marketValueChange: string
+  baseVarContribution: string
+  targetVarContribution: string
+  varContributionChange: string
+  baseDelta: string | null
+  targetDelta: string | null
+  baseGamma: string | null
+  targetGamma: string | null
+  baseVega: string | null
+  targetVega: string | null
+}
+
+export interface ParameterDiffDto {
+  paramName: string
+  baseValue: string | null
+  targetValue: string | null
+}
+
+export interface VaRAttributionDto {
+  totalChange: string
+  positionEffect: string
+  volEffect: string
+  corrEffect: string
+  timeDecayEffect: string
+  unexplained: string
+}
+
+export interface RunComparisonResponseDto {
+  comparisonId: string
+  comparisonType: string
+  portfolioId: string
+  baseRun: RunSnapshotDto
+  targetRun: RunSnapshotDto
+  portfolioDiff: PortfolioDiffDto
+  componentDiffs: ComponentDiffDto[]
+  positionDiffs: PositionDiffDto[]
+  parameterDiffs: ParameterDiffDto[]
+  attribution: VaRAttributionDto | null
+}
+
+export interface ModelComparisonRequestDto {
+  calculationType: string
+  confidenceLevel: string
+  targetCalculationType: string
+  targetConfidenceLevel: string
+  targetNumSimulations?: number
+}
+
+export interface BacktestComparisonDto {
+  baseCalculationType: string
+  baseConfidenceLevel: string
+  baseTotalDays: number
+  baseViolationCount: number
+  baseViolationRate: string
+  baseKupiecPValue: string
+  baseChristoffersenPValue: string
+  baseTrafficLightZone: string
+  targetCalculationType: string
+  targetConfidenceLevel: string
+  targetTotalDays: number
+  targetViolationCount: number
+  targetViolationRate: string
+  targetKupiecPValue: string
+  targetChristoffersenPValue: string
+  targetTrafficLightZone: string
+  trafficLightChanged: boolean
+}

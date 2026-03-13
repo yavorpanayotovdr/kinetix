@@ -5,6 +5,7 @@ import java.time.Instant
 
 interface BacktestResultRepository {
     suspend fun save(record: BacktestResultRecord)
+    suspend fun findById(id: String): BacktestResultRecord?
     suspend fun findByPortfolioId(
         portfolioId: String,
         limit: Int,

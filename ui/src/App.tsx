@@ -307,6 +307,10 @@ function App() {
         loading={whatIf.loading}
         error={whatIf.error}
         validationErrors={whatIf.validationErrors}
+        onCompareInDetail={() => {
+          setWhatIfOpen(false)
+          setActiveTab('risk')
+        }}
       />
     </div>
   )

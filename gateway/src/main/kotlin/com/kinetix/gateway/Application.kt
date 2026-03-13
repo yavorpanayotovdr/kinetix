@@ -16,6 +16,7 @@ import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RegulatoryServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
@@ -23,6 +24,7 @@ import com.kinetix.gateway.routes.priceRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
+import com.kinetix.gateway.routes.runComparisonRoutes
 import com.kinetix.gateway.routes.sodSnapshotRoutes
 import com.kinetix.gateway.routes.stressScenarioRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
@@ -169,6 +171,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
+        runComparisonRoutes(riskClient)
     }
 }
 
@@ -204,6 +207,7 @@ fun Application.module(
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
+        runComparisonRoutes(riskClient)
     }
 }
 
@@ -218,6 +222,7 @@ fun Application.module(regulatoryClient: RegulatoryServiceClient) {
     module()
     routing {
         stressScenarioRoutes(regulatoryClient)
+        backtestProxyRoutes(regulatoryClient)
     }
 }
 
@@ -265,6 +270,7 @@ fun Application.devModule() {
     routing {
         notificationRoutes(notificationClient)
         stressScenarioRoutes(regulatoryClient)
+        backtestProxyRoutes(regulatoryClient)
         dataQualityRoutes()
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(

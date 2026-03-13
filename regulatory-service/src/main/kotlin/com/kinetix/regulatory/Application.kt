@@ -10,6 +10,7 @@ import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
 import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import com.kinetix.regulatory.routes.backtestRoutes
+import com.kinetix.regulatory.service.BacktestComparisonService
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
 import com.kinetix.regulatory.stress.StressScenarioRepository
@@ -93,7 +94,7 @@ fun Application.module(
     routing {
         regulatoryRoutes(repository, client)
         if (backtestRepository != null) {
-            backtestRoutes(backtestRepository)
+            backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository))
         }
         if (stressScenarioRepository != null) {
             stressScenarioRoutes(StressScenarioService(stressScenarioRepository))

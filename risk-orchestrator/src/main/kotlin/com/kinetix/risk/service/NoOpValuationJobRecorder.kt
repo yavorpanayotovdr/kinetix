@@ -14,4 +14,5 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun findDistinctPortfolioIds(): List<String> = emptyList()
     override suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob? = null
     override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = null
+    override suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob? = null
 }

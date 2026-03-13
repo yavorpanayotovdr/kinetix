@@ -11,6 +11,8 @@ interface JobHistoryTableProps {
   loadingJobIds: Set<string>
   onSelectJob: (jobId: string) => void
   onCloseJob: (jobId: string) => void
+  selectedForCompare?: Set<string>
+  onToggleCompareSelection?: (jobId: string) => void
 }
 
 const STATUS_VARIANT: Record<string, 'success' | 'critical' | 'info' | 'neutral'> = {
@@ -40,7 +42,7 @@ function ElapsedDuration({ startedAt }: { startedAt: string }) {
   return <>{formatDuration(Math.max(0, elapsedMs))}</>
 }
 
-export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob }: JobHistoryTableProps) {
+export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob, selectedForCompare, onToggleCompareSelection }: JobHistoryTableProps) {
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
 
   if (runs.length === 0) {
@@ -56,6 +58,11 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+            {onToggleCompareSelection && (
+              <th className="py-2 pr-2 w-8">
+                <span className="sr-only">Select for compare</span>
+              </th>
+            )}
             <th className="py-2 pr-3">Job ID</th>
             <th className="py-2 pr-3">Time</th>
             <th className="py-2 pr-3">Trigger</th>
@@ -100,8 +107,25 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                   onClick={() => onSelectJob(run.jobId)}
                   className={`cursor-pointer hover:bg-slate-50 border-b border-slate-100 ${
                     isExpanded || isLoading ? 'bg-primary-50' : ''
-                  }`}
+                  } ${selectedForCompare?.has(run.jobId) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
                 >
+                  {onToggleCompareSelection && (
+                    <td className="py-2 pr-2">
+                      <input
+                        data-testid={`compare-select-${run.jobId}`}
+                        type="checkbox"
+                        checked={selectedForCompare?.has(run.jobId) ?? false}
+                        disabled={run.status !== 'COMPLETED'}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          onToggleCompareSelection(run.jobId)
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
+                        aria-label={`Select job ${run.jobId.slice(0, 8)} for comparison`}
+                      />
+                    </td>
+                  )}
                   <td
                     data-testid={`job-id-${run.jobId}`}
                     title={run.jobId}
@@ -137,7 +161,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                 </tr>
                 {(isExpanded || isLoading) && (
                   <tr data-testid={`job-detail-row-${run.jobId}`}>
-                    <td colSpan={8} className="p-0">
+                    <td colSpan={onToggleCompareSelection ? 9 : 8} className="p-0">
                       <div data-testid="job-detail-panel" className="px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-700">Job Details</h4>

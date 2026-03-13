@@ -3,6 +3,7 @@ import { X, Plus, Trash2, ArrowDown, ArrowUp } from 'lucide-react'
 import type { WhatIfResponseDto, WhatIfImpactDto, PositionRiskDto } from '../types'
 import type { TradeFormEntry, ValidationErrors } from '../hooks/useWhatIf'
 import { formatNum } from '../utils/format'
+import { changeColorClass } from '../utils/changeIndicators'
 import { Button, Card, Input } from './ui'
 
 interface WhatIfPanelProps {
@@ -19,13 +20,7 @@ interface WhatIfPanelProps {
   loading: boolean
   error: string | null
   validationErrors?: ValidationErrors
-}
-
-function changeColorClass(value: number): string {
-  // For VaR/ES: negative change (reduction) is good = green, positive (increase) is bad = red
-  if (value < 0) return 'text-green-600 dark:text-green-400'
-  if (value > 0) return 'text-red-600 dark:text-red-400'
-  return 'text-slate-500 dark:text-slate-400'
+  onCompareInDetail?: () => void
 }
 
 function ChangeIcon({ value }: { value: number }) {
@@ -88,6 +83,7 @@ export function WhatIfPanel({
   loading,
   error,
   validationErrors = {},
+  onCompareInDetail,
 }: WhatIfPanelProps) {
   const firstInputRef = useRef<HTMLInputElement>(null)
 
@@ -468,6 +464,18 @@ export function WhatIfPanel({
               </table>
             </div>
           </Card>
+        )}
+
+        {/* Compare in Detail button */}
+        {result && impact && onCompareInDetail && (
+          <Button
+            data-testid="whatif-compare-detail"
+            variant="secondary"
+            onClick={onCompareInDetail}
+            className="w-full"
+          >
+            Compare in Detail
+          </Button>
         )}
 
         </div>{/* end aria-live */}

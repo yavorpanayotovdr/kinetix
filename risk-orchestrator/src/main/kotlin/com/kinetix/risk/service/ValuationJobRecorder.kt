@@ -26,4 +26,5 @@ interface ValuationJobRecorder {
     suspend fun findDistinctPortfolioIds(): List<String>
     suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob?
     suspend fun findLatestCompleted(portfolioId: String): ValuationJob?
+    suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob?
 }

@@ -169,6 +169,24 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?.toValuationJob()
     }
 
+    override suspend fun findLatestCompletedBeforeDate(
+        portfolioId: String,
+        beforeDate: LocalDate,
+    ): ValuationJob? = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
+            .selectAll()
+            .where {
+                (ValuationJobsTable.portfolioId eq portfolioId) and
+                    (ValuationJobsTable.valuationDate less beforeDate.toKotlinLocalDate()) and
+                    (ValuationJobsTable.status eq "COMPLETED")
+            }
+            .orderBy(ValuationJobsTable.valuationDate, SortOrder.DESC)
+            .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
+            .limit(1)
+            .firstOrNull()
+            ?.toValuationJob()
+    }
+
     private fun JobStep.toJson(): JobStepJson = JobStepJson(
         name = name.name,
         status = status.name,
