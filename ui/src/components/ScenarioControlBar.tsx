@@ -31,7 +31,7 @@ export function ScenarioControlBar({
   const canCompare = compareCount >= 2 && compareCount <= 3
 
   return (
-    <div data-testid="scenario-control-bar" className="flex items-center gap-3 mb-4">
+    <div data-testid="scenario-control-bar" className="flex items-center flex-wrap gap-3 mb-4">
       <Button
         data-testid="run-all-btn"
         variant="danger"
