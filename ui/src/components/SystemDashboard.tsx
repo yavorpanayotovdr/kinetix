@@ -157,15 +157,15 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Server className="h-5 w-5 text-slate-500" />
             Service Health
           </h2>
           <div
             data-testid="service-health-grid"
-            className="grid grid-cols-3 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
           >
             {Object.entries(services).map(([key, svc]) => {
               const up = svc.status === 'UP'
@@ -210,7 +210,7 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
           </div>
         </div>
 
-        <div className="col-span-1">
+        <div className="md:col-span-1">
           <h2 className="text-lg font-semibold mb-3">Observability</h2>
           <div data-testid="observability-links" className="space-y-2">
             {OBSERVABILITY_LINK_DEFS.map((link) => {
