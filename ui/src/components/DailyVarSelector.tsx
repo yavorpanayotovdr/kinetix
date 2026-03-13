@@ -8,11 +8,8 @@ interface DailyVarSelectorProps {
 }
 
 export function DailyVarSelector({ loading, onCompare }: DailyVarSelectorProps) {
-  const today = new Date().toISOString().split('T')[0]
-  const yesterday = new Date(Date.now() - 86_400_000).toISOString().split('T')[0]
-
-  const [targetDate, setTargetDate] = useState(today)
-  const [baseDate, setBaseDate] = useState(yesterday)
+  const [targetDate, setTargetDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [baseDate, setBaseDate] = useState(() => new Date(Date.now() - 86_400_000).toISOString().split('T')[0])
 
   return (
     <div data-testid="daily-var-selector" className="flex items-end gap-3 flex-wrap">

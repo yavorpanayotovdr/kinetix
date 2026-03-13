@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef } from 'react'
 import { Card } from './ui'
 import { formatNum } from '../utils/format'
 import type { ComponentDiffDto } from '../types'
@@ -20,18 +20,6 @@ const BAR_COLORS = {
 
 export function ComponentDiffChart({ diffs }: ComponentDiffChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = useState(0)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
-    })
-    observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [])
 
   if (diffs.length === 0) return null
 
@@ -42,10 +30,6 @@ export function ComponentDiffChart({ diffs }: ComponentDiffChartProps) {
     ]),
     1,
   )
-
-  const labelWidth = 90
-  const valueWidth = 70
-  const barAreaWidth = Math.max(containerWidth - labelWidth - valueWidth, 40)
 
   return (
     <Card data-testid="component-diff-chart">

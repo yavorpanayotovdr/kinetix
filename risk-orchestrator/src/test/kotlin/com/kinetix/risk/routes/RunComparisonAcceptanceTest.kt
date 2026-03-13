@@ -127,6 +127,8 @@ class RunComparisonAcceptanceTest : FunSpec({
         val baseDate = LocalDate.of(2025, 1, 14)
         val targetDate = LocalDate.of(2025, 1, 15)
 
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", baseDate) } returns null
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", targetDate) } returns null
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", baseDate) } returns completedJob(
             varValue = 5000.0,
             es = 6250.0,
