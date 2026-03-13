@@ -210,16 +210,16 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Market Value</div>
-            <div className="text-lg font-bold text-slate-800">
-              {formatMoney(String(totalMarketValue), currency)}
+            <div className="text-lg font-bold text-slate-800" title={formatMoney(String(totalMarketValue), currency)}>
+              {formatCompactCurrency(totalMarketValue)}
             </div>
           </div>
         </Card>
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Unrealized P&amp;L</div>
-            <div className={`text-lg font-bold ${pnlColorClass(String(totalPnl))}`}>
-              {formatMoney(String(totalPnl), currency)}
+            <div className={`text-lg font-bold ${pnlColorClass(String(totalPnl))}`} title={formatMoney(String(totalPnl), currency)}>
+              {formatCompactCurrency(totalPnl)}
             </div>
           </div>
         </Card>
