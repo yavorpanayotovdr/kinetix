@@ -1,3 +1,19 @@
 kinetixrisk.ai {
     reverse_proxy ui:80
 }
+
+grafana.kinetixrisk.ai {
+    reverse_proxy grafana:3000
+}
+
+api.kinetixrisk.ai {
+    reverse_proxy gateway:8080
+}
+
+auth.kinetixrisk.ai {
+    reverse_proxy keycloak:8180
+}
+
+alerts.kinetixrisk.ai {
+    reverse_proxy alertmanager:9093
+}
