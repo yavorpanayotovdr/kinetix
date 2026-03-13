@@ -81,5 +81,7 @@ fun ValuationResponse.toDomainValuation(): ValuationResult {
         calculatedAt = Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()),
         computedOutputs = computedOutputs,
         pvValue = if (pvValue != 0.0) pvValue else null,
+        modelVersion = modelVersion.ifEmpty { null },
+        monteCarloSeed = monteCarloSeed,
     )
 }

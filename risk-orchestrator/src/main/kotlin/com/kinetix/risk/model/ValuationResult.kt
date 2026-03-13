@@ -20,4 +20,5 @@ data class ValuationResult(
     val jobId: UUID? = null,
     val modelVersion: String? = null,
     val valuationDate: LocalDate? = null,
+    val monteCarloSeed: Long = 0,
 )

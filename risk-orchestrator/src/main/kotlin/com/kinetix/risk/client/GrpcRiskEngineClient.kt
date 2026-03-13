@@ -68,6 +68,7 @@ class GrpcRiskEngineClient(
             .addAllPositions(positions.map { it.toProto() })
             .addAllMarketData(marketData.map { it.toProto() })
             .addAllRequestedOutputs(request.requestedOutputs.map { DOMAIN_VALUATION_OUTPUT_TO_PROTO.getValue(it) })
+            .setMonteCarloSeed(request.monteCarloSeed)
             .build()
 
         val response = stub.withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS)
