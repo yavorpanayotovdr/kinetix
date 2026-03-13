@@ -21,4 +21,6 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
         throw UnsupportedOperationException("No-op recorder does not support EOD promotion")
     override suspend fun demoteOfficialEod(jobId: UUID): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD demotion")
+    override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob =
+        throw UnsupportedOperationException("No-op recorder does not support EOD supersession")
 }

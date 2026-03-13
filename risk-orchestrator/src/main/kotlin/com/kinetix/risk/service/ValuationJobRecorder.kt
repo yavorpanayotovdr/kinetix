@@ -33,4 +33,5 @@ interface ValuationJobRecorder {
     suspend fun findOfficialEodByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob?
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob
     suspend fun demoteOfficialEod(jobId: UUID): ValuationJob
+    suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob
 }

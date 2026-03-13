@@ -76,6 +76,7 @@ class EodPromotionServiceTest : FunSpec({
             promotedBy = "user-b",
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
         coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) } returns promoted
         coEvery { eventPublisher.publish(any()) } just Runs
 
@@ -135,9 +136,10 @@ class EodPromotionServiceTest : FunSpec({
         }
     }
 
-    test("handles conflicting Official EOD for same portfolio and date") {
+    test("handles conflicting Official EOD from DB constraint violation") {
         val job = completedJob()
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
         coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) } throws
             EodPromotionException.ConflictingOfficialEod("port-1", VALUATION_DATE.toString())
 
@@ -204,6 +206,7 @@ class EodPromotionServiceTest : FunSpec({
             promotedBy = "user-b",
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
         coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) } returns promoted
         coEvery { eventPublisher.publish(any()) } just Runs
 
@@ -218,6 +221,37 @@ class EodPromotionServiceTest : FunSpec({
                     event.varValue == 5000.0 &&
                     event.expectedShortfall == 6250.0
             })
+        }
+    }
+
+    test("supersedes existing Official EOD when promoting a replacement") {
+        val existingEodId = UUID.fromString("22222222-2222-2222-2222-222222222222")
+        val existingEod = completedJob(
+            jobId = existingEodId,
+            runLabel = RunLabel.OFFICIAL_EOD,
+            promotedAt = Instant.parse("2026-03-13T17:30:00Z"),
+            promotedBy = "user-c",
+        )
+        val newJob = completedJob()
+        val superseded = existingEod.copy(runLabel = RunLabel.SUPERSEDED_EOD)
+        val promoted = newJob.copy(
+            runLabel = RunLabel.OFFICIAL_EOD,
+            promotedAt = Instant.parse("2026-03-13T18:00:00Z"),
+            promotedBy = "user-b",
+        )
+
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns newJob
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns existingEod
+        coEvery { jobRecorder.supersedeOfficialEod(existingEodId) } returns superseded
+        coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) } returns promoted
+        coEvery { eventPublisher.publish(any()) } just Runs
+
+        val result = service.promoteToOfficialEod(JOB_ID, "user-b")
+
+        result.runLabel shouldBe RunLabel.OFFICIAL_EOD
+        coVerifyOrder {
+            jobRecorder.supersedeOfficialEod(existingEodId)
+            jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any())
         }
     }
 

@@ -290,6 +290,28 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         job.copy(runLabel = null, promotedAt = null, promotedBy = null)
     }
 
+    override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob = newSuspendedTransaction(db = db) {
+        val job = ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq jobId }
+            .firstOrNull()
+            ?.toValuationJob()
+            ?: throw EodPromotionException.JobNotFound(jobId)
+
+        OfficialEodDesignationsTable.deleteWhere {
+            (OfficialEodDesignationsTable.portfolioId eq job.portfolioId) and
+                (OfficialEodDesignationsTable.valuationDate eq job.valuationDate.toKotlinLocalDate())
+        }
+
+        ValuationJobsTable.update({ ValuationJobsTable.jobId eq jobId }) {
+            it[runLabel] = RunLabel.SUPERSEDED_EOD.name
+            it[promotedAt] = null
+            it[promotedBy] = null
+        }
+
+        job.copy(runLabel = RunLabel.SUPERSEDED_EOD, promotedAt = null, promotedBy = null)
+    }
+
     private fun JobStep.toJson(): JobStepJson = JobStepJson(
         name = name.name,
         status = status.name,

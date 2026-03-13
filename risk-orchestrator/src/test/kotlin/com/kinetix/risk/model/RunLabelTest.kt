@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 class RunLabelTest : FunSpec({
 
     test("RunLabel values match expected names") {
-        RunLabel.entries.map { it.name } shouldBe listOf("ADHOC", "INTRADAY", "OVERNIGHT", "PRE_CLOSE", "OFFICIAL_EOD")
+        RunLabel.entries.map { it.name } shouldBe listOf("ADHOC", "INTRADAY", "OVERNIGHT", "PRE_CLOSE", "OFFICIAL_EOD", "SUPERSEDED_EOD")
     }
 
     test("RunLabel round-trips through valueOf") {

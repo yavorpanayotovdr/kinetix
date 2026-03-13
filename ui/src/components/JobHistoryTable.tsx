@@ -158,6 +158,11 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                           Pre-Close
                         </Badge>
                       )}
+                      {run.runLabel === 'SUPERSEDED_EOD' && (
+                        <Badge variant="neutral" data-testid={`superseded-badge-${run.jobId}`}>
+                          Superseded
+                        </Badge>
+                      )}
                     </span>
                   </td>
                   <td data-testid={`duration-${run.jobId}`} className="py-2 pr-3 text-slate-600">

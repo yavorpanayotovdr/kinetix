@@ -32,6 +32,12 @@ class EodPromotionService(
                 throw EodPromotionException.SelfPromotion(promotedBy)
             }
 
+            // Supersede existing Official EOD for same portfolio/date if one exists
+            val existingEod = jobRecorder.findOfficialEodByDate(job.portfolioId, job.valuationDate)
+            if (existingEod != null && existingEod.jobId != jobId) {
+                jobRecorder.supersedeOfficialEod(existingEod.jobId)
+            }
+
             val promoted = jobRecorder.promoteToOfficialEod(jobId, promotedBy, Instant.now())
 
             eventPublisher.publish(

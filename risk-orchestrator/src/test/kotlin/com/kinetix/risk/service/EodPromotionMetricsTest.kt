@@ -39,6 +39,7 @@ class EodPromotionMetricsTest : FunSpec({
         )
 
         coEvery { jobRecorder.findByJobId(jobId) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", LocalDate.of(2025, 1, 15)) } returns null
         coEvery { jobRecorder.promoteToOfficialEod(jobId, "user-b", any()) } returns promotedJob
         coEvery { eventPublisher.publish(any()) } just Runs
 
@@ -84,6 +85,7 @@ class EodPromotionMetricsTest : FunSpec({
         )
 
         coEvery { jobRecorder.findByJobId(jobId) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", LocalDate.of(2025, 1, 15)) } returns null
         coEvery { jobRecorder.promoteToOfficialEod(jobId, "user-b", any()) } returns promotedJob
         coEvery { eventPublisher.publish(any()) } just Runs
 
