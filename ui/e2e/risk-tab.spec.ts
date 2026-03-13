@@ -910,8 +910,8 @@ test.describe('Job History', () => {
     await expect(page.getByTestId('job-detail-panel')).toBeVisible()
 
     // Verify the job timeline shows the steps from the detail response
-    await expect(page.getByTestId('job-detail-panel')).toContainText('FETCH_POSITIONS')
-    await expect(page.getByTestId('job-detail-panel')).toContainText('FETCH_MARKET_DATA')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Positions')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Dependencies')
     await expect(page.getByTestId('job-detail-panel')).toContainText('CALCULATE_RISK')
 
     // Click close to collapse
