@@ -59,7 +59,7 @@ export function SodBaselineIndicator({
             loading={creating}
             data-testid="sod-create-button"
           >
-            Set as SOD Baseline
+            Set as Baseline
           </Button>
         </div>
       </div>
@@ -102,7 +102,7 @@ export function SodBaselineIndicator({
         loading={resetting}
         data-testid="sod-reset-button"
       >
-        Reset SOD Baseline
+        Reset Baseline
       </Button>
     </div>
   )
