@@ -80,15 +80,13 @@ export function RiskTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-4">
-          {alerts.length > 0 && (
-            <div className="flex-1 mr-4">
-              <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
-            </div>
-          )}
-          <ValuationDatePicker value={valuationDate} onChange={setValuationDate} />
+      {alerts.length > 0 && (
+        <div className="mb-2">
+          <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
         </div>
+      )}
+      <div className="flex items-center justify-between mb-2">
+        <ValuationDatePicker value={valuationDate} onChange={setValuationDate} />
         <LastUpdatedIndicator timestamp={lastUpdated} />
       </div>
       <VaRDashboard
