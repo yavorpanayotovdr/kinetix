@@ -7,7 +7,7 @@ import com.kinetix.risk.model.ValuationJob
 import com.kinetix.risk.model.ValuationResult
 import java.time.LocalDate
 
-fun ValuationJob.toRunSnapshot(label: String): RunSnapshot = RunSnapshot(
+fun ValuationJob.toRunSnapshot(label: String, modelVersion: String? = null): RunSnapshot = RunSnapshot(
     jobId = jobId,
     label = label,
     valuationDate = valuationDate,
@@ -23,7 +23,7 @@ fun ValuationJob.toRunSnapshot(label: String): RunSnapshot = RunSnapshot(
     rho = rho,
     positionRisks = positionRiskSnapshot,
     componentBreakdowns = componentBreakdownSnapshot,
-    modelVersion = null,
+    modelVersion = modelVersion,
     parameters = buildMap {
         calculationType?.let { put("calculationType", it) }
         confidenceLevel?.let { put("confidenceLevel", it) }

@@ -350,7 +350,7 @@ fun Application.moduleWithRoutes() {
     }
 
     val snapshotDiffer = SnapshotDiffer()
-    val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer)
+    val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer, manifestRepo)
     val varAttributionService = VaRAttributionService(effectiveRiskEngineClient, effectivePositionProvider)
 
     routing {

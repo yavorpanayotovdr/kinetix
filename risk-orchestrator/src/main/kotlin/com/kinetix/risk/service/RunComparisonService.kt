@@ -10,6 +10,7 @@ import java.util.UUID
 class RunComparisonService(
     private val jobRecorder: ValuationJobRecorder,
     private val differ: SnapshotDiffer,
+    private val manifestRepo: RunManifestRepository? = null,
 ) {
 
     suspend fun compareByJobIds(baseJobId: UUID, targetJobId: UUID): RunComparison {
@@ -18,8 +19,10 @@ class RunComparisonService(
         val targetJob = jobRecorder.findByJobId(targetJobId)
             ?: throw IllegalArgumentException("Target job not found: $targetJobId")
 
-        val base = baseJob.toRunSnapshot("Base")
-        val target = targetJob.toRunSnapshot("Target")
+        val baseModelVersion = resolveModelVersion(baseJob.manifestId)
+        val targetModelVersion = resolveModelVersion(targetJob.manifestId)
+        val base = baseJob.toRunSnapshot("Base", baseModelVersion)
+        val target = targetJob.toRunSnapshot("Target", targetModelVersion)
         return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, baseJob.portfolioId)
     }
 
@@ -35,11 +38,18 @@ class RunComparisonService(
             ?: jobRecorder.findLatestCompletedByDate(portfolioId, targetDate)
             ?: throw IllegalArgumentException("No completed job for portfolio $portfolioId on $targetDate")
 
+        val baseModelVersion = resolveModelVersion(baseJob.manifestId)
+        val targetModelVersion = resolveModelVersion(targetJob.manifestId)
         val baseLabel = if (baseJob.runLabel == com.kinetix.risk.model.RunLabel.OFFICIAL_EOD) "Official EOD $baseDate" else "$baseDate"
         val targetLabel = if (targetJob.runLabel == com.kinetix.risk.model.RunLabel.OFFICIAL_EOD) "Official EOD $targetDate" else "$targetDate"
-        val base = baseJob.toRunSnapshot(baseLabel)
-        val target = targetJob.toRunSnapshot(targetLabel)
+        val base = baseJob.toRunSnapshot(baseLabel, baseModelVersion)
+        val target = targetJob.toRunSnapshot(targetLabel, targetModelVersion)
         return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, portfolioId)
+    }
+
+    private suspend fun resolveModelVersion(manifestId: UUID?): String? {
+        if (manifestId == null || manifestRepo == null) return null
+        return manifestRepo.findByManifestId(manifestId)?.modelVersion?.ifEmpty { null }
     }
 
     fun compareSnapshots(
