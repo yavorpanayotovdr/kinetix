@@ -221,7 +221,7 @@ Key docs in the repo:
 |---|---|
 | Trading | Trade booking, amendment, cancellation; pre-trade limit checks (position, notional, concentration); limit hierarchy (FIRM/DESK/TRADER/COUNTERPARTY) |
 | Positions | Event-sourced positions; multi-currency aggregation with FX rates; realized P&L tracking; counterparty exposure (net/gross) |
-| Risk | VaR/ES (parametric, historical, Monte Carlo with antithetic variates); EWMA volatility; P&L attribution; what-if analysis; SOD baseline snapshots |
+| Risk | VaR/ES (parametric, historical, Monte Carlo with antithetic variates); EWMA volatility; P&L attribution; what-if analysis; SOD baseline snapshots; run reproducibility with manifest-based replay; run comparison (day-over-day, model comparison, attribution); EOD promotion workflow |
 | Greeks | Delta, Gamma, Vega, Theta, Rho; cross-Greeks (Vanna, Volga, Charm); Black-Scholes options pricing |
 | Stress Testing | Predefined scenarios (GFC 2008, COVID 2020, Taper Tantrum 2013, Euro Crisis 2011); scenario governance with approval workflow |
 | Regulatory | FRTB capital (SBM, DRC with 21 credit ratings, RRAO); VaR backtesting (Kupiec POF, Christoffersen); model governance; four-eyes submission workflow |
