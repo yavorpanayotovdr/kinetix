@@ -8,4 +8,6 @@ data class VaRAttribution(
     val modelEffect: Double?,
     val timeDecayEffect: Double,
     val unexplained: Double,
+    val effectMagnitudes: Map<String, ChangeMagnitude> = emptyMap(),
+    val caveats: List<String> = emptyList(),
 )

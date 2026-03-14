@@ -2,7 +2,10 @@ package com.kinetix.risk.service
 
 import com.kinetix.risk.model.ChangeMagnitude
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 
 class MarketDataQuantDifferTest : FunSpec({
 
@@ -196,6 +199,103 @@ class MarketDataQuantDifferTest : FunSpec({
 
         test("returns MEDIUM when payload is empty") {
             differ.computeMagnitude("SPOT_PRICE", "", "") shouldBe ChangeMagnitude.MEDIUM
+        }
+    }
+
+    context("quantitative diff with summaries") {
+
+        test("scalar summary includes direction and percentage") {
+            val base = scalarPayload("SPOT_PRICE", "AAPL", "EQUITY", 100.0)
+            val target = scalarPayload("SPOT_PRICE", "AAPL", "EQUITY", 106.0)
+            val result = differ.computeQuantDiff("SPOT_PRICE", base, target)
+            result.magnitude shouldBe ChangeMagnitude.LARGE
+            result.summary shouldNotBe null
+            result.summary!! shouldContain "up"
+            result.summary!! shouldContain "6.00%"
+        }
+
+        test("scalar summary shows down direction for negative move") {
+            val base = scalarPayload("SPOT_PRICE", "AAPL", "EQUITY", 100.0)
+            val target = scalarPayload("SPOT_PRICE", "AAPL", "EQUITY", 90.0)
+            val result = differ.computeQuantDiff("SPOT_PRICE", base, target)
+            result.summary!! shouldContain "down"
+        }
+
+        test("scalar caveat when base value is zero") {
+            val base = scalarPayload("RISK_FREE_RATE", "USD", "RATES", 0.0)
+            val target = scalarPayload("RISK_FREE_RATE", "USD", "RATES", 0.02)
+            val result = differ.computeQuantDiff("RISK_FREE_RATE", base, target)
+            result.caveats shouldContain "Base value was zero; percentage change is undefined"
+        }
+
+        test("yield curve summary includes parallel shift") {
+            val base = curvePayload("YIELD_CURVE", "USD", "RATES", listOf("1M" to 0.04, "3M" to 0.045))
+            val target = curvePayload("YIELD_CURVE", "USD", "RATES", listOf("1M" to 0.044, "3M" to 0.05))
+            val result = differ.computeQuantDiff("YIELD_CURVE", base, target)
+            result.summary!! shouldContain "Yield curve"
+            result.summary!! shouldContain "parallel shift"
+        }
+
+        test("vol surface summary includes ATM vol values") {
+            val base = matrixPayload("VOLATILITY_SURFACE", "AAPL", "EQUITY",
+                rows = listOf("30"), columns = listOf("0.95", "1.00", "1.05"),
+                values = listOf(0.25, 0.20, 0.27))
+            val target = matrixPayload("VOLATILITY_SURFACE", "AAPL", "EQUITY",
+                rows = listOf("30"), columns = listOf("0.95", "1.00", "1.05"),
+                values = listOf(0.25, 0.24, 0.27))
+            val result = differ.computeQuantDiff("VOLATILITY_SURFACE", base, target)
+            result.summary!! shouldContain "ATM vol"
+        }
+
+        test("vol surface caveat when skew changed but ATM flat") {
+            val base = matrixPayload("VOLATILITY_SURFACE", "AAPL", "EQUITY",
+                rows = listOf("30"), columns = listOf("0.90", "1.00", "1.10"),
+                values = listOf(0.20, 0.20, 0.20))
+            val target = matrixPayload("VOLATILITY_SURFACE", "AAPL", "EQUITY",
+                rows = listOf("30"), columns = listOf("0.90", "1.00", "1.10"),
+                values = listOf(0.23, 0.20, 0.17))
+            val result = differ.computeQuantDiff("VOLATILITY_SURFACE", base, target)
+            result.caveats shouldContain "ATM vol unchanged but skew shape changed; vega attribution may not be interpretable"
+        }
+
+        test("correlation matrix summary includes largest pair") {
+            val base = matrixPayload("CORRELATION_MATRIX", "PORTFOLIO", "MULTI",
+                rows = listOf("AAPL", "GOOGL"), columns = listOf("AAPL", "GOOGL"),
+                values = listOf(1.0, 0.5, 0.5, 1.0))
+            val target = matrixPayload("CORRELATION_MATRIX", "PORTFOLIO", "MULTI",
+                rows = listOf("AAPL", "GOOGL"), columns = listOf("AAPL", "GOOGL"),
+                values = listOf(1.0, 0.7, 0.7, 1.0))
+            val result = differ.computeQuantDiff("CORRELATION_MATRIX", base, target)
+            result.summary!! shouldContain "AAPL/GOOGL"
+        }
+
+        test("correlation matrix caveat for regime change") {
+            val base = matrixPayload("CORRELATION_MATRIX", "PORTFOLIO", "MULTI",
+                rows = listOf("A", "B", "C"), columns = listOf("A", "B", "C"),
+                values = listOf(1.0, 0.2, 0.1, 0.2, 1.0, 0.3, 0.1, 0.3, 1.0))
+            val target = matrixPayload("CORRELATION_MATRIX", "PORTFOLIO", "MULTI",
+                rows = listOf("A", "B", "C"), columns = listOf("A", "B", "C"),
+                values = listOf(1.0, 0.5, 0.4, 0.5, 1.0, 0.6, 0.4, 0.6, 1.0))
+            val result = differ.computeQuantDiff("CORRELATION_MATRIX", base, target)
+            result.caveats shouldContain "Correlation regime change detected; attribution is approximate"
+        }
+
+        test("time series summary includes annualized vol when enough data") {
+            val points = (0 until 30).map { i ->
+                "2026-01-${String.format("%02d", i + 1)}T00:00:00Z" to (100.0 + i * 0.5)
+            }
+            val base = timeSeriesPayload("HISTORICAL_PRICES", "AAPL", "EQUITY", points)
+            val targetPoints = points.toMutableList().apply {
+                add("2026-02-01T00:00:00Z" to 120.0)
+            }
+            val target = timeSeriesPayload("HISTORICAL_PRICES", "AAPL", "EQUITY", targetPoints)
+            val result = differ.computeQuantDiff("HISTORICAL_PRICES", base, target)
+            result.summary!! shouldContain "annualized vol"
+        }
+
+        test("malformed payload includes caveat about parsing") {
+            val result = differ.computeQuantDiff("SPOT_PRICE", "bad", "bad")
+            result.caveats shouldContain "Could not parse market data payload"
         }
     }
 })

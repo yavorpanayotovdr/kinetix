@@ -117,6 +117,8 @@ fun VaRAttribution.toResponse(): VaRAttributionResponse = VaRAttributionResponse
     corrEffect = corrEffect?.let { "%.2f".format(it) },
     timeDecayEffect = "%.2f".format(timeDecayEffect),
     unexplained = "%.2f".format(unexplained),
+    effectMagnitudes = effectMagnitudes.mapValues { it.value.name },
+    caveats = caveats,
 )
 
 fun InputChangeSummary.toDto(): InputChangesSummaryDto = InputChangesSummaryDto(

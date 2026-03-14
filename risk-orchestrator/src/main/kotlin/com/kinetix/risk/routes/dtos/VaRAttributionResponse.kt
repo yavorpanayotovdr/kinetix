@@ -10,4 +10,6 @@ data class VaRAttributionResponse(
     val corrEffect: String?,
     val timeDecayEffect: String,
     val unexplained: String,
+    val effectMagnitudes: Map<String, String> = emptyMap(),
+    val caveats: List<String> = emptyList(),
 )
