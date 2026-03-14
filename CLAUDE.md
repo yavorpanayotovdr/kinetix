@@ -74,6 +74,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 ## Design Principles
 
+- **Readability first.** Code is read far more often than it is written. Use clear, descriptive names for variables, functions, and classes. Keep functions short and focused. Prefer explicit, straightforward control flow over clever or terse constructs. Code should be understandable without needing comments to explain what it does.
 - **Single responsibility.** Each class or function should have one reason to change. If a class is doing parsing, validation, persistence, and notification, split it up. A service orchestrates; a repository persists; a mapper converts — don't blend these roles.
 - **Prefer small, composable units.** Favour multiple focused classes over one large class with many methods. When a new responsibility appears, introduce a new collaborator rather than growing an existing one.
 - **Depend on abstractions.** Use interfaces at module boundaries (repositories, clients, publishers) so implementations can be swapped and tested independently.
