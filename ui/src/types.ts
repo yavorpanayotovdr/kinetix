@@ -537,6 +537,37 @@ export interface VaRAttributionDto {
   unexplained: string
 }
 
+export interface PositionInputChangeDto {
+  instrumentId: string
+  assetClass: string
+  changeType: 'ADDED' | 'REMOVED' | 'QUANTITY_CHANGED' | 'PRICE_CHANGED' | 'BOTH_CHANGED'
+  baseQuantity: string | null
+  targetQuantity: string | null
+  quantityDelta: string | null
+  baseMarketPrice: string | null
+  targetMarketPrice: string | null
+  priceDelta: string | null
+  currency: string
+}
+
+export interface MarketDataInputChangeDto {
+  dataType: string
+  instrumentId: string
+  assetClass: string
+  changeType: 'CHANGED' | 'ADDED' | 'REMOVED' | 'BECAME_AVAILABLE' | 'BECAME_MISSING'
+  magnitude: 'LARGE' | 'MEDIUM' | 'SMALL' | null
+}
+
+export interface InputChangesSummaryDto {
+  positionsChanged: boolean
+  marketDataChanged: boolean
+  modelVersionChanged: boolean
+  baseModelVersion: string
+  targetModelVersion: string
+  positionChanges: PositionInputChangeDto[]
+  marketDataChanges: MarketDataInputChangeDto[]
+}
+
 export interface RunComparisonResponseDto {
   comparisonId: string
   comparisonType: string
@@ -548,6 +579,7 @@ export interface RunComparisonResponseDto {
   positionDiffs: PositionDiffDto[]
   parameterDiffs: ParameterDiffDto[]
   attribution: VaRAttributionDto | null
+  inputChanges: InputChangesSummaryDto | null
 }
 
 export interface ModelComparisonRequestDto {

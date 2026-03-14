@@ -5,6 +5,7 @@ import { RunDiffSummary } from './RunDiffSummary'
 import { ComponentDiffChart } from './ComponentDiffChart'
 import { PositionDiffTable } from './PositionDiffTable'
 import { VaRAttributionPanel } from './VaRAttributionPanel'
+import { InputChangesPanel } from './InputChangesPanel'
 import { exportToCsv } from '../utils/exportCsv'
 import type { RunComparisonResponseDto, VaRAttributionDto } from '../types'
 
@@ -79,6 +80,11 @@ export function GenericRunComparisonPanel({
         <RunSnapshotCard snapshot={comparison.baseRun} title="Base" />
         <RunSnapshotCard snapshot={comparison.targetRun} title="Target" />
       </div>
+
+      <InputChangesPanel
+        inputChanges={comparison.inputChanges ?? null}
+        parameterDiffs={comparison.parameterDiffs}
+      />
 
       <RunDiffSummary diff={comparison.portfolioDiff} />
 
