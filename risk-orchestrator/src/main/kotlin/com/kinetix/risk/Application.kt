@@ -35,6 +35,7 @@ import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
+import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.RunComparisonService
 import com.kinetix.risk.service.SnapshotDiffer
 import com.kinetix.risk.service.VaRAttributionService
@@ -350,7 +351,8 @@ fun Application.moduleWithRoutes() {
     }
 
     val snapshotDiffer = SnapshotDiffer()
-    val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer, manifestRepo)
+    val inputChangeDiffer = InputChangeDiffer()
+    val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer, manifestRepo, inputChangeDiffer)
     val varAttributionService = VaRAttributionService(effectiveRiskEngineClient, effectivePositionProvider)
 
     routing {

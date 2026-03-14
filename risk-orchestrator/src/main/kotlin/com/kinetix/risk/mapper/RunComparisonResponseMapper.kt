@@ -1,18 +1,24 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.risk.model.ComponentDiff
+import com.kinetix.risk.model.InputChangeSummary
+import com.kinetix.risk.model.MarketDataInputChange
 import com.kinetix.risk.model.ParameterDiff
 import com.kinetix.risk.model.PortfolioDiff
 import com.kinetix.risk.model.PositionDiff
+import com.kinetix.risk.model.PositionInputChange
 import com.kinetix.risk.model.PositionRisk
 import com.kinetix.risk.model.RunComparison
 import com.kinetix.risk.model.RunSnapshot
 import com.kinetix.risk.model.VaRAttribution
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.ComponentDiffResponse
+import com.kinetix.risk.routes.dtos.InputChangesSummaryDto
+import com.kinetix.risk.routes.dtos.MarketDataInputChangeDto
 import com.kinetix.risk.routes.dtos.ParameterDiffDto
 import com.kinetix.risk.routes.dtos.PortfolioDiffResponse
 import com.kinetix.risk.routes.dtos.PositionDiffResponse
+import com.kinetix.risk.routes.dtos.PositionInputChangeDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
 import com.kinetix.risk.routes.dtos.RunComparisonResponse
 import com.kinetix.risk.routes.dtos.RunSnapshotResponse
@@ -29,6 +35,7 @@ fun RunComparison.toResponse(): RunComparisonResponse = RunComparisonResponse(
     positionDiffs = positionDiffs.map { it.toResponse() },
     parameterDiffs = parameterDiffs.map { it.toDto() },
     attribution = attribution?.toResponse(),
+    inputChanges = inputChanges?.toDto(),
 )
 
 fun RunSnapshot.toResponse(): RunSnapshotResponse = RunSnapshotResponse(
@@ -110,6 +117,37 @@ fun VaRAttribution.toResponse(): VaRAttributionResponse = VaRAttributionResponse
     corrEffect = corrEffect?.let { "%.2f".format(it) },
     timeDecayEffect = "%.2f".format(timeDecayEffect),
     unexplained = "%.2f".format(unexplained),
+)
+
+fun InputChangeSummary.toDto(): InputChangesSummaryDto = InputChangesSummaryDto(
+    positionsChanged = positionsChanged,
+    marketDataChanged = marketDataChanged,
+    modelVersionChanged = modelVersionChanged,
+    baseModelVersion = baseModelVersion,
+    targetModelVersion = targetModelVersion,
+    positionChanges = positionChanges.map { it.toDto() },
+    marketDataChanges = marketDataChanges.map { it.toDto() },
+)
+
+fun PositionInputChange.toDto(): PositionInputChangeDto = PositionInputChangeDto(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    changeType = changeType.name,
+    baseQuantity = baseQuantity?.toPlainString(),
+    targetQuantity = targetQuantity?.toPlainString(),
+    quantityDelta = quantityDelta?.toPlainString(),
+    baseMarketPrice = baseMarketPrice?.toPlainString(),
+    targetMarketPrice = targetMarketPrice?.toPlainString(),
+    priceDelta = priceDelta?.toPlainString(),
+    currency = currency,
+)
+
+fun MarketDataInputChange.toDto(): MarketDataInputChangeDto = MarketDataInputChangeDto(
+    dataType = dataType,
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    changeType = changeType.name,
+    magnitude = magnitude?.name,
 )
 
 private fun PositionRisk.toPositionRiskDto(): PositionRiskDto = PositionRiskDto(
