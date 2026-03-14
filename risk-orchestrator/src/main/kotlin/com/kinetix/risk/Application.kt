@@ -25,8 +25,10 @@ import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
 import com.kinetix.risk.persistence.ExposedDailyRiskSnapshotRepository
+import com.kinetix.risk.persistence.ExposedRunManifestRepository
 import com.kinetix.risk.persistence.ExposedSodBaselineRepository
 import com.kinetix.risk.persistence.ExposedValuationJobRecorder
+import com.kinetix.risk.persistence.PostgresMarketDataBlobStore
 import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.risk.routes.riskRoutes
@@ -38,6 +40,7 @@ import com.kinetix.risk.service.SnapshotDiffer
 import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
+import com.kinetix.risk.service.DefaultRunManifestCapture
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.PnlAttributionService
@@ -228,6 +231,9 @@ fun Application.moduleWithRoutes() {
         )
     )
     val jobRecorder = ExposedValuationJobRecorder(riskDb)
+    val manifestRepo = ExposedRunManifestRepository(riskDb)
+    val blobStore = PostgresMarketDataBlobStore(riskDb)
+    val runManifestCapture = DefaultRunManifestCapture(manifestRepo, blobStore)
     val pnlAttributionRepository = com.kinetix.risk.persistence.ExposedPnlAttributionRepository(riskDb)
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
@@ -252,6 +258,7 @@ fun Application.moduleWithRoutes() {
         dependenciesDiscoverer = dependenciesDiscoverer,
         marketDataFetcher = marketDataFetcher,
         jobRecorder = jobRecorder,
+        runManifestCapture = runManifestCapture,
     )
     val varCache: VaRCache = run {
         val redisUrl = environment.config.propertyOrNull("redis.url")?.getString().orEmpty()
