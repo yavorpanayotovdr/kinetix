@@ -77,6 +77,45 @@ const MOCK_COMPARISON = {
   ],
   parameterDiffs: [],
   attribution: null,
+  inputChanges: null,
+}
+
+const MOCK_INPUT_CHANGES = {
+  positionsChanged: true,
+  marketDataChanged: true,
+  modelVersionChanged: true,
+  baseModelVersion: 'v2.3.1',
+  targetModelVersion: 'v2.4.0',
+  positionChanges: [
+    { instrumentId: 'TSLA', assetClass: 'EQUITY', changeType: 'ADDED', baseQuantity: null, targetQuantity: '200', quantityDelta: '200', baseMarketPrice: null, targetMarketPrice: '245.50', priceDelta: null, currency: 'USD' },
+    { instrumentId: 'AAPL', assetClass: 'EQUITY', changeType: 'QUANTITY_CHANGED', baseQuantity: '100', targetQuantity: '150', quantityDelta: '50', baseMarketPrice: '170.00', targetMarketPrice: '175.00', priceDelta: '5', currency: 'USD' },
+  ],
+  marketDataChanges: [
+    { dataType: 'VOL_SURFACE', instrumentId: 'AAPL', assetClass: 'EQUITY', changeType: 'CHANGED', magnitude: 'LARGE' },
+    { dataType: 'YIELD_CURVE', instrumentId: 'USD', assetClass: 'RATES', changeType: 'CHANGED', magnitude: 'SMALL' },
+    { dataType: 'CORRELATION', instrumentId: 'AAPL-TSLA', assetClass: 'EQUITY', changeType: 'BECAME_AVAILABLE', magnitude: null },
+  ],
+}
+
+const MOCK_COMPARISON_WITH_INPUTS = {
+  ...MOCK_COMPARISON,
+  parameterDiffs: [
+    { paramName: 'numSimulations', baseValue: '10000', targetValue: '50000' },
+  ],
+  inputChanges: MOCK_INPUT_CHANGES,
+}
+
+const MOCK_COMPARISON_IDENTICAL_INPUTS = {
+  ...MOCK_COMPARISON,
+  inputChanges: {
+    positionsChanged: false,
+    marketDataChanged: false,
+    modelVersionChanged: false,
+    baseModelVersion: 'v2.3.1',
+    targetModelVersion: 'v2.3.1',
+    positionChanges: [],
+    marketDataChanges: [],
+  },
 }
 
 const MOCK_ATTRIBUTION = {
@@ -255,5 +294,144 @@ test.describe('Run Comparison', () => {
     // Verify dark mode classes are applied
     const container = page.getByTestId('run-comparison-container')
     await expect(container).toBeVisible()
+  })
+})
+
+test.describe('Input Changes Panel', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+    await mockRiskTabRoutes(page, { varResult: TEST_VAR_RESULT, positionRisk: TEST_POSITION_RISK })
+  })
+
+  test('shows unavailable message when inputChanges is null', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    await expect(page.getByTestId('input-changes-unavailable')).toBeVisible()
+    await expect(page.getByText('Input change data not available')).toBeVisible()
+  })
+
+  test('shows inputs identical indicator when no changes detected', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_IDENTICAL_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    await expect(page.getByTestId('input-changes-panel')).toBeVisible()
+    await expect(page.getByTestId('inputs-identical')).toBeVisible()
+    await expect(page.getByText('Inputs identical')).toBeVisible()
+    await expect(page.getByTestId('input-changes-count')).not.toBeVisible()
+  })
+
+  test('shows change count badge and expands on click', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    const panel = page.getByTestId('input-changes-panel')
+    await expect(panel).toBeVisible()
+
+    // Count badge: 2 position + 3 market data + 1 model version + 1 parameter = 7
+    await expect(page.getByTestId('input-changes-count')).toHaveText('7')
+
+    // Sections not visible when collapsed
+    await expect(page.getByTestId('position-changes-section')).not.toBeVisible()
+
+    // Click to expand
+    await panel.getByRole('button').click()
+
+    // Sections now visible
+    await expect(page.getByTestId('diagnostic-disclaimer')).toBeVisible()
+    await expect(page.getByTestId('position-changes-section')).toBeVisible()
+    await expect(page.getByTestId('market-data-changes-section')).toBeVisible()
+    await expect(page.getByTestId('model-params-section')).toBeVisible()
+  })
+
+  test('displays position changes with change type badges', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Expand
+    await page.getByTestId('input-changes-panel').getByRole('button').click()
+
+    const section = page.getByTestId('position-changes-section')
+    await expect(section).toBeVisible()
+
+    // TSLA is ADDED
+    await expect(section.getByText('TSLA')).toBeVisible()
+    await expect(section.getByText('ADDED')).toBeVisible()
+
+    // AAPL has QUANTITY_CHANGED
+    await expect(section.getByText('AAPL')).toBeVisible()
+    await expect(section.getByText('QUANTITY CHANGED')).toBeVisible()
+  })
+
+  test('displays market data changes with magnitude indicators', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Expand
+    await page.getByTestId('input-changes-panel').getByRole('button').click()
+
+    const section = page.getByTestId('market-data-changes-section')
+    await expect(section).toBeVisible()
+
+    // VOL_SURFACE with LARGE magnitude
+    await expect(section.getByText('VOL_SURFACE')).toBeVisible()
+    await expect(page.getByTestId('magnitude-large')).toBeVisible()
+
+    // YIELD_CURVE with SMALL magnitude
+    await expect(section.getByText('YIELD_CURVE')).toBeVisible()
+    await expect(page.getByTestId('magnitude-small')).toBeVisible()
+
+    // CORRELATION with BECAME_AVAILABLE badge and no magnitude
+    await expect(section.getByText('CORRELATION')).toBeVisible()
+    await expect(section.getByText('BECAME AVAILABLE')).toBeVisible()
+  })
+
+  test('displays model version transition', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Expand
+    await page.getByTestId('input-changes-panel').getByRole('button').click()
+
+    await expect(page.getByTestId('model-version-change')).toBeVisible()
+    await expect(page.getByTestId('model-version-change')).toContainText('v2.3.1')
+    await expect(page.getByTestId('model-version-change')).toContainText('v2.4.0')
+  })
+
+  test('displays parameter diffs table', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Expand
+    await page.getByTestId('input-changes-panel').getByRole('button').click()
+
+    const section = page.getByTestId('model-params-section')
+    await expect(section).toBeVisible()
+    await expect(section.getByText('numSimulations')).toBeVisible()
+    await expect(section.getByText('10000')).toBeVisible()
+    await expect(section.getByText('50000')).toBeVisible()
+  })
+
+  test('collapses panel when clicking header again', async ({ page }) => {
+    await mockComparisonRoutes(page, { comparison: MOCK_COMPARISON_WITH_INPUTS })
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    const button = page.getByTestId('input-changes-panel').getByRole('button')
+
+    // Expand
+    await button.click()
+    await expect(page.getByTestId('position-changes-section')).toBeVisible()
+
+    // Collapse
+    await button.click()
+    await expect(page.getByTestId('position-changes-section')).not.toBeVisible()
   })
 })
