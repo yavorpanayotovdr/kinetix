@@ -60,6 +60,8 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
 - **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
+- **Run tests after every change.** After making changes, run the full test suite for every affected module — not just new tests. Do not consider work complete until all tests pass.
+- **Every change needs test coverage.** New functionality must have tests that verify it works. Bug fixes must have a test that reproduces the bug before the fix. Refactors must not reduce existing test coverage. If changing behaviour that existing tests cover, update those tests to match — do not leave them failing.
 
 ## Project Conventions
 
