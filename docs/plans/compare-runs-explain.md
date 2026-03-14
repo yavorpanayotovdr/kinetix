@@ -1,6 +1,6 @@
 # Compare Runs: Input Changes Explain
 
-**Status:** Proposed
+**Status:** Complete
 **Date:** 2026-03-14
 **Reviewed by:** Architect, Trader, Tech-Support, QA, Data Analyst, Quant, SRE, UX Designer
 
