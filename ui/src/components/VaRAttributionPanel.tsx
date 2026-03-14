@@ -1,6 +1,8 @@
+import { AlertTriangle } from 'lucide-react'
 import { Card, Button, Spinner } from './ui'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
+import { MagnitudeIndicator } from './MagnitudeIndicator'
 import type { VaRAttributionDto } from '../types'
 
 interface VaRAttributionPanelProps {
@@ -45,13 +47,14 @@ export function VaRAttributionPanel({ attribution, loading, onRequest }: VaRAttr
 
   if (!attribution) return null
 
-  const effects: { label: string; value: string | null; bold: boolean }[] = [
+  const magnitudes = attribution.effectMagnitudes ?? {}
+  const effects: { label: string; value: string | null; bold: boolean; magnitudeKey?: string }[] = [
     { label: 'Total Change', value: attribution.totalChange, bold: true },
-    { label: 'Position Effect', value: attribution.positionEffect, bold: false },
-    { label: 'Volatility Effect', value: attribution.volEffect, bold: false },
-    { label: 'Correlation Effect', value: attribution.corrEffect, bold: false },
-    { label: 'Time Decay', value: attribution.timeDecayEffect, bold: false },
-    { label: 'Unexplained', value: attribution.unexplained, bold: false },
+    { label: 'Position Effect', value: attribution.positionEffect, bold: false, magnitudeKey: 'position' },
+    { label: 'Volatility Effect', value: attribution.volEffect, bold: false, magnitudeKey: 'vol' },
+    { label: 'Correlation Effect', value: attribution.corrEffect, bold: false, magnitudeKey: 'corr' },
+    { label: 'Time Decay', value: attribution.timeDecayEffect, bold: false, magnitudeKey: 'timeDecay' },
+    { label: 'Unexplained', value: attribution.unexplained, bold: false, magnitudeKey: 'unexplained' },
   ]
 
   const computedEffects = effects.filter((e) => e.value !== null)
@@ -113,10 +116,28 @@ export function VaRAttributionPanel({ attribution, loading, onRequest }: VaRAttr
               >
                 {formatNum(e.value)}
               </span>
+              {e.magnitudeKey && magnitudes[e.magnitudeKey] && (
+                <span className="shrink-0">
+                  <MagnitudeIndicator magnitude={magnitudes[e.magnitudeKey] as 'LARGE' | 'MEDIUM' | 'SMALL'} />
+                </span>
+              )}
             </div>
           )
         })}
       </div>
+      {attribution.caveats && attribution.caveats.length > 0 && (
+        <div data-testid="attribution-caveats" className="mt-3 space-y-1">
+          {attribution.caveats.map((caveat, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400"
+            >
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" aria-hidden="true" />
+              <span className="italic">{caveat}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   )
 }

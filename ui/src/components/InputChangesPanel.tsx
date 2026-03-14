@@ -39,13 +39,19 @@ function ChangeTypeBadge({ changeType }: { changeType: string }) {
 
 type MagnitudeState = 'LARGE' | 'MEDIUM' | 'SMALL' | 'loading' | 'error' | null
 
+interface QuantDiffInfo {
+  magnitude: MagnitudeState
+  summary: string | null
+  caveats: string[]
+}
+
 function mdKey(md: MarketDataInputChangeDto): string {
   return `${md.dataType}:${md.instrumentId}`
 }
 
 export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }: InputChangesPanelProps) {
   const [expanded, setExpanded] = useState(false)
-  const [magnitudes, setMagnitudes] = useState<Record<string, MagnitudeState>>({})
+  const [magnitudes, setMagnitudes] = useState<Record<string, QuantDiffInfo>>({})
 
   const canFetchMagnitude = !!(
     portfolioId &&
@@ -66,7 +72,7 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
       const next = { ...prev }
       for (const md of changesToFetch) {
         const key = mdKey(md)
-        if (!next[key]) next[key] = 'loading'
+        if (!next[key]) next[key] = { magnitude: 'loading', summary: null, caveats: [] }
       }
       return next
     })
@@ -85,10 +91,12 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
           )
           setMagnitudes((prev) => ({
             ...prev,
-            [key]: result?.magnitude ?? 'error',
+            [key]: result
+              ? { magnitude: result.magnitude, summary: result.summary, caveats: result.caveats }
+              : { magnitude: 'error', summary: null, caveats: [] },
           }))
         } catch {
-          setMagnitudes((prev) => ({ ...prev, [key]: 'error' }))
+          setMagnitudes((prev) => ({ ...prev, [key]: { magnitude: 'error', summary: null, caveats: [] } }))
         }
       }),
     )
@@ -121,9 +129,9 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
   const showModelParamsSection =
     inputChanges.modelVersionChanged || parameterDiffs.length > 0
 
-  function resolveMagnitude(md: MarketDataInputChangeDto): MagnitudeState {
-    if (md.magnitude) return md.magnitude
-    return magnitudes[mdKey(md)] ?? null
+  function resolveQuantDiff(md: MarketDataInputChangeDto): QuantDiffInfo {
+    if (md.magnitude) return { magnitude: md.magnitude, summary: null, caveats: [] }
+    return magnitudes[mdKey(md)] ?? { magnitude: null, summary: null, caveats: [] }
   }
 
   return (
@@ -283,36 +291,60 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
               </h4>
               <div className="space-y-1">
                 {inputChanges.marketDataChanges.map((md, idx) => {
-                  const magnitude = resolveMagnitude(md)
+                  const quantDiff = resolveQuantDiff(md)
+                  const magnitude = quantDiff.magnitude
                   return (
                     <div
                       key={`${md.dataType}-${md.instrumentId}-${idx}`}
-                      className="flex items-center gap-3 text-sm py-1"
+                      className="py-1"
                     >
-                      <span className="text-slate-600 dark:text-slate-300 font-medium w-28 shrink-0">
-                        {md.dataType}
-                      </span>
-                      <span className="text-slate-700 dark:text-slate-200 w-28 shrink-0">
-                        {md.instrumentId}
-                      </span>
-                      <ChangeTypeBadge changeType={md.changeType} />
-                      {magnitude === 'loading' && (
-                        <Loader2
-                          className="h-3.5 w-3.5 animate-spin text-slate-400"
-                          data-testid="magnitude-loading"
-                          aria-label="Loading magnitude"
-                        />
-                      )}
-                      {magnitude === 'error' && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-slate-600 dark:text-slate-300 font-medium w-28 shrink-0">
+                          {md.dataType}
+                        </span>
+                        <span className="text-slate-700 dark:text-slate-200 w-28 shrink-0">
+                          {md.instrumentId}
+                        </span>
+                        <ChangeTypeBadge changeType={md.changeType} />
+                        {magnitude === 'loading' && (
+                          <Loader2
+                            className="h-3.5 w-3.5 animate-spin text-slate-400"
+                            data-testid="magnitude-loading"
+                            aria-label="Loading magnitude"
+                          />
+                        )}
+                        {magnitude === 'error' && (
+                          <span
+                            className="text-xs text-slate-400 italic"
+                            data-testid="magnitude-error"
+                          >
+                            unavailable
+                          </span>
+                        )}
+                        {(magnitude === 'LARGE' || magnitude === 'MEDIUM' || magnitude === 'SMALL') && (
+                          <MagnitudeIndicator magnitude={magnitude} />
+                        )}
+                      </div>
+                      {quantDiff.summary && (
                         <span
-                          className="text-xs text-slate-400 italic"
-                          data-testid="magnitude-error"
+                          className="text-xs text-slate-500 dark:text-slate-400 ml-[15.5rem] block mt-0.5"
+                          data-testid="quant-diff-summary"
                         >
-                          unavailable
+                          {quantDiff.summary}
                         </span>
                       )}
-                      {(magnitude === 'LARGE' || magnitude === 'MEDIUM' || magnitude === 'SMALL') && (
-                        <MagnitudeIndicator magnitude={magnitude} />
+                      {quantDiff.caveats.length > 0 && (
+                        <div className="ml-[15.5rem] mt-0.5">
+                          {quantDiff.caveats.map((caveat, ci) => (
+                            <span
+                              key={ci}
+                              className="text-xs text-amber-600 dark:text-amber-400 italic block"
+                              data-testid="quant-diff-caveat"
+                            >
+                              {caveat}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )

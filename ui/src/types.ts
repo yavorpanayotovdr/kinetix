@@ -535,6 +535,8 @@ export interface VaRAttributionDto {
   corrEffect: string | null
   timeDecayEffect: string
   unexplained: string
+  effectMagnitudes: Record<string, string>
+  caveats: string[]
 }
 
 export interface PositionInputChangeDto {
@@ -575,6 +577,8 @@ export interface MarketDataQuantDiffDto {
   instrumentId: string
   magnitude: 'LARGE' | 'MEDIUM' | 'SMALL'
   diagnostic: boolean
+  summary: string | null
+  caveats: string[]
 }
 
 export interface RunComparisonResponseDto {

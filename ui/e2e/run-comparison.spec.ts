@@ -129,6 +129,12 @@ const MOCK_ATTRIBUTION = {
   corrEffect: '0.00',
   timeDecayEffect: '-50.00',
   unexplained: '1050.00',
+  effectMagnitudes: {
+    position: 'LARGE',
+    timeDecay: 'SMALL',
+    unexplained: 'LARGE',
+  },
+  caveats: [],
 }
 
 // --- Helper ---

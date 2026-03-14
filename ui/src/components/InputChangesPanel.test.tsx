@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { InputChangesPanel } from './InputChangesPanel'
-import type { InputChangesSummaryDto, ParameterDiffDto } from '../types'
+import type { InputChangesSummaryDto, ParameterDiffDto, MarketDataQuantDiffDto } from '../types'
+import * as runComparisonApi from '../api/runComparison'
 
 function emptyInputChanges(
   overrides: Partial<InputChangesSummaryDto> = {},
@@ -336,5 +337,160 @@ describe('InputChangesPanel', () => {
     expect(screen.getByText('confidenceLevel')).toBeInTheDocument()
     expect(screen.getByText('0.95')).toBeInTheDocument()
     expect(screen.getByText('0.99')).toBeInTheDocument()
+  })
+
+  it('renders summary text from lazy-loaded quant diff', async () => {
+    const quantDiffResult: MarketDataQuantDiffDto = {
+      dataType: 'VOL_SURFACE',
+      instrumentId: 'SPX',
+      magnitude: 'LARGE',
+      diagnostic: true,
+      summary: 'ATM vol shifted +3.2pp',
+      caveats: [],
+    }
+    vi.spyOn(runComparisonApi, 'fetchMarketDataQuantDiff').mockResolvedValue(quantDiffResult)
+
+    const inputChanges = emptyInputChanges({
+      marketDataChanged: true,
+      marketDataChanges: [
+        {
+          dataType: 'VOL_SURFACE',
+          instrumentId: 'SPX',
+          assetClass: 'EQUITY',
+          changeType: 'CHANGED',
+          magnitude: null,
+        },
+      ],
+      baseManifestId: 'manifest-1',
+      targetManifestId: 'manifest-2',
+    })
+
+    render(
+      <InputChangesPanel
+        inputChanges={inputChanges}
+        parameterDiffs={[]}
+        portfolioId="port-1"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('quant-diff-summary')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('quant-diff-summary')).toHaveTextContent('ATM vol shifted +3.2pp')
+  })
+
+  it('renders caveats from lazy-loaded quant diff', async () => {
+    const quantDiffResult: MarketDataQuantDiffDto = {
+      dataType: 'PRICE',
+      instrumentId: 'AAPL',
+      magnitude: 'MEDIUM',
+      diagnostic: true,
+      summary: null,
+      caveats: ['Stale data detected', 'Interpolated from nearby tenors'],
+    }
+    vi.spyOn(runComparisonApi, 'fetchMarketDataQuantDiff').mockResolvedValue(quantDiffResult)
+
+    const inputChanges = emptyInputChanges({
+      marketDataChanged: true,
+      marketDataChanges: [
+        {
+          dataType: 'PRICE',
+          instrumentId: 'AAPL',
+          assetClass: 'EQUITY',
+          changeType: 'CHANGED',
+          magnitude: null,
+        },
+      ],
+      baseManifestId: 'manifest-1',
+      targetManifestId: 'manifest-2',
+    })
+
+    render(
+      <InputChangesPanel
+        inputChanges={inputChanges}
+        parameterDiffs={[]}
+        portfolioId="port-1"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('quant-diff-caveat')).toHaveLength(2)
+    })
+    expect(screen.getByText('Stale data detected')).toBeInTheDocument()
+    expect(screen.getByText('Interpolated from nearby tenors')).toBeInTheDocument()
+  })
+
+  it('renders both summary and caveats together', async () => {
+    const quantDiffResult: MarketDataQuantDiffDto = {
+      dataType: 'YIELD_CURVE',
+      instrumentId: 'USD',
+      magnitude: 'SMALL',
+      diagnostic: true,
+      summary: '2Y rate moved +5bps',
+      caveats: ['Limited data points for long end'],
+    }
+    vi.spyOn(runComparisonApi, 'fetchMarketDataQuantDiff').mockResolvedValue(quantDiffResult)
+
+    const inputChanges = emptyInputChanges({
+      marketDataChanged: true,
+      marketDataChanges: [
+        {
+          dataType: 'YIELD_CURVE',
+          instrumentId: 'USD',
+          assetClass: 'RATES',
+          changeType: 'CHANGED',
+          magnitude: null,
+        },
+      ],
+      baseManifestId: 'manifest-a',
+      targetManifestId: 'manifest-b',
+    })
+
+    render(
+      <InputChangesPanel
+        inputChanges={inputChanges}
+        parameterDiffs={[]}
+        portfolioId="port-1"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('quant-diff-summary')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('quant-diff-summary')).toHaveTextContent('2Y rate moved +5bps')
+    expect(screen.getByTestId('quant-diff-caveat')).toHaveTextContent('Limited data points for long end')
+  })
+
+  // Note: Summary and caveats are only displayed for lazy-loaded quant diffs (when magnitude is null
+  // on the MarketDataInputChangeDto and fetched via fetchMarketDataQuantDiff). When magnitude is
+  // already present inline on the DTO, resolveQuantDiff returns summary=null and caveats=[] since
+  // those fields only come from the API response.
+  it('does not render summary or caveats for inline magnitude', () => {
+    const inputChanges = emptyInputChanges({
+      marketDataChanged: true,
+      marketDataChanges: [
+        {
+          dataType: 'PRICE',
+          instrumentId: 'MSFT',
+          assetClass: 'EQUITY',
+          changeType: 'CHANGED',
+          magnitude: 'LARGE',
+        },
+      ],
+    })
+
+    render(<InputChangesPanel inputChanges={inputChanges} parameterDiffs={[]} />)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(screen.getByTestId('magnitude-large')).toBeInTheDocument()
+    expect(screen.queryByTestId('quant-diff-summary')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('quant-diff-caveat')).not.toBeInTheDocument()
   })
 })

@@ -155,6 +155,8 @@ describe('useRunComparison', () => {
       corrEffect: '30',
       timeDecayEffect: '-20',
       unexplained: '40',
+      effectMagnitudes: { position: 'MEDIUM', unexplained: 'SMALL' },
+      caveats: [],
     }
     mockRequestAttribution.mockResolvedValue(attribution)
 
