@@ -17,6 +17,7 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = null
     override suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob? = null
     override suspend fun findOfficialEodByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob? = null
+    override suspend fun findOfficialEodRange(portfolioId: String, from: LocalDate, to: LocalDate): List<ValuationJob> = emptyList()
     override suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD promotion")
     override suspend fun demoteOfficialEod(jobId: UUID): ValuationJob =

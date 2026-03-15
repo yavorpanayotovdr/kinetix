@@ -230,6 +230,85 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?.toValuationJob()
     }
 
+    override suspend fun findOfficialEodRange(
+        portfolioId: String,
+        from: LocalDate,
+        to: LocalDate,
+    ): List<ValuationJob> = newSuspendedTransaction(db = db) {
+        val jobIds = OfficialEodDesignationsTable
+            .selectAll()
+            .where {
+                (OfficialEodDesignationsTable.portfolioId eq portfolioId) and
+                    (OfficialEodDesignationsTable.valuationDate greaterEq from.toKotlinLocalDate()) and
+                    (OfficialEodDesignationsTable.valuationDate lessEq to.toKotlinLocalDate())
+            }
+            .map { it[OfficialEodDesignationsTable.jobId] }
+
+        if (jobIds.isEmpty()) return@newSuspendedTransaction emptyList()
+
+        val scalarColumns = listOf(
+            ValuationJobsTable.jobId,
+            ValuationJobsTable.portfolioId,
+            ValuationJobsTable.triggerType,
+            ValuationJobsTable.status,
+            ValuationJobsTable.valuationDate,
+            ValuationJobsTable.startedAt,
+            ValuationJobsTable.completedAt,
+            ValuationJobsTable.durationMs,
+            ValuationJobsTable.calculationType,
+            ValuationJobsTable.confidenceLevel,
+            ValuationJobsTable.varValue,
+            ValuationJobsTable.expectedShortfall,
+            ValuationJobsTable.pvValue,
+            ValuationJobsTable.delta,
+            ValuationJobsTable.gamma,
+            ValuationJobsTable.vega,
+            ValuationJobsTable.theta,
+            ValuationJobsTable.rho,
+            ValuationJobsTable.error,
+            ValuationJobsTable.triggeredBy,
+            ValuationJobsTable.runLabel,
+            ValuationJobsTable.promotedAt,
+            ValuationJobsTable.promotedBy,
+            ValuationJobsTable.marketDataSnapshotId,
+            ValuationJobsTable.manifestId,
+        )
+
+        ValuationJobsTable
+            .select(scalarColumns)
+            .where { ValuationJobsTable.jobId inList jobIds }
+            .orderBy(ValuationJobsTable.valuationDate, SortOrder.ASC)
+            .map { row ->
+                ValuationJob(
+                    jobId = row[ValuationJobsTable.jobId],
+                    portfolioId = row[ValuationJobsTable.portfolioId],
+                    triggerType = TriggerType.valueOf(row[ValuationJobsTable.triggerType]),
+                    status = RunStatus.valueOf(row[ValuationJobsTable.status]),
+                    startedAt = row[ValuationJobsTable.startedAt].toInstant(),
+                    valuationDate = row[ValuationJobsTable.valuationDate].toJavaLocalDate(),
+                    completedAt = row[ValuationJobsTable.completedAt]?.toInstant(),
+                    durationMs = row[ValuationJobsTable.durationMs],
+                    calculationType = row[ValuationJobsTable.calculationType],
+                    confidenceLevel = row[ValuationJobsTable.confidenceLevel],
+                    varValue = row[ValuationJobsTable.varValue],
+                    expectedShortfall = row[ValuationJobsTable.expectedShortfall],
+                    pvValue = row[ValuationJobsTable.pvValue],
+                    delta = row[ValuationJobsTable.delta],
+                    gamma = row[ValuationJobsTable.gamma],
+                    vega = row[ValuationJobsTable.vega],
+                    theta = row[ValuationJobsTable.theta],
+                    rho = row[ValuationJobsTable.rho],
+                    error = row[ValuationJobsTable.error],
+                    triggeredBy = row[ValuationJobsTable.triggeredBy],
+                    runLabel = row[ValuationJobsTable.runLabel]?.let { RunLabel.valueOf(it) },
+                    promotedAt = row[ValuationJobsTable.promotedAt]?.toInstant(),
+                    promotedBy = row[ValuationJobsTable.promotedBy],
+                    marketDataSnapshotId = row[ValuationJobsTable.marketDataSnapshotId],
+                    manifestId = row[ValuationJobsTable.manifestId],
+                )
+            }
+    }
+
     override suspend fun promoteToOfficialEod(
         jobId: UUID,
         promotedBy: String,
