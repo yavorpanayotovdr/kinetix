@@ -61,7 +61,8 @@ class VaRCalculationService(
         )
 
         try {
-            // Step 1: Fetch positions
+            // Phase 1: Fetch positions
+            updateCurrentPhaseSafely(jobId, JobPhaseName.FETCH_POSITIONS)
             val fetchPosStart = Instant.now()
             val positions = positionProvider.getPositions(request.portfolioId)
             val fetchPosDuration = java.time.Duration.between(fetchPosStart, Instant.now()).toMillis()
@@ -99,7 +100,8 @@ class VaRCalculationService(
                 request.calculationType, request.portfolioId.value, positions.size,
             )
 
-            // Step 2: Discover dependencies
+            // Phase 2: Discover dependencies
+            updateCurrentPhaseSafely(jobId, JobPhaseName.DISCOVER_DEPENDENCIES)
             val discoverStart = Instant.now()
             val dependencies = try {
                 dependenciesDiscoverer?.discover(
@@ -156,7 +158,8 @@ class VaRCalculationService(
                 }
             }
 
-            // Step 3: Fetch market data
+            // Phase 3: Fetch market data
+            updateCurrentPhaseSafely(jobId, JobPhaseName.FETCH_MARKET_DATA)
             val fetchMdStart = Instant.now()
             val fetchResults = try {
                 if (dependencies.isNotEmpty() && marketDataFetcher != null) {
@@ -235,7 +238,8 @@ class VaRCalculationService(
                 }
             }
 
-            // Step 4: Calculate VaR (+ Greeks if requested)
+            // Phase 4: Valuation (+ Greeks if requested)
+            updateCurrentPhaseSafely(jobId, JobPhaseName.VALUATION)
             val calcStart = Instant.now()
             val timer = meterRegistry.timer("var.calculation.duration")
             val sample = io.micrometer.core.instrument.Timer.start(meterRegistry)
@@ -291,7 +295,8 @@ class VaRCalculationService(
                 )
             )
 
-            // Step 5: Publish result
+            // Phase 5: Publish result
+            updateCurrentPhaseSafely(jobId, JobPhaseName.PUBLISH_RESULT)
             val publishStart = Instant.now()
             resultPublisher.publish(result, correlationId)
             val publishDuration = java.time.Duration.between(publishStart, Instant.now()).toMillis()
@@ -458,6 +463,14 @@ class VaRCalculationService(
             jobRecorder.update(job)
         } catch (e: Exception) {
             logger.warn("Failed to update valuation job {}", job.jobId, e)
+        }
+    }
+
+    private suspend fun updateCurrentPhaseSafely(jobId: UUID, phase: JobPhaseName) {
+        try {
+            jobRecorder.updateCurrentPhase(jobId, phase)
+        } catch (e: Exception) {
+            logger.warn("Failed to update current phase {} for job {}", phase, jobId, e)
         }
     }
 }

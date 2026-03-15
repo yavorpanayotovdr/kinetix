@@ -75,6 +75,7 @@ class VaRCalculationServiceTest : FunSpec({
         clearMocks(positionProvider, riskEngineClient, resultPublisher, jobRecorder)
         coEvery { jobRecorder.save(any()) } just Runs
         coEvery { jobRecorder.update(any()) } just Runs
+        coEvery { jobRecorder.updateCurrentPhase(any(), any()) } just Runs
     }
 
     test("fetches positions, calls risk engine, and publishes result") {
@@ -1038,5 +1039,57 @@ class VaRCalculationServiceTest : FunSpec({
         val tsla = result.positionRisk.first { it.instrumentId == InstrumentId("TSLA") }
         // Short position gets negative VaR contribution (it's a hedge)
         tsla.varContribution.setScale(2, java.math.RoundingMode.HALF_UP).toDouble() shouldBe -1200.0
+    }
+
+    test("records currentPhase transitions in order through all phases then null on completion") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        val phaseSlots = mutableListOf<JobPhaseName>()
+        coVerify(ordering = Ordering.ORDERED) {
+            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+        }
+        phaseSlots shouldBe listOf(
+            JobPhaseName.FETCH_POSITIONS,
+            JobPhaseName.DISCOVER_DEPENDENCIES,
+            JobPhaseName.FETCH_MARKET_DATA,
+            JobPhaseName.VALUATION,
+            JobPhaseName.PUBLISH_RESULT,
+        )
+    }
+
+    test("does not fail the calculation if updateCurrentPhase throws") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(any()) } just Runs
+        coEvery { jobRecorder.updateCurrentPhase(any(), any()) } throws RuntimeException("DB down")
+
+        val result = service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        result.varValue shouldBe 5000.0
     }
 })
