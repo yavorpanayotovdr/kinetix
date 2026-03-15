@@ -292,7 +292,7 @@ data class CreateAlertRuleRequestDto(
 // --- Job History DTOs ---
 
 @Serializable
-data class JobStepClientDto(
+data class JobPhaseClientDto(
     val name: String,
     val status: String,
     val startedAt: String,
@@ -324,6 +324,7 @@ data class ValuationJobSummaryClientDto(
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 @Serializable
@@ -340,12 +341,13 @@ data class ValuationJobDetailClientDto(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
-    val steps: List<JobStepClientDto> = emptyList(),
+    val phases: List<JobPhaseClientDto> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 @Serializable
@@ -628,7 +630,7 @@ fun AlertEventDto.toDomain() = AlertEventItem(
     triggeredAt = Instant.parse(triggeredAt),
 )
 
-fun JobStepClientDto.toDomain() = JobStepItem(
+fun JobPhaseClientDto.toDomain() = JobPhaseItem(
     name = name,
     status = status,
     startedAt = Instant.parse(startedAt),
@@ -659,6 +661,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     runLabel = runLabel,
     promotedAt = promotedAt,
     promotedBy = promotedBy,
+    currentPhase = currentPhase,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
@@ -674,12 +677,13 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
-    steps = steps.map { it.toDomain() },
+    phases = phases.map { it.toDomain() },
     error = error,
     valuationDate = valuationDate,
     runLabel = runLabel,
     promotedAt = promotedAt,
     promotedBy = promotedBy,
+    currentPhase = currentPhase,
 )
 
 fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(

@@ -149,7 +149,7 @@ data class DataDependenciesSummary(
     val dependencies: List<MarketDataDependencyItem>,
 )
 
-data class JobStepItem(
+data class JobPhaseItem(
     val name: String,
     val status: String,
     val startedAt: Instant,
@@ -180,6 +180,7 @@ data class ValuationJobSummaryItem(
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 data class ValuationJobDetailItem(
@@ -195,12 +196,13 @@ data class ValuationJobDetailItem(
     val varValue: Double?,
     val expectedShortfall: Double?,
     val pvValue: Double?,
-    val steps: List<JobStepItem>,
+    val phases: List<JobPhaseItem>,
     val error: String?,
     val valuationDate: String? = null,
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 data class EodTimelineEntryItem(

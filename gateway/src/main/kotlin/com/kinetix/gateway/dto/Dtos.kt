@@ -5,7 +5,7 @@ import com.kinetix.gateway.client.AlertEventItem
 import com.kinetix.gateway.client.AlertRuleItem
 import com.kinetix.gateway.client.ValuationJobDetailItem
 import com.kinetix.gateway.client.ValuationJobSummaryItem
-import com.kinetix.gateway.client.JobStepItem
+import com.kinetix.gateway.client.JobPhaseItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.DataDependenciesSummary
@@ -832,7 +832,7 @@ data class DataQualityStatusResponse(
 // --- Job History DTOs ---
 
 @Serializable
-data class JobStepDto(
+data class JobPhaseDto(
     val name: String,
     val status: String,
     val startedAt: String,
@@ -864,6 +864,7 @@ data class ValuationJobSummaryResponse(
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 @Serializable
@@ -880,12 +881,13 @@ data class ValuationJobDetailResponse(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
-    val steps: List<JobStepDto> = emptyList(),
+    val phases: List<JobPhaseDto> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )
 
 @Serializable
@@ -896,7 +898,7 @@ data class PaginatedJobsResponse(
 
 // --- Job History mappers ---
 
-fun JobStepItem.toDto(): JobStepDto = JobStepDto(
+fun JobPhaseItem.toDto(): JobPhaseDto = JobPhaseDto(
     name = name,
     status = status,
     startedAt = startedAt.toString(),
@@ -927,6 +929,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     runLabel = runLabel,
     promotedAt = promotedAt,
     promotedBy = promotedBy,
+    currentPhase = currentPhase,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -942,12 +945,13 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
-    steps = steps.map { it.toDto() },
+    phases = phases.map { it.toDto() },
     error = error,
     valuationDate = valuationDate,
     runLabel = runLabel,
     promotedAt = promotedAt,
     promotedBy = promotedBy,
+    currentPhase = currentPhase,
 )
 
 // --- Stress Scenario Governance DTOs ---

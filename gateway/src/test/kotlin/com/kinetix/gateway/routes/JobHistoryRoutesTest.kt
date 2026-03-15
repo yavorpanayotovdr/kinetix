@@ -1,6 +1,6 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.gateway.client.JobStepItem
+import com.kinetix.gateway.client.JobPhaseItem
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.client.ValuationJobDetailItem
 import com.kinetix.gateway.client.ValuationJobSummaryItem
@@ -82,7 +82,7 @@ class JobHistoryRoutesTest : FunSpec({
         }
     }
 
-    test("returns job detail with steps for a known job") {
+    test("returns job detail with phases for a known job") {
         val detail = ValuationJobDetailItem(
             jobId = "11111111-1111-1111-1111-111111111111",
             portfolioId = "port-1",
@@ -96,8 +96,8 @@ class JobHistoryRoutesTest : FunSpec({
             varValue = 5000.0,
             expectedShortfall = 6250.0,
             pvValue = 1_800_000.0,
-            steps = listOf(
-                JobStepItem(
+            phases = listOf(
+                JobPhaseItem(
                     name = "FETCH_POSITIONS",
                     status = "COMPLETED",
                     startedAt = Instant.parse("2025-01-15T10:00:00Z"),
