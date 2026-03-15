@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { NotificationCenter } from './components/NotificationCenter'
@@ -9,6 +9,7 @@ import { ScenariosTab } from './components/ScenariosTab'
 import { RegulatoryTab } from './components/RegulatoryTab'
 import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
+import { EodTimelineTab } from './components/EodTimelineTab'
 import { PortfolioSummaryCard } from './components/PortfolioSummaryCard'
 import { usePositions } from './hooks/usePositions'
 import { usePortfolioSelector, ALL_PORTFOLIOS } from './hooks/usePortfolioSelector'
@@ -25,13 +26,14 @@ import { useDataQuality } from './hooks/useDataQuality'
 import { DataQualityIndicator } from './components/DataQualityIndicator'
 import { useWorkspace } from './hooks/useWorkspace'
 
-type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
+type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'positions', label: 'Positions', icon: BarChart3 },
   { key: 'trades', label: 'Trades', icon: ScrollText },
   { key: 'pnl', label: 'P&L', icon: TrendingUp },
   { key: 'risk', label: 'Risk', icon: Shield },
+  { key: 'eod', label: 'EOD History', icon: CalendarDays },
   { key: 'scenarios', label: 'Scenarios', icon: FlaskConical },
   { key: 'regulatory', label: 'Regulatory', icon: Scale },
   { key: 'alerts', label: 'Alerts', icon: Bell },
@@ -255,6 +257,10 @@ function App() {
                     onWhatIf={() => setWhatIfOpen(true)}
                     onViewPnlTab={() => setActiveTab('pnl')}
                   />
+                )}
+
+                {activeTab === 'eod' && (
+                  <EodTimelineTab portfolioId={effectivePortfolioId} />
                 )}
 
                 {activeTab === 'scenarios' && (
