@@ -12,6 +12,8 @@ object SodBaselinesTable : Table("sod_baselines") {
     val createdAt = timestampWithTimeZone("created_at")
     val sourceJobId = uuid("source_job_id").nullable()
     val calculationType = varchar("calculation_type", 50).nullable()
+    val varValue = double("var_value").nullable()
+    val expectedShortfall = double("expected_shortfall").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

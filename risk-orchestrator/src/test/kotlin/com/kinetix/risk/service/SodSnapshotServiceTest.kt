@@ -128,7 +128,7 @@ class SodSnapshotServiceTest : FunSpec({
     }
 
     test("creates snapshot using cached VaR result when no ValuationResult provided") {
-        val result = valuationResult()
+        val result = valuationResult().copy(calculatedAt = Instant.now().minus(java.time.Duration.ofMinutes(30)))
         coEvery { varCache.get(PORTFOLIO.value) } returns result
         coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
@@ -145,13 +145,13 @@ class SodSnapshotServiceTest : FunSpec({
         val result = valuationResult()
         coEvery { varCache.get(PORTFOLIO.value) } returns null
         coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
-        coEvery { varCalculationService.calculateVaR(any(), any()) } returns result
+        coEvery { varCalculationService.calculateVaR(any(), any(), runLabel = any()) } returns result
         coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
         coEvery { sodBaselineRepository.save(any()) } just Runs
 
         service.createSnapshot(PORTFOLIO, SnapshotType.AUTO, date = TODAY)
 
-        coVerify { varCalculationService.calculateVaR(any(), any()) }
+        coVerify { varCalculationService.calculateVaR(any(), any(), runLabel = RunLabel.SOD) }
         coVerify { dailyRiskSnapshotRepository.saveAll(any()) }
     }
 
@@ -371,6 +371,65 @@ class SodSnapshotServiceTest : FunSpec({
                 snapshots.size shouldBe 1
                 snapshots[0].quantity shouldBe BigDecimal.ONE
                 snapshots[0].marketPrice shouldBe BigDecimal("15000.00")
+            })
+        }
+    }
+
+    test("calculateFreshVaR passes RunLabel.SOD to calculateVaR") {
+        val result = valuationResult()
+        coEvery { varCache.get(PORTFOLIO.value) } returns null
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
+        coEvery { varCalculationService.calculateVaR(any(), any(), runLabel = any()) } returns result
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.AUTO, date = TODAY)
+
+        coVerify { varCalculationService.calculateVaR(any(), any(), runLabel = RunLabel.SOD) }
+    }
+
+    test("rejects stale cached result and recalculates") {
+        val staleResult = valuationResult().copy(
+            calculatedAt = Instant.now().minus(java.time.Duration.ofHours(3)),
+        )
+        val freshResult = valuationResult()
+        coEvery { varCache.get(PORTFOLIO.value) } returns staleResult
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
+        coEvery { varCalculationService.calculateVaR(any(), any(), runLabel = any()) } returns freshResult
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.AUTO, date = TODAY)
+
+        coVerify { varCalculationService.calculateVaR(any(), any(), runLabel = RunLabel.SOD) }
+    }
+
+    test("accepts fresh cached result without recalculating") {
+        val freshResult = valuationResult().copy(
+            calculatedAt = Instant.now().minus(java.time.Duration.ofMinutes(30)),
+        )
+        coEvery { varCache.get(PORTFOLIO.value) } returns freshResult
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.AUTO, date = TODAY)
+
+        coVerify(exactly = 0) { varCalculationService.calculateVaR(any(), any(), runLabel = any()) }
+    }
+
+    test("stores varValue and expectedShortfall on SodBaseline") {
+        val result = valuationResult()
+        coEvery { positionProvider.getPositions(PORTFOLIO) } returns listOf(position())
+        coEvery { dailyRiskSnapshotRepository.saveAll(any()) } just Runs
+        coEvery { sodBaselineRepository.save(any()) } just Runs
+
+        service.createSnapshot(PORTFOLIO, SnapshotType.MANUAL, result, TODAY)
+
+        coVerify {
+            sodBaselineRepository.save(withArg { baseline ->
+                baseline.varValue shouldBe 500.0
+                baseline.expectedShortfall shouldBe 600.0
             })
         }
     }

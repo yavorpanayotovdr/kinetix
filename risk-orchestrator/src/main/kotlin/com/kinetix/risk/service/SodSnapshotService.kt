@@ -19,6 +19,7 @@ class SodSnapshotService(
     private val varCalculationService: VaRCalculationService,
     private val positionProvider: PositionProvider,
     private val jobRecorder: ValuationJobRecorder? = null,
+    private val maxCacheAgeMinutes: Long = 120,
 ) {
     private val logger = LoggerFactory.getLogger(SodSnapshotService::class.java)
 
@@ -29,7 +30,7 @@ class SodSnapshotService(
         date: LocalDate = LocalDate.now(),
     ) {
         val result = valuationResult
-            ?: varCache.get(portfolioId.value)
+            ?: varCache.get(portfolioId.value)?.takeIf { isFreshEnough(it) }
             ?: calculateFreshVaR(portfolioId)
             ?: throw IllegalStateException("Cannot create SOD snapshot: no valuation data available for ${portfolioId.value}")
 
@@ -61,6 +62,8 @@ class SodSnapshotService(
             createdAt = Instant.now(),
             sourceJobId = result.jobId,
             calculationType = result.calculationType.name,
+            varValue = result.varValue,
+            expectedShortfall = result.expectedShortfall,
         )
         sodBaselineRepository.save(baseline)
 
@@ -130,6 +133,15 @@ class SodSnapshotService(
             confidenceLevel = ConfidenceLevel.CL_95,
             requestedOutputs = ValuationOutput.entries.toSet(),
         )
-        return varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
+        return varCalculationService.calculateVaR(request, TriggerType.SCHEDULED, runLabel = RunLabel.SOD)
+    }
+
+    private fun isFreshEnough(result: ValuationResult): Boolean {
+        val age = java.time.Duration.between(result.calculatedAt, Instant.now())
+        val fresh = age.toMinutes() <= maxCacheAgeMinutes
+        if (!fresh) {
+            logger.info("Cached VaR is {}min old (max {}min), will recalculate", age.toMinutes(), maxCacheAgeMinutes)
+        }
+        return fresh
     }
 }

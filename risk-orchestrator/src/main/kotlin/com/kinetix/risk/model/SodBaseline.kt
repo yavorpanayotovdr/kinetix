@@ -13,4 +13,6 @@ data class SodBaseline(
     val createdAt: Instant,
     val sourceJobId: UUID? = null,
     val calculationType: String? = null,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
 )

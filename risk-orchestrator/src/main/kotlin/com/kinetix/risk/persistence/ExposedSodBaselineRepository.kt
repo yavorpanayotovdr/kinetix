@@ -28,6 +28,8 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
             it[createdAt] = OffsetDateTime.ofInstant(baseline.createdAt, ZoneOffset.UTC)
             it[sourceJobId] = baseline.sourceJobId
             it[calculationType] = baseline.calculationType
+            it[varValue] = baseline.varValue
+            it[expectedShortfall] = baseline.expectedShortfall
         }
     }
 
@@ -63,5 +65,7 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
         createdAt = this[SodBaselinesTable.createdAt].toInstant(),
         sourceJobId = this[SodBaselinesTable.sourceJobId],
         calculationType = this[SodBaselinesTable.calculationType],
+        varValue = this[SodBaselinesTable.varValue],
+        expectedShortfall = this[SodBaselinesTable.expectedShortfall],
     )
 }
