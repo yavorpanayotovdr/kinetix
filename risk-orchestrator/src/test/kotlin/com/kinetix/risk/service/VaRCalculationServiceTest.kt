@@ -199,7 +199,7 @@ class VaRCalculationServiceTest : FunSpec({
         startedJob.durationMs shouldBe null
         startedJob.varValue shouldBe null
         startedJob.expectedShortfall shouldBe null
-        startedJob.steps shouldHaveSize 0
+        startedJob.phases shouldHaveSize 0
         startedJob.error shouldBe null
     }
 
@@ -234,16 +234,16 @@ class VaRCalculationServiceTest : FunSpec({
         job.durationMs.shouldNotBeNull()
         job.error shouldBe null
 
-        job.steps shouldHaveSize 5
-        job.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
-        job.steps[1].name shouldBe JobStepName.DISCOVER_DEPENDENCIES
-        job.steps[2].name shouldBe JobStepName.FETCH_MARKET_DATA
-        job.steps[3].name shouldBe JobStepName.VALUATION
-        job.steps[4].name shouldBe JobStepName.PUBLISH_RESULT
+        job.phases shouldHaveSize 5
+        job.phases[0].name shouldBe JobPhaseName.FETCH_POSITIONS
+        job.phases[1].name shouldBe JobPhaseName.DISCOVER_DEPENDENCIES
+        job.phases[2].name shouldBe JobPhaseName.FETCH_MARKET_DATA
+        job.phases[3].name shouldBe JobPhaseName.VALUATION
+        job.phases[4].name shouldBe JobPhaseName.PUBLISH_RESULT
 
-        job.steps[0].details["positionCount"] shouldBe 1
+        job.phases[0].details["positionCount"] shouldBe 1
 
-        val positionsJson = job.steps[0].details["positions"]
+        val positionsJson = job.phases[0].details["positions"]
         positionsJson.shouldBeInstanceOf<String>()
         positionsJson shouldContain "AAPL"
         positionsJson shouldContain "EQUITY"
@@ -375,7 +375,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val discoverStep = jobSlot.captured.steps.first { it.name == JobStepName.DISCOVER_DEPENDENCIES }
+        val discoverStep = jobSlot.captured.phases.first { it.name == JobPhaseName.DISCOVER_DEPENDENCIES }
         discoverStep.details["dependencyCount"] shouldBe 2
 
         val depsJson = discoverStep.details["dependencies"]
@@ -443,7 +443,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val mdStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_MARKET_DATA }
+        val mdStep = jobSlot.captured.phases.first { it.name == JobPhaseName.FETCH_MARKET_DATA }
         mdStep.details["requested"] shouldBe 2
         mdStep.details["fetched"] shouldBe 1
 
@@ -516,7 +516,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val mdStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_MARKET_DATA }
+        val mdStep = jobSlot.captured.phases.first { it.name == JobPhaseName.FETCH_MARKET_DATA }
         val itemsJson = mdStep.details["marketDataItems"]
         itemsJson.shouldBeInstanceOf<String>()
 
@@ -573,7 +573,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
+        val fetchPosStep = jobSlot.captured.phases.first { it.name == JobPhaseName.FETCH_POSITIONS }
         val groupedJson = fetchPosStep.details["dependenciesByPosition"]
         groupedJson.shouldBeInstanceOf<String>()
 
@@ -608,7 +608,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
+        val calcStep = jobSlot.captured.phases.first { it.name == JobPhaseName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -650,7 +650,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
+        val calcStep = jobSlot.captured.phases.first { it.name == JobPhaseName.VALUATION }
         val parsed = Json.parseToJsonElement(calcStep.details["positionBreakdown"] as String).jsonArray
         parsed shouldHaveSize 2
 
@@ -684,7 +684,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val fetchPosStep = jobSlot.captured.steps.first { it.name == JobStepName.FETCH_POSITIONS }
+        val fetchPosStep = jobSlot.captured.phases.first { it.name == JobPhaseName.FETCH_POSITIONS }
         fetchPosStep.details.containsKey("dependenciesByPosition") shouldBe false
     }
 
@@ -723,7 +723,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
+        val calcStep = jobSlot.captured.phases.first { it.name == JobPhaseName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -760,7 +760,7 @@ class VaRCalculationServiceTest : FunSpec({
         val jobSlot = slot<ValuationJob>()
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
-        val calcStep = jobSlot.captured.steps.first { it.name == JobStepName.VALUATION }
+        val calcStep = jobSlot.captured.phases.first { it.name == JobPhaseName.VALUATION }
         val breakdownJson = calcStep.details["positionBreakdown"]
         breakdownJson.shouldBeInstanceOf<String>()
 
@@ -798,10 +798,10 @@ class VaRCalculationServiceTest : FunSpec({
         coVerify { jobRecorder.update(capture(jobSlot)) }
 
         val job = jobSlot.captured
-        job.steps shouldHaveSize 5
-        job.steps[3].name shouldBe JobStepName.VALUATION
+        job.phases shouldHaveSize 5
+        job.phases[3].name shouldBe JobPhaseName.VALUATION
 
-        val calcStep = job.steps[3]
+        val calcStep = job.phases[3]
         calcStep.details["greeksAssetClassCount"] shouldBe 1
         calcStep.details["theta"] shouldBe -45.0
         calcStep.details["rho"] shouldBe 120.0

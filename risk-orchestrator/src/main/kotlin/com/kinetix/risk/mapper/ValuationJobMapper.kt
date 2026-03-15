@@ -4,7 +4,7 @@ import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.model.*
 import com.kinetix.risk.routes.dtos.ValuationJobDetailResponse
 import com.kinetix.risk.routes.dtos.ValuationJobSummaryResponse
-import com.kinetix.risk.routes.dtos.JobStepResponse
+import com.kinetix.risk.routes.dtos.JobPhaseResponse
 
 fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJobSummaryResponse(
     jobId = jobId.toString(),
@@ -28,6 +28,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     runLabel = runLabel?.name,
     promotedAt = promotedAt?.toString(),
     promotedBy = promotedBy,
+    currentPhase = currentPhase?.name,
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -43,12 +44,13 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
-    steps = steps.map { it.toResponse() },
+    phases = phases.map { it.toResponse() },
     error = error,
     valuationDate = valuationDate.toString(),
     runLabel = runLabel?.name,
     promotedAt = promotedAt?.toString(),
     promotedBy = promotedBy,
+    currentPhase = currentPhase?.name,
 )
 
 fun ValuationJob.toValuationResult(): ValuationResult? {
@@ -79,7 +81,7 @@ fun ValuationJob.toValuationResult(): ValuationResult? {
     )
 }
 
-private fun JobStep.toResponse(): JobStepResponse = JobStepResponse(
+private fun JobPhase.toResponse(): JobPhaseResponse = JobPhaseResponse(
     name = name.name,
     status = status.name,
     startedAt = startedAt.toString(),

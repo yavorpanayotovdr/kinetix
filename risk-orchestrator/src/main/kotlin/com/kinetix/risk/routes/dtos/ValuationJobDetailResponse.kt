@@ -16,10 +16,11 @@ data class ValuationJobDetailResponse(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
-    val steps: List<JobStepResponse> = emptyList(),
+    val phases: List<JobPhaseResponse> = emptyList(),
     val error: String? = null,
     val valuationDate: String? = null,
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )

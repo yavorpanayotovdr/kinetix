@@ -43,7 +43,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[componentBreakdown] = job.componentBreakdownSnapshot.takeIf { s -> s.isNotEmpty() }?.map { cb -> cb.toJson() }
             it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
-            it[steps] = job.steps.map { step -> step.toJson() }
+            it[phases] = job.phases.map { phase -> phase.toJson() }
             it[error] = job.error
             it[triggeredBy] = job.triggeredBy
             it[runLabel] = job.runLabel?.name
@@ -80,7 +80,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[componentBreakdown] = job.componentBreakdownSnapshot.takeIf { s -> s.isNotEmpty() }?.map { cb -> cb.toJson() }
             it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
-            it[steps] = job.steps.map { step -> step.toJson() }
+            it[phases] = job.phases.map { phase -> phase.toJson() }
             it[error] = job.error
             it[runLabel] = job.runLabel?.name
             it[manifestId] = job.manifestId
@@ -394,7 +394,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         job.copy(runLabel = RunLabel.SUPERSEDED_EOD, promotedAt = null, promotedBy = null)
     }
 
-    private fun JobStep.toJson(): JobStepJson = JobStepJson(
+    private fun JobPhase.toJson(): JobPhaseJson = JobPhaseJson(
         name = name.name,
         status = status.name,
         startedAt = startedAt.toString(),
@@ -404,13 +404,13 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         error = error,
     )
 
-    private fun parseStepName(raw: String): JobStepName = when (raw) {
-        "CALCULATE_VAR" -> JobStepName.VALUATION
-        else -> JobStepName.valueOf(raw)
+    private fun parsePhaseName(raw: String): JobPhaseName = when (raw) {
+        "CALCULATE_VAR" -> JobPhaseName.VALUATION
+        else -> JobPhaseName.valueOf(raw)
     }
 
-    private fun JobStepJson.toDomain(): JobStep = JobStep(
-        name = parseStepName(name),
+    private fun JobPhaseJson.toDomain(): JobPhase = JobPhase(
+        name = parsePhaseName(name),
         status = RunStatus.valueOf(status),
         startedAt = Instant.parse(startedAt),
         completedAt = completedAt?.let { Instant.parse(it) },
@@ -492,7 +492,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         componentBreakdownSnapshot = this[ValuationJobsTable.componentBreakdown]?.map { it.toDomain() } ?: emptyList(),
         computedOutputsSnapshot = this[ValuationJobsTable.computedOutputs]?.map { ValuationOutput.valueOf(it) }?.toSet() ?: emptySet(),
         assetClassGreeksSnapshot = this[ValuationJobsTable.assetClassGreeks]?.map { it.toDomain() } ?: emptyList(),
-        steps = this[ValuationJobsTable.steps].map { it.toDomain() },
+        phases = this[ValuationJobsTable.phases].map { it.toDomain() },
         error = this[ValuationJobsTable.error],
         triggeredBy = this[ValuationJobsTable.triggeredBy],
         runLabel = this[ValuationJobsTable.runLabel]?.let { RunLabel.valueOf(it) },

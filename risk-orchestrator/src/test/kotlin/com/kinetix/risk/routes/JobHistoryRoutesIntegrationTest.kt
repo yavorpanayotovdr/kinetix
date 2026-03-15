@@ -37,9 +37,9 @@ private fun completedJob(
     varValue = 5000.0,
     expectedShortfall = 6250.0,
     pvValue = 1_800_000.0,
-    steps = listOf(
-        JobStep(
-            name = JobStepName.FETCH_POSITIONS,
+    phases = listOf(
+        JobPhase(
+            name = JobPhaseName.FETCH_POSITIONS,
             status = RunStatus.COMPLETED,
             startedAt = startedAt,
             completedAt = startedAt.plusMillis(20),

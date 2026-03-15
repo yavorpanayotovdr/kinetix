@@ -59,7 +59,7 @@ private fun completedJob(
             percentageOfTotal = BigDecimal("100.00"),
         ),
     ),
-    steps = emptyList(),
+    phases = emptyList(),
 )
 
 private fun cachedResult(portfolioId: String = "port-1") = ValuationResult(

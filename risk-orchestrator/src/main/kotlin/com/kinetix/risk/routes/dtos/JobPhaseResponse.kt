@@ -3,7 +3,7 @@ package com.kinetix.risk.routes.dtos
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class JobStepResponse(
+data class JobPhaseResponse(
     val name: String,
     val status: String,
     val startedAt: String,

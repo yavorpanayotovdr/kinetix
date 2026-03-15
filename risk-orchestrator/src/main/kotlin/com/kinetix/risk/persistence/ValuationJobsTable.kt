@@ -29,7 +29,7 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val componentBreakdown = jsonb<List<ComponentBreakdownJson>>("component_breakdown", Json).nullable()
     val computedOutputs = jsonb<List<String>>("computed_outputs", Json).nullable()
     val assetClassGreeks = jsonb<List<AssetClassGreeksJson>>("asset_class_greeks", Json).nullable()
-    val steps = jsonb<List<JobStepJson>>("steps", Json)
+    val phases = jsonb<List<JobPhaseJson>>("phases", Json)
     val error = text("error").nullable()
     val triggeredBy = varchar("triggered_by", 255).nullable()
     val runLabel = varchar("run_label", 20).nullable()

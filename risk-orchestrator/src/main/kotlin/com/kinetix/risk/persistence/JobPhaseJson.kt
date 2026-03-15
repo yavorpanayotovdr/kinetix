@@ -3,7 +3,7 @@ package com.kinetix.risk.persistence
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class JobStepJson(
+data class JobPhaseJson(
     val name: String,
     val status: String,
     val startedAt: String,

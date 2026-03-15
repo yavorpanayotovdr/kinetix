@@ -43,7 +43,7 @@ class VaRCalculationService(
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
         val valuationDate = LocalDate.now(ZoneOffset.UTC)
-        val steps = mutableListOf<JobStep>()
+        val phases = mutableListOf<JobPhase>()
         var jobError: String? = null
 
         saveJobSafely(
@@ -65,9 +65,9 @@ class VaRCalculationService(
             val fetchPosStart = Instant.now()
             val positions = positionProvider.getPositions(request.portfolioId)
             val fetchPosDuration = java.time.Duration.between(fetchPosStart, Instant.now()).toMillis()
-            steps.add(
-                JobStep(
-                    name = JobStepName.FETCH_POSITIONS,
+            phases.add(
+                JobPhase(
+                    name = JobPhaseName.FETCH_POSITIONS,
                     status = RunStatus.COMPLETED,
                     startedAt = fetchPosStart,
                     completedAt = Instant.now(),
@@ -113,9 +113,9 @@ class VaRCalculationService(
             }
             val discoverDuration = java.time.Duration.between(discoverStart, Instant.now()).toMillis()
             val dataTypes = dependencies.mapNotNull { it.dataType }.distinct().joinToString(",")
-            steps.add(
-                JobStep(
-                    name = JobStepName.DISCOVER_DEPENDENCIES,
+            phases.add(
+                JobPhase(
+                    name = JobPhaseName.DISCOVER_DEPENDENCIES,
                     status = RunStatus.COMPLETED,
                     startedAt = discoverStart,
                     completedAt = Instant.now(),
@@ -152,7 +152,7 @@ class VaRCalculationService(
                             }
                         }
                     })
-                    steps[0] = steps[0].copy(details = steps[0].details + ("dependenciesByPosition" to groupedJson))
+                    phases[0] = phases[0].copy(details = phases[0].details + ("dependenciesByPosition" to groupedJson))
                 }
             }
 
@@ -170,9 +170,9 @@ class VaRCalculationService(
             }
             val marketData = fetchResults.filterIsInstance<FetchSuccess>().map { it.value }
             val fetchMdDuration = java.time.Duration.between(fetchMdStart, Instant.now()).toMillis()
-            steps.add(
-                JobStep(
-                    name = JobStepName.FETCH_MARKET_DATA,
+            phases.add(
+                JobPhase(
+                    name = JobPhaseName.FETCH_MARKET_DATA,
                     status = RunStatus.COMPLETED,
                     startedAt = fetchMdStart,
                     completedAt = Instant.now(),
@@ -280,9 +280,9 @@ class VaRCalculationService(
                 result.pvValue?.let { put("pvValue", it) }
             }
 
-            steps.add(
-                JobStep(
-                    name = JobStepName.VALUATION,
+            phases.add(
+                JobPhase(
+                    name = JobPhaseName.VALUATION,
                     status = RunStatus.COMPLETED,
                     startedAt = calcStart,
                     completedAt = Instant.now(),
@@ -295,9 +295,9 @@ class VaRCalculationService(
             val publishStart = Instant.now()
             resultPublisher.publish(result, correlationId)
             val publishDuration = java.time.Duration.between(publishStart, Instant.now()).toMillis()
-            steps.add(
-                JobStep(
-                    name = JobStepName.PUBLISH_RESULT,
+            phases.add(
+                JobPhase(
+                    name = JobPhaseName.PUBLISH_RESULT,
                     status = RunStatus.COMPLETED,
                     startedAt = publishStart,
                     completedAt = Instant.now(),
@@ -349,7 +349,7 @@ class VaRCalculationService(
                 componentBreakdownSnapshot = result.componentBreakdown,
                 computedOutputsSnapshot = result.computedOutputs,
                 assetClassGreeksSnapshot = result.greeks?.assetClassGreeks ?: emptyList(),
-                steps = steps,
+                phases = phases,
                 manifestId = manifestId,
                 runLabel = runLabel,
             )
@@ -370,7 +370,7 @@ class VaRCalculationService(
                 durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
-                steps = steps,
+                phases = phases,
                 error = jobError,
                 runLabel = runLabel,
             )

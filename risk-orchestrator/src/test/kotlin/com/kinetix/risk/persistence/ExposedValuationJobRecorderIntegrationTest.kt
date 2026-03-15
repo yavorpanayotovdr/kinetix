@@ -56,41 +56,41 @@ private fun completedJob(
     varValue = varValue,
     expectedShortfall = varValue * 1.25,
     pvValue = 1_800_000.0,
-    steps = listOf(
-        JobStep(
-            name = JobStepName.FETCH_POSITIONS,
+    phases = listOf(
+        JobPhase(
+            name = JobPhaseName.FETCH_POSITIONS,
             status = RunStatus.COMPLETED,
             startedAt = startedAt,
             completedAt = startedAt.plusMillis(20),
             durationMs = 20,
             details = mapOf("positionCount" to 5),
         ),
-        JobStep(
-            name = JobStepName.DISCOVER_DEPENDENCIES,
+        JobPhase(
+            name = JobPhaseName.DISCOVER_DEPENDENCIES,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(20),
             completedAt = startedAt.plusMillis(50),
             durationMs = 30,
             details = mapOf("dependencyCount" to 3, "dataTypes" to "SPOT_PRICE,YIELD_CURVE"),
         ),
-        JobStep(
-            name = JobStepName.FETCH_MARKET_DATA,
+        JobPhase(
+            name = JobPhaseName.FETCH_MARKET_DATA,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(50),
             completedAt = startedAt.plusMillis(80),
             durationMs = 30,
             details = mapOf("requested" to 3, "fetched" to 2),
         ),
-        JobStep(
-            name = JobStepName.VALUATION,
+        JobPhase(
+            name = JobPhaseName.VALUATION,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(80),
             completedAt = startedAt.plusMillis(130),
             durationMs = 50,
             details = mapOf("varValue" to 5000.0, "expectedShortfall" to 6250.0),
         ),
-        JobStep(
-            name = JobStepName.PUBLISH_RESULT,
+        JobPhase(
+            name = JobPhaseName.PUBLISH_RESULT,
             status = RunStatus.COMPLETED,
             startedAt = startedAt.plusMillis(130),
             completedAt = startedAt.plusMillis(150),
@@ -129,10 +129,10 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         found.pvValue shouldBe 1_800_000.0
         found.durationMs shouldBe 150
         found.error shouldBe null
-        found.steps shouldHaveSize 5
-        found.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
-        found.steps[0].details["positionCount"] shouldBe "5"
-        found.steps[4].name shouldBe JobStepName.PUBLISH_RESULT
+        found.phases shouldHaveSize 5
+        found.phases[0].name shouldBe JobPhaseName.FETCH_POSITIONS
+        found.phases[0].details["positionCount"] shouldBe "5"
+        found.phases[4].name shouldBe JobPhaseName.PUBLISH_RESULT
     }
 
     test("lists jobs ordered by started_at descending") {
@@ -214,9 +214,9 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
             varValue = 5000.0,
             expectedShortfall = 6250.0,
             pvValue = 1_800_000.0,
-            steps = listOf(
-                JobStep(
-                    name = JobStepName.FETCH_POSITIONS,
+            phases = listOf(
+                JobPhase(
+                    name = JobPhaseName.FETCH_POSITIONS,
                     status = RunStatus.COMPLETED,
                     startedAt = job.startedAt,
                     completedAt = job.startedAt.plusMillis(20),
@@ -235,8 +235,8 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         updated.varValue shouldBe 5000.0
         updated.expectedShortfall shouldBe 6250.0
         updated.pvValue shouldBe 1_800_000.0
-        updated.steps shouldHaveSize 1
-        updated.steps[0].name shouldBe JobStepName.FETCH_POSITIONS
+        updated.phases shouldHaveSize 1
+        updated.phases[0].name shouldBe JobPhaseName.FETCH_POSITIONS
         updated.error shouldBe null
     }
 

@@ -25,4 +25,5 @@ data class ValuationJobSummaryResponse(
     val runLabel: String? = null,
     val promotedAt: String? = null,
     val promotedBy: String? = null,
+    val currentPhase: String? = null,
 )

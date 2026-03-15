@@ -2,8 +2,8 @@ package com.kinetix.risk.model
 
 import java.time.Instant
 
-data class JobStep(
-    val name: JobStepName,
+data class JobPhase(
+    val name: JobPhaseName,
     val status: RunStatus,
     val startedAt: Instant,
     val completedAt: Instant? = null,
