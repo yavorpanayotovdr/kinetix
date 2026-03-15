@@ -116,7 +116,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                   className={`cursor-pointer hover:bg-slate-50 border-b border-slate-100 ${
                     isExpanded || isLoading ? 'bg-primary-50' : ''
                   } ${selectedForCompare?.has(run.jobId) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''} ${
-                    run.runLabel === 'OFFICIAL_EOD' ? 'border-l-2 border-l-amber-400' : ''
+                    run.runLabel === 'OFFICIAL_EOD' ? 'border-l-2 border-l-amber-400' : run.runLabel === 'SOD' ? 'border-l-2 border-l-sky-400' : ''
                   }`}
                 >
                   {onToggleCompareSelection && (
@@ -163,6 +163,11 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                       {run.runLabel === 'SUPERSEDED_EOD' && (
                         <Badge variant="neutral" data-testid={`superseded-badge-${run.jobId}`}>
                           Superseded
+                        </Badge>
+                      )}
+                      {run.runLabel === 'SOD' && (
+                        <Badge variant="sod" data-testid={`sod-badge-${run.jobId}`}>
+                          SOD
                         </Badge>
                       )}
                     </span>

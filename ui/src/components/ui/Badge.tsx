@@ -6,6 +6,7 @@ const variants = {
   info: 'bg-blue-100 text-blue-800',
   success: 'bg-green-100 text-green-800',
   neutral: 'bg-slate-100 text-slate-700',
+  sod: 'bg-sky-100 text-sky-800',
   eod: 'bg-amber-100 text-amber-800 ring-1 ring-amber-300',
   preclose: 'bg-purple-100 text-purple-800 ring-1 ring-purple-300',
 } as const

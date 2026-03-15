@@ -89,7 +89,7 @@ export function SodBaselineIndicator({
             </span>
           )}
           {status.sourceJobId && (
-            <span data-testid="sod-source-job-id" className="ml-1 font-mono">
+            <span data-testid="sod-source-job-id" className="ml-1 font-mono" title={status.sourceJobId}>
               · {status.sourceJobId.slice(0, 8)}
             </span>
           )}

@@ -103,6 +103,13 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
 
       {data && (
         <>
+          {sod.status?.exists && (
+            <p data-testid="pnl-baseline-provenance" className="text-xs text-slate-500">
+              Attribution baseline: {sod.status.snapshotType === 'AUTO' ? 'Auto' : 'Manual'}
+              {sod.status.calculationType && ` · ${sod.status.calculationType}`}
+              {sod.status.createdAt && ` · ${formatTimestamp(sod.status.createdAt)}`}
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <button
               data-testid="pnl-csv-export"
