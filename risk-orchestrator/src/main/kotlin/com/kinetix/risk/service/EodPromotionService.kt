@@ -4,6 +4,7 @@ import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
@@ -14,6 +15,7 @@ class EodPromotionService(
     private val eventPublisher: OfficialEodEventPublisher,
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
     private val riskAuditPublisher: RiskAuditEventPublisher? = null,
+    private val matViewRefresher: (suspend () -> Unit)? = null,
 ) {
     private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
 
@@ -72,6 +74,14 @@ class EodPromotionService(
                     )
                 } catch (e: Exception) {
                     logger.warn("Failed to publish RISK_RUN_EOD_PROMOTED audit event for job {}", promoted.jobId, e)
+                }
+            }
+
+            if (matViewRefresher != null) {
+                try {
+                    matViewRefresher.invoke()
+                } catch (e: Exception) {
+                    logger.warn("Failed to refresh daily_official_eod_summary materialized view after promoting job {}", promoted.jobId, e)
                 }
             }
 

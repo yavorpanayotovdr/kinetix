@@ -39,6 +39,7 @@ import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
 import com.kinetix.risk.routes.eodTimelineRoutes
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.MarketDataQuantDiffer
 import com.kinetix.risk.service.RunComparisonService
@@ -259,7 +260,16 @@ fun Application.moduleWithRoutes() {
     val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
     val eodEventPublisher = com.kinetix.risk.kafka.KafkaOfficialEodPublisher(kafkaProducer)
     val meterRegistry = attributes.getOrNull(MeterRegistryKey) ?: io.micrometer.core.instrument.simple.SimpleMeterRegistry()
-    val eodPromotionService = com.kinetix.risk.service.EodPromotionService(jobRecorder, eodEventPublisher, meterRegistry)
+    val eodPromotionService = com.kinetix.risk.service.EodPromotionService(
+        jobRecorder = jobRecorder,
+        eventPublisher = eodEventPublisher,
+        meterRegistry = meterRegistry,
+        matViewRefresher = {
+            newSuspendedTransaction(db = riskDb) {
+                exec("REFRESH MATERIALIZED VIEW CONCURRENTLY daily_official_eod_summary")
+            }
+        },
+    )
 
     val varCalculationService = VaRCalculationService(
         effectivePositionProvider, effectiveRiskEngineClient, resultPublisher,
