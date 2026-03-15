@@ -5,6 +5,7 @@ import com.kinetix.risk.service.ValuationJobRecorder
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -84,7 +85,7 @@ class JobHistoryRoutesTest : FunSpec({
         }
     }
 
-    test("returns job detail with job steps") {
+    test("returns job detail with job phases") {
         val job = completedJob()
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 
@@ -169,6 +170,50 @@ class JobHistoryRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/jobs/port-1?to=garbage")
 
             response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
+    test("job list includes currentPhase for a RUNNING job") {
+        val runningJob = ValuationJob(
+            jobId = JOB_ID,
+            portfolioId = "port-1",
+            triggerType = TriggerType.ON_DEMAND,
+            status = RunStatus.RUNNING,
+            startedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            valuationDate = LocalDate.of(2025, 1, 15),
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            currentPhase = JobPhaseName.FETCH_MARKET_DATA,
+        )
+        coEvery { jobRecorder.findByPortfolioId("port-1", 20, 0) } returns listOf(runningJob)
+        coEvery { jobRecorder.countByPortfolioId("port-1") } returns 1L
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { jobHistoryRoutes(jobRecorder) }
+
+            val response = client.get("/api/v1/risk/jobs/port-1")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "\"currentPhase\":\"FETCH_MARKET_DATA\""
+        }
+    }
+
+    test("job detail response uses phases key not steps") {
+        val job = completedJob()
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { jobHistoryRoutes(jobRecorder) }
+
+            val response = client.get("/api/v1/risk/jobs/detail/$JOB_ID")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "\"phases\""
+            body shouldNotContain "\"steps\""
         }
     }
 })
