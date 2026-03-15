@@ -1,5 +1,6 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.model.JobPhaseName
 import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.ValuationJob
 import java.time.Instant
@@ -9,6 +10,7 @@ import java.util.UUID
 interface ValuationJobRecorder {
     suspend fun save(job: ValuationJob)
     suspend fun update(job: ValuationJob)
+    suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName)
     suspend fun findByPortfolioId(
         portfolioId: String,
         limit: Int = 50,

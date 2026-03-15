@@ -615,4 +615,47 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         eodJobs shouldHaveSize 1
         eodJobs[0].jobId shouldBe job1.jobId
     }
+
+    test("updateCurrentPhase sets current_phase column") {
+        val job = startedJob()
+        recorder.save(job)
+
+        recorder.updateCurrentPhase(job.jobId, JobPhaseName.FETCH_MARKET_DATA)
+
+        val found = recorder.findByJobId(job.jobId)
+        found.shouldNotBeNull()
+        found.currentPhase shouldBe JobPhaseName.FETCH_MARKET_DATA
+    }
+
+    test("updateCurrentPhase on promoted EOD job throws") {
+        val date = LocalDate.of(2025, 3, 10)
+        val job = completedJob(valuationDate = date)
+        recorder.save(job)
+        recorder.promoteToOfficialEod(job.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
+
+        val ex = shouldThrow<IllegalStateException> {
+            withContext(Dispatchers.IO) {
+                recorder.updateCurrentPhase(job.jobId, JobPhaseName.VALUATION)
+            }
+        }
+        ex.message shouldBe "Cannot modify promoted Official EOD job ${job.jobId}"
+    }
+
+    test("update clears currentPhase on COMPLETED job") {
+        val job = startedJob()
+        recorder.save(job)
+        recorder.updateCurrentPhase(job.jobId, JobPhaseName.VALUATION)
+
+        val updatedJob = job.copy(
+            status = RunStatus.COMPLETED,
+            completedAt = job.startedAt.plusMillis(200),
+            durationMs = 200,
+            varValue = 5000.0,
+        )
+        recorder.update(updatedJob)
+
+        val found = recorder.findByJobId(job.jobId)
+        found.shouldNotBeNull()
+        found.currentPhase.shouldBeNull()
+    }
 })

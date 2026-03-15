@@ -44,6 +44,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[phases] = job.phases.map { phase -> phase.toJson() }
+            it[currentPhase] = job.currentPhase?.name
             it[error] = job.error
             it[triggeredBy] = job.triggeredBy
             it[runLabel] = job.runLabel?.name
@@ -81,9 +82,23 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[phases] = job.phases.map { phase -> phase.toJson() }
+            it[currentPhase] = null
             it[error] = job.error
             it[runLabel] = job.runLabel?.name
             it[manifestId] = job.manifestId
+        }
+    }
+
+    override suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName): Unit = newSuspendedTransaction(db = db) {
+        val existing = ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq jobId }
+            .firstOrNull()
+        if (existing != null && existing[ValuationJobsTable.promotedAt] != null) {
+            throw IllegalStateException("Cannot modify promoted Official EOD job $jobId")
+        }
+        ValuationJobsTable.update({ ValuationJobsTable.jobId eq jobId }) {
+            it[currentPhase] = phase.name
         }
     }
 
@@ -493,6 +508,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         computedOutputsSnapshot = this[ValuationJobsTable.computedOutputs]?.map { ValuationOutput.valueOf(it) }?.toSet() ?: emptySet(),
         assetClassGreeksSnapshot = this[ValuationJobsTable.assetClassGreeks]?.map { it.toDomain() } ?: emptyList(),
         phases = this[ValuationJobsTable.phases].map { it.toDomain() },
+        currentPhase = this[ValuationJobsTable.currentPhase]?.let { parsePhaseName(it) },
         error = this[ValuationJobsTable.error],
         triggeredBy = this[ValuationJobsTable.triggeredBy],
         runLabel = this[ValuationJobsTable.runLabel]?.let { RunLabel.valueOf(it) },

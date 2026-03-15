@@ -1,5 +1,6 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.model.JobPhaseName
 import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.ValuationJob
 import java.time.Instant
@@ -9,6 +10,7 @@ import java.util.UUID
 class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun save(job: ValuationJob) {}
     override suspend fun update(job: ValuationJob) {}
+    override suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName) {}
     override suspend fun findByPortfolioId(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): List<ValuationJob> = emptyList()
     override suspend fun countByPortfolioId(portfolioId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): Long = 0
     override suspend fun findByJobId(jobId: UUID): ValuationJob? = null
