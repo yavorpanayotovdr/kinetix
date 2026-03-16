@@ -1,5 +1,6 @@
 package com.kinetix.correlation
 
+import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.model.CorrelationMatrix
 import com.kinetix.common.model.EstimationMethod
 import com.kinetix.correlation.cache.RedisCorrelationCache
@@ -40,7 +41,9 @@ import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.producer.KafkaProducer
+import java.util.concurrent.atomic.AtomicBoolean
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
@@ -136,13 +139,35 @@ fun Application.moduleWithRoutes() {
 
     val ingestionService = CorrelationIngestionService(correlationMatrixRepository, cache, publisher)
 
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        seedComplete = { seedDone.get() },
+    )
+
     module(correlationMatrixRepository, ingestionService)
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
             DevDataSeeder(correlationMatrixRepository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 
     val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true

@@ -2,6 +2,7 @@ services:
   postgres:
     image: timescale/timescaledb:latest-pg17
     container_name: kinetix-postgres
+    command: postgres -c max_connections=200
     ports:
       - "5432:5432"
     environment:

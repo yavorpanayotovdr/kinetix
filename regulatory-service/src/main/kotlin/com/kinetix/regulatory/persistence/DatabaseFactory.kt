@@ -16,8 +16,13 @@ data class DatabaseConfig(
 
 object DatabaseFactory {
 
+    lateinit var dataSource: HikariDataSource
+        private set
+
+    const val FLYWAY_LOCATION = "classpath:db/regulatory"
+
     fun init(config: DatabaseConfig, meterRegistry: MeterRegistry? = null): Database {
-        val dataSource = createDataSource(config)
+        dataSource = createDataSource(config)
         meterRegistry?.let { dataSource.metricsTrackerFactory = com.zaxxer.hikari.metrics.micrometer.MicrometerMetricsTrackerFactory(it) }
         runMigrations(dataSource)
         return Database.connect(dataSource)

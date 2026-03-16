@@ -1,5 +1,7 @@
 package com.kinetix.notification
 
+import com.kinetix.common.health.ReadinessChecker
+import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
@@ -40,6 +42,8 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicBoolean
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -120,8 +124,6 @@ fun Application.moduleWithRoutes() {
     val webhookDelivery = WebhookDeliveryService()
     val deliveryRouter = DeliveryRouter(listOf(inAppDelivery, emailDelivery, webhookDelivery))
 
-    module(rulesEngine, inAppDelivery)
-
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
 
@@ -140,11 +142,12 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val riskResultTracker = ConsumerLivenessTracker(topic = "risk.results", groupId = "notification-service-risk-group")
     val riskResultConsumer = RiskResultConsumer(
         KafkaConsumer<String, String>(riskConsumerProps),
         rulesEngine,
         deliveryRouter,
-        retryableConsumer = RetryableConsumer(topic = "risk.results", dlqProducer = dlqProducer),
+        retryableConsumer = RetryableConsumer(topic = "risk.results", dlqProducer = dlqProducer, livenessTracker = riskResultTracker),
     )
 
     val anomalyConsumerProps = Properties().apply {
@@ -154,10 +157,33 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val anomalyTracker = ConsumerLivenessTracker(topic = "risk.anomalies", groupId = "notification-service-anomaly-group")
     val anomalyEventConsumer = AnomalyEventConsumer(
         KafkaConsumer<String, String>(anomalyConsumerProps),
-        retryableConsumer = RetryableConsumer(topic = "risk.anomalies", dlqProducer = dlqProducer),
+        retryableConsumer = RetryableConsumer(topic = "risk.anomalies", dlqProducer = dlqProducer, livenessTracker = anomalyTracker),
     )
+
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        consumerTrackers = listOf(riskResultTracker, anomalyTracker),
+        seedComplete = { seedDone.get() },
+    )
+
+    module(rulesEngine, inAppDelivery)
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
 
     launch { riskResultConsumer.start() }
     launch { anomalyEventConsumer.start() }
@@ -166,7 +192,10 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(rulesEngine, eventRepository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 }
 

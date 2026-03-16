@@ -1,5 +1,6 @@
 package com.kinetix.price
 
+import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.price.cache.RedisPriceCache
 import com.kinetix.price.kafka.KafkaPricePublisher
 import com.kinetix.price.metrics.PriceMetrics
@@ -36,7 +37,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.math.BigDecimal
+import java.util.concurrent.atomic.AtomicBoolean
 import java.time.Instant
 import java.util.Currency
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -136,7 +139,27 @@ fun Application.moduleWithRoutes() {
     val priceMetrics = PriceMetrics(appMicrometerRegistry)
     val ingestionService = PriceIngestionService(repository, cache, publisher, stalenessTracker, priceMetrics)
 
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        seedComplete = { seedDone.get() },
+    )
+
     module(appMicrometerRegistry)
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
+
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
@@ -160,7 +183,10 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(repository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 
     val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true

@@ -7,8 +7,13 @@ import org.jetbrains.exposed.sql.Database
 
 object RiskDatabaseFactory {
 
+    lateinit var dataSource: HikariDataSource
+        private set
+
+    const val FLYWAY_LOCATION = "classpath:db/risk"
+
     fun init(config: RiskDatabaseConfig): Database {
-        val dataSource = createDataSource(config)
+        dataSource = createDataSource(config)
         runMigrations(dataSource)
         return Database.connect(dataSource)
     }
@@ -35,7 +40,7 @@ object RiskDatabaseFactory {
     private fun runMigrations(dataSource: HikariDataSource) {
         Flyway.configure()
             .dataSource(dataSource)
-            .locations("classpath:db/risk")
+            .locations(FLYWAY_LOCATION)
             .load()
             .migrate()
     }

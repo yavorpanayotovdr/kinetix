@@ -1,5 +1,6 @@
 package com.kinetix.regulatory
 
+import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
 import com.kinetix.regulatory.persistence.BacktestResultRepository
@@ -37,6 +38,8 @@ import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicBoolean
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -129,12 +132,34 @@ fun Application.moduleWithRoutes() {
 
     val client = RiskOrchestratorClient(httpClient, riskOrchestratorUrl)
 
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        seedComplete = { seedDone.get() },
+    )
+
     module(repository, client, backtestRepository, stressScenarioRepository)
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
             DevDataSeeder(repository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 }

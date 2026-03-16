@@ -1,5 +1,7 @@
 package com.kinetix.position
 
+import com.kinetix.common.health.ReadinessChecker
+import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.kafka.PriceConsumer
@@ -42,6 +44,7 @@ import io.ktor.server.request.*
 import org.slf4j.event.Level
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
@@ -53,6 +56,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
+import java.util.concurrent.atomic.AtomicBoolean
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
@@ -162,9 +166,11 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
     val priceKafkaConsumer = KafkaConsumer<String, String>(consumerProps)
+    val priceTracker = ConsumerLivenessTracker(topic = "price.updates", groupId = "position-service-group")
     val retryableConsumer = RetryableConsumer(
         topic = "price.updates",
         dlqProducer = kafkaProducer,
+        livenessTracker = priceTracker,
     )
     val priceConsumer = PriceConsumer(
         priceKafkaConsumer, priceUpdateService,
@@ -172,7 +178,27 @@ fun Application.moduleWithRoutes() {
         liveFxRateProvider = liveFxRateProvider,
     )
 
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        consumerTrackers = listOf(priceTracker),
+        seedComplete = { seedDone.get() },
+    )
+
     module()
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
 
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
@@ -216,6 +242,9 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(tradeBookingService, positionRepository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 }

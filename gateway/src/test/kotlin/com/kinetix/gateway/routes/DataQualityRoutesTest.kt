@@ -49,12 +49,12 @@ class DataQualityRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/data-quality/status returns OK overall when all checks pass") {
+    test("GET /api/v1/data-quality/status returns UNKNOWN overall when all checks are not implemented") {
         testApplication {
             application { moduleWithDataQuality(positionClient, priceClient, riskClient) }
             val response = client.get("/api/v1/data-quality/status")
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["overall"]?.jsonPrimitive?.content shouldBe "OK"
+            body["overall"]?.jsonPrimitive?.content shouldBe "UNKNOWN"
         }
     }
 

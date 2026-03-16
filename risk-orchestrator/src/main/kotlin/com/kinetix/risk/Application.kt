@@ -34,6 +34,9 @@ import com.kinetix.risk.persistence.ExposedValuationJobRecorder
 import com.kinetix.risk.persistence.PostgresMarketDataBlobStore
 import com.kinetix.risk.persistence.RiskDatabaseConfig
 import com.kinetix.risk.persistence.RiskDatabaseFactory
+import com.kinetix.common.health.CheckResult
+import com.kinetix.common.health.ReadinessChecker
+import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -86,6 +89,8 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicBoolean
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -160,7 +165,8 @@ fun Application.moduleWithRoutes() {
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
         dependenciesStub,
     )
-    val riskEngineClient = ResilientRiskEngineClient(grpcRiskEngineClient, CircuitBreaker())
+    val circuitBreaker = CircuitBreaker()
+    val riskEngineClient = ResilientRiskEngineClient(grpcRiskEngineClient, circuitBreaker)
 
     val priceServiceBaseUrl = environment.config
         .propertyOrNull("priceService.baseUrl")?.getString() ?: "http://localhost:8082"
@@ -381,19 +387,6 @@ fun Application.moduleWithRoutes() {
     val runComparisonService = RunComparisonService(jobRecorder, snapshotDiffer, manifestRepo, inputChangeDiffer)
     val varAttributionService = VaRAttributionService(effectiveRiskEngineClient, effectivePositionProvider)
 
-    routing {
-        val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
-        jobHistoryRoutes(jobRecorder)
-        eodPromotionRoutes(eodPromotionService)
-        eodTimelineRoutes(jobRecorder)
-        runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
-    }
-
-    launch {
-        seedCacheFromDb(varCache, jobRecorder)
-    }
-
     val tradeConsumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         put(ConsumerConfig.GROUP_ID_CONFIG, "risk-orchestrator-trades-group")
@@ -401,9 +394,11 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val tradesLivenessTracker = ConsumerLivenessTracker(topic = "trades.lifecycle", groupId = "risk-orchestrator-trades-group")
     val tradeRetryableConsumer = RetryableConsumer(
         topic = "trades.lifecycle",
         dlqProducer = kafkaProducer,
+        livenessTracker = tradesLivenessTracker,
     )
     val tradeEventConsumer = TradeEventConsumer(
         KafkaConsumer<String, String>(tradeConsumerProps),
@@ -419,9 +414,11 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     }
+    val pricesLivenessTracker = ConsumerLivenessTracker(topic = "price.updates", groupId = "risk-orchestrator-prices-group")
     val priceRetryableConsumer = RetryableConsumer(
         topic = "price.updates",
         dlqProducer = kafkaProducer,
+        livenessTracker = pricesLivenessTracker,
     )
     val priceEventConsumer = PriceEventConsumer(
         KafkaConsumer<String, String>(priceConsumerProps),
@@ -433,6 +430,41 @@ fun Application.moduleWithRoutes() {
         varCache = varCache,
         retryableConsumer = priceRetryableConsumer,
     )
+
+    val readinessChecker = ReadinessChecker(
+        dataSource = RiskDatabaseFactory.dataSource,
+        flywayLocation = RiskDatabaseFactory.FLYWAY_LOCATION,
+        consumerTrackers = listOf(tradesLivenessTracker, pricesLivenessTracker),
+        extraChecks = mapOf(
+            "circuitBreaker" to { CheckResult(status = "OK", details = mapOf("state" to circuitBreaker.currentState.name)) },
+            "cache" to { CheckResult(status = "OK", details = mapOf("implementation" to (varCache::class.simpleName ?: "unknown"))) },
+        ),
+    )
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
+
+    routing {
+        val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
+        jobHistoryRoutes(jobRecorder)
+        eodPromotionRoutes(eodPromotionService)
+        eodTimelineRoutes(jobRecorder)
+        runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
+    }
+
+    launch {
+        seedCacheFromDb(varCache, jobRecorder)
+    }
 
     launch { tradeEventConsumer.start() }
     launch { priceEventConsumer.start() }

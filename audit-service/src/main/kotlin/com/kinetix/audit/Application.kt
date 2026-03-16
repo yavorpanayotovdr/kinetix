@@ -25,9 +25,12 @@ import io.ktor.server.routing.*
 import org.slf4j.event.Level
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import com.kinetix.common.health.ReadinessChecker
+import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.common.kafka.RetryableConsumer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicBoolean
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -104,7 +107,6 @@ fun Application.moduleWithRoutes() {
         )
     )
     val repository = ExposedAuditEventRepository(db)
-    module(repository)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
@@ -124,11 +126,39 @@ fun Application.moduleWithRoutes() {
     val dlqProducer = KafkaProducer<String, String>(producerProps)
 
     val kafkaConsumer = KafkaConsumer<String, String>(consumerProps)
+    val auditTracker = ConsumerLivenessTracker(topic = "trades.lifecycle", groupId = "audit-service-group")
     val retryableConsumer = RetryableConsumer(
         topic = "trades.lifecycle",
         dlqProducer = dlqProducer,
+        livenessTracker = auditTracker,
     )
     val auditEventConsumer = AuditEventConsumer(kafkaConsumer, repository, retryableConsumer = retryableConsumer)
+
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        consumerTrackers = listOf(auditTracker),
+        seedComplete = { seedDone.get() },
+    )
+
+    module()
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
+
+    routing {
+        auditRoutes(repository)
+    }
 
     launch {
         auditEventConsumer.start()
@@ -138,6 +168,9 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(repository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 }

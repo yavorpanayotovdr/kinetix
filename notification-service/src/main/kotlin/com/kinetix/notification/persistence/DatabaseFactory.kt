@@ -16,8 +16,13 @@ data class DatabaseConfig(
 
 object DatabaseFactory {
 
+    lateinit var dataSource: HikariDataSource
+        private set
+
+    const val FLYWAY_LOCATION = "classpath:db/notification"
+
     fun init(config: DatabaseConfig, meterRegistry: MeterRegistry? = null): Database {
-        val dataSource = createDataSource(config)
+        dataSource = createDataSource(config)
         meterRegistry?.let { dataSource.metricsTrackerFactory = com.zaxxer.hikari.metrics.micrometer.MicrometerMetricsTrackerFactory(it) }
         runMigrations(dataSource)
         return Database.connect(dataSource)
@@ -45,7 +50,7 @@ object DatabaseFactory {
     private fun runMigrations(dataSource: HikariDataSource) {
         Flyway.configure()
             .dataSource(dataSource)
-            .locations("classpath:db/notification")
+            .locations(FLYWAY_LOCATION)
             .load()
             .migrate()
     }

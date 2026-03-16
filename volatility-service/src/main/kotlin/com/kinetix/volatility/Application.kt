@@ -1,5 +1,6 @@
 package com.kinetix.volatility
 
+import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.VolPoint
 import com.kinetix.common.model.VolSurface
@@ -42,7 +43,9 @@ import io.lettuce.core.RedisClient
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import java.math.RoundingMode
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -139,13 +142,35 @@ fun Application.moduleWithRoutes() {
 
     val ingestionService = VolatilityIngestionService(volSurfaceRepository, cache, publisher)
 
+    val seedDone = AtomicBoolean(false)
+    val readinessChecker = ReadinessChecker(
+        dataSource = DatabaseFactory.dataSource,
+        flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
+        seedComplete = { seedDone.get() },
+    )
+
     module(volSurfaceRepository, ingestionService)
+
+    routing {
+        get("/health/ready") {
+            val response = readinessChecker.check()
+            val status = if (response.status == "READY") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respondText(
+                Json.encodeToString(com.kinetix.common.health.ReadinessResponse.serializer(), response),
+                ContentType.Application.Json,
+                status,
+            )
+        }
+    }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
             DevDataSeeder(volSurfaceRepository).seed()
+            seedDone.set(true)
         }
+    } else {
+        seedDone.set(true)
     }
 
     val feedEnabled = environment.config.propertyOrNull("feed.enabled")?.getString()?.toBoolean() ?: true

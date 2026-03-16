@@ -58,6 +58,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8081"
     healthcheck:
@@ -93,6 +94,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8082"
     healthcheck:
@@ -129,6 +131,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8088"
     healthcheck:
@@ -164,6 +167,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8089"
     healthcheck:
@@ -200,6 +204,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8090"
     healthcheck:
@@ -236,6 +241,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8091"
     healthcheck:
@@ -271,6 +277,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8084"
     healthcheck:
@@ -304,6 +311,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8086"
     healthcheck:
@@ -344,6 +352,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8083"
     healthcheck:
@@ -391,6 +400,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8085"
     healthcheck:
@@ -424,6 +434,7 @@ services:
       VOLATILITY_SERVICE_URL: http://volatility-service:8090
       CORRELATION_SERVICE_URL: http://correlation-service:8091
       REGULATORY_SERVICE_URL: http://regulatory-service:8085
+      AUDIT_SERVICE_URL: http://audit-service:8084
       OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
       OTEL_SERVICE_NAME: gateway
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317

@@ -17,20 +17,20 @@ fun Route.dataQualityRoutes() {
             val checks = listOf(
                 DataQualityCheckResponse(
                     name = "Price Freshness",
-                    status = "OK",
-                    message = "All prices updated within acceptable threshold",
+                    status = "UNKNOWN",
+                    message = "not implemented",
                     lastChecked = now,
                 ),
                 DataQualityCheckResponse(
                     name = "Position Count",
-                    status = "OK",
-                    message = "Position counts are consistent across services",
+                    status = "UNKNOWN",
+                    message = "not implemented",
                     lastChecked = now,
                 ),
                 DataQualityCheckResponse(
                     name = "Risk Result Completeness",
-                    status = "OK",
-                    message = "All risk calculations completed successfully",
+                    status = "UNKNOWN",
+                    message = "not implemented",
                     lastChecked = now,
                 ),
             )
@@ -38,6 +38,7 @@ fun Route.dataQualityRoutes() {
             val overall = when {
                 checks.any { it.status == "CRITICAL" } -> "CRITICAL"
                 checks.any { it.status == "WARNING" } -> "WARNING"
+                checks.all { it.status == "UNKNOWN" } -> "UNKNOWN"
                 else -> "OK"
             }
 

@@ -255,6 +255,7 @@ fun Application.devModule() {
     val volatilityUrl = servicesConfig.property("volatility.url").getString()
     val correlationUrl = servicesConfig.property("correlation.url").getString()
     val regulatoryUrl = servicesConfig.property("regulatory.url").getString()
+    val auditUrl = servicesConfig.property("audit.url").getString()
 
     val jsonConfig = Json { ignoreUnknownKeys = true }
     val httpClient = HttpClient(CIO) {
@@ -286,26 +287,28 @@ fun Application.devModule() {
                 "reference-data-service" to referenceDataUrl,
                 "volatility-service" to volatilityUrl,
                 "correlation-service" to correlationUrl,
+                "regulatory-service" to regulatoryUrl,
+                "audit-service" to auditUrl,
             )
             val results = coroutineScope {
                 serviceUrls.map { (name, url) ->
                     name to async {
                         try {
                             val resp = withTimeoutOrNull(2000L) {
-                                httpClient.get("$url/health")
+                                httpClient.get("$url/health/ready")
                             }
-                            if (resp != null && resp.status == HttpStatusCode.OK) "UP" else "DOWN"
+                            if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
                         } catch (_: Exception) {
                             "DOWN"
                         }
                     }
                 }.map { (name, deferred) -> name to deferred.await() }
             }
-            val overall = if (results.all { it.second == "UP" }) "UP" else "DEGRADED"
+            val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
             val response = buildJsonObject {
                 put("status", overall)
                 putJsonObject("services") {
-                    putJsonObject("gateway") { put("status", "UP") }
+                    putJsonObject("gateway") { put("status", "READY") }
                     for ((name, status) in results) {
                         putJsonObject(name) { put("status", status) }
                     }
