@@ -7,6 +7,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     compileOnly(libs.kafka.clients)
+    compileOnly(libs.hikari)
+    compileOnly(libs.flyway.core)
     compileOnly(libs.logback.classic)
     compileOnly(libs.opentelemetry.sdk.autoconfigure)
     compileOnly(libs.opentelemetry.logback.appender)
