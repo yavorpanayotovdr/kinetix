@@ -112,13 +112,6 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
         }
         return items
       })
-      setChartRuns((prev) => {
-        if (items.length === 0 || prev.length === 0) return prev
-        const existing = new Set(prev.map((r) => r.jobId))
-        const newItems = items.filter((r) => !existing.has(r.jobId))
-        if (newItems.length === 0) return prev
-        return [...prev, ...newItems]
-      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
