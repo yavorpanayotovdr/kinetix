@@ -410,7 +410,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-e2e-xml-${{ matrix.spec }}
+          name: playwright-e2e-test-xml-${{ matrix.spec }}
           path: ui/test-results/e2e/junit.xml
           retention-days: 1
 

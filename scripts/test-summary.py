@@ -37,7 +37,7 @@ PATTERNS = [
     ("**/python-unit-test-xml/unit.xml", "unit"),
     ("**/python-integration-test-xml/integration.xml", "integration"),
     ("**/ui-test-xml/junit.xml", "unit"),
-    ("**/playwright-e2e-xml-*/junit.xml", "e2e"),
+    ("**/playwright-e2e-test-xml-*/junit.xml", "e2e"),
 ]
 
 TEST_TYPES = ["unit", "acceptance", "integration", "e2e"]
@@ -79,9 +79,9 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
         if part.startswith("integration-test-xml-"):
             return part.removeprefix("integration-test-xml-")
 
-    # Playwright E2E CI artifact: playwright-e2e-xml-<spec>/junit.xml
+    # Playwright E2E CI artifact: playwright-e2e-test-xml-<spec>/junit.xml
     for part in parts:
-        if part.startswith("playwright-e2e-xml-"):
+        if part.startswith("playwright-e2e-test-xml-"):
             return "ui"
 
     # CI artifact: e2e-test-xml/...
