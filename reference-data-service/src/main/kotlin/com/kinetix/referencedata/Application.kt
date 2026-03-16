@@ -9,7 +9,10 @@ import com.kinetix.referencedata.persistence.DatabaseFactory
 import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
+import com.kinetix.referencedata.routes.instrumentRoutes
 import com.kinetix.referencedata.routes.referenceDataRoutes
+import com.kinetix.referencedata.service.InstrumentService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.openApi
@@ -81,6 +84,7 @@ fun Application.module(
     dividendYieldRepository: DividendYieldRepository,
     creditSpreadRepository: CreditSpreadRepository,
     ingestionService: ReferenceDataIngestionService,
+    instrumentService: InstrumentService? = null,
 ) {
     module()
     install(StatusPages) {
@@ -100,6 +104,9 @@ fun Application.module(
     }
     routing {
         referenceDataRoutes(dividendYieldRepository, creditSpreadRepository, ingestionService)
+        if (instrumentService != null) {
+            instrumentRoutes(instrumentService)
+        }
     }
 }
 
@@ -137,7 +144,10 @@ fun Application.moduleWithRoutes() {
         dividendYieldRepository, creditSpreadRepository, cache, publisher,
     )
 
-    module(dividendYieldRepository, creditSpreadRepository, ingestionService)
+    val instrumentRepository = ExposedInstrumentRepository(db)
+    val instrumentService = InstrumentService(instrumentRepository)
+
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService)
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
