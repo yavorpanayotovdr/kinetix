@@ -369,14 +369,22 @@ jobs:
           - csv-export
           - dark-mode
           - empty-state-and-summary-cards
+          - eod-promotion
+          - eod-timeline
+          - instrument-type-display
           - keyboard-navigation
           - pagination
+          - phase-stepper
           - pnl-color-coding
           - portfolio-summary-card
           - position-data-rendering
           - risk-metrics
           - risk-sorting
           - risk-tab
+          - run-comparison
+          - run-reproducibility
+          - scenarios-tab
+          - sod-badge
           - trade-blotter
           - websocket-reconnect
           - what-if-panel
