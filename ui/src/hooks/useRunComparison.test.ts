@@ -77,6 +77,7 @@ function makeComparison(overrides: Partial<RunComparisonResponseDto> = {}): RunC
     positionDiffs: [],
     parameterDiffs: [],
     attribution: null,
+    inputChanges: null,
     ...overrides,
   }
 }
