@@ -67,9 +67,9 @@ class PositionRiskRoutesTest : FunSpec({
 
             val second = body[1].jsonObject
             second["instrumentId"]?.jsonPrimitive?.content shouldBe "MSFT"
-            second.containsKey("delta") shouldBe false
-            second.containsKey("gamma") shouldBe false
-            second.containsKey("vega") shouldBe false
+            second["delta"] shouldBe JsonNull
+            second["gamma"] shouldBe JsonNull
+            second["vega"] shouldBe JsonNull
         }
     }
 

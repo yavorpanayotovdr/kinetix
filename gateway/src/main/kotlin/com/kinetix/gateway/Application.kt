@@ -75,6 +75,7 @@ fun Application.module() {
     install(ContentNegotiation) {
         json(Json {
             ignoreUnknownKeys = true
+            encodeDefaults = true
         })
     }
     install(CallLogging) {
