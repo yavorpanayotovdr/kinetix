@@ -134,10 +134,9 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
         type="button"
         className="w-full flex items-center gap-2 text-left"
         onClick={() => {
-          setExpanded((prev) => {
-            if (!prev) fetchMagnitudes()
-            return !prev
-          })
+          const willExpand = !expanded
+          setExpanded(willExpand)
+          if (willExpand) fetchMagnitudes()
         }}
         aria-expanded={expanded}
         aria-controls="input-changes-body"

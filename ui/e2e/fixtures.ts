@@ -3,6 +3,8 @@ import type { Page, Route } from '@playwright/test'
 export interface PositionFixture {
   portfolioId: string
   instrumentId: string
+  displayName?: string
+  instrumentType?: string
   assetClass: string
   quantity: string
   averageCost: { amount: string; currency: string }
@@ -17,6 +19,8 @@ export const TEST_POSITIONS: PositionFixture[] = [
   {
     portfolioId: 'port-1',
     instrumentId: 'AAPL',
+    displayName: 'Apple Inc',
+    instrumentType: 'STOCK',
     assetClass: 'EQUITY',
     quantity: '100',
     averageCost: { amount: '150.00', currency: 'USD' },
@@ -27,6 +31,8 @@ export const TEST_POSITIONS: PositionFixture[] = [
   {
     portfolioId: 'port-1',
     instrumentId: 'GOOGL',
+    displayName: 'Alphabet Inc',
+    instrumentType: 'STOCK',
     assetClass: 'EQUITY',
     quantity: '50',
     averageCost: { amount: '2800.00', currency: 'USD' },
@@ -37,6 +43,8 @@ export const TEST_POSITIONS: PositionFixture[] = [
   {
     portfolioId: 'port-1',
     instrumentId: 'EUR_USD',
+    displayName: 'Euro/US Dollar',
+    instrumentType: 'FX_SPOT',
     assetClass: 'FX',
     quantity: '10000',
     averageCost: { amount: '1.0800', currency: 'USD' },
