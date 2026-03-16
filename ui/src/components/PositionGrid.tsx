@@ -37,6 +37,8 @@ interface ColumnDef {
 
 const POSITION_COLUMNS: ColumnDef[] = [
   { key: 'instrument', label: 'Instrument', align: 'left' },
+  { key: 'displayName', label: 'Name', align: 'left' },
+  { key: 'instrumentType', label: 'Type', align: 'left' },
   { key: 'assetClass', label: 'Asset Class', align: 'left' },
   { key: 'quantity', label: 'Quantity', align: 'right' },
   { key: 'avgCost', label: 'Avg Cost', align: 'right' },
@@ -160,6 +162,8 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
       const risk = riskByInstrument.get(pos.instrumentId)
       const cellValues: Record<string, string> = {
         instrument: pos.instrumentId,
+        displayName: pos.displayName || '',
+        instrumentType: pos.instrumentType || '',
         assetClass: pos.assetClass,
         quantity: pos.quantity,
         avgCost: pos.averageCost.amount,
@@ -355,6 +359,8 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
                 const risk = riskByInstrument.get(pos.instrumentId)
                 const cellMap: Record<string, React.ReactNode> = {
                   instrument: <td key="instrument" className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>,
+                  displayName: <td key="displayName" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.displayName || '—'}</td>,
+                  instrumentType: <td key="instrumentType" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.instrumentType?.replace(/_/g, ' ') || '—'}</td>,
                   assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>,
                   quantity: <td key="quantity" className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>,
                   avgCost: <td key="avgCost" className="px-4 py-2 text-sm text-right">{formatMoney(pos.averageCost.amount, pos.averageCost.currency)}</td>,

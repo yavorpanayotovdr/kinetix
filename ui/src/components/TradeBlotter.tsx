@@ -125,6 +125,7 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
               <tr className="bg-slate-50">
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Time</th>
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Instrument</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Type</th>
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Side</th>
                 <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Qty</th>
                 <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Price</th>
@@ -135,7 +136,7 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
             <tbody className="divide-y divide-slate-100">
               {paginatedTrades.length === 0 && filtered.length === 0 && trades.length > 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center">
+                  <td colSpan={8} className="px-4 py-8 text-center">
                     <EmptyState title="No trades match your filters." />
                   </td>
                 </tr>
@@ -150,6 +151,7 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
                       {formatTimestamp(trade.tradedAt)}
                     </td>
                     <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
+                    <td className="px-4 py-2 text-sm text-slate-600">{trade.instrumentType?.replace(/_/g, ' ') || '—'}</td>
                     <td
                       data-testid={`trade-side-${trade.tradeId}`}
                       className={`px-4 py-2 text-sm font-medium ${

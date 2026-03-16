@@ -12,6 +12,8 @@ export interface PositionDto {
   marketPrice: MoneyDto
   marketValue: MoneyDto
   unrealizedPnl: MoneyDto
+  instrumentType?: string
+  displayName?: string
 }
 
 export interface PositionRiskDto {
@@ -37,6 +39,7 @@ export interface TradeHistoryDto {
   quantity: string
   price: MoneyDto
   tradedAt: string
+  instrumentType?: string
 }
 
 export interface PortfolioDto {
