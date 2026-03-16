@@ -47,42 +47,6 @@ const FAILED_JOB_SUMMARY = {
   currentPhase: null,
 }
 
-const FAILED_JOB_DETAIL = {
-  ...TEST_JOB_DETAIL,
-  jobId: 'failed-job-1',
-  status: 'FAILED',
-  error: 'Engine timeout',
-  phases: [
-    {
-      name: 'FETCH_POSITIONS',
-      status: 'COMPLETED',
-      startedAt: '2025-01-15T12:00:00Z',
-      completedAt: '2025-01-15T12:00:01Z',
-      durationMs: 1000,
-      details: { positionCount: '5' },
-      error: null,
-    },
-    {
-      name: 'FETCH_MARKET_DATA',
-      status: 'COMPLETED',
-      startedAt: '2025-01-15T12:00:01Z',
-      completedAt: '2025-01-15T12:00:02Z',
-      durationMs: 1000,
-      details: {},
-      error: null,
-    },
-    {
-      name: 'VALUATION',
-      status: 'FAILED',
-      startedAt: '2025-01-15T12:00:02Z',
-      completedAt: '2025-01-15T12:00:05Z',
-      durationMs: 3000,
-      details: {},
-      error: 'Engine timeout',
-    },
-  ],
-}
-
 test.describe('Phase stepper', () => {
   test.beforeEach(async ({ page }) => {
     await mockAllApiRoutes(page)
@@ -225,8 +189,6 @@ test.describe('Phase stepper', () => {
   })
 
   test('auto-refreshes detail panel for running job', async ({ page }) => {
-    let callCount = 0
-
     await mockRiskTabRoutes(page, {
       jobHistory: {
         items: [RUNNING_JOB_SUMMARY],
@@ -251,7 +213,6 @@ test.describe('Phase stepper', () => {
 
     // Now switch the mock to return COMPLETED on subsequent detail fetches
     await page.route('**/api/v1/risk/jobs/detail/*', (route) => {
-      callCount++
       route.fulfill({
         status: 200,
         contentType: 'application/json',

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search, Star } from 'lucide-react'
 
 import type { ValuationJobSummaryDto } from '../types'
@@ -145,19 +145,20 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
   const runningPhaseLabel = runningJob?.currentPhase
     ? (PHASE_DISPLAY[runningJob.currentPhase] ?? runningJob.currentPhase)
     : ''
+  const [liveText, setLiveText] = useState('')
   const prevPhaseRef = useRef(runningPhaseLabel)
-  const liveText = useMemo(() => {
+  useEffect(() => {
     if (runningPhaseLabel && runningPhaseLabel !== prevPhaseRef.current) {
       prevPhaseRef.current = runningPhaseLabel
-      return runningJob ? `Job ${runningJob.jobId.slice(0, 8)}: ${runningPhaseLabel}` : ''
-    }
-    if (!runningJob) {
+      setLiveText(runningJob ? `Job ${runningJob.jobId.slice(0, 8)}: ${runningPhaseLabel}` : '')
+    } else if (!runningJob) {
       prevPhaseRef.current = ''
-      return ''
+      setLiveText('')
+    } else if (prevPhaseRef.current) {
+      setLiveText(`Job ${runningJob.jobId.slice(0, 8)}: ${prevPhaseRef.current}`)
+    } else {
+      setLiveText('')
     }
-    return prevPhaseRef.current
-      ? `Job ${runningJob.jobId.slice(0, 8)}: ${prevPhaseRef.current}`
-      : ''
   }, [runningJob, runningPhaseLabel])
 
   const filteredRuns = runs
