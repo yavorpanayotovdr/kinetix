@@ -459,7 +459,7 @@ describe('useJobHistory', () => {
     })
   })
 
-  it('slides time window forward for relative presets on each poll', async () => {
+  it('pins from and advances to for relative presets on each poll', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
     renderHook(() => useJobHistory('port-1'))
@@ -468,6 +468,7 @@ describe('useJobHistory', () => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
     })
 
+    const firstFrom = mockFetchJobs.mock.calls[0][3]!
     const firstTo = mockFetchJobs.mock.calls[0][4]!
 
     await act(async () => {
@@ -478,8 +479,12 @@ describe('useJobHistory', () => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(2)
     })
 
+    const secondFrom = mockFetchJobs.mock.calls[1][3]!
     const secondTo = mockFetchJobs.mock.calls[1][4]!
 
+    // from stays pinned so items don't shuffle out of view
+    expect(secondFrom).toBe(firstFrom)
+    // to advances to pick up new jobs
     expect(new Date(secondTo).getTime()).toBeGreaterThan(new Date(firstTo).getTime())
   })
 
@@ -1114,7 +1119,7 @@ describe('useJobHistory', () => {
       })
     })
 
-    it('merges new items from poll into chartRuns to keep chart current', async () => {
+    it('does not modify chartRuns from table poll — only loadChart updates chart data', async () => {
       mockFetchChartJobs.mockResolvedValue([jobSummary2])
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 2 })
 
@@ -1125,30 +1130,7 @@ describe('useJobHistory', () => {
         expect(result.current.chartRuns[0].jobId).toBe('job-2')
       })
 
-      // Next poll also returns job-1 which is not in chartRuns yet
-      await act(async () => {
-        vi.advanceTimersByTime(5_000)
-      })
-
-      await waitFor(() => {
-        expect(result.current.chartRuns).toHaveLength(2)
-      })
-
-      const jobIds = result.current.chartRuns.map((r) => r.jobId)
-      expect(jobIds).toContain('job-1')
-      expect(jobIds).toContain('job-2')
-    })
-
-    it('does not duplicate items already in chartRuns when polling', async () => {
-      mockFetchChartJobs.mockResolvedValue([jobSummary])
-      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
-
-      const { result } = renderHook(() => useJobHistory('port-1'))
-
-      await waitFor(() => {
-        expect(result.current.chartRuns).toHaveLength(1)
-      })
-
+      // Poll should not append page items to chartRuns
       await act(async () => {
         vi.advanceTimersByTime(5_000)
       })
@@ -1157,7 +1139,9 @@ describe('useJobHistory', () => {
         expect(mockFetchJobs).toHaveBeenCalledTimes(2)
       })
 
+      // chartRuns stays at 1 — only loadChart controls it
       expect(result.current.chartRuns).toHaveLength(1)
+      expect(result.current.chartRuns[0].jobId).toBe('job-2')
     })
 
     it('silently ignores chart fetch errors', async () => {

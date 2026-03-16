@@ -85,6 +85,11 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
   const initialLoadDone = useRef(false)
 
+  // Pin `from` when a time range is established so that items don't shuffle
+  // out of view on each poll tick. Only `to` advances for sliding ranges.
+  const pinnedFromRef = useRef('')
+  const isSlidingRef = useRef(false)
+
   const load = useCallback(async () => {
     if (!portfolioId) return
 
@@ -94,17 +99,11 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     setError(null)
 
     try {
-      const { from, to } = resolveQueryRange(timeRangeRef.current)
+      const from = pinnedFromRef.current
+      const to = isSlidingRef.current ? new Date().toISOString() : resolveQueryRange(timeRangeRef.current).to
       const { items, totalCount: count } = await fetchValuationJobs(portfolioId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
       setTotalCount(count)
       setRuns(items)
-      setChartRuns((prev) => {
-        if (items.length === 0 || prev.length === 0) return prev
-        const existing = new Set(prev.map((r) => r.jobId))
-        const newItems = items.filter((r) => !existing.has(r.jobId))
-        if (newItems.length === 0) return prev
-        return [...prev, ...newItems]
-      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -139,6 +138,13 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       setLoadingJobIds(new Set())
       return
     }
+
+    // Resolve and pin the query range so polls use a stable `from`.
+    const range = timeRangeRef.current
+    const { from } = resolveQueryRange(range)
+    pinnedFromRef.current = from
+    isSlidingRef.current = !!(SLIDING_DURATIONS[range.label] || range.label === 'Today')
+
     initialLoadDone.current = false
     loadRef.current()
 
