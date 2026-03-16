@@ -9,6 +9,8 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
+import java.sql.ResultSet
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -517,4 +519,117 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         marketDataSnapshotId = this[ValuationJobsTable.marketDataSnapshotId],
         manifestId = this[ValuationJobsTable.manifestId],
     )
+
+    override suspend fun findChartData(
+        portfolioId: String,
+        from: Instant,
+        to: Instant,
+        bucketInterval: String,
+    ): List<ChartBucketRow> = newSuspendedTransaction(db = db) {
+        val fromTs = OffsetDateTime.ofInstant(from, ZoneOffset.UTC)
+        val toTs = OffsetDateTime.ofInstant(to, ZoneOffset.UTC)
+
+        val sql = """
+            WITH counts AS (
+                SELECT time_bucket(?::interval, started_at) AS bucket,
+                       COUNT(*)::int AS job_count,
+                       COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed_count,
+                       COUNT(*) FILTER (WHERE status = 'FAILED')::int AS failed_count,
+                       COUNT(*) FILTER (WHERE status = 'RUNNING')::int AS running_count
+                FROM valuation_jobs
+                WHERE portfolio_id = ?
+                  AND started_at >= ?
+                  AND started_at < ?
+                GROUP BY bucket
+            ),
+            latest_completed AS (
+                SELECT time_bucket(?::interval, started_at) AS bucket,
+                       var_value, expected_shortfall, confidence_level,
+                       delta, gamma, vega, theta, rho, pv_value,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY time_bucket(?::interval, started_at)
+                           ORDER BY started_at DESC
+                       ) AS rn
+                FROM valuation_jobs
+                WHERE portfolio_id = ?
+                  AND started_at >= ?
+                  AND started_at < ?
+                  AND status = 'COMPLETED'
+            )
+            SELECT c.bucket,
+                   lc.var_value, lc.expected_shortfall, lc.confidence_level,
+                   lc.delta, lc.gamma, lc.vega, lc.theta, lc.rho, lc.pv_value,
+                   c.job_count, c.completed_count, c.failed_count, c.running_count
+            FROM counts c
+            LEFT JOIN latest_completed lc ON lc.bucket = c.bucket AND lc.rn = 1
+            ORDER BY c.bucket ASC
+        """.trimIndent()
+
+        val rows = mutableListOf<ChartBucketRow>()
+        @Suppress("UNCHECKED_CAST")
+        val conn = this.connection.connection as java.sql.Connection
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, bucketInterval)
+            stmt.setString(2, portfolioId)
+            stmt.setObject(3, fromTs)
+            stmt.setObject(4, toTs)
+            stmt.setString(5, bucketInterval)
+            stmt.setString(6, bucketInterval)
+            stmt.setString(7, portfolioId)
+            stmt.setObject(8, fromTs)
+            stmt.setObject(9, toTs)
+
+            stmt.executeQuery().use { rs ->
+                while (rs.next()) {
+                    rows.add(mapChartBucketRow(rs))
+                }
+            }
+        }
+
+        rows
+    }
+
+    private fun mapChartBucketRow(rs: ResultSet): ChartBucketRow {
+        val bucket = rs.getObject("bucket", OffsetDateTime::class.java).toInstant()
+        return ChartBucketRow(
+            bucket = bucket,
+            varValue = rs.getObject("var_value") as? Double,
+            expectedShortfall = rs.getObject("expected_shortfall") as? Double,
+            confidenceLevel = rs.getString("confidence_level"),
+            delta = rs.getObject("delta") as? Double,
+            gamma = rs.getObject("gamma") as? Double,
+            vega = rs.getObject("vega") as? Double,
+            theta = rs.getObject("theta") as? Double,
+            rho = rs.getObject("rho") as? Double,
+            pvValue = rs.getObject("pv_value") as? Double,
+            jobCount = rs.getInt("job_count"),
+            completedCount = rs.getInt("completed_count"),
+            failedCount = rs.getInt("failed_count"),
+            runningCount = rs.getInt("running_count"),
+        )
+    }
+
+    companion object {
+        fun bucketInterval(from: Instant, to: Instant): String {
+            val durationMs = Duration.between(from, to).toMillis()
+            return when {
+                durationMs <= 3_600_000L -> "1 minute"
+                durationMs <= 21_600_000L -> "5 minutes"
+                durationMs <= 86_400_000L -> "15 minutes"
+                durationMs <= 604_800_000L -> "1 hour"
+                else -> "4 hours"
+            }
+        }
+
+        fun bucketSizeMs(from: Instant, to: Instant): Long {
+            val durationMs = Duration.between(from, to).toMillis()
+            return when {
+                durationMs <= 3_600_000L -> 60_000L
+                durationMs <= 21_600_000L -> 300_000L
+                durationMs <= 86_400_000L -> 900_000L
+                durationMs <= 604_800_000L -> 3_600_000L
+                else -> 14_400_000L
+            }
+        }
+    }
 }

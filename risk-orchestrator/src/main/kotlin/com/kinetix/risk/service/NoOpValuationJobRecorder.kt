@@ -1,5 +1,6 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.model.ChartBucketRow
 import com.kinetix.risk.model.JobPhaseName
 import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.ValuationJob
@@ -26,4 +27,5 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
         throw UnsupportedOperationException("No-op recorder does not support EOD demotion")
     override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD supersession")
+    override suspend fun findChartData(portfolioId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
 }

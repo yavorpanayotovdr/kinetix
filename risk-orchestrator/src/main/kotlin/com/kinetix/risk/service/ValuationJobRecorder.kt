@@ -1,5 +1,6 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.model.ChartBucketRow
 import com.kinetix.risk.model.JobPhaseName
 import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.ValuationJob
@@ -37,4 +38,5 @@ interface ValuationJobRecorder {
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob
     suspend fun demoteOfficialEod(jobId: UUID): ValuationJob
     suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob
+    suspend fun findChartData(portfolioId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow>
 }

@@ -3,6 +3,9 @@ package com.kinetix.risk.routes
 import com.kinetix.risk.mapper.toDetailResponse
 import com.kinetix.risk.mapper.toSummaryResponse
 import com.kinetix.risk.model.RunLabel
+import com.kinetix.risk.persistence.ExposedValuationJobRecorder
+import com.kinetix.risk.routes.dtos.ChartDataPointResponse
+import com.kinetix.risk.routes.dtos.ChartDataResponse
 import com.kinetix.risk.routes.dtos.PaginatedJobsResponse
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.github.smiley4.ktoropenapi.get
@@ -15,6 +18,66 @@ import java.time.format.DateTimeParseException
 import java.util.UUID
 
 fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
+
+    get("/api/v1/risk/jobs/{portfolioId}/chart", {
+        summary = "Get aggregated chart data for a portfolio"
+        tags = listOf("Job History")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("from") {
+                description = "Start timestamp (ISO-8601)"
+                required = true
+            }
+            queryParameter<String>("to") {
+                description = "End timestamp (ISO-8601)"
+                required = true
+            }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+
+        val from = try {
+            call.request.queryParameters["from"]?.let { Instant.parse(it) }
+        } catch (_: DateTimeParseException) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'from' timestamp")
+            return@get
+        }
+
+        val to = try {
+            call.request.queryParameters["to"]?.let { Instant.parse(it) }
+        } catch (_: DateTimeParseException) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'to' timestamp")
+            return@get
+        }
+
+        if (from == null || to == null) {
+            call.respond(HttpStatusCode.BadRequest, "Both 'from' and 'to' are required")
+            return@get
+        }
+
+        val interval = ExposedValuationJobRecorder.bucketInterval(from, to)
+        val sizeMs = ExposedValuationJobRecorder.bucketSizeMs(from, to)
+        val rows = jobRecorder.findChartData(portfolioId, from, to, interval)
+        val points = rows.map { row ->
+            ChartDataPointResponse(
+                bucket = row.bucket.toString(),
+                varValue = row.varValue,
+                expectedShortfall = row.expectedShortfall,
+                confidenceLevel = row.confidenceLevel,
+                delta = row.delta,
+                gamma = row.gamma,
+                vega = row.vega,
+                theta = row.theta,
+                rho = row.rho,
+                pvValue = row.pvValue,
+                jobCount = row.jobCount,
+                completedCount = row.completedCount,
+                failedCount = row.failedCount,
+                runningCount = row.runningCount,
+            )
+        }
+        call.respond(ChartDataResponse(points = points, bucketSizeMs = sizeMs))
+    }
 
     get("/api/v1/risk/jobs/{portfolioId}", {
         summary = "List valuation jobs for a portfolio"
