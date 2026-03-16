@@ -29,6 +29,8 @@ class OptionPosition:
     risk_free_rate: float = 0.05
     quantity: float = 1.0
     currency: str = "USD"
+    dividend_yield: float = 0.0
+    contract_multiplier: float = 1.0
 
 
 class CalculationType(Enum):
@@ -48,6 +50,47 @@ class PositionRisk:
     asset_class: AssetClass
     market_value: float
     currency: str
+
+
+@dataclass(frozen=True)
+class BondPosition(PositionRisk):
+    face_value: float = 0.0
+    coupon_rate: float = 0.0
+    coupon_frequency: int = 2
+    maturity_date: str = ""
+    issuer: str = ""
+    credit_rating: str = "UNRATED"
+    seniority: str = "SENIOR_UNSECURED"
+    day_count_convention: str = "ACT/ACT"
+
+
+@dataclass(frozen=True)
+class FuturePosition(PositionRisk):
+    underlying_id: str = ""
+    expiry_date: str = ""
+    contract_size: float = 1.0
+
+
+@dataclass(frozen=True)
+class FxPosition(PositionRisk):
+    base_currency: str = ""
+    quote_currency: str = ""
+    delivery_date: str = ""
+    forward_rate: float = 0.0
+
+
+@dataclass(frozen=True)
+class SwapPosition(PositionRisk):
+    notional: float = 0.0
+    fixed_rate: float = 0.0
+    float_index: str = ""
+    float_spread: float = 0.0
+    effective_date: str = ""
+    maturity_date: str = ""
+    pay_receive: str = "PAY_FIXED"
+    fixed_frequency: int = 2
+    float_frequency: int = 4
+    day_count_convention: str = "ACT/360"
 
 
 @dataclass(frozen=True)
