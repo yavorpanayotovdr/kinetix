@@ -125,7 +125,7 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
           )}
         </div>
 
-        {loading && (
+        {loading && data.length === 0 && (
           <div data-testid="position-risk-loading" className="flex items-center justify-center py-8">
             <Spinner />
           </div>
@@ -143,9 +143,9 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
           </div>
         )}
 
-        {!loading && !error && data.length > 0 && expanded && (
+        {data.length > 0 && expanded && (
           <div data-testid="position-risk-table" className="overflow-x-auto">
-            <table className="min-w-[900px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
                   <th className="py-2 pr-3 pl-4">Instrument</th>
