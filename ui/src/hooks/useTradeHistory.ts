@@ -13,10 +13,13 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
   const [trades, setTrades] = useState<TradeHistoryDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const initialLoadDone = useRef(false)
 
   const load = useCallback(async () => {
     if (!portfolioId) return
-    setLoading(true)
+    if (!initialLoadDone.current) {
+      setLoading(true)
+    }
     setError(null)
     try {
       const data = await fetchTradeHistory(portfolioId)
@@ -25,6 +28,7 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
+      initialLoadDone.current = true
     }
   }, [portfolioId])
 
@@ -32,6 +36,7 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
   loadRef.current = load
 
   useEffect(() => {
+    initialLoadDone.current = false
     loadRef.current()
   }, [portfolioId])
 

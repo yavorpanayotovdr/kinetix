@@ -103,7 +103,22 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       const to = isSlidingRef.current ? new Date().toISOString() : resolveQueryRange(timeRangeRef.current).to
       const { items, totalCount: count } = await fetchValuationJobs(portfolioId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
       setTotalCount(count)
-      setRuns(items)
+      setRuns((prev) => {
+        if (
+          items.length === prev.length &&
+          items.every((item, i) => item.jobId === prev[i].jobId && item.status === prev[i].status)
+        ) {
+          return prev
+        }
+        return items
+      })
+      setChartRuns((prev) => {
+        if (items.length === 0 || prev.length === 0) return prev
+        const existing = new Set(prev.map((r) => r.jobId))
+        const newItems = items.filter((r) => !existing.has(r.jobId))
+        if (newItems.length === 0) return prev
+        return [...prev, ...newItems]
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -167,20 +182,19 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     if (portfolioId) loadChartRef.current()
   }, [portfolioId, fetchVersion])
 
+  // Auto-refresh expanded detail panels for RUNNING jobs on each poll tick
   const runsRef = useRef(runs)
   runsRef.current = runs
-
   const expandedJobsRef = useRef(expandedJobs)
   expandedJobsRef.current = expandedJobs
 
-  // Auto-refresh expanded detail panels for RUNNING jobs on each poll tick
   useEffect(() => {
     if (!portfolioId) return
     const refreshRunningDetails = async () => {
       const currentRuns = runsRef.current
-      const currentExpandedJobs = expandedJobsRef.current
+      const currentExpanded = expandedJobsRef.current
       const runningExpandedIds = currentRuns
-        .filter((r) => r.status === 'RUNNING' && r.jobId in currentExpandedJobs)
+        .filter((r) => r.status === 'RUNNING' && r.jobId in currentExpanded)
         .map((r) => r.jobId)
       for (const jobId of runningExpandedIds) {
         try {

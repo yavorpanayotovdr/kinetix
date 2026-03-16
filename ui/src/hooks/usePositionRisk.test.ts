@@ -172,4 +172,36 @@ describe('usePositionRisk', () => {
     expect(mockFetchPositionRisk).toHaveBeenCalledTimes(2)
     expect(result.current.positionRisk).toEqual(updatedData)
   })
+
+  it('does not flash loading state during refresh', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result } = renderHook(() => usePositionRisk('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.positionRisk).toEqual(positionRiskData)
+
+    const updatedData = [{ ...positionRiskData[0], varContribution: '900.00' }]
+    let resolveRefresh!: (value: typeof positionRiskData) => void
+    mockFetchPositionRisk.mockReturnValueOnce(new Promise((resolve) => { resolveRefresh = resolve }))
+
+    let refreshPromise: Promise<void>
+    act(() => {
+      refreshPromise = result.current.refresh()
+    })
+
+    // Loading stays false — existing data remains visible during refresh
+    expect(result.current.loading).toBe(false)
+    expect(result.current.positionRisk).toEqual(positionRiskData)
+
+    await act(async () => {
+      resolveRefresh(updatedData)
+      await refreshPromise!
+    })
+
+    expect(result.current.positionRisk).toEqual(updatedData)
+  })
 })
