@@ -13,11 +13,14 @@ export function usePositionRisk(portfolioId: string | null, valuationDate: strin
   const [positionRisk, setPositionRisk] = useState<PositionRiskDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const initialLoadDone = useRef(false)
 
   const load = useCallback(async () => {
     if (!portfolioId) return
 
-    setLoading(true)
+    if (!initialLoadDone.current) {
+      setLoading(true)
+    }
     setError(null)
 
     try {
@@ -28,6 +31,7 @@ export function usePositionRisk(portfolioId: string | null, valuationDate: strin
       setPositionRisk([])
     } finally {
       setLoading(false)
+      initialLoadDone.current = true
     }
   }, [portfolioId, valuationDate])
 
@@ -42,6 +46,7 @@ export function usePositionRisk(portfolioId: string | null, valuationDate: strin
       return
     }
 
+    initialLoadDone.current = false
     loadRef.current()
   }, [portfolioId, valuationDate])
 

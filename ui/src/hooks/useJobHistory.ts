@@ -144,18 +144,37 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, fetchVersion, page, pageSize])
+  }, [portfolioId, fetchVersion])
+
+  // Refetch when page or pageSize changes — without resetting initialLoadDone
+  const paginationMounted = useRef(false)
+  useEffect(() => {
+    if (!paginationMounted.current) {
+      paginationMounted.current = true
+      return
+    }
+    if (!portfolioId) return
+    loadRef.current()
+  }, [page, pageSize, portfolioId])
 
   useEffect(() => {
     if (portfolioId) loadChartRef.current()
   }, [portfolioId, fetchVersion])
 
+  const runsRef = useRef(runs)
+  runsRef.current = runs
+
+  const expandedJobsRef = useRef(expandedJobs)
+  expandedJobsRef.current = expandedJobs
+
   // Auto-refresh expanded detail panels for RUNNING jobs on each poll tick
   useEffect(() => {
     if (!portfolioId) return
     const refreshRunningDetails = async () => {
-      const runningExpandedIds = runs
-        .filter((r) => r.status === 'RUNNING' && r.jobId in expandedJobs)
+      const currentRuns = runsRef.current
+      const currentExpandedJobs = expandedJobsRef.current
+      const runningExpandedIds = currentRuns
+        .filter((r) => r.status === 'RUNNING' && r.jobId in currentExpandedJobs)
         .map((r) => r.jobId)
       for (const jobId of runningExpandedIds) {
         try {
@@ -170,7 +189,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
     const interval = setInterval(refreshRunningDetails, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, runs, expandedJobs])
+  }, [portfolioId])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {

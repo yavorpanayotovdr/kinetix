@@ -56,7 +56,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [tooltipOpen])
 
-  if (loading) {
+  if (loading && !varResult) {
     return (
       <Card data-testid="var-loading" className="mb-4">
         <div className="flex items-center gap-2 text-slate-500">
