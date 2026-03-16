@@ -12,6 +12,7 @@ data class Position(
     val averageCost: Money,
     val marketPrice: Money,
     val realizedPnl: Money = Money.zero(marketPrice.currency),
+    val instrumentType: String? = null,
 ) {
     init {
         require(averageCost.currency == marketPrice.currency) {

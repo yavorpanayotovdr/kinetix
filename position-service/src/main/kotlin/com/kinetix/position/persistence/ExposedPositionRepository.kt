@@ -26,6 +26,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             it[currency] = position.currency.currencyCode
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
             it[realizedPnlAmount] = position.realizedPnl.amount
+            it[instrumentType] = position.instrumentType
         }
     }
 
@@ -91,5 +92,6 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             this[PositionsTable.realizedPnlAmount],
             Currency.getInstance(this[PositionsTable.currency]),
         ),
+        instrumentType = this[PositionsTable.instrumentType],
     )
 }

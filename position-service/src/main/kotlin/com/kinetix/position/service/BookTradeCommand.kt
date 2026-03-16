@@ -18,6 +18,7 @@ data class BookTradeCommand(
     val quantity: BigDecimal,
     val price: Money,
     val tradedAt: Instant,
+    val instrumentType: String? = null,
 )
 
 data class BookTradeResult(
@@ -54,6 +55,7 @@ class TradeBookingService(
             quantity = command.quantity,
             price = command.price,
             tradedAt = command.tradedAt,
+            instrumentType = command.instrumentType,
         )
 
         val (result, isNewTrade) = transactional.run {

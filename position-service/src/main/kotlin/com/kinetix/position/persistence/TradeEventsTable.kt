@@ -18,6 +18,7 @@ object TradeEventsTable : Table("trade_events") {
     val status = varchar("status", 20).default("LIVE")
     val originalTradeId = varchar("original_trade_id", 255).nullable()
     val counterpartyId = varchar("counterparty_id", 255).nullable()
+    val instrumentType = varchar("instrument_type", 50).nullable()
 
     override val primaryKey = PrimaryKey(tradeId)
 }

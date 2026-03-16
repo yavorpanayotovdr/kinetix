@@ -88,6 +88,7 @@ data class BookTradeRequest(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val instrumentType: String? = null,
 )
 
 @Serializable
@@ -251,6 +252,7 @@ fun Route.positionRoutes(
                         quantity = qty,
                         price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
                         tradedAt = Instant.parse(request.tradedAt),
+                        instrumentType = request.instrumentType,
                     )
                     try {
                         val result = tradeBookingService.handle(command)
