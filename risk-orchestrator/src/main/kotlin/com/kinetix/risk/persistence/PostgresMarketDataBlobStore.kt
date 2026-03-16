@@ -1,6 +1,8 @@
 package com.kinetix.risk.persistence
 
 import com.kinetix.risk.service.MarketDataBlobStore
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -28,7 +30,7 @@ class PostgresMarketDataBlobStore(private val db: Database? = null) : MarketData
                 it[RunMarketDataBlobsTable.dataType] = dataType
                 it[RunMarketDataBlobsTable.instrumentId] = instrumentId
                 it[RunMarketDataBlobsTable.assetClass] = assetClass
-                it[RunMarketDataBlobsTable.payload] = payload
+                it[RunMarketDataBlobsTable.payload] = Json.parseToJsonElement(payload)
                 it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
             }
         }
@@ -40,5 +42,6 @@ class PostgresMarketDataBlobStore(private val db: Database? = null) : MarketData
             .where { RunMarketDataBlobsTable.contentHash eq contentHash }
             .firstOrNull()
             ?.get(RunMarketDataBlobsTable.payload)
+            ?.let { Json.encodeToString(JsonElement.serializer(), it) }
     }
 }
