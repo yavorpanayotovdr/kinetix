@@ -70,6 +70,7 @@ data class TradeResponse(
     val quantity: String,
     val price: MoneyDto,
     val tradedAt: String,
+    val instrumentType: String? = null,
 )
 
 @Serializable
@@ -82,6 +83,8 @@ data class PositionResponse(
     val marketPrice: MoneyDto,
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
+    val instrumentType: String? = null,
+    val displayName: String? = null,
 )
 
 @Serializable
@@ -134,6 +137,7 @@ fun Trade.toResponse(): TradeResponse = TradeResponse(
     quantity = quantity.toPlainString(),
     price = price.toDto(),
     tradedAt = tradedAt.toString(),
+    instrumentType = instrumentType,
 )
 
 fun Position.toResponse(): PositionResponse = PositionResponse(
@@ -145,6 +149,7 @@ fun Position.toResponse(): PositionResponse = PositionResponse(
     marketPrice = marketPrice.toDto(),
     marketValue = marketValue.toDto(),
     unrealizedPnl = unrealizedPnl.toDto(),
+    instrumentType = instrumentType,
 )
 
 fun BookTradeResult.toResponse(): BookTradeResponse = BookTradeResponse(

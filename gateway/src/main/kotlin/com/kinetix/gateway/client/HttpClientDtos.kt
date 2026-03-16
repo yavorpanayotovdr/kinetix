@@ -41,6 +41,7 @@ data class PositionDto(
     val marketPrice: MoneyDto,
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
+    val instrumentType: String? = null,
 )
 
 @Serializable
@@ -53,6 +54,7 @@ data class TradeDto(
     val quantity: String,
     val price: MoneyDto,
     val tradedAt: String,
+    val instrumentType: String? = null,
 )
 
 @Serializable
@@ -468,6 +470,7 @@ fun PositionDto.toDomain() = Position(
     quantity = BigDecimal(quantity),
     averageCost = averageCost.toDomainMoney(),
     marketPrice = marketPrice.toDomainMoney(),
+    instrumentType = instrumentType,
 )
 
 fun TradeDto.toDomain() = Trade(
@@ -479,6 +482,7 @@ fun TradeDto.toDomain() = Trade(
     quantity = BigDecimal(quantity),
     price = price.toDomainMoney(),
     tradedAt = Instant.parse(tradedAt),
+    instrumentType = instrumentType,
 )
 
 fun BookTradeResponseDto.toDomain() = BookTradeResult(
