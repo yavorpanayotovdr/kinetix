@@ -28,7 +28,7 @@ COPY volatility-service/ volatility-service/
 COPY correlation-service/ correlation-service/
 
 # Remove test-only modules from settings (excluded by .dockerignore)
-RUN sed -i '/"end2end-tests"/d; /"schema-tests"/d' settings.gradle.kts
+RUN sed -i '/"end2end-tests"/d; /"schema-tests"/d; /"smoke-tests"/d' settings.gradle.kts
 
 # Build ALL services in a single Gradle invocation
 RUN chmod +x gradlew && \
