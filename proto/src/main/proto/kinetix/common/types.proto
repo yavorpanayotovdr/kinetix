@@ -33,6 +33,68 @@ enum AssetClass {
   DERIVATIVE = 5;
 }
 
+enum InstrumentTypeEnum {
+  INSTRUMENT_TYPE_UNSPECIFIED = 0;
+  CASH_EQUITY = 1;
+  GOVERNMENT_BOND = 2;
+  CORPORATE_BOND = 3;
+  FX_SPOT = 4;
+  FX_FORWARD = 5;
+  EQUITY_OPTION = 6;
+  EQUITY_FUTURE = 7;
+  COMMODITY_FUTURE = 8;
+  COMMODITY_OPTION = 9;
+  FX_OPTION = 10;
+  INTEREST_RATE_SWAP = 11;
+}
+
+message OptionAttributes {
+  string underlying_id = 1;
+  string option_type = 2;          // CALL or PUT
+  double strike = 3;
+  string expiry_date = 4;          // ISO-8601 date
+  string exercise_style = 5;       // EUROPEAN or AMERICAN
+  double contract_multiplier = 6;
+  double dividend_yield = 7;
+}
+
+message BondAttributes {
+  double face_value = 1;
+  double coupon_rate = 2;
+  int32 coupon_frequency = 3;
+  string maturity_date = 4;
+  string issuer = 5;
+  string credit_rating = 6;
+  string seniority = 7;
+  string day_count_convention = 8;
+}
+
+message FutureAttributes {
+  string underlying_id = 1;
+  string expiry_date = 2;
+  double contract_size = 3;
+}
+
+message FxAttributes {
+  string base_currency = 1;
+  string quote_currency = 2;
+  string delivery_date = 3;        // empty for spot
+  double forward_rate = 4;
+}
+
+message SwapAttributes {
+  double notional = 1;
+  double fixed_rate = 2;
+  string float_index = 3;
+  double float_spread = 4;
+  string effective_date = 5;
+  string maturity_date = 6;
+  string pay_receive = 7;          // PAY_FIXED or RECEIVE_FIXED
+  int32 fixed_frequency = 8;
+  int32 float_frequency = 9;
+  string day_count_convention = 10;
+}
+
 message Position {
   PortfolioId portfolio_id = 1;
   InstrumentId instrument_id = 2;
@@ -41,4 +103,12 @@ message Position {
   Money market_value = 5;
   Money unrealized_pnl = 6;
   google.protobuf.Timestamp as_of = 7;
+  InstrumentTypeEnum instrument_type = 8;
+  oneof instrument_attributes {
+    OptionAttributes option_attrs = 9;
+    BondAttributes bond_attrs = 10;
+    FutureAttributes future_attrs = 11;
+    FxAttributes fx_attrs = 12;
+    SwapAttributes swap_attrs = 13;
+  }
 }
