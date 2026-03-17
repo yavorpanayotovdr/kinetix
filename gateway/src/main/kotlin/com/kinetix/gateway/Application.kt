@@ -87,7 +87,10 @@ fun Application.module() {
             it.authentication.principal<com.kinetix.gateway.auth.JwtUserPrincipal>()?.user?.userId ?: "anonymous"
         }
     }
-    install(WebSockets)
+    install(WebSockets) {
+        pingPeriodMillis = 30_000
+        timeoutMillis = 10_000
+    }
     install(OpenApi) {
         info {
             title = "Gateway API"
