@@ -286,6 +286,12 @@ data class AlertEventDto(
 )
 
 @Serializable
+data class AcknowledgeAlertRequestDto(
+    val acknowledgedBy: String,
+    val notes: String? = null,
+)
+
+@Serializable
 data class CreateAlertRuleRequestDto(
     val name: String,
     val type: String,

@@ -611,6 +611,12 @@ data class CreateAlertRuleRequest(
     val channels: List<String>,
 )
 
+@Serializable
+data class AcknowledgeAlertRequest(
+    val acknowledgedBy: String,
+    val notes: String? = null,
+)
+
 // --- Alert mappers ---
 
 fun AlertRuleItem.toDto(): AlertRuleDto = AlertRuleDto(

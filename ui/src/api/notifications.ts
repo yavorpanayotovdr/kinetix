@@ -50,3 +50,24 @@ export async function fetchAlerts(
   }
   return response.json()
 }
+
+export async function acknowledgeAlert(
+  alertId: string,
+  acknowledgedBy: string,
+  notes?: string,
+): Promise<AlertEventDto> {
+  const response = await fetch(
+    `/api/v1/notifications/alerts/${encodeURIComponent(alertId)}/acknowledge`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acknowledgedBy, notes }),
+    },
+  )
+  if (!response.ok) {
+    throw new Error(
+      `Failed to acknowledge alert: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}

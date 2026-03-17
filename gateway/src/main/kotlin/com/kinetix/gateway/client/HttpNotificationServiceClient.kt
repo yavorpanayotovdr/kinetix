@@ -47,4 +47,21 @@ class HttpNotificationServiceClient(
         val dtos: List<AlertEventDto> = response.body()
         return dtos.map { it.toDomain() }
     }
+
+    override suspend fun acknowledgeAlert(alertId: String, params: AcknowledgeAlertParams): AlertEventItem? {
+        val response = httpClient.post("$baseUrl/api/v1/notifications/alerts/$alertId/acknowledge") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                AcknowledgeAlertRequestDto(
+                    acknowledgedBy = params.acknowledgedBy,
+                    notes = params.notes,
+                ),
+            )
+        }
+        if (response.status == HttpStatusCode.NotFound || response.status == HttpStatusCode.Conflict) {
+            return null
+        }
+        val dto: AlertEventDto = response.body()
+        return dto.toDomain()
+    }
 }

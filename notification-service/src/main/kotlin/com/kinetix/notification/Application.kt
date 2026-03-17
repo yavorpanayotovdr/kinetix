@@ -8,9 +8,13 @@ import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
 import com.kinetix.notification.delivery.WebhookDeliveryService
 import com.kinetix.notification.engine.RulesEngine
+import com.kinetix.notification.persistence.AlertAcknowledgement
+import com.kinetix.notification.persistence.AlertAcknowledgementRepository
+import com.kinetix.notification.persistence.InMemoryAlertAcknowledgementRepository
 import com.kinetix.notification.kafka.AnomalyEventConsumer
 import com.kinetix.notification.kafka.RiskResultConsumer
 import com.kinetix.notification.model.AlertRule
+import com.kinetix.notification.model.AlertStatus
 import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.ComparisonOperator
 import com.kinetix.notification.model.DeliveryChannel
@@ -99,10 +103,14 @@ fun Application.module() {
     }
 }
 
-fun Application.module(rulesEngine: RulesEngine, inAppDelivery: InAppDeliveryService) {
+fun Application.module(
+    rulesEngine: RulesEngine,
+    inAppDelivery: InAppDeliveryService,
+    ackRepository: AlertAcknowledgementRepository = InMemoryAlertAcknowledgementRepository(),
+) {
     module()
     routing {
-        notificationRoutes(rulesEngine, inAppDelivery)
+        notificationRoutes(rulesEngine, inAppDelivery, ackRepository)
     }
 }
 
@@ -206,6 +214,12 @@ data class ErrorResponse(
 )
 
 @Serializable
+data class AcknowledgeAlertRequest(
+    val acknowledgedBy: String,
+    val notes: String? = null,
+)
+
+@Serializable
 data class CreateAlertRuleRequest(
     val name: String,
     val type: String,
@@ -245,7 +259,11 @@ data class AlertEventResponse(
     val correlationId: String? = null,
 )
 
-fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliveryService) {
+fun Route.notificationRoutes(
+    rulesEngine: RulesEngine,
+    inAppDelivery: InAppDeliveryService,
+    ackRepository: AlertAcknowledgementRepository = InMemoryAlertAcknowledgementRepository(),
+) {
     route("/api/v1/notifications") {
         get("/rules", {
             summary = "List alert rules"
@@ -324,6 +342,50 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
             }
             val alerts = inAppDelivery.getRecentAlerts(limit, statusFilter).map { it.toEventResponse() }
             call.respond(alerts)
+        }
+
+        post("/alerts/{alertId}/acknowledge", {
+            summary = "Acknowledge an alert"
+            tags = listOf("Alerts")
+            request {
+                pathParameter<String>("alertId") { description = "Alert event identifier" }
+                body<AcknowledgeAlertRequest>()
+            }
+        }) {
+            val alertId = call.parameters["alertId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: alertId")
+            val request = call.receive<AcknowledgeAlertRequest>()
+            val eventRepo = inAppDelivery.repository
+
+            val alert = eventRepo.findById(alertId)
+            if (alert == null) {
+                call.respond(HttpStatusCode.NotFound, ErrorResponse("Not Found", "Alert not found"))
+                return@post
+            }
+            if (alert.status == AlertStatus.RESOLVED) {
+                call.respond(HttpStatusCode.Conflict, ErrorResponse("Conflict", "Alert is already resolved"))
+                return@post
+            }
+            if (alert.status == AlertStatus.ACKNOWLEDGED) {
+                call.respond(HttpStatusCode.Conflict, ErrorResponse("Conflict", "Alert is already acknowledged"))
+                return@post
+            }
+
+            val now = java.time.Instant.now()
+            eventRepo.updateStatus(alertId, AlertStatus.ACKNOWLEDGED)
+            ackRepository.save(
+                AlertAcknowledgement(
+                    id = UUID.randomUUID().toString(),
+                    alertEventId = alertId,
+                    alertTriggeredAt = alert.triggeredAt,
+                    acknowledgedBy = request.acknowledgedBy,
+                    acknowledgedAt = now,
+                    notes = request.notes,
+                ),
+            )
+
+            val updated = eventRepo.findById(alertId)!!
+            call.respond(updated.toEventResponse())
         }
     }
 }

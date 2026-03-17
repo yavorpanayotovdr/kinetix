@@ -1,6 +1,8 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.gateway.client.AcknowledgeAlertParams
 import com.kinetix.gateway.client.NotificationServiceClient
+import com.kinetix.gateway.dto.AcknowledgeAlertRequest
 import com.kinetix.gateway.dto.CreateAlertRuleRequest
 import com.kinetix.gateway.dto.toDto
 import com.kinetix.gateway.dto.toParams
@@ -65,6 +67,30 @@ fun Route.notificationRoutes(client: NotificationServiceClient) {
             val status = call.queryParameters["status"]
             val alerts = client.listAlerts(limit, status)
             call.respond(alerts.map { it.toDto() })
+        }
+
+        post("/alerts/{alertId}/acknowledge", {
+            summary = "Acknowledge an alert"
+            tags = listOf("Notifications")
+            request {
+                pathParameter<String>("alertId") { description = "Alert event identifier" }
+                body<AcknowledgeAlertRequest>()
+            }
+        }) {
+            val alertId = call.requirePathParam("alertId")
+            val request = call.receive<AcknowledgeAlertRequest>()
+            val result = client.acknowledgeAlert(
+                alertId,
+                AcknowledgeAlertParams(
+                    acknowledgedBy = request.acknowledgedBy,
+                    notes = request.notes,
+                ),
+            )
+            if (result != null) {
+                call.respond(result.toDto())
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
     }
 }

@@ -39,9 +39,15 @@ data class CreateAlertRuleParams(
     val channels: List<String>,
 )
 
+data class AcknowledgeAlertParams(
+    val acknowledgedBy: String,
+    val notes: String? = null,
+)
+
 interface NotificationServiceClient {
     suspend fun listRules(): List<AlertRuleItem>
     suspend fun createRule(params: CreateAlertRuleParams): AlertRuleItem
     suspend fun deleteRule(ruleId: String): Boolean
     suspend fun listAlerts(limit: Int = 50, status: String? = null): List<AlertEventItem>
+    suspend fun acknowledgeAlert(alertId: String, params: AcknowledgeAlertParams): AlertEventItem?
 }
