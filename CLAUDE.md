@@ -100,6 +100,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 ## Architectural Decisions
 
+- **Existing decisions are documented in [`docs/adr/`](docs/adr/README.md).** Consult these before proposing changes that overlap with a recorded decision.
 - **Ask before changing architecture.** Before introducing a new service, module, library, messaging topic, database table, or API contract — or before significantly restructuring existing ones — explain the trade-offs and get my approval.
 - **Act autonomously within existing boundaries.** Adding a class/file within an existing service, writing tests, refactoring internals, or adding a route to an existing API — follow established patterns without asking.
 
