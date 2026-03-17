@@ -22,7 +22,7 @@ class PositionMapperTest : FunSpec({
 
         val proto = position.toProto()
 
-        proto.portfolioId.value shouldBe "port-1"
+        proto.bookId.value shouldBe "port-1"
         proto.instrumentId.value shouldBe "AAPL"
         proto.assetClass shouldBe com.kinetix.proto.common.AssetClass.EQUITY
         proto.quantity shouldBe 100.0

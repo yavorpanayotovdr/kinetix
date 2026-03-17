@@ -21,7 +21,7 @@ import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.ValuationJobRecorder
 import com.kinetix.risk.service.WhatIfAnalysisService
-import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
+import com.kinetix.proto.common.BookId as ProtoBookId
 import com.kinetix.proto.risk.FrtbRequest
 import com.kinetix.proto.risk.GenerateReportRequest
 import com.kinetix.proto.risk.ListScenariosRequest
@@ -357,7 +357,7 @@ fun Route.riskRoutes(
             val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
 
             val protoRequest = StressTestRequest.newBuilder()
-                .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
                 .setScenarioName(body.scenarioName)
                 .setCalculationType(calcType.toProto())
                 .setConfidenceLevel(confLevel.toProto())
@@ -403,7 +403,7 @@ fun Route.riskRoutes(
             body.scenarioNames.map { scenarioName ->
                 async {
                     val protoRequest = StressTestRequest.newBuilder()
-                        .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
+                        .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
                         .setScenarioName(scenarioName)
                         .setCalculationType(calcType.toProto())
                         .setConfidenceLevel(confLevel.toProto())
@@ -494,14 +494,14 @@ fun Route.riskRoutes(
             val positions = positionProvider.getPositions(PortfolioId(portfolioId))
 
             val protoRequest = FrtbRequest.newBuilder()
-                .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
                 .addAllPositions(positions.map { it.toProto() })
                 .build()
 
             val response = regulatoryStub.calculateFrtb(protoRequest)
             call.respond(
                 FrtbResultResponse(
-                    portfolioId = response.portfolioId,
+                    portfolioId = response.bookId,
                     sbmCharges = response.sbm.riskClassChargesList.map {
                         RiskClassChargeDto(
                             riskClass = FRTB_RISK_CLASS_NAMES[it.riskClass] ?: it.riskClass.name,
@@ -544,7 +544,7 @@ fun Route.riskRoutes(
             }
 
             val protoRequest = GenerateReportRequest.newBuilder()
-                .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
                 .addAllPositions(positions.map { it.toProto() })
                 .setFormat(format)
                 .build()
@@ -552,7 +552,7 @@ fun Route.riskRoutes(
             val response = regulatoryStub.generateReport(protoRequest)
             call.respond(
                 ReportResponse(
-                    portfolioId = response.portfolioId,
+                    portfolioId = response.bookId,
                     format = response.format.name,
                     content = response.content,
                     generatedAt = Instant.ofEpochSecond(response.generatedAt.seconds, response.generatedAt.nanos.toLong()).toString(),

@@ -55,7 +55,7 @@ class GrpcRiskEngineClientTest : FunSpec({
         )
 
         val protoResponse = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(5000.0)
@@ -90,7 +90,7 @@ class GrpcRiskEngineClientTest : FunSpec({
 
         coVerify {
             deadlinedStub.valuate(match { req ->
-                req.portfolioId.value == "port-1" &&
+                req.bookId.value == "port-1" &&
                     req.calculationType == RiskCalculationType.PARAMETRIC &&
                     req.confidenceLevel == ProtoConfidenceLevel.CL_95 &&
                     req.timeHorizonDays == 1 &&
@@ -126,7 +126,7 @@ class GrpcRiskEngineClientTest : FunSpec({
         )
 
         val protoResponse = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(5000.0)
@@ -170,7 +170,7 @@ class GrpcRiskEngineClientTest : FunSpec({
         )
 
         val protoResponse = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.HISTORICAL)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_99)
             .setVarValue(12000.0)

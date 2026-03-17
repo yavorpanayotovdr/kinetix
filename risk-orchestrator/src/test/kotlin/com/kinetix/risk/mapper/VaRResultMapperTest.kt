@@ -20,7 +20,7 @@ class VaRResultMapperTest : FunSpec({
     test("maps proto VaRResponse to domain VaRResult") {
         val now = Timestamp.newBuilder().setSeconds(1700000000).build()
         val response = VaRResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(25000.0)
@@ -64,7 +64,7 @@ class VaRResultMapperTest : FunSpec({
 
         for ((proto, domain) in calcTypes) {
             val response = VaRResponse.newBuilder()
-                .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("p"))
+                .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("p"))
                 .setCalculationType(proto)
                 .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
                 .setVarValue(1.0)
@@ -84,7 +84,7 @@ class VaRResultMapperTest : FunSpec({
 
         for ((proto, domain) in clMappings) {
             val response = VaRResponse.newBuilder()
-                .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("p"))
+                .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("p"))
                 .setCalculationType(RiskCalculationType.PARAMETRIC)
                 .setConfidenceLevel(proto)
                 .setVarValue(1.0)
@@ -111,7 +111,7 @@ class VaRResultMapperTest : FunSpec({
                 .setPercentageOfTotal(100.0)
                 .build()
             val response = VaRResponse.newBuilder()
-                .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("p"))
+                .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("p"))
                 .setCalculationType(RiskCalculationType.PARAMETRIC)
                 .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
                 .setVarValue(100.0)

@@ -36,7 +36,7 @@ private val DOMAIN_CALC_TYPE_TO_PROTO = PROTO_CALC_TYPE_TO_DOMAIN.entries.associ
 private val DOMAIN_CONFIDENCE_TO_PROTO = PROTO_CONFIDENCE_TO_DOMAIN.entries.associate { (k, v) -> v to k }
 
 fun VaRResponse.toDomain(): VaRResult = VaRResult(
-    portfolioId = PortfolioId(portfolioId.value),
+    portfolioId = PortfolioId(bookId.value),
     calculationType = PROTO_CALC_TYPE_TO_DOMAIN.getValue(calculationType),
     confidenceLevel = PROTO_CONFIDENCE_TO_DOMAIN.getValue(confidenceLevel),
     varValue = varValue,

@@ -65,7 +65,7 @@ fun ValuationResponse.toDomainValuation(): ValuationResult {
     }
 
     return ValuationResult(
-        portfolioId = PortfolioId(portfolioId.value),
+        portfolioId = PortfolioId(bookId.value),
         calculationType = PROTO_CALC_TYPE_TO_DOMAIN.getValue(calculationType),
         confidenceLevel = PROTO_CONFIDENCE_TO_DOMAIN.getValue(confidenceLevel),
         varValue = if (varValue != 0.0) varValue else null,

@@ -26,7 +26,7 @@ class ValuationResultMapperTest : FunSpec({
     test("maps ValuationResponse with VaR and Greeks to domain") {
         val now = Timestamp.newBuilder().setSeconds(1700000000).build()
         val response = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-1"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-1"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(25000.0)
@@ -84,7 +84,7 @@ class ValuationResultMapperTest : FunSpec({
     test("maps ValuationResponse without Greeks") {
         val now = Timestamp.newBuilder().setSeconds(1700000000).build()
         val response = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-2"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-2"))
             .setCalculationType(RiskCalculationType.HISTORICAL)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_99)
             .setVarValue(10000.0)
@@ -107,7 +107,7 @@ class ValuationResultMapperTest : FunSpec({
     test("maps PV value from response to domain") {
         val now = Timestamp.newBuilder().setSeconds(1700000000).build()
         val response = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("port-pv"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-pv"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(25000.0)
@@ -130,7 +130,7 @@ class ValuationResultMapperTest : FunSpec({
     test("maps all asset classes in Greeks") {
         val now = Timestamp.newBuilder().setSeconds(1000).build()
         val response = ValuationResponse.newBuilder()
-            .setPortfolioId(com.kinetix.proto.common.PortfolioId.newBuilder().setValue("p"))
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("p"))
             .setCalculationType(RiskCalculationType.PARAMETRIC)
             .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
             .setVarValue(1.0)
