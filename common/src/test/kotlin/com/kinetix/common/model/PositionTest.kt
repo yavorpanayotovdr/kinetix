@@ -9,7 +9,7 @@ import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
 private val EUR = Currency.getInstance("EUR")
-private val PORTFOLIO = PortfolioId("port-1")
+private val BOOK = BookId("book-1")
 private val AAPL = InstrumentId("AAPL")
 
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
@@ -19,7 +19,7 @@ private fun position(
     averageCost: String = "50.00",
     marketPrice: String = "55.00",
 ) = Position(
-    portfolioId = PORTFOLIO,
+    bookId = BOOK,
     instrumentId = AAPL,
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal(quantity),
@@ -31,10 +31,10 @@ private fun buyTrade(
     quantity: String = "100",
     price: String = "50.00",
     instrumentId: InstrumentId = AAPL,
-    portfolioId: PortfolioId = PORTFOLIO,
+    bookId: BookId = BOOK,
 ) = Trade(
     tradeId = TradeId("t-${System.nanoTime()}"),
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     side = Side.BUY,
@@ -47,10 +47,10 @@ private fun sellTrade(
     quantity: String = "100",
     price: String = "55.00",
     instrumentId: InstrumentId = AAPL,
-    portfolioId: PortfolioId = PORTFOLIO,
+    bookId: BookId = BOOK,
 ) = Trade(
     tradeId = TradeId("t-${System.nanoTime()}"),
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     side = Side.SELL,
@@ -63,7 +63,7 @@ class PositionTest : FunSpec({
 
     test("create Position with valid fields") {
         val pos = position()
-        pos.portfolioId shouldBe PORTFOLIO
+        pos.bookId shouldBe BOOK
         pos.instrumentId shouldBe AAPL
         pos.assetClass shouldBe AssetClass.EQUITY
         pos.currency shouldBe USD
@@ -72,7 +72,7 @@ class PositionTest : FunSpec({
     test("Position with mismatched currencies throws IllegalArgumentException") {
         shouldThrow<IllegalArgumentException> {
             Position(
-                portfolioId = PORTFOLIO,
+                bookId = BOOK,
                 instrumentId = AAPL,
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -151,7 +151,7 @@ class PositionTest : FunSpec({
     // Apply trade — increasing position
 
     test("apply BUY trade to flat position creates long position") {
-        val pos = Position.empty(PORTFOLIO, AAPL, AssetClass.EQUITY, USD)
+        val pos = Position.empty(BOOK, AAPL, AssetClass.EQUITY, USD)
         val updated = pos.applyTrade(buyTrade(quantity = "100", price = "50.00"))
         updated.quantity shouldBe BigDecimal("100")
         updated.averageCost shouldBe usd("50.00")
@@ -208,10 +208,10 @@ class PositionTest : FunSpec({
 
     // Validation
 
-    test("apply trade with mismatched portfolioId throws IllegalArgumentException") {
+    test("apply trade with mismatched bookId throws IllegalArgumentException") {
         val pos = position()
         shouldThrow<IllegalArgumentException> {
-            pos.applyTrade(buyTrade(portfolioId = PortfolioId("other")))
+            pos.applyTrade(buyTrade(bookId = BookId("other")))
         }
     }
 
@@ -225,7 +225,7 @@ class PositionTest : FunSpec({
     // Factory
 
     test("Position.empty creates flat position with zero values") {
-        val pos = Position.empty(PORTFOLIO, AAPL, AssetClass.EQUITY, USD)
+        val pos = Position.empty(BOOK, AAPL, AssetClass.EQUITY, USD)
         pos.quantity shouldBe BigDecimal.ZERO
         pos.averageCost shouldBe Money.zero(USD)
         pos.marketPrice shouldBe Money.zero(USD)

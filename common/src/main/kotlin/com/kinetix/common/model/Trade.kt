@@ -5,7 +5,7 @@ import java.time.Instant
 
 data class Trade(
     val tradeId: TradeId,
-    val portfolioId: PortfolioId,
+    val bookId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val side: Side,
@@ -22,6 +22,9 @@ data class Trade(
         require(quantity > BigDecimal.ZERO) { "Trade quantity must be positive, was $quantity" }
         require(price.amount >= BigDecimal.ZERO) { "Trade price must be non-negative, was ${price.amount}" }
     }
+
+    @Deprecated("Use bookId", replaceWith = ReplaceWith("bookId"))
+    val portfolioId: BookId get() = bookId
 
     val notional: Money
         get() = price * quantity

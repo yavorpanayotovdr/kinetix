@@ -12,7 +12,7 @@ private val USD = Currency.getInstance("USD")
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "book-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -21,7 +21,7 @@ private fun trade(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PortfolioId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,
@@ -35,7 +35,7 @@ class TradeTest : FunSpec({
     test("create Trade with valid fields") {
         val t = trade()
         t.tradeId shouldBe TradeId("t-1")
-        t.portfolioId shouldBe PortfolioId("port-1")
+        t.bookId shouldBe BookId("book-1")
         t.instrumentId shouldBe InstrumentId("AAPL")
         t.assetClass shouldBe AssetClass.EQUITY
         t.side shouldBe Side.BUY

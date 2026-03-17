@@ -5,7 +5,7 @@ import java.math.MathContext
 import java.util.Currency
 
 data class Position(
-    val portfolioId: PortfolioId,
+    val bookId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val quantity: BigDecimal,
@@ -22,6 +22,9 @@ data class Position(
             "Currency mismatch: realizedPnl=${realizedPnl.currency}, marketPrice=${marketPrice.currency}"
         }
     }
+
+    @Deprecated("Use bookId", replaceWith = ReplaceWith("bookId"))
+    val portfolioId: BookId get() = bookId
 
     val currency: Currency
         get() = marketPrice.currency
@@ -40,7 +43,7 @@ data class Position(
     }
 
     fun applyTrade(trade: Trade): Position {
-        require(trade.portfolioId == portfolioId) { "Trade portfolioId mismatch" }
+        require(trade.bookId == bookId) { "Trade bookId mismatch" }
         require(trade.instrumentId == instrumentId) { "Trade instrumentId mismatch" }
         require(trade.price.currency == currency) { "Trade currency mismatch" }
 
@@ -87,12 +90,12 @@ data class Position(
 
     companion object {
         fun empty(
-            portfolioId: PortfolioId,
+            bookId: BookId,
             instrumentId: InstrumentId,
             assetClass: AssetClass,
             currency: Currency,
         ): Position = Position(
-            portfolioId = portfolioId,
+            bookId = bookId,
             instrumentId = instrumentId,
             assetClass = assetClass,
             quantity = BigDecimal.ZERO,

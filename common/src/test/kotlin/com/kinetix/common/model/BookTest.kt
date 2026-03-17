@@ -10,7 +10,7 @@ import java.time.Instant
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO_ID = PortfolioId("port-1")
+private val BOOK_ID = BookId("book-1")
 private val AAPL = InstrumentId("AAPL")
 private val MSFT = InstrumentId("MSFT")
 
@@ -21,10 +21,10 @@ private fun trade(
     side: Side = Side.BUY,
     quantity: String = "100",
     price: String = "150.00",
-    portfolioId: PortfolioId = PORTFOLIO_ID,
+    bookId: BookId = BOOK_ID,
 ) = Trade(
     tradeId = TradeId("t-${System.nanoTime()}"),
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     side = side,
@@ -33,116 +33,116 @@ private fun trade(
     tradedAt = Instant.now(),
 )
 
-class PortfolioTest : FunSpec({
+class BookTest : FunSpec({
 
-    test("create Portfolio with valid fields") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech Portfolio")
-        p.id shouldBe PORTFOLIO_ID
-        p.name shouldBe "Tech Portfolio"
+    test("create Book with valid fields") {
+        val b = Book(id = BOOK_ID, name = "Tech Book")
+        b.id shouldBe BOOK_ID
+        b.name shouldBe "Tech Book"
     }
 
-    test("Portfolio with blank name throws IllegalArgumentException") {
-        shouldThrow<IllegalArgumentException> { Portfolio(id = PORTFOLIO_ID, name = "") }
-        shouldThrow<IllegalArgumentException> { Portfolio(id = PORTFOLIO_ID, name = "   ") }
+    test("Book with blank name throws IllegalArgumentException") {
+        shouldThrow<IllegalArgumentException> { Book(id = BOOK_ID, name = "") }
+        shouldThrow<IllegalArgumentException> { Book(id = BOOK_ID, name = "   ") }
     }
 
-    test("new Portfolio has empty positions") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Empty")
-        p.positions.shouldBeEmpty()
+    test("new Book has empty positions") {
+        val b = Book(id = BOOK_ID, name = "Empty")
+        b.positions.shouldBeEmpty()
     }
 
     // Book trade
 
     test("book first trade creates new position") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, side = Side.BUY, quantity = "100", price = "150.00"))
 
-        p.positions shouldHaveSize 1
-        val pos = p.positions[AAPL]!!
+        b.positions shouldHaveSize 1
+        val pos = b.positions[AAPL]!!
         pos.quantity shouldBe BigDecimal("100")
         pos.averageCost shouldBe usd("150.00")
     }
 
     test("book second trade for same instrument updates position") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, quantity = "100", price = "150.00"))
             .bookTrade(trade(instrumentId = AAPL, quantity = "50", price = "156.00"))
 
-        p.positions shouldHaveSize 1
-        p.positions[AAPL]!!.quantity shouldBe BigDecimal("150")
+        b.positions shouldHaveSize 1
+        b.positions[AAPL]!!.quantity shouldBe BigDecimal("150")
     }
 
     test("book trade for different instrument creates second position") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, quantity = "100", price = "150.00"))
             .bookTrade(trade(instrumentId = MSFT, quantity = "50", price = "400.00"))
 
-        p.positions shouldHaveSize 2
+        b.positions shouldHaveSize 2
     }
 
-    test("book trade with mismatched portfolioId throws IllegalArgumentException") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+    test("book trade with mismatched bookId throws IllegalArgumentException") {
+        val b = Book(id = BOOK_ID, name = "Tech")
         shouldThrow<IllegalArgumentException> {
-            p.bookTrade(trade(portfolioId = PortfolioId("other")))
+            b.bookTrade(trade(bookId = BookId("other")))
         }
     }
 
     // Total market value
 
     test("totalMarketValue sums all positions in given currency") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, quantity = "100", price = "150.00"))
             .bookTrade(trade(instrumentId = MSFT, quantity = "50", price = "400.00"))
             .markToMarket(AAPL, usd("155.00"))
             .markToMarket(MSFT, usd("410.00"))
 
         // AAPL: 100 * 155 = 15500, MSFT: 50 * 410 = 20500
-        p.totalMarketValue(USD) shouldBe usd("36000.00")
+        b.totalMarketValue(USD) shouldBe usd("36000.00")
     }
 
-    test("totalMarketValue of empty portfolio is zero") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Empty")
-        p.totalMarketValue(USD) shouldBe Money.zero(USD)
+    test("totalMarketValue of empty book is zero") {
+        val b = Book(id = BOOK_ID, name = "Empty")
+        b.totalMarketValue(USD) shouldBe Money.zero(USD)
     }
 
     // Total unrealized P&L
 
     test("totalUnrealizedPnl sums all position P&Ls in given currency") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, quantity = "100", price = "150.00"))
             .bookTrade(trade(instrumentId = MSFT, quantity = "50", price = "400.00"))
             .markToMarket(AAPL, usd("155.00"))
             .markToMarket(MSFT, usd("390.00"))
 
         // AAPL: (155-150)*100 = 500, MSFT: (390-400)*50 = -500
-        p.totalUnrealizedPnl(USD) shouldBe usd("0.00")
+        b.totalUnrealizedPnl(USD) shouldBe usd("0.00")
     }
 
-    test("totalUnrealizedPnl of empty portfolio is zero") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Empty")
-        p.totalUnrealizedPnl(USD) shouldBe Money.zero(USD)
+    test("totalUnrealizedPnl of empty book is zero") {
+        val b = Book(id = BOOK_ID, name = "Empty")
+        b.totalUnrealizedPnl(USD) shouldBe Money.zero(USD)
     }
 
     // Mark-to-market
 
     test("markToMarket updates specific position") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             .bookTrade(trade(instrumentId = AAPL, quantity = "100", price = "150.00"))
             .markToMarket(AAPL, usd("160.00"))
 
-        p.positions[AAPL]!!.marketPrice shouldBe usd("160.00")
+        b.positions[AAPL]!!.marketPrice shouldBe usd("160.00")
     }
 
-    test("markToMarket for unknown instrument returns same portfolio") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
-        val same = p.markToMarket(AAPL, usd("160.00"))
-        same shouldBe p
+    test("markToMarket for unknown instrument returns same book") {
+        val b = Book(id = BOOK_ID, name = "Tech")
+        val same = b.markToMarket(AAPL, usd("160.00"))
+        same shouldBe b
     }
 
     // Integration scenario
 
     test("full scenario: buy, buy more, sell partial, mark to market, check P&L") {
-        val p = Portfolio(id = PORTFOLIO_ID, name = "Tech")
+        val b = Book(id = BOOK_ID, name = "Tech")
             // Buy 100 AAPL @ 150
             .bookTrade(trade(instrumentId = AAPL, side = Side.BUY, quantity = "100", price = "150.00"))
             // Buy 50 more AAPL @ 156 => 150 shares, avgCost = (100*150 + 50*156)/150 = 152
@@ -152,7 +152,7 @@ class PortfolioTest : FunSpec({
             // Market price moves to 165
             .markToMarket(AAPL, usd("165.00"))
 
-        val pos = p.positions[AAPL]!!
+        val pos = b.positions[AAPL]!!
         pos.quantity shouldBe BigDecimal("120")
         pos.averageCost.amount.toDouble() shouldBe 152.0
         pos.marketPrice shouldBe usd("165.00")

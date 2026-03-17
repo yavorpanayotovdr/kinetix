@@ -75,7 +75,7 @@ class PricePointTest : FunSpec({
     test("PricePoint price is compatible with Position.markToMarket") {
         val point = pricePoint(price = usd("155.00"))
         val position = Position.empty(
-            portfolioId = PortfolioId("p1"),
+            bookId = BookId("p1"),
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             currency = USD,
