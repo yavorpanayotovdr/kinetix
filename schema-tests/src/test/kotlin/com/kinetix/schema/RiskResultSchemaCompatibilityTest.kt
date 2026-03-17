@@ -56,4 +56,32 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
         deserialized.varValue shouldBe "0.0"
         deserialized.correlationId shouldBe null
     }
+
+    test("RiskResultEvent bookId defaults to portfolioId when not provided") {
+        val event = RiskResultEvent(
+            portfolioId = "book-200",
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            varValue = "5000.0",
+            expectedShortfall = "6500.0",
+            calculatedAt = "2025-01-15T10:00:00Z",
+        )
+        event.bookId shouldBe "book-200"
+    }
+
+    test("old JSON without bookId deserializes with bookId defaulting to portfolioId") {
+        val oldJson = """
+            {
+                "portfolioId": "port-legacy",
+                "varValue": "1000.0",
+                "expectedShortfall": "1300.0",
+                "calculationType": "PARAMETRIC",
+                "calculatedAt": "2025-01-15T10:00:00Z"
+            }
+        """.trimIndent()
+
+        val event = json.decodeFromString<RiskResultEvent>(oldJson)
+        event.portfolioId shouldBe "port-legacy"
+        event.bookId shouldBe "port-legacy"
+    }
 })

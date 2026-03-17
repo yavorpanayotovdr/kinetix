@@ -76,7 +76,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
     }
 
     private fun ResultRow.toPosition(): Position = Position(
-        portfolioId = PortfolioId(this[PositionsTable.portfolioId]),
+        bookId = PortfolioId(this[PositionsTable.portfolioId]),
         instrumentId = InstrumentId(this[PositionsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[PositionsTable.assetClass]),
         quantity = this[PositionsTable.quantity],

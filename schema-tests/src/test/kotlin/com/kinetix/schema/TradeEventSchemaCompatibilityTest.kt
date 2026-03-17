@@ -116,5 +116,46 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         event.userId shouldBe null
         event.userRole shouldBe null
         event.auditEventType shouldBe "TRADE_BOOKED"
+        event.bookId shouldBe "port-4"
+    }
+
+    test("bookId is serialized alongside portfolioId in new events") {
+        val event = TradeEventMessage(
+            tradeId = "trade-new-1",
+            portfolioId = "book-101",
+            bookId = "book-101",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "10",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+        )
+        val serialized = Json.encodeToString(TradeEventMessage.serializer(), event)
+
+        val deserialized = json.decodeFromString<TradeEventMessage>(serialized)
+        deserialized.portfolioId shouldBe "book-101"
+        deserialized.bookId shouldBe "book-101"
+    }
+
+    test("old JSON without bookId deserializes with bookId defaulting to portfolioId") {
+        val oldJson = """
+            {
+                "tradeId": "trade-old-1",
+                "portfolioId": "port-legacy",
+                "instrumentId": "MSFT",
+                "assetClass": "EQUITY",
+                "side": "SELL",
+                "quantity": "20",
+                "priceAmount": "300.00",
+                "priceCurrency": "USD",
+                "tradedAt": "2025-01-15T10:00:00Z"
+            }
+        """.trimIndent()
+
+        val event = json.decodeFromString<TradeEventMessage>(oldJson)
+        event.portfolioId shouldBe "port-legacy"
+        event.bookId shouldBe "port-legacy"
     }
 })

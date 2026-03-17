@@ -35,7 +35,7 @@ class TradeLifecycleService(
 
             val amendTrade = Trade(
                 tradeId = command.newTradeId,
-                portfolioId = command.portfolioId,
+                bookId = command.portfolioId,
                 instrumentId = command.instrumentId,
                 assetClass = command.assetClass,
                 side = command.side,
@@ -96,7 +96,7 @@ class TradeLifecycleService(
         }
         return Trade(
             tradeId = TradeId("${trade.tradeId.value}-reverse"),
-            portfolioId = trade.portfolioId,
+            bookId = trade.bookId,
             instrumentId = trade.instrumentId,
             assetClass = trade.assetClass,
             side = reverseSide,

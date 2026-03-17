@@ -57,7 +57,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
 
     private fun ResultRow.toTrade(): Trade = Trade(
         tradeId = TradeId(this[TradeEventsTable.tradeId]),
-        portfolioId = PortfolioId(this[TradeEventsTable.portfolioId]),
+        bookId = PortfolioId(this[TradeEventsTable.portfolioId]),
         instrumentId = InstrumentId(this[TradeEventsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[TradeEventsTable.assetClass]),
         side = Side.valueOf(this[TradeEventsTable.side]),

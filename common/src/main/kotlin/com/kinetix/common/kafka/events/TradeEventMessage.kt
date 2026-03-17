@@ -26,11 +26,12 @@ data class TradeEventMessage(
     val userId: String? = null,
     val userRole: String? = null,
     val auditEventType: String = "TRADE_BOOKED",
+    val bookId: String = portfolioId,
 ) {
     companion object {
         fun from(event: TradeEvent): TradeEventMessage = TradeEventMessage(
             tradeId = event.trade.tradeId.value,
-            portfolioId = event.trade.portfolioId.value,
+            portfolioId = event.trade.bookId.value,
             instrumentId = event.trade.instrumentId.value,
             assetClass = event.trade.assetClass.name,
             side = event.trade.side.name,
@@ -45,6 +46,7 @@ data class TradeEventMessage(
             userId = event.userId,
             userRole = event.userRole,
             auditEventType = event.auditEventType,
+            bookId = event.trade.bookId.value,
         )
     }
 }

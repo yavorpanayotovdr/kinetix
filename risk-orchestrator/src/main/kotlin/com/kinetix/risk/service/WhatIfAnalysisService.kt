@@ -24,7 +24,7 @@ class WhatIfAnalysisService(
             if (existing != null) {
                 val asTrade = Trade(
                     tradeId = TradeId("hypothetical"),
-                    portfolioId = existing.portfolioId,
+                    bookId = existing.bookId,
                     instrumentId = trade.instrumentId,
                     assetClass = trade.assetClass,
                     side = trade.side,
@@ -36,7 +36,7 @@ class WhatIfAnalysisService(
             } else {
                 val signedQty = trade.quantity * trade.side.sign.toBigDecimal()
                 val newPosition = Position(
-                    portfolioId = portfolioId,
+                    bookId = portfolioId,
                     instrumentId = trade.instrumentId,
                     assetClass = trade.assetClass,
                     quantity = signedQty,

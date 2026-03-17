@@ -21,7 +21,7 @@ data class PositionDto(
     val realizedPnl: MoneyDto,
 ) {
     fun toDomain(): Position = Position(
-        portfolioId = PortfolioId(portfolioId),
+        bookId = PortfolioId(portfolioId),
         instrumentId = InstrumentId(instrumentId),
         assetClass = AssetClass.valueOf(assetClass),
         quantity = BigDecimal(quantity),

@@ -48,7 +48,7 @@ class TradeBookingService(
 
         val trade = Trade(
             tradeId = command.tradeId,
-            portfolioId = command.portfolioId,
+            bookId = command.portfolioId,
             instrumentId = command.instrumentId,
             assetClass = command.assetClass,
             side = command.side,

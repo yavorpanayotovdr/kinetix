@@ -14,7 +14,7 @@ class ReplayPositionProvider(
         return entries.map { entry ->
             val currency = Currency.getInstance(entry.currency)
             Position(
-                portfolioId = PortfolioId(this.portfolioId),
+                bookId = PortfolioId(this.portfolioId),
                 instrumentId = InstrumentId(entry.instrumentId),
                 assetClass = AssetClass.valueOf(entry.assetClass),
                 quantity = entry.quantity,

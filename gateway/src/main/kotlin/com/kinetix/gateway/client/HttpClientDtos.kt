@@ -467,7 +467,7 @@ fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolio
 fun MoneyDto.toDomainMoney() = Money(BigDecimal(amount), Currency.getInstance(currency))
 
 fun PositionDto.toDomain() = Position(
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     quantity = BigDecimal(quantity),
@@ -478,7 +478,7 @@ fun PositionDto.toDomain() = Position(
 
 fun TradeDto.toDomain() = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     side = Side.valueOf(side),

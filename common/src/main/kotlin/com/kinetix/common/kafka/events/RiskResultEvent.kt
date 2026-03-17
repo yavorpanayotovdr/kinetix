@@ -20,4 +20,5 @@ data class RiskResultEvent(
     val confidenceLevel: String = "",
     val componentBreakdown: List<ComponentBreakdownEvent> = emptyList(),
     val correlationId: String? = null,
+    val bookId: String = portfolioId,
 )
