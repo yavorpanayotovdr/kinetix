@@ -106,7 +106,7 @@ class DevDataSeeder(
                 message = "VaR for portfolio equity-growth breached threshold: \$1,125,000 > \$1,000,000",
                 currentValue = 1_125_000.0,
                 threshold = 1_000_000.0,
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 triggeredAt = hoursAgo(2),
             ),
             AlertEvent(
@@ -118,7 +118,7 @@ class DevDataSeeder(
                 message = "VaR for portfolio derivatives-book breached threshold: \$1,340,000 > \$1,000,000",
                 currentValue = 1_340_000.0,
                 threshold = 1_000_000.0,
-                portfolioId = "derivatives-book",
+                bookId = "derivatives-book",
                 triggeredAt = hoursAgo(6),
             ),
             AlertEvent(
@@ -130,7 +130,7 @@ class DevDataSeeder(
                 message = "VaR for portfolio tech-momentum breached threshold: \$1,210,000 > \$1,000,000",
                 currentValue = 1_210_000.0,
                 threshold = 1_000_000.0,
-                portfolioId = "tech-momentum",
+                bookId = "tech-momentum",
                 triggeredAt = hoursAgo(18),
             ),
             AlertEvent(
@@ -142,7 +142,7 @@ class DevDataSeeder(
                 message = "VaR for portfolio macro-hedge breached threshold: \$1,085,000 > \$1,000,000",
                 currentValue = 1_085_000.0,
                 threshold = 1_000_000.0,
-                portfolioId = "macro-hedge",
+                bookId = "macro-hedge",
                 triggeredAt = hoursAgo(36),
             ),
 
@@ -156,7 +156,7 @@ class DevDataSeeder(
                 message = "PnL for portfolio multi-asset exceeded threshold: \$583,200 > \$500,000",
                 currentValue = 583_200.0,
                 threshold = 500_000.0,
-                portfolioId = "multi-asset",
+                bookId = "multi-asset",
                 triggeredAt = hoursAgo(3),
             ),
             AlertEvent(
@@ -168,7 +168,7 @@ class DevDataSeeder(
                 message = "Concentration risk for portfolio tech-momentum: \$1,720,000 > \$1,500,000",
                 currentValue = 1_720_000.0,
                 threshold = 1_500_000.0,
-                portfolioId = "tech-momentum",
+                bookId = "tech-momentum",
                 triggeredAt = hoursAgo(5),
             ),
             AlertEvent(
@@ -180,7 +180,7 @@ class DevDataSeeder(
                 message = "VaR approaching limit for portfolio balanced-income: \$812,000 > \$750,000",
                 currentValue = 812_000.0,
                 threshold = 750_000.0,
-                portfolioId = "balanced-income",
+                bookId = "balanced-income",
                 triggeredAt = hoursAgo(8),
             ),
             AlertEvent(
@@ -192,7 +192,7 @@ class DevDataSeeder(
                 message = "Concentration risk for portfolio derivatives-book: \$1,650,000 > \$1,500,000",
                 currentValue = 1_650_000.0,
                 threshold = 1_500_000.0,
-                portfolioId = "derivatives-book",
+                bookId = "derivatives-book",
                 triggeredAt = hoursAgo(14),
             ),
             AlertEvent(
@@ -204,7 +204,7 @@ class DevDataSeeder(
                 message = "PnL for portfolio equity-growth exceeded threshold: \$545,800 > \$500,000",
                 currentValue = 545_800.0,
                 threshold = 500_000.0,
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 triggeredAt = hoursAgo(22),
             ),
             AlertEvent(
@@ -216,7 +216,7 @@ class DevDataSeeder(
                 message = "VaR approaching limit for portfolio emerging-markets: \$790,000 > \$750,000",
                 currentValue = 790_000.0,
                 threshold = 750_000.0,
-                portfolioId = "emerging-markets",
+                bookId = "emerging-markets",
                 triggeredAt = hoursAgo(30),
             ),
 
@@ -230,7 +230,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio equity-growth: \$312,400 > \$250,000",
                 currentValue = 312_400.0,
                 threshold = 250_000.0,
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 triggeredAt = hoursAgo(1),
             ),
             AlertEvent(
@@ -242,7 +242,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio multi-asset: \$278,600 > \$250,000",
                 currentValue = 278_600.0,
                 threshold = 250_000.0,
-                portfolioId = "multi-asset",
+                bookId = "multi-asset",
                 triggeredAt = hoursAgo(4),
             ),
             AlertEvent(
@@ -254,7 +254,7 @@ class DevDataSeeder(
                 message = "Risk limit monitoring for portfolio fixed-income: \$2,150,000 > \$2,000,000",
                 currentValue = 2_150_000.0,
                 threshold = 2_000_000.0,
-                portfolioId = "fixed-income",
+                bookId = "fixed-income",
                 triggeredAt = hoursAgo(7),
             ),
             AlertEvent(
@@ -266,7 +266,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio tech-momentum: \$289,300 > \$250,000",
                 currentValue = 289_300.0,
                 threshold = 250_000.0,
-                portfolioId = "tech-momentum",
+                bookId = "tech-momentum",
                 triggeredAt = hoursAgo(10),
             ),
             AlertEvent(
@@ -278,7 +278,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio derivatives-book: \$265,100 > \$250,000",
                 currentValue = 265_100.0,
                 threshold = 250_000.0,
-                portfolioId = "derivatives-book",
+                bookId = "derivatives-book",
                 triggeredAt = hoursAgo(12),
             ),
             AlertEvent(
@@ -290,7 +290,7 @@ class DevDataSeeder(
                 message = "Risk limit monitoring for portfolio macro-hedge: \$2,080,000 > \$2,000,000",
                 currentValue = 2_080_000.0,
                 threshold = 2_000_000.0,
-                portfolioId = "macro-hedge",
+                bookId = "macro-hedge",
                 triggeredAt = hoursAgo(16),
             ),
             AlertEvent(
@@ -302,7 +302,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio balanced-income: \$258,900 > \$250,000",
                 currentValue = 258_900.0,
                 threshold = 250_000.0,
-                portfolioId = "balanced-income",
+                bookId = "balanced-income",
                 triggeredAt = hoursAgo(20),
             ),
             AlertEvent(
@@ -314,7 +314,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio emerging-markets: \$271,500 > \$250,000",
                 currentValue = 271_500.0,
                 threshold = 250_000.0,
-                portfolioId = "emerging-markets",
+                bookId = "emerging-markets",
                 triggeredAt = hoursAgo(28),
             ),
             AlertEvent(
@@ -326,7 +326,7 @@ class DevDataSeeder(
                 message = "Risk limit monitoring for portfolio equity-growth: \$2,230,000 > \$2,000,000",
                 currentValue = 2_230_000.0,
                 threshold = 2_000_000.0,
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 triggeredAt = hoursAgo(38),
             ),
             AlertEvent(
@@ -338,7 +338,7 @@ class DevDataSeeder(
                 message = "Daily PnL for portfolio macro-hedge: \$263,700 > \$250,000",
                 currentValue = 263_700.0,
                 threshold = 250_000.0,
-                portfolioId = "macro-hedge",
+                bookId = "macro-hedge",
                 triggeredAt = hoursAgo(44),
             ),
         )

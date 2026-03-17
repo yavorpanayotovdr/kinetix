@@ -13,6 +13,6 @@ class EmailDeliveryService : DeliveryService {
 
     override suspend fun deliver(event: AlertEvent) {
         _sentEmails.add(event)
-        logger.info("Email alert sent: rule={}, severity={}, portfolio={}", event.ruleName, event.severity, event.portfolioId)
+        logger.info("Email alert sent: rule={}, severity={}, book={}", event.ruleName, event.severity, event.bookId)
     }
 }

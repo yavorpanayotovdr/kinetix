@@ -237,7 +237,7 @@ data class AlertEventResponse(
     val message: String,
     val currentValue: Double,
     val threshold: Double,
-    val portfolioId: String,
+    val bookId: String,
     val triggeredAt: String,
 )
 
@@ -332,6 +332,6 @@ private fun com.kinetix.notification.model.AlertEvent.toEventResponse() = AlertE
     message = message,
     currentValue = currentValue,
     threshold = threshold,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggeredAt = triggeredAt.toString(),
 )

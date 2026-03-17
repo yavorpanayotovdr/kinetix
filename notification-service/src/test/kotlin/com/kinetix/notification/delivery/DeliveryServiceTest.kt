@@ -17,7 +17,7 @@ private fun sampleAlert(id: String = "evt-1") = AlertEvent(
     message = "VaR exceeded threshold",
     currentValue = 150_000.0,
     threshold = 100_000.0,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggeredAt = Instant.parse("2025-01-15T10:00:00Z"),
 )
 

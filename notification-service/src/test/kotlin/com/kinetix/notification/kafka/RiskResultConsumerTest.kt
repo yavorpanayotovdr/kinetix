@@ -59,7 +59,7 @@ class RiskResultConsumerTest : FunSpec({
 
         inApp.getRecentAlerts() shouldHaveSize 1
         inApp.getRecentAlerts()[0].type shouldBe AlertType.VAR_BREACH
-        inApp.getRecentAlerts()[0].portfolioId shouldBe "port-1"
+        inApp.getRecentAlerts()[0].bookId shouldBe "port-1"
     }
 
     test("triggered alerts routed to delivery") {

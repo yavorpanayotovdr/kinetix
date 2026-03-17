@@ -12,7 +12,7 @@ object AlertEventsTable : Table("alert_events") {
     val message = text("message")
     val currentValue = double("current_value")
     val threshold = double("threshold")
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val triggeredAt = timestampWithTimeZone("triggered_at")
 
     override val primaryKey = PrimaryKey(id)

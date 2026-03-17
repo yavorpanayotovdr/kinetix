@@ -13,6 +13,6 @@ class WebhookDeliveryService : DeliveryService {
 
     override suspend fun deliver(event: AlertEvent) {
         _sentWebhooks.add(event)
-        logger.info("Webhook alert sent: rule={}, severity={}, portfolio={}", event.ruleName, event.severity, event.portfolioId)
+        logger.info("Webhook alert sent: rule={}, severity={}, book={}", event.ruleName, event.severity, event.bookId)
     }
 }

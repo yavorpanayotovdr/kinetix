@@ -628,7 +628,7 @@ export interface AlertEventFixture {
   message: string
   currentValue: number
   threshold: number
-  portfolioId: string
+  bookId: string
   triggeredAt: string
 }
 
@@ -737,7 +737,7 @@ export const TEST_ALERTS: AlertEventFixture[] = [
     message: 'VaR exceeded limit',
     currentValue: 125000,
     threshold: 100000,
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     triggeredAt: new Date(Date.now() - 5 * 60_000).toISOString(),
   },
   {
@@ -749,7 +749,7 @@ export const TEST_ALERTS: AlertEventFixture[] = [
     message: 'VaR approaching limit',
     currentValue: 95000,
     threshold: 100000,
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     triggeredAt: new Date(Date.now() - 30 * 60_000).toISOString(),
   },
 ]

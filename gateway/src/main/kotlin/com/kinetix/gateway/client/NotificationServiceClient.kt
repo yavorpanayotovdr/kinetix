@@ -22,7 +22,7 @@ data class AlertEventItem(
     val message: String,
     val currentValue: Double,
     val threshold: Double,
-    val portfolioId: String,
+    val bookId: String,
     val triggeredAt: Instant,
 )
 

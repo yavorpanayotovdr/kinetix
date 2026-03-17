@@ -62,12 +62,12 @@ class NotificationAlertingAcceptanceTest : BehaviorSpec({
 
             then("alert is delivered to in-app channel") {
                 inApp.getRecentAlerts() shouldHaveSize 1
-                inApp.getRecentAlerts()[0].portfolioId shouldBe "port-alert-1"
+                inApp.getRecentAlerts()[0].bookId shouldBe "port-alert-1"
             }
 
             then("alert is delivered to email channel") {
                 email.sentEmails shouldHaveSize 1
-                email.sentEmails[0].portfolioId shouldBe "port-alert-1"
+                email.sentEmails[0].bookId shouldBe "port-alert-1"
             }
         }
 

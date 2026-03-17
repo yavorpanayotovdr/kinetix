@@ -45,8 +45,8 @@ class RiskResultConsumer(
                                 val channels = rule?.channels ?: emptyList()
                                 deliveryRouter.route(alert, channels)
                                 logger.info(
-                                    "Alert triggered: rule={}, severity={}, portfolio={}",
-                                    alert.ruleName, alert.severity, alert.portfolioId,
+                                    "Alert triggered: rule={}, severity={}, book={}",
+                                    alert.ruleName, alert.severity, alert.bookId,
                                 )
                             }
                         } finally {

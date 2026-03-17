@@ -18,7 +18,7 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
             it[message] = event.message
             it[currentValue] = event.currentValue
             it[threshold] = event.threshold
-            it[portfolioId] = event.portfolioId
+            it[bookId] = event.bookId
             it[triggeredAt] = OffsetDateTime.ofInstant(event.triggeredAt, ZoneOffset.UTC)
         }
     }
@@ -40,7 +40,7 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         message = this[AlertEventsTable.message],
         currentValue = this[AlertEventsTable.currentValue],
         threshold = this[AlertEventsTable.threshold],
-        portfolioId = this[AlertEventsTable.portfolioId],
+        bookId = this[AlertEventsTable.bookId],
         triggeredAt = this[AlertEventsTable.triggeredAt].toInstant(),
     )
 }

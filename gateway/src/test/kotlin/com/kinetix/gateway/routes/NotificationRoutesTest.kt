@@ -32,7 +32,7 @@ private val sampleAlert = AlertEventItem(
     message = "VaR exceeded threshold",
     currentValue = 150_000.0,
     threshold = 100_000.0,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggeredAt = Instant.parse("2025-01-15T10:00:00Z"),
 )
 
@@ -97,7 +97,7 @@ class NotificationRoutesTest : FunSpec({
             body.size shouldBe 1
             body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "evt-1"
             body[0].jsonObject["severity"]?.jsonPrimitive?.content shouldBe "CRITICAL"
-            body[0].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body[0].jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
         }
     }
 

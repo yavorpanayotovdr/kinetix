@@ -58,7 +58,7 @@ class AlertModelsTest : FunSpec({
             message = "VaR exceeded threshold",
             currentValue = 150_000.0,
             threshold = 100_000.0,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggeredAt = now,
         )
         event.id shouldBe "evt-1"
@@ -69,7 +69,7 @@ class AlertModelsTest : FunSpec({
         event.message.shouldNotBeBlank()
         event.currentValue shouldBe 150_000.0
         event.threshold shouldBe 100_000.0
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.triggeredAt shouldBe now
     }
 })

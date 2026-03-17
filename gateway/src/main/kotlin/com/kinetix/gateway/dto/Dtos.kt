@@ -593,7 +593,7 @@ data class AlertEventDto(
     val message: String,
     val currentValue: Double,
     val threshold: Double,
-    val portfolioId: String,
+    val bookId: String,
     val triggeredAt: String,
 )
 
@@ -629,7 +629,7 @@ fun AlertEventItem.toDto(): AlertEventDto = AlertEventDto(
     message = message,
     currentValue = currentValue,
     threshold = threshold,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggeredAt = triggeredAt.toString(),
 )
 

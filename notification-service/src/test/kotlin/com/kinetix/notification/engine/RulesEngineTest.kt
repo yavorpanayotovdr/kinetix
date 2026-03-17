@@ -26,7 +26,7 @@ class RulesEngineTest : FunSpec({
         alerts[0].severity shouldBe Severity.CRITICAL
         alerts[0].currentValue shouldBe 150_000.0
         alerts[0].threshold shouldBe 100_000.0
-        alerts[0].portfolioId shouldBe "port-1"
+        alerts[0].bookId shouldBe "port-1"
     }
 
     test("VaR breach does not trigger below threshold") {
