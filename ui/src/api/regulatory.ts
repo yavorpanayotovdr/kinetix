@@ -1,10 +1,10 @@
 import type { FrtbResultDto, ReportResultDto } from '../types'
 
 export async function fetchFrtb(
-  portfolioId: string,
+  bookId: string,
 ): Promise<FrtbResultDto | null> {
   const response = await fetch(
-    `/api/v1/regulatory/frtb/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/regulatory/frtb/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -23,11 +23,11 @@ export async function fetchFrtb(
 }
 
 export async function generateReport(
-  portfolioId: string,
+  bookId: string,
   format: string,
 ): Promise<ReportResultDto | null> {
   const response = await fetch(
-    `/api/v1/regulatory/report/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/regulatory/report/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

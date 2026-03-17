@@ -11,7 +11,7 @@ const mockFetch = vi.mocked(fetchValuationJobs)
 const completedJobs = [
   {
     jobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'ON_DEMAND',
     status: 'COMPLETED',
     startedAt: '2025-01-15T08:00:00Z',
@@ -27,7 +27,7 @@ const completedJobs = [
   },
   {
     jobId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'SCHEDULED',
     status: 'COMPLETED',
     startedAt: '2025-01-15T06:00:00Z',
@@ -49,24 +49,24 @@ describe('useJobPicker', () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 2 })
   })
 
-  it('does not fetch when portfolioId is null', () => {
+  it('does not fetch when bookId is null', () => {
     renderHook(() => useJobPicker(null, true))
 
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('does not fetch when open is false', () => {
-    renderHook(() => useJobPicker('port-1', false))
+    renderHook(() => useJobPicker('book-1', false))
 
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('fetches completed jobs with status=COMPLETED on open', async () => {
-    renderHook(() => useJobPicker('port-1', true))
+    renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         20,
         0,
         expect.any(String),
@@ -77,7 +77,7 @@ describe('useJobPicker', () => {
   })
 
   it('defaults to Today time range', async () => {
-    renderHook(() => useJobPicker('port-1', true))
+    renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled()
@@ -97,7 +97,7 @@ describe('useJobPicker', () => {
     let resolvePromise: (v: { items: typeof completedJobs; totalCount: number }) => void
     mockFetch.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve }))
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     expect(result.current.loading).toBe(true)
 
@@ -111,7 +111,7 @@ describe('useJobPicker', () => {
   it('sets error on fetch failure', async () => {
     mockFetch.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.error).toBe('Network error')
@@ -119,7 +119,7 @@ describe('useJobPicker', () => {
   })
 
   it('returns fetched jobs', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -129,7 +129,7 @@ describe('useJobPicker', () => {
   })
 
   it('filters jobs client-side by keyword search', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -144,7 +144,7 @@ describe('useJobPicker', () => {
   })
 
   it('filters by UUID prefix matching only jobId', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -159,7 +159,7 @@ describe('useJobPicker', () => {
   })
 
   it('shows all jobs when search term is empty', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -179,7 +179,7 @@ describe('useJobPicker', () => {
   it('resets page to 0 when time range changes', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 40 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -197,7 +197,7 @@ describe('useJobPicker', () => {
   })
 
   it('re-fetches when time range changes', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -219,7 +219,7 @@ describe('useJobPicker', () => {
   it('nextPage increments page and re-fetches with correct offset', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 40 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -240,7 +240,7 @@ describe('useJobPicker', () => {
   it('prevPage decrements page', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 40 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -258,7 +258,7 @@ describe('useJobPicker', () => {
   })
 
   it('prevPage is a no-op on page 0', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -273,7 +273,7 @@ describe('useJobPicker', () => {
   it('computes totalPages from totalCount and pageSize', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 45 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.totalPages).toBe(3) // ceil(45/20)
@@ -283,7 +283,7 @@ describe('useJobPicker', () => {
   it('hasNextPage reflects whether more pages exist', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 2 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.hasNextPage).toBe(false)
@@ -293,7 +293,7 @@ describe('useJobPicker', () => {
   it('firstPage resets to page 0', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 60 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -316,7 +316,7 @@ describe('useJobPicker', () => {
   it('lastPage jumps to the final page', async () => {
     mockFetch.mockResolvedValue({ items: completedJobs, totalCount: 60 })
 
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)
@@ -329,7 +329,7 @@ describe('useJobPicker', () => {
   })
 
   it('refresh re-fetches current page', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -346,7 +346,7 @@ describe('useJobPicker', () => {
 
   it('resets all state when open changes from true to false and back', async () => {
     const { result, rerender } = renderHook(
-      ({ open }) => useJobPicker('port-1', open),
+      ({ open }) => useJobPicker('book-1', open),
       { initialProps: { open: true } },
     )
 
@@ -373,7 +373,7 @@ describe('useJobPicker', () => {
   })
 
   it('only fetches once on initial mount without explicit refresh', async () => {
-    const { result } = renderHook(() => useJobPicker('port-1', true))
+    const { result } = renderHook(() => useJobPicker('book-1', true))
 
     await waitFor(() => {
       expect(result.current.jobs).toHaveLength(2)

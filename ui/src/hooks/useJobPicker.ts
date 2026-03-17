@@ -51,7 +51,7 @@ export interface UseJobPickerResult {
 }
 
 export function useJobPicker(
-  portfolioId: string | null,
+  bookId: string | null,
   open: boolean,
 ): UseJobPickerResult {
   const [allJobs, setAllJobs] = useState<ValuationJobSummaryDto[]>([])
@@ -81,7 +81,7 @@ export function useJobPicker(
   }, [open])
 
   const load = useCallback(async () => {
-    if (!portfolioId || !open) return
+    if (!bookId || !open) return
 
     setLoading(true)
     setError(null)
@@ -89,7 +89,7 @@ export function useJobPicker(
     try {
       const { from, to } = resolveQueryRange(timeRangeRef.current)
       const { items, totalCount: count } = await fetchValuationJobs(
-        portfolioId,
+        bookId,
         PAGE_SIZE,
         pageRef.current * PAGE_SIZE,
         from,
@@ -103,15 +103,15 @@ export function useJobPicker(
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, open])
+  }, [bookId, open])
 
   const loadRef = useRef(load)
   loadRef.current = load
 
   useEffect(() => {
-    if (!portfolioId || !open) return
+    if (!bookId || !open) return
     loadRef.current()
-  }, [portfolioId, open, fetchVersion, page])
+  }, [bookId, open, fetchVersion, page])
 
   const setTimeRange = useCallback((range: TimeRange) => {
     setPage(0)

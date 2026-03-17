@@ -1,11 +1,11 @@
 import type { WhatIfRequestDto, WhatIfResponseDto } from '../types'
 
 export async function runWhatIfAnalysis(
-  portfolioId: string,
+  bookId: string,
   request: WhatIfRequestDto,
 ): Promise<WhatIfResponseDto> {
   const response = await fetch(
-    `/api/v1/risk/what-if/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/risk/what-if/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

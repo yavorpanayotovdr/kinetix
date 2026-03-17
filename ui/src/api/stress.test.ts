@@ -59,10 +59,10 @@ describe('stress API', () => {
         json: () => Promise.resolve(stressResult),
       })
 
-      const result = await runStressTest('port-1', 'GFC_2008')
+      const result = await runStressTest('book-1', 'GFC_2008')
 
       expect(result).toEqual(stressResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/stress/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/stress/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenarioName: 'GFC_2008' }),
@@ -76,7 +76,7 @@ describe('stress API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await runStressTest('port-1', 'NONEXISTENT')
+      const result = await runStressTest('book-1', 'NONEXISTENT')
 
       expect(result).toBeNull()
     })
@@ -88,7 +88,7 @@ describe('stress API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(runStressTest('port-1', 'GFC_2008')).rejects.toThrow(
+      await expect(runStressTest('book-1', 'GFC_2008')).rejects.toThrow(
         'Failed to run stress test: 500 Internal Server Error',
       )
     })

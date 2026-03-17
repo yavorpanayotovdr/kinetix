@@ -32,7 +32,7 @@ describe('notifications API', () => {
     message: 'VaR exceeded threshold',
     currentValue: 150000,
     threshold: 100000,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2025-01-15T10:00:00Z',
   }
 

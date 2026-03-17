@@ -11,7 +11,7 @@ export interface UseRegulatoryResult {
   downloadXbrl: () => void
 }
 
-export function useRegulatory(portfolioId: string | null): UseRegulatoryResult {
+export function useRegulatory(bookId: string | null): UseRegulatoryResult {
   const [result, setResult] = useState<FrtbResultDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,21 +19,21 @@ export function useRegulatory(portfolioId: string | null): UseRegulatoryResult {
   useEffect(() => {
     setResult(null)
     setError(null)
-  }, [portfolioId])
+  }, [bookId])
 
   const calculate = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchFrtb(portfolioId)
+      const data = await fetchFrtb(bookId)
       setResult(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const triggerDownload = useCallback((content: string, filename: string) => {
     const blob = new Blob([content], { type: 'text/plain' })
@@ -46,28 +46,28 @@ export function useRegulatory(portfolioId: string | null): UseRegulatoryResult {
   }, [])
 
   const downloadCsv = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     try {
-      const report = await generateReport(portfolioId, 'CSV')
+      const report = await generateReport(bookId, 'CSV')
       if (report) {
-        triggerDownload(report.content, `frtb-${portfolioId}.csv`)
+        triggerDownload(report.content, `frtb-${bookId}.csv`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [portfolioId, triggerDownload])
+  }, [bookId, triggerDownload])
 
   const downloadXbrl = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     try {
-      const report = await generateReport(portfolioId, 'XBRL')
+      const report = await generateReport(bookId, 'XBRL')
       if (report) {
-        triggerDownload(report.content, `frtb-${portfolioId}.xbrl`)
+        triggerDownload(report.content, `frtb-${bookId}.xbrl`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [portfolioId, triggerDownload])
+  }, [bookId, triggerDownload])
 
   return { result, loading, error, calculate, downloadCsv, downloadXbrl }
 }

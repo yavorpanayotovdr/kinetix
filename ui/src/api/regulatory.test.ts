@@ -13,7 +13,7 @@ describe('regulatory API', () => {
   })
 
   const frtbResult = {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     sbmCharges: [
       { riskClass: 'EQUITY', deltaCharge: '40000.00', vegaCharge: '30000.00', curvatureCharge: '4000.00', totalCharge: '74000.00' },
     ],
@@ -29,7 +29,7 @@ describe('regulatory API', () => {
   }
 
   const reportResult = {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     format: 'CSV',
     content: 'Component,Risk Class,Delta Charge\nSbM,EQUITY,40000.00',
     generatedAt: '2025-01-15T10:00:00Z',
@@ -43,10 +43,10 @@ describe('regulatory API', () => {
         json: () => Promise.resolve(frtbResult),
       })
 
-      const result = await fetchFrtb('port-1')
+      const result = await fetchFrtb('book-1')
 
       expect(result).toEqual(frtbResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/regulatory/frtb/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/regulatory/frtb/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -60,7 +60,7 @@ describe('regulatory API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchFrtb('port-1')
+      const result = await fetchFrtb('book-1')
 
       expect(result).toBeNull()
     })
@@ -72,7 +72,7 @@ describe('regulatory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchFrtb('port-1')).rejects.toThrow(
+      await expect(fetchFrtb('book-1')).rejects.toThrow(
         'Failed to fetch FRTB: 500 Internal Server Error',
       )
     })
@@ -86,10 +86,10 @@ describe('regulatory API', () => {
         json: () => Promise.resolve(reportResult),
       })
 
-      const result = await generateReport('port-1', 'CSV')
+      const result = await generateReport('book-1', 'CSV')
 
       expect(result).toEqual(reportResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/regulatory/report/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/regulatory/report/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format: 'CSV' }),
@@ -103,7 +103,7 @@ describe('regulatory API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await generateReport('port-1', 'CSV')
+      const result = await generateReport('book-1', 'CSV')
 
       expect(result).toBeNull()
     })
@@ -115,7 +115,7 @@ describe('regulatory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(generateReport('port-1', 'CSV')).rejects.toThrow(
+      await expect(generateReport('book-1', 'CSV')).rejects.toThrow(
         'Failed to generate report: 500 Internal Server Error',
       )
     })

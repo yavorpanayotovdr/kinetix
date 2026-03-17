@@ -1,10 +1,10 @@
 import type { PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '../types'
 
 export async function fetchVaR(
-  portfolioId: string,
+  bookId: string,
   valuationDate?: string | null,
 ): Promise<VaRResultDto | null> {
-  let url = `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`
+  let url = `/api/v1/risk/var/${encodeURIComponent(bookId)}`
   if (valuationDate) {
     url += `?valuationDate=${encodeURIComponent(valuationDate)}`
   }
@@ -21,7 +21,7 @@ export async function fetchVaR(
 }
 
 export async function triggerVaRCalculation(
-  portfolioId: string,
+  bookId: string,
   request: VaRCalculationRequestDto = {},
 ): Promise<VaRResultDto | null> {
   const body = {
@@ -29,7 +29,7 @@ export async function triggerVaRCalculation(
     requestedOutputs: request.requestedOutputs ?? ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'],
   }
   const response = await fetch(
-    `/api/v1/risk/var/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/risk/var/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,10 +55,10 @@ export async function triggerVaRCalculation(
 }
 
 export async function fetchPositionRisk(
-  portfolioId: string,
+  bookId: string,
   valuationDate?: string | null,
 ): Promise<PositionRiskDto[]> {
-  let url = `/api/v1/risk/positions/${encodeURIComponent(portfolioId)}`
+  let url = `/api/v1/risk/positions/${encodeURIComponent(bookId)}`
   if (valuationDate) {
     url += `?valuationDate=${encodeURIComponent(valuationDate)}`
   }

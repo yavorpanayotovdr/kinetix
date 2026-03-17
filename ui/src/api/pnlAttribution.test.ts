@@ -14,7 +14,7 @@ describe('pnlAttribution API', () => {
   })
 
   const pnlAttributionData: PnlAttributionDto = {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     date: '2025-01-15',
     totalPnl: '15000.00',
     deltaPnl: '8000.00',
@@ -47,11 +47,11 @@ describe('pnlAttribution API', () => {
         json: () => Promise.resolve(pnlAttributionData),
       })
 
-      const result = await fetchPnlAttribution('port-1')
+      const result = await fetchPnlAttribution('book-1')
 
       expect(result).toEqual(pnlAttributionData)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/pnl-attribution/port-1',
+        '/api/v1/risk/pnl-attribution/book-1',
       )
     })
 
@@ -62,10 +62,10 @@ describe('pnlAttribution API', () => {
         json: () => Promise.resolve(pnlAttributionData),
       })
 
-      await fetchPnlAttribution('port-1', '2025-01-15')
+      await fetchPnlAttribution('book-1', '2025-01-15')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/pnl-attribution/port-1?date=2025-01-15',
+        '/api/v1/risk/pnl-attribution/book-1?date=2025-01-15',
       )
     })
 
@@ -76,7 +76,7 @@ describe('pnlAttribution API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchPnlAttribution('port-1')
+      const result = await fetchPnlAttribution('book-1')
 
       expect(result).toBeNull()
     })
@@ -88,22 +88,22 @@ describe('pnlAttribution API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchPnlAttribution('port-1')).rejects.toThrow(
+      await expect(fetchPnlAttribution('book-1')).rejects.toThrow(
         'Failed to fetch P&L attribution: 500 Internal Server Error',
       )
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve(pnlAttributionData),
       })
 
-      await fetchPnlAttribution('port/special & id')
+      await fetchPnlAttribution('book/special & id')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/pnl-attribution/port%2Fspecial%20%26%20id',
+        '/api/v1/risk/pnl-attribution/book%2Fspecial%20%26%20id',
       )
     })
   })

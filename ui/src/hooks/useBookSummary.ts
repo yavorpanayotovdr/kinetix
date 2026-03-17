@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchPortfolioSummary } from '../api/portfolioSummary'
+import { fetchBookSummary } from '../api/bookSummary'
 import type { PortfolioAggregationDto } from '../types'
 
-export interface UsePortfolioSummaryResult {
+export interface UseBookSummaryResult {
   summary: PortfolioAggregationDto | null
   baseCurrency: string
   setBaseCurrency: (currency: string) => void
@@ -10,18 +10,18 @@ export interface UsePortfolioSummaryResult {
   error: string | null
 }
 
-export function usePortfolioSummary(portfolioId: string | null): UsePortfolioSummaryResult {
+export function useBookSummary(bookId: string | null): UseBookSummaryResult {
   const [summary, setSummary] = useState<PortfolioAggregationDto | null>(null)
   const [baseCurrency, setBaseCurrency] = useState('USD')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     let cancelled = false
 
-    fetchPortfolioSummary(portfolioId, baseCurrency)
+    fetchBookSummary(bookId, baseCurrency)
       .then((data) => {
         if (!cancelled) setSummary(data)
       })
@@ -35,7 +35,7 @@ export function usePortfolioSummary(portfolioId: string | null): UsePortfolioSum
     return () => {
       cancelled = true
     }
-  }, [portfolioId, baseCurrency])
+  }, [bookId, baseCurrency])
 
   const handleSetBaseCurrency = useCallback((currency: string) => {
     setLoading(true)

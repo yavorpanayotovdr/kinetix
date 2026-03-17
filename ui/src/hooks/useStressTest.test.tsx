@@ -36,7 +36,7 @@ describe('useStressTest', () => {
   it('loads scenarios on mount', async () => {
     mockFetchScenarios.mockResolvedValue(['MARKET_CRASH', 'RATE_SHOCK'])
 
-    const { result } = renderHook(() => useStressTest('port-1'))
+    const { result } = renderHook(() => useStressTest('book-1'))
 
     await waitFor(() => {
       expect(result.current.scenarios).toEqual(['MARKET_CRASH', 'RATE_SHOCK'])
@@ -52,7 +52,7 @@ describe('useStressTest', () => {
     mockFetchScenarios.mockResolvedValue(['MARKET_CRASH'])
     mockRunStressTest.mockResolvedValue(stressResult)
 
-    const { result } = renderHook(() => useStressTest('port-1'))
+    const { result } = renderHook(() => useStressTest('book-1'))
 
     await waitFor(() => {
       expect(result.current.scenarios.length).toBeGreaterThan(0)
@@ -67,13 +67,13 @@ describe('useStressTest', () => {
     })
 
     expect(result.current.result).toEqual(stressResult)
-    expect(mockRunStressTest).toHaveBeenCalledWith('port-1', 'MARKET_CRASH')
+    expect(mockRunStressTest).toHaveBeenCalledWith('book-1', 'MARKET_CRASH')
   })
 
   it('sets error when scenario fetch fails', async () => {
     mockFetchScenarios.mockRejectedValue(new Error('Scenario fetch failed'))
 
-    const { result } = renderHook(() => useStressTest('port-1'))
+    const { result } = renderHook(() => useStressTest('book-1'))
 
     await waitFor(() => {
       expect(result.current.error).toBe('Scenario fetch failed')
@@ -84,7 +84,7 @@ describe('useStressTest', () => {
     mockFetchScenarios.mockResolvedValue(['MARKET_CRASH'])
     mockRunStressTest.mockRejectedValue(new Error('Stress test failed'))
 
-    const { result } = renderHook(() => useStressTest('port-1'))
+    const { result } = renderHook(() => useStressTest('book-1'))
 
     await waitFor(() => {
       expect(result.current.scenarios.length).toBeGreaterThan(0)
@@ -101,13 +101,13 @@ describe('useStressTest', () => {
     expect(result.current.error).toBe('Stress test failed')
   })
 
-  it('clears result when portfolioId changes', async () => {
+  it('clears result when bookId changes', async () => {
     mockFetchScenarios.mockResolvedValue(['MARKET_CRASH'])
     mockRunStressTest.mockResolvedValue(stressResult)
 
     const { result, rerender } = renderHook(
-      ({ portfolioId }) => useStressTest(portfolioId),
-      { initialProps: { portfolioId: 'port-1' as string | null } },
+      ({ bookId }) => useStressTest(bookId),
+      { initialProps: { bookId: 'book-1' as string | null } },
     )
 
     await waitFor(() => {
@@ -122,7 +122,7 @@ describe('useStressTest', () => {
       expect(result.current.result).toEqual(stressResult)
     })
 
-    rerender({ portfolioId: 'port-2' })
+    rerender({ bookId: 'book-2' })
 
     expect(result.current.result).toBeNull()
   })

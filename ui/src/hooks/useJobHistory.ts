@@ -60,7 +60,7 @@ export interface UseJobHistoryResult {
 const POLL_INTERVAL = 5_000
 const DEFAULT_PAGE_SIZE = 10
 
-export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
+export function useJobHistory(bookId: string | null): UseJobHistoryResult {
   const [runs, setRuns] = useState<ValuationJobSummaryDto[]>([])
   const [chartData, setChartData] = useState<ChartDataResponse | null>(null)
   const [expandedJobs, setExpandedJobs] = useState<Record<string, ValuationJobDetailDto>>({})
@@ -91,7 +91,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   const isSlidingRef = useRef(false)
 
   const load = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     if (!initialLoadDone.current) {
       setLoading(true)
@@ -101,7 +101,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     try {
       const from = pinnedFromRef.current
       const to = isSlidingRef.current ? new Date().toISOString() : resolveQueryRange(timeRangeRef.current).to
-      const { items, totalCount: count } = await fetchValuationJobs(portfolioId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
+      const { items, totalCount: count } = await fetchValuationJobs(bookId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
       setTotalCount(count)
       setRuns((prev) => {
         if (
@@ -118,19 +118,19 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       setLoading(false)
       initialLoadDone.current = true
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const loadChart = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     try {
       const { from, to } = resolveQueryRange(timeRangeRef.current)
-      const response = await fetchChartData(portfolioId, from, to)
+      const response = await fetchChartData(bookId, from, to)
       setChartData(response)
     } catch {
       // Chart fetch failure is non-critical; table data is still available
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const loadRef = useRef(load)
   loadRef.current = load
@@ -139,7 +139,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   loadChartRef.current = loadChart
 
   useEffect(() => {
-    if (!portfolioId) {
+    if (!bookId) {
       setRuns([])
       setChartData(null)
       setExpandedJobs({})
@@ -158,7 +158,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
 
     const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, fetchVersion])
+  }, [bookId, fetchVersion])
 
   // Refetch when page or pageSize changes — without resetting initialLoadDone
   const paginationMounted = useRef(false)
@@ -167,13 +167,13 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       paginationMounted.current = true
       return
     }
-    if (!portfolioId) return
+    if (!bookId) return
     loadRef.current()
-  }, [page, pageSize, portfolioId])
+  }, [page, pageSize, bookId])
 
   useEffect(() => {
-    if (portfolioId) loadChartRef.current()
-  }, [portfolioId, fetchVersion])
+    if (bookId) loadChartRef.current()
+  }, [bookId, fetchVersion])
 
   // Auto-refresh expanded detail panels for RUNNING jobs on each poll tick
   const runsRef = useRef(runs)
@@ -182,7 +182,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
   expandedJobsRef.current = expandedJobs
 
   useEffect(() => {
-    if (!portfolioId) return
+    if (!bookId) return
     const refreshRunningDetails = async () => {
       const currentRuns = runsRef.current
       const currentExpanded = expandedJobsRef.current
@@ -202,7 +202,7 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     }
     const interval = setInterval(refreshRunningDetails, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId])
+  }, [bookId])
 
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {

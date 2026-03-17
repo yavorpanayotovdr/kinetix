@@ -35,11 +35,11 @@ describe('sodSnapshot API', () => {
         json: () => Promise.resolve(statusData),
       })
 
-      const result = await fetchSodBaselineStatus('port-1')
+      const result = await fetchSodBaselineStatus('book-1')
 
       expect(result).toEqual(statusData)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/sod-snapshot/port-1/status',
+        '/api/v1/risk/sod-snapshot/book-1/status',
       )
     })
 
@@ -50,7 +50,7 @@ describe('sodSnapshot API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchSodBaselineStatus('port-1')
+      const result = await fetchSodBaselineStatus('book-1')
 
       expect(result).toEqual({
         exists: false,
@@ -69,22 +69,22 @@ describe('sodSnapshot API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchSodBaselineStatus('port-1')).rejects.toThrow(
+      await expect(fetchSodBaselineStatus('book-1')).rejects.toThrow(
         'Failed to fetch SOD baseline status: 500 Internal Server Error',
       )
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve(statusData),
       })
 
-      await fetchSodBaselineStatus('port/special & id')
+      await fetchSodBaselineStatus('book/special & id')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/sod-snapshot/port%2Fspecial%20%26%20id/status',
+        '/api/v1/risk/sod-snapshot/book%2Fspecial%20%26%20id/status',
       )
     })
   })
@@ -97,11 +97,11 @@ describe('sodSnapshot API', () => {
         json: () => Promise.resolve(statusData),
       })
 
-      const result = await createSodSnapshot('port-1')
+      const result = await createSodSnapshot('book-1')
 
       expect(result).toEqual(statusData)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/sod-snapshot/port-1',
+        '/api/v1/risk/sod-snapshot/book-1',
         { method: 'POST' },
       )
     })
@@ -114,7 +114,7 @@ describe('sodSnapshot API', () => {
         json: () => Promise.resolve({ error: 'no_valuation_data', message: 'No valuation data available' }),
       })
 
-      await expect(createSodSnapshot('port-1')).rejects.toThrow(
+      await expect(createSodSnapshot('book-1')).rejects.toThrow(
         'No valuation data available',
       )
     })
@@ -127,7 +127,7 @@ describe('sodSnapshot API', () => {
         json: () => Promise.reject(new Error('not json')),
       })
 
-      await expect(createSodSnapshot('port-1')).rejects.toThrow(
+      await expect(createSodSnapshot('book-1')).rejects.toThrow(
         'Failed to create SOD snapshot: 500 Internal Server Error',
       )
     })
@@ -140,10 +140,10 @@ describe('sodSnapshot API', () => {
         status: 204,
       })
 
-      await resetSodBaseline('port-1')
+      await resetSodBaseline('book-1')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/sod-snapshot/port-1',
+        '/api/v1/risk/sod-snapshot/book-1',
         { method: 'DELETE' },
       )
     })
@@ -155,7 +155,7 @@ describe('sodSnapshot API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(resetSodBaseline('port-1')).rejects.toThrow(
+      await expect(resetSodBaseline('book-1')).rejects.toThrow(
         'Failed to reset SOD baseline',
       )
     })
@@ -163,7 +163,7 @@ describe('sodSnapshot API', () => {
 
   describe('computePnlAttribution', () => {
     const pnlData: PnlAttributionDto = {
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       date: '2025-01-15',
       totalPnl: '15000.00',
       deltaPnl: '8000.00',
@@ -183,11 +183,11 @@ describe('sodSnapshot API', () => {
         json: () => Promise.resolve(pnlData),
       })
 
-      const result = await computePnlAttribution('port-1')
+      const result = await computePnlAttribution('book-1')
 
       expect(result).toEqual(pnlData)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/pnl-attribution/port-1/compute',
+        '/api/v1/risk/pnl-attribution/book-1/compute',
         { method: 'POST' },
       )
     })
@@ -199,7 +199,7 @@ describe('sodSnapshot API', () => {
         statusText: 'Precondition Failed',
       })
 
-      await expect(computePnlAttribution('port-1')).rejects.toThrow(
+      await expect(computePnlAttribution('book-1')).rejects.toThrow(
         'No SOD baseline exists. Set a baseline first.',
       )
     })
@@ -211,7 +211,7 @@ describe('sodSnapshot API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(computePnlAttribution('port-1')).rejects.toThrow(
+      await expect(computePnlAttribution('book-1')).rejects.toThrow(
         'Failed to compute P&L attribution',
       )
     })

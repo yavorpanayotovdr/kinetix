@@ -57,12 +57,12 @@ function defaultTimeRange(): TimeRange {
   return { from: from.toISOString(), to: now.toISOString(), label: 'Last 24h' }
 }
 
-export function useVaR(portfolioId: string | null, valuationDate: string | null = null): UseVaRResult {
+export function useVaR(bookId: string | null, valuationDate: string | null = null): UseVaRResult {
   const isLive = valuationDate === null
   const [varResult, setVarResult] = useState<VaRResultDto | null>(null)
   const [history, setHistory] = useState<VaRHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
-  const [historyLoading, setHistoryLoading] = useState(!!portfolioId)
+  const [historyLoading, setHistoryLoading] = useState(!!bookId)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
@@ -75,7 +75,7 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
   timeRangeRef.current = timeRange
 
   const loadHistory = useCallback(async () => {
-    if (!portfolioId) {
+    if (!bookId) {
       setHistoryLoading(false)
       return
     }
@@ -83,7 +83,7 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
 
     try {
       const { from, to } = resolveTimeRange(timeRangeRef.current)
-      const response = await fetchChartData(portfolioId, from, to)
+      const response = await fetchChartData(bookId, from, to)
       const historical = response.points
         .filter((p) => p.varValue != null)
         .map((p) => ({
@@ -117,10 +117,10 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
     } finally {
       setHistoryLoading(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const load = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     if (isPolling.current) return
     isPolling.current = true
 
@@ -129,7 +129,7 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
     }
 
     try {
-      const result = await fetchVaR(portfolioId, valuationDate)
+      const result = await fetchVaR(bookId, valuationDate)
       setVarResult((prev) => {
         if (prev && result && prev.calculatedAt === result.calculatedAt && prev.varValue === result.varValue) {
           return prev
@@ -161,13 +161,13 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
       initialLoadDone.current = true
       isPolling.current = false
     }
-  }, [portfolioId, valuationDate, isLive])
+  }, [bookId, valuationDate, isLive])
 
   const loadRef = useRef(load)
   loadRef.current = load
 
   useEffect(() => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     initialLoadDone.current = false
     loadRef.current()
@@ -176,13 +176,13 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
 
     const interval = setInterval(() => loadRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, isLive])
+  }, [bookId, isLive])
 
   const loadHistoryRef = useRef(loadHistory)
   loadHistoryRef.current = loadHistory
 
   useEffect(() => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     loadHistoryRef.current()
 
@@ -192,16 +192,16 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
     // with the filteredHistory window that re-resolves from Date.now()
     const interval = setInterval(() => loadHistoryRef.current(), POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [portfolioId, fetchVersion, isLive])
+  }, [bookId, fetchVersion, isLive])
 
   const refresh = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     setRefreshing(true)
     setError(null)
 
     try {
-      const result = await triggerVaRCalculation(portfolioId, { confidenceLevel: selectedConfidenceLevel })
+      const result = await triggerVaRCalculation(bookId, { confidenceLevel: selectedConfidenceLevel })
       setVarResult(result)
 
       if (result) {
@@ -224,7 +224,7 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
       if (err instanceof Error && (err as Error & { status: number }).status === 503) {
         await new Promise(resolve => setTimeout(resolve, 5000))
         try {
-          const retryResult = await triggerVaRCalculation(portfolioId, { confidenceLevel: selectedConfidenceLevel })
+          const retryResult = await triggerVaRCalculation(bookId, { confidenceLevel: selectedConfidenceLevel })
           setVarResult(retryResult)
 
           if (retryResult) {
@@ -253,7 +253,7 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
     } finally {
       setRefreshing(false)
     }
-  }, [portfolioId, selectedConfidenceLevel])
+  }, [bookId, selectedConfidenceLevel])
 
   const filteredHistory = useMemo(() => {
     const { from, to } = resolveTimeRange(timeRange)

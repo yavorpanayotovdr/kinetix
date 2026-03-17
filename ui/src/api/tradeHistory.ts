@@ -1,10 +1,10 @@
 import type { TradeHistoryDto } from '../types'
 
 export async function fetchTradeHistory(
-  portfolioId: string,
+  bookId: string,
 ): Promise<TradeHistoryDto[]> {
   const response = await fetch(
-    `/api/v1/portfolios/${encodeURIComponent(portfolioId)}/trades`,
+    `/api/v1/books/${encodeURIComponent(bookId)}/trades`,
   )
   if (!response.ok) {
     throw new Error(

@@ -1,17 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PortfolioDto, PositionDto } from '../types'
+import type { BookDto, PositionDto } from '../types'
 
 vi.mock('../api/positions')
 
-import { fetchPortfolios, fetchPositions } from '../api/positions'
+import { fetchBooks, fetchPositions } from '../api/positions'
 import { usePositions } from './usePositions'
 
-const mockFetchPortfolios = vi.mocked(fetchPortfolios)
+const mockFetchBooks = vi.mocked(fetchBooks)
 const mockFetchPositions = vi.mocked(fetchPositions)
 
 const position: PositionDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   instrumentId: 'AAPL',
   assetClass: 'EQUITY',
   quantity: '100',
@@ -27,23 +27,23 @@ describe('usePositions', () => {
   })
 
   it('starts in loading state', () => {
-    mockFetchPortfolios.mockReturnValue(new Promise(() => {}))
+    mockFetchBooks.mockReturnValue(new Promise(() => {}))
 
     const { result } = renderHook(() => usePositions())
 
     expect(result.current.loading).toBe(true)
     expect(result.current.positions).toEqual([])
-    expect(result.current.portfolioId).toBeNull()
-    expect(result.current.portfolios).toEqual([])
+    expect(result.current.bookId).toBeNull()
+    expect(result.current.books).toEqual([])
     expect(result.current.error).toBeNull()
   })
 
-  it('loads positions from first portfolio and exposes sorted portfolio list', async () => {
-    const portfolios: PortfolioDto[] = [
-      { portfolioId: 'port-2' },
-      { portfolioId: 'port-1' },
+  it('loads positions from first book and exposes sorted book list', async () => {
+    const books: BookDto[] = [
+      { bookId: 'book-2' },
+      { bookId: 'book-1' },
     ]
-    mockFetchPortfolios.mockResolvedValue(portfolios)
+    mockFetchBooks.mockResolvedValue(books)
     mockFetchPositions.mockResolvedValue([position])
 
     const { result } = renderHook(() => usePositions())
@@ -53,14 +53,14 @@ describe('usePositions', () => {
     })
 
     expect(result.current.positions).toEqual([position])
-    expect(result.current.portfolioId).toBe('port-2')
-    expect(result.current.portfolios).toEqual(['port-1', 'port-2'])
+    expect(result.current.bookId).toBe('book-2')
+    expect(result.current.books).toEqual(['book-1', 'book-2'])
     expect(result.current.error).toBeNull()
-    expect(mockFetchPositions).toHaveBeenCalledWith('port-2')
+    expect(mockFetchPositions).toHaveBeenCalledWith('book-2')
   })
 
-  it('returns empty positions when no portfolios exist', async () => {
-    mockFetchPortfolios.mockResolvedValue([])
+  it('returns empty positions when no books exist', async () => {
+    mockFetchBooks.mockResolvedValue([])
 
     const { result } = renderHook(() => usePositions())
 
@@ -69,13 +69,13 @@ describe('usePositions', () => {
     })
 
     expect(result.current.positions).toEqual([])
-    expect(result.current.portfolioId).toBeNull()
-    expect(result.current.portfolios).toEqual([])
+    expect(result.current.bookId).toBeNull()
+    expect(result.current.books).toEqual([])
     expect(mockFetchPositions).not.toHaveBeenCalled()
   })
 
   it('sets error on fetch failure', async () => {
-    mockFetchPortfolios.mockRejectedValue(new Error('Network error'))
+    mockFetchBooks.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => usePositions())
 
@@ -87,12 +87,12 @@ describe('usePositions', () => {
     expect(result.current.positions).toEqual([])
   })
 
-  it('selectPortfolio switches portfolio and reloads positions', async () => {
-    const portfolios: PortfolioDto[] = [
-      { portfolioId: 'port-1' },
-      { portfolioId: 'port-2' },
+  it('selectBook switches book and reloads positions', async () => {
+    const books: BookDto[] = [
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ]
-    mockFetchPortfolios.mockResolvedValue(portfolios)
+    mockFetchBooks.mockResolvedValue(books)
     mockFetchPositions.mockResolvedValue([position])
 
     const { result } = renderHook(() => usePositions())
@@ -101,19 +101,19 @@ describe('usePositions', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    const position2: PositionDto = { ...position, portfolioId: 'port-2', instrumentId: 'MSFT' }
+    const position2: PositionDto = { ...position, bookId: 'book-2', instrumentId: 'MSFT' }
     mockFetchPositions.mockResolvedValue([position2])
 
     await act(async () => {
-      result.current.selectPortfolio('port-2')
+      result.current.selectBook('book-2')
     })
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.portfolioId).toBe('port-2')
+    expect(result.current.bookId).toBe('book-2')
     expect(result.current.positions).toEqual([position2])
-    expect(mockFetchPositions).toHaveBeenCalledWith('port-2')
+    expect(mockFetchPositions).toHaveBeenCalledWith('book-2')
   })
 })

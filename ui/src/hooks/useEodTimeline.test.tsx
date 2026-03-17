@@ -6,7 +6,7 @@ import type { EodTimelineResponseDto } from '../types'
 
 function makeResponse(overrides: Partial<EodTimelineResponseDto> = {}): EodTimelineResponseDto {
   return {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     from: '2026-02-01',
     to: '2026-03-15',
     entries: [
@@ -42,14 +42,14 @@ describe('useEodTimeline', () => {
   it('fetches timeline on mount with default date range', async () => {
     const spy = vi.spyOn(eodTimelineApi, 'fetchEodTimeline').mockResolvedValueOnce(makeResponse())
 
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
     expect(spy).toHaveBeenCalledOnce()
-    expect(spy).toHaveBeenCalledWith('port-1', expect.any(String), expect.any(String))
+    expect(spy).toHaveBeenCalledWith('book-1', expect.any(String), expect.any(String))
     expect(result.current.entries).toHaveLength(1)
     expect(result.current.entries[0].valuationDate).toBe('2026-03-14')
     expect(result.current.error).toBeNull()
@@ -61,7 +61,7 @@ describe('useEodTimeline', () => {
       new Promise((r) => { resolve = r }),
     )
 
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
 
     expect(result.current.loading).toBe(true)
 
@@ -77,7 +77,7 @@ describe('useEodTimeline', () => {
       new Error('Failed to fetch EOD timeline: 500'),
     )
 
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -87,7 +87,7 @@ describe('useEodTimeline', () => {
     expect(result.current.entries).toHaveLength(0)
   })
 
-  it('does not fetch when portfolioId is null', () => {
+  it('does not fetch when bookId is null', () => {
     const spy = vi.spyOn(eodTimelineApi, 'fetchEodTimeline')
     renderHook(() => useEodTimeline(null))
     expect(spy).not.toHaveBeenCalled()
@@ -96,7 +96,7 @@ describe('useEodTimeline', () => {
   it('re-fetches when from/to date range changes', async () => {
     const spy = vi.spyOn(eodTimelineApi, 'fetchEodTimeline').mockResolvedValue(makeResponse())
 
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(spy).toHaveBeenCalledOnce()
@@ -110,7 +110,7 @@ describe('useEodTimeline', () => {
   it('refresh triggers a new fetch', async () => {
     const spy = vi.spyOn(eodTimelineApi, 'fetchEodTimeline').mockResolvedValue(makeResponse())
 
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(spy).toHaveBeenCalledOnce()
@@ -123,7 +123,7 @@ describe('useEodTimeline', () => {
 
   it('exposes from and to state', () => {
     vi.spyOn(eodTimelineApi, 'fetchEodTimeline').mockResolvedValue(makeResponse())
-    const { result } = renderHook(() => useEodTimeline('port-1'))
+    const { result } = renderHook(() => useEodTimeline('book-1'))
     expect(result.current.from).toBeTruthy()
     expect(result.current.to).toBeTruthy()
   })

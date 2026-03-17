@@ -1,20 +1,20 @@
-import type { PortfolioDto, PositionDto } from '../types'
+import type { BookDto, PositionDto } from '../types'
 
-export async function fetchPortfolios(): Promise<PortfolioDto[]> {
-  const response = await fetch('/api/v1/portfolios')
+export async function fetchBooks(): Promise<BookDto[]> {
+  const response = await fetch('/api/v1/books')
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch portfolios: ${response.status} ${response.statusText}`,
+      `Failed to fetch books: ${response.status} ${response.statusText}`,
     )
   }
   return response.json()
 }
 
 export async function fetchPositions(
-  portfolioId: string,
+  bookId: string,
 ): Promise<PositionDto[]> {
   const response = await fetch(
-    `/api/v1/portfolios/${encodeURIComponent(portfolioId)}/positions`,
+    `/api/v1/books/${encodeURIComponent(bookId)}/positions`,
   )
   if (!response.ok) {
     throw new Error(

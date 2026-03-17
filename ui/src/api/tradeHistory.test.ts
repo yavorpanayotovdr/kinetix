@@ -16,7 +16,7 @@ describe('tradeHistory API', () => {
     const trades = [
       {
         tradeId: 't-1',
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         instrumentId: 'AAPL',
         assetClass: 'EQUITY',
         side: 'BUY',
@@ -30,24 +30,24 @@ describe('tradeHistory API', () => {
       json: () => Promise.resolve(trades),
     })
 
-    const result = await fetchTradeHistory('port-1')
+    const result = await fetchTradeHistory('book-1')
 
     expect(result).toEqual(trades)
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/v1/portfolios/port-1/trades',
+      '/api/v1/books/book-1/trades',
     )
   })
 
-  it('URL-encodes the portfolioId', async () => {
+  it('URL-encodes the bookId', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([]),
     })
 
-    await fetchTradeHistory('port/special & id')
+    await fetchTradeHistory('book/special & id')
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/v1/portfolios/port%2Fspecial%20%26%20id/trades',
+      '/api/v1/books/book%2Fspecial%20%26%20id/trades',
     )
   })
 
@@ -58,7 +58,7 @@ describe('tradeHistory API', () => {
       statusText: 'Internal Server Error',
     })
 
-    await expect(fetchTradeHistory('port-1')).rejects.toThrow(
+    await expect(fetchTradeHistory('book-1')).rejects.toThrow(
       'Failed to fetch trade history: 500 Internal Server Error',
     )
   })

@@ -12,10 +12,10 @@ export interface UseRunComparisonResult {
   mode: ComparisonMode
   setMode: (mode: ComparisonMode) => void
   setThreshold: (threshold: number) => void
-  loadDayOverDay: (portfolioId: string, targetDate?: string, baseDate?: string) => Promise<void>
-  compareJobs: (portfolioId: string, baseJobId: string, targetJobId: string) => Promise<void>
-  compareModels: (portfolioId: string, request: ModelComparisonRequestDto) => Promise<void>
-  loadAttribution: (portfolioId: string, targetDate?: string, baseDate?: string) => Promise<void>
+  loadDayOverDay: (bookId: string, targetDate?: string, baseDate?: string) => Promise<void>
+  compareJobs: (bookId: string, baseJobId: string, targetJobId: string) => Promise<void>
+  compareModels: (bookId: string, request: ModelComparisonRequestDto) => Promise<void>
+  loadAttribution: (bookId: string, targetDate?: string, baseDate?: string) => Promise<void>
   reset: () => void
 }
 
@@ -28,11 +28,11 @@ export function useRunComparison(): UseRunComparisonResult {
   const [threshold, setThreshold] = useState(0)
   const [mode, setMode] = useState<ComparisonMode>('DAILY_VAR')
 
-  const loadDayOverDay = useCallback(async (portfolioId: string, targetDate?: string, baseDate?: string) => {
+  const loadDayOverDay = useCallback(async (bookId: string, targetDate?: string, baseDate?: string) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await api.compareDayOverDay(portfolioId, targetDate, baseDate)
+      const result = await api.compareDayOverDay(bookId, targetDate, baseDate)
       setComparison(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -41,11 +41,11 @@ export function useRunComparison(): UseRunComparisonResult {
     }
   }, [])
 
-  const compareJobs = useCallback(async (portfolioId: string, baseJobId: string, targetJobId: string) => {
+  const compareJobs = useCallback(async (bookId: string, baseJobId: string, targetJobId: string) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await api.compareByJobIds(portfolioId, baseJobId, targetJobId)
+      const result = await api.compareByJobIds(bookId, baseJobId, targetJobId)
       setComparison(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -54,11 +54,11 @@ export function useRunComparison(): UseRunComparisonResult {
     }
   }, [])
 
-  const compareModels = useCallback(async (portfolioId: string, request: ModelComparisonRequestDto) => {
+  const compareModels = useCallback(async (bookId: string, request: ModelComparisonRequestDto) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await api.compareModelVersions(portfolioId, request)
+      const result = await api.compareModelVersions(bookId, request)
       setComparison(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -67,10 +67,10 @@ export function useRunComparison(): UseRunComparisonResult {
     }
   }, [])
 
-  const loadAttribution = useCallback(async (portfolioId: string, targetDate?: string, baseDate?: string) => {
+  const loadAttribution = useCallback(async (bookId: string, targetDate?: string, baseDate?: string) => {
     setAttributionLoading(true)
     try {
-      const result = await api.requestAttribution(portfolioId, targetDate, baseDate)
+      const result = await api.requestAttribution(bookId, targetDate, baseDate)
       setAttribution(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

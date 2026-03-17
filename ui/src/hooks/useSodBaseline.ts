@@ -21,7 +21,7 @@ export interface UseSodBaselineResult {
 }
 
 export function useSodBaseline(
-  portfolioId: string | null,
+  bookId: string | null,
 ): UseSodBaselineResult {
   const [status, setStatus] = useState<SodBaselineStatusDto | null>(null)
   const [loading, setLoading] = useState(false)
@@ -31,66 +31,66 @@ export function useSodBaseline(
   const [computing, setComputing] = useState(false)
 
   const loadStatus = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchSodBaselineStatus(portfolioId)
+      const result = await fetchSodBaselineStatus(bookId)
       setStatus(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const loadStatusRef = useRef(loadStatus)
   loadStatusRef.current = loadStatus
 
   useEffect(() => {
-    if (!portfolioId) {
+    if (!bookId) {
       setStatus(null)
       setLoading(false)
       setError(null)
       return
     }
     loadStatusRef.current()
-  }, [portfolioId])
+  }, [bookId])
 
   const handleCreateSnapshot = useCallback(async (jobId?: string) => {
-    if (!portfolioId) return
+    if (!bookId) return
     setCreating(true)
     setError(null)
     try {
-      const result = await createSodSnapshot(portfolioId, jobId)
+      const result = await createSodSnapshot(bookId, jobId)
       setStatus(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setCreating(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const handleResetBaseline = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     setResetting(true)
     setError(null)
     try {
-      await resetSodBaseline(portfolioId)
+      await resetSodBaseline(bookId)
       setStatus({ exists: false, baselineDate: null, snapshotType: null, createdAt: null, sourceJobId: null, calculationType: null })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setResetting(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const handleComputeAttribution = useCallback(async (): Promise<PnlAttributionDto | null> => {
-    if (!portfolioId) return null
+    if (!bookId) return null
     setComputing(true)
     setError(null)
     try {
-      const result = await computePnlAttribution(portfolioId)
+      const result = await computePnlAttribution(bookId)
       return result
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -98,7 +98,7 @@ export function useSodBaseline(
     } finally {
       setComputing(false)
     }
-  }, [portfolioId])
+  }, [bookId])
 
   return {
     status,

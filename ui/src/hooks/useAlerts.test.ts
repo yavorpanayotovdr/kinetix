@@ -21,7 +21,7 @@ const alertFixtures: AlertEventDto[] = [
     message: 'VaR exceeds limit by 15%',
     currentValue: 2300000,
     threshold: 2000000,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2026-02-28T10:00:00Z',
   },
   {
@@ -33,7 +33,7 @@ const alertFixtures: AlertEventDto[] = [
     message: 'Single position exceeds 30% of portfolio',
     currentValue: 35,
     threshold: 30,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2026-02-28T09:55:00Z',
   },
 ]

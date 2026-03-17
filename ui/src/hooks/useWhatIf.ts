@@ -71,7 +71,7 @@ export interface UseWhatIfResult {
   validationErrors: ValidationErrors
 }
 
-export function useWhatIf(portfolioId: string | null): UseWhatIfResult {
+export function useWhatIf(bookId: string | null): UseWhatIfResult {
   const [trades, setTrades] = useState<TradeFormEntry[]>([emptyTrade()])
   const [result, setResult] = useState<WhatIfResponseDto | null>(null)
   const [loading, setLoading] = useState(false)
@@ -99,7 +99,7 @@ export function useWhatIf(portfolioId: string | null): UseWhatIfResult {
   )
 
   const submit = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     const errors = validate(trades)
     setValidationErrors(errors)
@@ -118,7 +118,7 @@ export function useWhatIf(portfolioId: string | null): UseWhatIfResult {
         priceCurrency: t.priceCurrency,
       }))
 
-      const data = await runWhatIfAnalysis(portfolioId, { hypotheticalTrades })
+      const data = await runWhatIfAnalysis(bookId, { hypotheticalTrades })
       setResult(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -126,7 +126,7 @@ export function useWhatIf(portfolioId: string | null): UseWhatIfResult {
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, trades])
+  }, [bookId, trades])
 
   const reset = useCallback(() => {
     setTrades([emptyTrade()])

@@ -4,7 +4,7 @@ export interface MoneyDto {
 }
 
 export interface PositionDto {
-  portfolioId: string
+  bookId: string
   instrumentId: string
   assetClass: string
   quantity: string
@@ -32,7 +32,7 @@ export interface PositionRiskDto {
 
 export interface TradeHistoryDto {
   tradeId: string
-  portfolioId: string
+  bookId: string
   instrumentId: string
   assetClass: string
   side: string
@@ -42,8 +42,8 @@ export interface TradeHistoryDto {
   instrumentType?: string
 }
 
-export interface PortfolioDto {
-  portfolioId: string
+export interface BookDto {
+  bookId: string
 }
 
 export interface PriceUpdateMessage {
@@ -74,7 +74,7 @@ export interface ComponentBreakdownDto {
 }
 
 export interface VaRResultDto {
-  portfolioId: string
+  bookId: string
   calculationType: string
   confidenceLevel: string
   varValue: string
@@ -153,7 +153,7 @@ export interface GreekValuesDto {
 }
 
 export interface GreeksResultDto {
-  portfolioId: string
+  bookId: string
   assetClassGreeks: GreekValuesDto[]
   theta: string
   rho: string
@@ -169,7 +169,7 @@ export interface RiskClassChargeDto {
 }
 
 export interface FrtbResultDto {
-  portfolioId: string
+  bookId: string
   sbmCharges: RiskClassChargeDto[]
   totalSbmCharge: string
   grossJtd: string
@@ -183,7 +183,7 @@ export interface FrtbResultDto {
 }
 
 export interface ReportResultDto {
-  portfolioId: string
+  bookId: string
   format: string
   content: string
   generatedAt: string
@@ -209,7 +209,7 @@ export interface AlertEventDto {
   message: string
   currentValue: number
   threshold: number
-  portfolioId: string
+  bookId: string
   triggeredAt: string
 }
 
@@ -240,7 +240,7 @@ export interface JobPhaseDto {
 
 export interface ValuationJobSummaryDto {
   jobId: string
-  portfolioId: string
+  bookId: string
   triggerType: string
   status: string
   startedAt: string
@@ -323,7 +323,7 @@ export interface PositionPnlAttributionDto {
 }
 
 export interface PnlAttributionDto {
-  portfolioId: string
+  bookId: string
   date: string
   totalPnl: string
   deltaPnl: string
@@ -346,7 +346,7 @@ export interface SodBaselineStatusDto {
 }
 
 export interface SodSnapshotResultDto {
-  portfolioId: string
+  bookId: string
   baselineDate: string
   snapshotType: string
   createdAt: string
@@ -355,7 +355,7 @@ export interface SodSnapshotResultDto {
 
 export interface ValuationJobDetailDto {
   jobId: string
-  portfolioId: string
+  bookId: string
   triggerType: string
   status: string
   startedAt: string
@@ -378,7 +378,7 @@ export interface ValuationJobDetailDto {
 export interface RunManifestDto {
   manifestId: string
   jobId: string
-  portfolioId: string
+  bookId: string
   valuationDate: string
   capturedAt: string
   modelVersion: string
@@ -429,7 +429,7 @@ export interface DataQualityStatus {
 }
 
 export interface PortfolioAggregationDto {
-  portfolioId: string
+  bookId: string
   baseCurrency: string
   totalNav: MoneyDto
   totalUnrealizedPnl: MoneyDto
@@ -588,7 +588,7 @@ export interface MarketDataQuantDiffDto {
 export interface RunComparisonResponseDto {
   comparisonId: string
   comparisonType: string
-  portfolioId: string
+  bookId: string
   baseRun: RunSnapshotDto
   targetRun: RunSnapshotDto
   portfolioDiff: PortfolioDiffDto
@@ -630,7 +630,7 @@ export interface EodTimelineEntryDto {
 }
 
 export interface EodTimelineResponseDto {
-  portfolioId: string
+  bookId: string
   from: string
   to: string
   entries: EodTimelineEntryDto[]

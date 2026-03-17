@@ -11,7 +11,7 @@ import { fetchPnlAttribution } from '../api/pnlAttribution'
 const mockFetchPnlAttribution = vi.mocked(fetchPnlAttribution)
 
 const pnlAttributionData = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   date: '2025-01-15',
   totalPnl: '15000.00',
   deltaPnl: '8000.00',
@@ -41,10 +41,10 @@ describe('usePnlAttribution', () => {
     vi.resetAllMocks()
   })
 
-  it('fetches P&L attribution data on mount when portfolioId is provided', async () => {
+  it('fetches P&L attribution data on mount when bookId is provided', async () => {
     mockFetchPnlAttribution.mockResolvedValue(pnlAttributionData)
 
-    const { result } = renderHook(() => usePnlAttribution('port-1'))
+    const { result } = renderHook(() => usePnlAttribution('book-1'))
 
     expect(result.current.loading).toBe(true)
 
@@ -52,12 +52,12 @@ describe('usePnlAttribution', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPnlAttribution).toHaveBeenCalledWith('port-1', undefined)
+    expect(mockFetchPnlAttribution).toHaveBeenCalledWith('book-1', undefined)
     expect(result.current.data).toEqual(pnlAttributionData)
     expect(result.current.error).toBeNull()
   })
 
-  it('does not fetch when portfolioId is null', () => {
+  it('does not fetch when bookId is null', () => {
     const { result } = renderHook(() => usePnlAttribution(null))
 
     expect(mockFetchPnlAttribution).not.toHaveBeenCalled()
@@ -68,7 +68,7 @@ describe('usePnlAttribution', () => {
   it('sets error on fetch failure', async () => {
     mockFetchPnlAttribution.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => usePnlAttribution('port-1'))
+    const { result } = renderHook(() => usePnlAttribution('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -78,32 +78,32 @@ describe('usePnlAttribution', () => {
     expect(result.current.data).toBeNull()
   })
 
-  it('re-fetches when portfolioId changes', async () => {
+  it('re-fetches when bookId changes', async () => {
     mockFetchPnlAttribution.mockResolvedValue(pnlAttributionData)
 
     const { result, rerender } = renderHook(
-      ({ portfolioId }) => usePnlAttribution(portfolioId),
-      { initialProps: { portfolioId: 'port-1' as string | null } },
+      ({ bookId }) => usePnlAttribution(bookId),
+      { initialProps: { bookId: 'book-1' as string | null } },
     )
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPnlAttribution).toHaveBeenCalledWith('port-1', undefined)
+    expect(mockFetchPnlAttribution).toHaveBeenCalledWith('book-1', undefined)
 
     mockFetchPnlAttribution.mockResolvedValue(null)
-    rerender({ portfolioId: 'port-2' })
+    rerender({ bookId: 'book-2' })
 
     await waitFor(() => {
-      expect(mockFetchPnlAttribution).toHaveBeenCalledWith('port-2', undefined)
+      expect(mockFetchPnlAttribution).toHaveBeenCalledWith('book-2', undefined)
     })
   })
 
   it('handles null response from API', async () => {
     mockFetchPnlAttribution.mockResolvedValue(null)
 
-    const { result } = renderHook(() => usePnlAttribution('port-1'))
+    const { result } = renderHook(() => usePnlAttribution('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)

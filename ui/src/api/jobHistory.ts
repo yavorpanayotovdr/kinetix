@@ -1,7 +1,7 @@
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 
 export async function fetchValuationJobs(
-  portfolioId: string,
+  bookId: string,
   limit: number = 20,
   offset: number = 0,
   from?: string,
@@ -16,7 +16,7 @@ export async function fetchValuationJobs(
   if (to) params.set('to', to)
   if (status) params.set('status', status)
   const response = await fetch(
-    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}?${params}`,
+    `/api/v1/risk/jobs/${encodeURIComponent(bookId)}?${params}`,
   )
   if (!response.ok) {
     throw new Error(
@@ -49,13 +49,13 @@ export interface ChartDataResponse {
 }
 
 export async function fetchChartData(
-  portfolioId: string,
+  bookId: string,
   from: string,
   to: string,
 ): Promise<ChartDataResponse> {
   const params = new URLSearchParams({ from, to })
   const response = await fetch(
-    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}/chart?${params}`,
+    `/api/v1/risk/jobs/${encodeURIComponent(bookId)}/chart?${params}`,
   )
   if (!response.ok) {
     throw new Error(

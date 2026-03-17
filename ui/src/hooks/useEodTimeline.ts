@@ -25,7 +25,7 @@ export interface UseEodTimelineResult {
   refresh: () => void
 }
 
-export function useEodTimeline(portfolioId: string | null): UseEodTimelineResult {
+export function useEodTimeline(bookId: string | null): UseEodTimelineResult {
   const defaults = defaultDateRange()
   const [entries, setEntries] = useState<EodTimelineEntryDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -42,7 +42,7 @@ export function useEodTimeline(portfolioId: string | null): UseEodTimelineResult
 
   // Set loading/reset state during render when deps change
   // (React-supported "set state during render" pattern)
-  const loadKey = portfolioId ? `${portfolioId}|${from}|${to}|${refreshSignal}` : ''
+  const loadKey = bookId ? `${bookId}|${from}|${to}|${refreshSignal}` : ''
   const [prevLoadKey, setPrevLoadKey] = useState('')
 
   if (loadKey !== prevLoadKey) {
@@ -58,13 +58,13 @@ export function useEodTimeline(portfolioId: string | null): UseEodTimelineResult
   }
 
   useEffect(() => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
-    fetchEodTimeline(portfolioId, from, to)
+    fetchEodTimeline(bookId, from, to)
       .then((data) => {
         if (controller.signal.aborted) return
         setEntries(data.entries)
@@ -81,7 +81,7 @@ export function useEodTimeline(portfolioId: string | null): UseEodTimelineResult
     return () => {
       controller.abort()
     }
-  }, [portfolioId, from, to, refreshSignal])
+  }, [bookId, from, to, refreshSignal])
 
   return { entries, loading, error, from, to, setFrom, setTo, refresh }
 }

@@ -9,20 +9,20 @@ export interface UseTradeHistoryResult {
   refetch: () => void
 }
 
-export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResult {
+export function useTradeHistory(bookId: string | null): UseTradeHistoryResult {
   const [trades, setTrades] = useState<TradeHistoryDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const initialLoadDone = useRef(false)
 
   const load = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
     if (!initialLoadDone.current) {
       setLoading(true)
     }
     setError(null)
     try {
-      const data = await fetchTradeHistory(portfolioId)
+      const data = await fetchTradeHistory(bookId)
       setTrades(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -30,7 +30,7 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
       setLoading(false)
       initialLoadDone.current = true
     }
-  }, [portfolioId])
+  }, [bookId])
 
   const loadRef = useRef(load)
   loadRef.current = load
@@ -38,7 +38,7 @@ export function useTradeHistory(portfolioId: string | null): UseTradeHistoryResu
   useEffect(() => {
     initialLoadDone.current = false
     loadRef.current()
-  }, [portfolioId])
+  }, [bookId])
 
   const refetch = useCallback(() => {
     loadRef.current()

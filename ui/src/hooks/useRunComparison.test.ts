@@ -20,7 +20,7 @@ function makeComparison(overrides: Partial<RunComparisonResponseDto> = {}): RunC
   return {
     comparisonId: 'cmp-1',
     comparisonType: 'DAILY_VAR',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     baseRun: {
       jobId: 'job-base',
       label: 'Base',
@@ -105,7 +105,7 @@ describe('useRunComparison', () => {
     const { result } = renderHook(() => useRunComparison())
 
     act(() => {
-      void result.current.loadDayOverDay('port-1', '2025-01-15', '2025-01-14')
+      void result.current.loadDayOverDay('book-1', '2025-01-15', '2025-01-14')
     })
 
     expect(result.current.loading).toBe(true)
@@ -116,7 +116,7 @@ describe('useRunComparison', () => {
 
     expect(result.current.comparison).toEqual(comparison)
     expect(result.current.error).toBeNull()
-    expect(mockCompareDayOverDay).toHaveBeenCalledWith('port-1', '2025-01-15', '2025-01-14')
+    expect(mockCompareDayOverDay).toHaveBeenCalledWith('book-1', '2025-01-15', '2025-01-14')
   })
 
   it('loadDayOverDay sets error on failure', async () => {
@@ -125,7 +125,7 @@ describe('useRunComparison', () => {
     const { result } = renderHook(() => useRunComparison())
 
     await act(async () => {
-      await result.current.loadDayOverDay('port-1')
+      await result.current.loadDayOverDay('book-1')
     })
 
     expect(result.current.loading).toBe(false)
@@ -140,12 +140,12 @@ describe('useRunComparison', () => {
     const { result } = renderHook(() => useRunComparison())
 
     await act(async () => {
-      await result.current.compareJobs('port-1', 'job-base', 'job-target')
+      await result.current.compareJobs('book-1', 'job-base', 'job-target')
     })
 
     expect(result.current.comparison).toEqual(comparison)
     expect(result.current.error).toBeNull()
-    expect(mockCompareByJobIds).toHaveBeenCalledWith('port-1', 'job-base', 'job-target')
+    expect(mockCompareByJobIds).toHaveBeenCalledWith('book-1', 'job-base', 'job-target')
   })
 
   it('requestAttribution loads attribution data', async () => {
@@ -164,12 +164,12 @@ describe('useRunComparison', () => {
     const { result } = renderHook(() => useRunComparison())
 
     await act(async () => {
-      await result.current.loadAttribution('port-1', '2025-01-15', '2025-01-14')
+      await result.current.loadAttribution('book-1', '2025-01-15', '2025-01-14')
     })
 
     expect(result.current.attribution).toEqual(attribution)
     expect(result.current.attributionLoading).toBe(false)
-    expect(mockRequestAttribution).toHaveBeenCalledWith('port-1', '2025-01-15', '2025-01-14')
+    expect(mockRequestAttribution).toHaveBeenCalledWith('book-1', '2025-01-15', '2025-01-14')
   })
 
   it('setThreshold updates threshold state', () => {
@@ -189,7 +189,7 @@ describe('useRunComparison', () => {
     const { result } = renderHook(() => useRunComparison())
 
     await act(async () => {
-      await result.current.loadDayOverDay('port-1')
+      await result.current.loadDayOverDay('book-1')
     })
 
     act(() => {

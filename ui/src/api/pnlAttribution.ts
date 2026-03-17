@@ -1,10 +1,10 @@
 import type { PnlAttributionDto } from '../types'
 
 export async function fetchPnlAttribution(
-  portfolioId: string,
+  bookId: string,
   date?: string,
 ): Promise<PnlAttributionDto | null> {
-  const base = `/api/v1/risk/pnl-attribution/${encodeURIComponent(portfolioId)}`
+  const base = `/api/v1/risk/pnl-attribution/${encodeURIComponent(bookId)}`
   const url = date ? `${base}?date=${date}` : base
 
   const response = await fetch(url)

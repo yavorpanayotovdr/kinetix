@@ -12,7 +12,7 @@ import { WhatIfPanel } from './components/WhatIfPanel'
 import { EodTimelineTab } from './components/EodTimelineTab'
 import { PortfolioSummaryCard } from './components/PortfolioSummaryCard'
 import { usePositions } from './hooks/usePositions'
-import { usePortfolioSelector, ALL_PORTFOLIOS } from './hooks/usePortfolioSelector'
+import { useBookSelector, ALL_BOOKS } from './hooks/useBookSelector'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
@@ -20,7 +20,7 @@ import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
 import { useRunAllScenarios } from './hooks/useRunAllScenarios'
-import { usePortfolioSummary } from './hooks/usePortfolioSummary'
+import { useBookSummary } from './hooks/useBookSummary'
 import { useTheme } from './hooks/useTheme'
 import { useDataQuality } from './hooks/useDataQuality'
 import { DataQualityIndicator } from './components/DataQualityIndicator'
@@ -77,34 +77,34 @@ function App() {
     tabRefs.current.get(tabKeys[nextIndex])?.focus()
   }
 
-  const { positions: initialPositions, portfolioId: rawPortfolioId, portfolios, selectPortfolio: rawSelectPortfolio, loading: rawLoading, error: rawError } = usePositions()
-  const portfolioSelector = usePortfolioSelector()
-  const isAllSelected = portfolioSelector.isAllSelected
-  const effectivePortfolioId = isAllSelected ? null : rawPortfolioId
+  const { positions: initialPositions, bookId: rawBookId, books, selectBook: rawSelectBook, loading: rawLoading, error: rawError } = usePositions()
+  const bookSelector = useBookSelector()
+  const isAllSelected = bookSelector.isAllSelected
+  const effectiveBookId = isAllSelected ? null : rawBookId
   const { positions, connected, reconnecting } = usePriceStream(
-    isAllSelected ? portfolioSelector.aggregatedPositions : initialPositions,
+    isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
   )
-  const { positionRisk } = usePositionRisk(effectivePortfolioId)
+  const { positionRisk } = usePositionRisk(effectiveBookId)
 
-  const loading = rawLoading || portfolioSelector.loading
-  const error = rawError || portfolioSelector.error
+  const loading = rawLoading || bookSelector.loading
+  const error = rawError || bookSelector.error
 
-  const handlePortfolioChange = (id: string) => {
-    if (id === ALL_PORTFOLIOS) {
-      portfolioSelector.selectPortfolio(ALL_PORTFOLIOS)
+  const handleBookChange = (id: string) => {
+    if (id === ALL_BOOKS) {
+      bookSelector.selectBook(ALL_BOOKS)
     } else {
-      rawSelectPortfolio(id)
-      portfolioSelector.selectPortfolio(id)
+      rawSelectBook(id)
+      bookSelector.selectBook(id)
     }
   }
 
-  const portfolioId = isAllSelected ? ALL_PORTFOLIOS : rawPortfolioId
+  const bookId = isAllSelected ? ALL_BOOKS : rawBookId
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
-  const whatIf = useWhatIf(effectivePortfolioId)
-  const stress = useStressTest(portfolioId)
-  const scenariosAll = useRunAllScenarios(portfolioId)
-  const portfolioSummary = usePortfolioSummary(portfolioId)
+  const whatIf = useWhatIf(effectiveBookId)
+  const stress = useStressTest(bookId)
+  const scenariosAll = useRunAllScenarios(bookId)
+  const bookSummary = useBookSummary(bookId)
   const { isDark, toggle: toggleTheme } = useTheme()
   const dataQuality = useDataQuality()
 
@@ -116,18 +116,18 @@ function App() {
           <h1 className="text-lg font-bold tracking-tight">Kinetix</h1>
         </div>
         <div className="flex items-center gap-3">
-          {portfolios.length > 0 && (
+          {books.length > 0 && (
             <select
-              data-testid="portfolio-selector"
-              value={portfolioId ?? ''}
-              onChange={(e) => handlePortfolioChange(e.target.value)}
-              aria-label="Select portfolio"
+              data-testid="book-selector"
+              value={bookId ?? ''}
+              onChange={(e) => handleBookChange(e.target.value)}
+              aria-label="Select book"
               className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              {portfolios.length > 1 && (
-                <option key={ALL_PORTFOLIOS} value={ALL_PORTFOLIOS}>All Portfolios</option>
+              {books.length > 1 && (
+                <option key={ALL_BOOKS} value={ALL_BOOKS}>All Books</option>
               )}
-              {portfolios.map((id) => (
+              {books.map((id) => (
                 <option key={id} value={id}>{id}</option>
               ))}
             </select>
@@ -137,11 +137,11 @@ function App() {
             data-testid="save-workspace-button"
             onClick={() => {
               workspace.updatePreference('defaultTab', activeTab)
-              workspace.updatePreference('defaultPortfolio', portfolioId)
+              workspace.updatePreference('defaultBook', bookId)
             }}
             className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
             aria-label="Save workspace"
-            title="Save current tab and portfolio as defaults"
+            title="Save current tab and book as defaults"
           >
             <Save className="h-4 w-4" />
           </button>
@@ -229,10 +229,10 @@ function App() {
                     </div>
                     <div className="mb-4">
                       <PortfolioSummaryCard
-                        summary={portfolioSummary.summary}
-                        baseCurrency={portfolioSummary.baseCurrency}
-                        onBaseCurrencyChange={portfolioSummary.setBaseCurrency}
-                        loading={portfolioSummary.loading}
+                        summary={bookSummary.summary}
+                        baseCurrency={bookSummary.baseCurrency}
+                        onBaseCurrencyChange={bookSummary.setBaseCurrency}
+                        loading={bookSummary.loading}
                       />
                     </div>
                     <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
@@ -240,16 +240,16 @@ function App() {
                 )}
 
                 {activeTab === 'trades' && (
-                  <TradeBlotter portfolioId={portfolioId} />
+                  <TradeBlotter bookId={bookId} />
                 )}
 
                 {activeTab === 'pnl' && (
-                  <PnlTab portfolioId={portfolioId} />
+                  <PnlTab bookId={bookId} />
                 )}
 
                 {activeTab === 'risk' && (
                   <RiskTab
-                    portfolioId={portfolioId}
+                    bookId={bookId}
                     stressResults={stress.results}
                     stressLoading={stress.loading}
                     onRunStress={stress.run}
@@ -260,12 +260,12 @@ function App() {
                 )}
 
                 {activeTab === 'eod' && (
-                  <EodTimelineTab portfolioId={effectivePortfolioId} />
+                  <EodTimelineTab bookId={effectiveBookId} />
                 )}
 
                 {activeTab === 'scenarios' && (
                   <ScenariosTab
-                    portfolioId={portfolioId}
+                    bookId={bookId}
                     results={scenariosAll.results}
                     loading={scenariosAll.loading}
                     error={scenariosAll.error}
@@ -281,7 +281,7 @@ function App() {
                 )}
 
                 {activeTab === 'regulatory' && (
-                  <RegulatoryTab portfolioId={portfolioId} />
+                  <RegulatoryTab bookId={bookId} />
                 )}
 
                 {activeTab === 'alerts' && (

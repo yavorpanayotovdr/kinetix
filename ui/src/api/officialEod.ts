@@ -1,6 +1,6 @@
 export interface EodPromotionResponse {
   jobId: string
-  portfolioId: string
+  bookId: string
   valuationDate: string
   runLabel: string
   promotedAt: string | null
@@ -52,11 +52,11 @@ export async function demoteOfficialEod(
 }
 
 export async function fetchOfficialEod(
-  portfolioId: string,
+  bookId: string,
   date: string,
 ): Promise<EodPromotionResponse | null> {
   const response = await fetch(
-    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}/official-eod?date=${encodeURIComponent(date)}`,
+    `/api/v1/risk/jobs/${encodeURIComponent(bookId)}/official-eod?date=${encodeURIComponent(date)}`,
   )
   if (response.status === 404) return null
   if (!response.ok) {

@@ -11,7 +11,7 @@ const mockFetchFrtb = vi.mocked(fetchFrtb)
 const mockGenerateReport = vi.mocked(generateReport)
 
 const frtbResult: FrtbResultDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   sbmCharges: [
     {
       riskClass: 'GIRR',
@@ -38,7 +38,7 @@ describe('useRegulatory', () => {
   })
 
   it('starts with no result', () => {
-    const { result } = renderHook(() => useRegulatory('port-1'))
+    const { result } = renderHook(() => useRegulatory('book-1'))
 
     expect(result.current.result).toBeNull()
     expect(result.current.loading).toBe(false)
@@ -48,7 +48,7 @@ describe('useRegulatory', () => {
   it('calculates FRTB and returns result', async () => {
     mockFetchFrtb.mockResolvedValue(frtbResult)
 
-    const { result } = renderHook(() => useRegulatory('port-1'))
+    const { result } = renderHook(() => useRegulatory('book-1'))
 
     await act(async () => {
       result.current.calculate()
@@ -59,13 +59,13 @@ describe('useRegulatory', () => {
     })
 
     expect(result.current.result).toEqual(frtbResult)
-    expect(mockFetchFrtb).toHaveBeenCalledWith('port-1')
+    expect(mockFetchFrtb).toHaveBeenCalledWith('book-1')
   })
 
   it('sets error when calculate fails', async () => {
     mockFetchFrtb.mockRejectedValue(new Error('FRTB failed'))
 
-    const { result } = renderHook(() => useRegulatory('port-1'))
+    const { result } = renderHook(() => useRegulatory('book-1'))
 
     await act(async () => {
       result.current.calculate()
@@ -80,13 +80,13 @@ describe('useRegulatory', () => {
 
   it('downloads CSV report', async () => {
     mockGenerateReport.mockResolvedValue({
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       format: 'CSV',
       content: 'col1,col2\nval1,val2',
       generatedAt: '2025-01-15T10:30:00Z',
     })
 
-    const { result } = renderHook(() => useRegulatory('port-1'))
+    const { result } = renderHook(() => useRegulatory('book-1'))
 
     const mockClick = vi.fn()
     const originalCreateElement = document.createElement.bind(document)
@@ -103,7 +103,7 @@ describe('useRegulatory', () => {
       result.current.downloadCsv()
     })
 
-    expect(mockGenerateReport).toHaveBeenCalledWith('port-1', 'CSV')
+    expect(mockGenerateReport).toHaveBeenCalledWith('book-1', 'CSV')
     expect(mockClick).toHaveBeenCalled()
 
     vi.mocked(document.createElement).mockRestore()
@@ -111,13 +111,13 @@ describe('useRegulatory', () => {
 
   it('downloads XBRL report', async () => {
     mockGenerateReport.mockResolvedValue({
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       format: 'XBRL',
       content: '<xbrl>test</xbrl>',
       generatedAt: '2025-01-15T10:30:00Z',
     })
 
-    const { result } = renderHook(() => useRegulatory('port-1'))
+    const { result } = renderHook(() => useRegulatory('book-1'))
 
     const mockClick = vi.fn()
     const originalCreateElement = document.createElement.bind(document)
@@ -134,18 +134,18 @@ describe('useRegulatory', () => {
       result.current.downloadXbrl()
     })
 
-    expect(mockGenerateReport).toHaveBeenCalledWith('port-1', 'XBRL')
+    expect(mockGenerateReport).toHaveBeenCalledWith('book-1', 'XBRL')
     expect(mockClick).toHaveBeenCalled()
 
     vi.mocked(document.createElement).mockRestore()
   })
 
-  it('clears result when portfolioId changes', async () => {
+  it('clears result when bookId changes', async () => {
     mockFetchFrtb.mockResolvedValue(frtbResult)
 
     const { result, rerender } = renderHook(
-      ({ portfolioId }) => useRegulatory(portfolioId),
-      { initialProps: { portfolioId: 'port-1' as string | null } },
+      ({ bookId }) => useRegulatory(bookId),
+      { initialProps: { bookId: 'book-1' as string | null } },
     )
 
     await act(async () => {
@@ -156,7 +156,7 @@ describe('useRegulatory', () => {
       expect(result.current.result).toEqual(frtbResult)
     })
 
-    rerender({ portfolioId: 'port-2' })
+    rerender({ bookId: 'book-2' })
 
     expect(result.current.result).toBeNull()
   })

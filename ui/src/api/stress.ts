@@ -11,12 +11,12 @@ export async function fetchScenarios(): Promise<string[]> {
 }
 
 export async function runStressTest(
-  portfolioId: string,
+  bookId: string,
   scenarioName: string,
   request: Record<string, unknown> = {},
 ): Promise<StressTestResultDto | null> {
   const response = await fetch(
-    `/api/v1/risk/stress/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/risk/stress/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,12 +40,12 @@ export interface RunAllParams {
 }
 
 export async function runAllStressTests(
-  portfolioId: string,
+  bookId: string,
   scenarioNames: string[],
   params: RunAllParams = {},
 ): Promise<StressTestResultDto[]> {
   const response = await fetch(
-    `/api/v1/risk/stress/${encodeURIComponent(portfolioId)}/batch`,
+    `/api/v1/risk/stress/${encodeURIComponent(bookId)}/batch`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

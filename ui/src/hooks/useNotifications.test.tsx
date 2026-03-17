@@ -32,7 +32,7 @@ const alert: AlertEventDto = {
   message: 'VaR exceeded threshold',
   currentValue: 1500000,
   threshold: 1000000,
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggeredAt: '2025-01-15T10:30:00Z',
 }
 

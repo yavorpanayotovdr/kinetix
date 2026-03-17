@@ -6,7 +6,7 @@ import { applyPriceUpdate, usePriceStream } from './usePriceStream'
 // --- Pure function tests ---
 
 const makePosition = (overrides: Partial<PositionDto> = {}): PositionDto => ({
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   instrumentId: 'AAPL',
   assetClass: 'EQUITY',
   quantity: '100',
@@ -83,7 +83,7 @@ describe('applyPriceUpdate', () => {
 
     const result = applyPriceUpdate(position, update)
 
-    expect(result.portfolioId).toBe('port-1')
+    expect(result.bookId).toBe('book-1')
     expect(result.instrumentId).toBe('AAPL')
     expect(result.assetClass).toBe('EQUITY')
     expect(result.quantity).toBe('100')
@@ -277,7 +277,7 @@ describe('usePriceStream', () => {
   it('deduplicates instrument IDs in subscribe message', () => {
     const positions = [
       makePosition({ instrumentId: 'AAPL' }),
-      makePosition({ instrumentId: 'AAPL', portfolioId: 'port-2' }),
+      makePosition({ instrumentId: 'AAPL', bookId: 'book-2' }),
     ]
 
     renderHook(() => usePriceStream(positions, 'ws://localhost/ws'))

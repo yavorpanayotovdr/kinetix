@@ -1,97 +1,97 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { usePortfolioSelector } from './usePortfolioSelector'
+import { useBookSelector } from './useBookSelector'
 
 vi.mock('../api/positions', () => ({
-  fetchPortfolios: vi.fn(),
+  fetchBooks: vi.fn(),
   fetchPositions: vi.fn(),
 }))
 
-import { fetchPortfolios, fetchPositions } from '../api/positions'
+import { fetchBooks, fetchPositions } from '../api/positions'
 
-const mockFetchPortfolios = vi.mocked(fetchPortfolios)
+const mockFetchBooks = vi.mocked(fetchBooks)
 const mockFetchPositions = vi.mocked(fetchPositions)
 
-describe('usePortfolioSelector', () => {
+describe('useBookSelector', () => {
   beforeEach(() => {
     vi.resetAllMocks()
   })
 
-  it('should include All Portfolios option when multiple portfolios exist', async () => {
-    mockFetchPortfolios.mockResolvedValue([
-      { portfolioId: 'port-1' },
-      { portfolioId: 'port-2' },
+  it('should include All Books option when multiple books exist', async () => {
+    mockFetchBooks.mockResolvedValue([
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
-    const { result } = renderHook(() => usePortfolioSelector())
+    const { result } = renderHook(() => useBookSelector())
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.portfolioOptions).toContainEqual({
+    expect(result.current.bookOptions).toContainEqual({
       value: '__ALL__',
-      label: 'All Portfolios',
+      label: 'All Books',
     })
-    expect(result.current.portfolioOptions).toContainEqual({
-      value: 'port-1',
-      label: 'port-1',
+    expect(result.current.bookOptions).toContainEqual({
+      value: 'book-1',
+      label: 'book-1',
     })
-    expect(result.current.portfolioOptions).toContainEqual({
-      value: 'port-2',
-      label: 'port-2',
+    expect(result.current.bookOptions).toContainEqual({
+      value: 'book-2',
+      label: 'book-2',
     })
   })
 
-  it('should not include All Portfolios option when only one portfolio exists', async () => {
-    mockFetchPortfolios.mockResolvedValue([
-      { portfolioId: 'port-1' },
+  it('should not include All Books option when only one book exists', async () => {
+    mockFetchBooks.mockResolvedValue([
+      { bookId: 'book-1' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
-    const { result } = renderHook(() => usePortfolioSelector())
+    const { result } = renderHook(() => useBookSelector())
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.portfolioOptions).not.toContainEqual(
+    expect(result.current.bookOptions).not.toContainEqual(
       expect.objectContaining({ value: '__ALL__' }),
     )
   })
 
-  it('should set isAllSelected to true when All Portfolios is selected', async () => {
-    mockFetchPortfolios.mockResolvedValue([
-      { portfolioId: 'port-1' },
-      { portfolioId: 'port-2' },
+  it('should set isAllSelected to true when All Books is selected', async () => {
+    mockFetchBooks.mockResolvedValue([
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
-    const { result } = renderHook(() => usePortfolioSelector())
+    const { result } = renderHook(() => useBookSelector())
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
     act(() => {
-      result.current.selectPortfolio('__ALL__')
+      result.current.selectBook('__ALL__')
     })
 
     expect(result.current.isAllSelected).toBe(true)
-    expect(result.current.selectedPortfolioId).toBe('__ALL__')
+    expect(result.current.selectedBookId).toBe('__ALL__')
   })
 
-  it('should aggregate positions when All Portfolios is selected', async () => {
-    mockFetchPortfolios.mockResolvedValue([
-      { portfolioId: 'port-1' },
-      { portfolioId: 'port-2' },
+  it('should aggregate positions when All Books is selected', async () => {
+    mockFetchBooks.mockResolvedValue([
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions
-      .mockResolvedValueOnce([]) // initial load for port-1
+      .mockResolvedValueOnce([]) // initial load for book-1
       .mockResolvedValueOnce([
         {
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           instrumentId: 'AAPL',
           assetClass: 'EQUITY',
           quantity: '100',
@@ -103,7 +103,7 @@ describe('usePortfolioSelector', () => {
       ])
       .mockResolvedValueOnce([
         {
-          portfolioId: 'port-2',
+          bookId: 'book-2',
           instrumentId: 'AAPL',
           assetClass: 'EQUITY',
           quantity: '50',
@@ -114,14 +114,14 @@ describe('usePortfolioSelector', () => {
         },
       ])
 
-    const { result } = renderHook(() => usePortfolioSelector())
+    const { result } = renderHook(() => useBookSelector())
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
     await act(async () => {
-      result.current.selectPortfolio('__ALL__')
+      result.current.selectBook('__ALL__')
     })
 
     await waitFor(() => {
@@ -133,23 +133,23 @@ describe('usePortfolioSelector', () => {
     expect(result.current.aggregatedPositions[0].quantity).toBe('150')
   })
 
-  it('should return individual portfolio IDs list when All Portfolios selected', async () => {
-    mockFetchPortfolios.mockResolvedValue([
-      { portfolioId: 'port-1' },
-      { portfolioId: 'port-2' },
+  it('should return individual book IDs list when All Books selected', async () => {
+    mockFetchBooks.mockResolvedValue([
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
-    const { result } = renderHook(() => usePortfolioSelector())
+    const { result } = renderHook(() => useBookSelector())
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
     act(() => {
-      result.current.selectPortfolio('__ALL__')
+      result.current.selectBook('__ALL__')
     })
 
-    expect(result.current.allPortfolioIds).toEqual(['port-1', 'port-2'])
+    expect(result.current.allBookIds).toEqual(['book-1', 'book-2'])
   })
 })

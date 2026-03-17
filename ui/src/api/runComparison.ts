@@ -1,11 +1,11 @@
 import type { RunComparisonResponseDto, ModelComparisonRequestDto, VaRAttributionDto, BacktestComparisonDto, MarketDataQuantDiffDto } from '../types'
 
 export async function compareDayOverDay(
-  portfolioId: string,
+  bookId: string,
   targetDate?: string,
   baseDate?: string,
 ): Promise<RunComparisonResponseDto | null> {
-  let url = `/api/v1/risk/compare/${encodeURIComponent(portfolioId)}/day-over-day`
+  let url = `/api/v1/risk/compare/${encodeURIComponent(bookId)}/day-over-day`
   const params = new URLSearchParams()
   if (targetDate) params.set('targetDate', targetDate)
   if (baseDate) params.set('baseDate', baseDate)
@@ -18,11 +18,11 @@ export async function compareDayOverDay(
 }
 
 export async function compareByJobIds(
-  portfolioId: string,
+  bookId: string,
   baseJobId: string,
   targetJobId: string,
 ): Promise<RunComparisonResponseDto> {
-  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(portfolioId)}`, {
+  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ baseJobId, targetJobId }),
@@ -32,11 +32,11 @@ export async function compareByJobIds(
 }
 
 export async function requestAttribution(
-  portfolioId: string,
+  bookId: string,
   targetDate?: string,
   baseDate?: string,
 ): Promise<VaRAttributionDto> {
-  let url = `/api/v1/risk/compare/${encodeURIComponent(portfolioId)}/day-over-day/attribution`
+  let url = `/api/v1/risk/compare/${encodeURIComponent(bookId)}/day-over-day/attribution`
   const params = new URLSearchParams()
   if (targetDate) params.set('targetDate', targetDate)
   if (baseDate) params.set('baseDate', baseDate)
@@ -48,10 +48,10 @@ export async function requestAttribution(
 }
 
 export async function compareModelVersions(
-  portfolioId: string,
+  bookId: string,
   request: ModelComparisonRequestDto,
 ): Promise<RunComparisonResponseDto> {
-  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(portfolioId)}/model`, {
+  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}/model`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -72,7 +72,7 @@ export async function compareBacktests(
 }
 
 export async function fetchMarketDataQuantDiff(
-  portfolioId: string,
+  bookId: string,
   dataType: string,
   instrumentId: string,
   baseManifestId: string,
@@ -84,7 +84,7 @@ export async function fetchMarketDataQuantDiff(
     baseManifestId,
     targetManifestId,
   })
-  const url = `/api/v1/risk/compare/${encodeURIComponent(portfolioId)}/market-data-quant?${params}`
+  const url = `/api/v1/risk/compare/${encodeURIComponent(bookId)}/market-data-quant?${params}`
   const response = await fetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to fetch quant diff: ${response.status}`)

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchPortfolios, fetchPositions } from './positions'
+import { fetchBooks, fetchPositions } from './positions'
 
 describe('positions API', () => {
   const mockFetch = vi.fn()
@@ -12,18 +12,18 @@ describe('positions API', () => {
     vi.restoreAllMocks()
   })
 
-  describe('fetchPortfolios', () => {
+  describe('fetchBooks', () => {
     it('returns parsed JSON on 200', async () => {
-      const portfolios = [{ portfolioId: 'port-1' }]
+      const books = [{ bookId: 'book-1' }]
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(portfolios),
+        json: () => Promise.resolve(books),
       })
 
-      const result = await fetchPortfolios()
+      const result = await fetchBooks()
 
-      expect(result).toEqual(portfolios)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/portfolios')
+      expect(result).toEqual(books)
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/books')
     })
 
     it('throws on non-200 response', async () => {
@@ -33,8 +33,8 @@ describe('positions API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchPortfolios()).rejects.toThrow(
-        'Failed to fetch portfolios: 500 Internal Server Error',
+      await expect(fetchBooks()).rejects.toThrow(
+        'Failed to fetch books: 500 Internal Server Error',
       )
     })
   })
@@ -47,24 +47,24 @@ describe('positions API', () => {
         json: () => Promise.resolve(positions),
       })
 
-      const result = await fetchPositions('port-1')
+      const result = await fetchPositions('book-1')
 
       expect(result).toEqual(positions)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/portfolios/port-1/positions',
+        '/api/v1/books/book-1/positions',
       )
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve([]),
       })
 
-      await fetchPositions('port/special & id')
+      await fetchPositions('book/special & id')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/portfolios/port%2Fspecial%20%26%20id/positions',
+        '/api/v1/books/book%2Fspecial%20%26%20id/positions',
       )
     })
 
@@ -75,7 +75,7 @@ describe('positions API', () => {
         statusText: 'Not Found',
       })
 
-      await expect(fetchPositions('port-1')).rejects.toThrow(
+      await expect(fetchPositions('book-1')).rejects.toThrow(
         'Failed to fetch positions: 404 Not Found',
       )
     })

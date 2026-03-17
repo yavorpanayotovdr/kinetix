@@ -1,13 +1,13 @@
 import type { EodTimelineResponseDto } from '../types'
 
 export async function fetchEodTimeline(
-  portfolioId: string,
+  bookId: string,
   from: string,
   to: string,
 ): Promise<EodTimelineResponseDto> {
   const params = new URLSearchParams({ from, to })
   const response = await fetch(
-    `/api/v1/risk/eod-timeline/${encodeURIComponent(portfolioId)}?${params}`,
+    `/api/v1/risk/eod-timeline/${encodeURIComponent(bookId)}?${params}`,
   )
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))

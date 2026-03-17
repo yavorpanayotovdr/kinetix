@@ -21,7 +21,7 @@ describe('useSodBaseline', () => {
     vi.resetAllMocks()
   })
 
-  it('fetches status on mount when portfolioId is provided', async () => {
+  it('fetches status on mount when bookId is provided', async () => {
     const statusData = {
       exists: true,
       baselineDate: '2025-01-15',
@@ -32,17 +32,17 @@ describe('useSodBaseline', () => {
     }
     mockFetchStatus.mockResolvedValue(statusData)
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
     expect(result.current.status).toEqual(statusData)
-    expect(mockFetchStatus).toHaveBeenCalledWith('port-1')
+    expect(mockFetchStatus).toHaveBeenCalledWith('book-1')
   })
 
-  it('returns null status when portfolioId is null', () => {
+  it('returns null status when bookId is null', () => {
     const { result } = renderHook(() => useSodBaseline(null))
 
     expect(result.current.status).toBeNull()
@@ -53,7 +53,7 @@ describe('useSodBaseline', () => {
   it('sets error on fetch failure', async () => {
     mockFetchStatus.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -82,7 +82,7 @@ describe('useSodBaseline', () => {
     mockFetchStatus.mockResolvedValue(initialStatus)
     mockCreateSnapshot.mockResolvedValue(updatedStatus)
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -108,7 +108,7 @@ describe('useSodBaseline', () => {
     mockFetchStatus.mockResolvedValue(initialStatus)
     mockResetBaseline.mockResolvedValue(undefined)
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -142,7 +142,7 @@ describe('useSodBaseline', () => {
     mockFetchStatus.mockResolvedValue(initialStatus)
     mockCreateSnapshot.mockResolvedValue(updatedStatus)
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -152,7 +152,7 @@ describe('useSodBaseline', () => {
       await result.current.createSnapshot('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
     })
 
-    expect(mockCreateSnapshot).toHaveBeenCalledWith('port-1', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+    expect(mockCreateSnapshot).toHaveBeenCalledWith('book-1', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
     expect(result.current.status).toEqual(updatedStatus)
   })
 
@@ -166,7 +166,7 @@ describe('useSodBaseline', () => {
       calculationType: null,
     }
     const pnlData = {
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       date: '2025-01-15',
       totalPnl: '15000.00',
       deltaPnl: '8000.00',
@@ -181,7 +181,7 @@ describe('useSodBaseline', () => {
     mockFetchStatus.mockResolvedValue(statusData)
     mockComputePnl.mockResolvedValue(pnlData)
 
-    const { result } = renderHook(() => useSodBaseline('port-1'))
+    const { result } = renderHook(() => useSodBaseline('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)

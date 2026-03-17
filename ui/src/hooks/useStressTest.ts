@@ -13,7 +13,7 @@ export interface UseStressTestResult {
   run: () => void
 }
 
-export function useStressTest(portfolioId: string | null): UseStressTestResult {
+export function useStressTest(bookId: string | null): UseStressTestResult {
   const [scenarios, setScenarios] = useState<string[]>([])
   const [selectedScenario, setSelectedScenario] = useState('')
   const [result, setResult] = useState<StressTestResultDto | null>(null)
@@ -49,14 +49,14 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
     setResult(null)
     setResults([])
     setError(null)
-  }, [portfolioId])
+  }, [bookId])
 
   const run = useCallback(async () => {
-    if (!portfolioId || !selectedScenario) return
+    if (!bookId || !selectedScenario) return
     setLoading(true)
     setError(null)
     try {
-      const data = await runStressTest(portfolioId, selectedScenario)
+      const data = await runStressTest(bookId, selectedScenario)
       setResult(data)
       if (data) {
         setResults((prev) => {
@@ -69,7 +69,7 @@ export function useStressTest(portfolioId: string | null): UseStressTestResult {
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, selectedScenario])
+  }, [bookId, selectedScenario])
 
   return { scenarios, selectedScenario, setSelectedScenario, result, results, loading, error, run }
 }

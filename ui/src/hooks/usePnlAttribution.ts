@@ -9,7 +9,7 @@ export interface UsePnlAttributionResult {
 }
 
 export function usePnlAttribution(
-  portfolioId: string | null,
+  bookId: string | null,
   date?: string,
 ): UsePnlAttributionResult {
   const [data, setData] = useState<PnlAttributionDto | null>(null)
@@ -17,13 +17,13 @@ export function usePnlAttribution(
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!portfolioId) return
+    if (!bookId) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const result = await fetchPnlAttribution(portfolioId, date)
+      const result = await fetchPnlAttribution(bookId, date)
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -31,13 +31,13 @@ export function usePnlAttribution(
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, date])
+  }, [bookId, date])
 
   const loadRef = useRef(load)
   loadRef.current = load
 
   useEffect(() => {
-    if (!portfolioId) {
+    if (!bookId) {
       setData(null)
       setLoading(false)
       setError(null)
@@ -45,7 +45,7 @@ export function usePnlAttribution(
     }
 
     loadRef.current()
-  }, [portfolioId, date])
+  }, [bookId, date])
 
   return { data, loading, error }
 }

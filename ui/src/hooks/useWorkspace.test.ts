@@ -30,13 +30,13 @@ describe('useWorkspace', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       ...DEFAULT_PREFERENCES,
       defaultTab: 'pnl',
-      defaultPortfolio: 'port-2',
+      defaultBook: 'book-2',
     }))
 
     const { result } = renderHook(() => useWorkspace())
 
     expect(result.current.preferences.defaultTab).toBe('pnl')
-    expect(result.current.preferences.defaultPortfolio).toBe('port-2')
+    expect(result.current.preferences.defaultBook).toBe('book-2')
   })
 
   it('resets preferences to defaults', () => {
@@ -66,7 +66,7 @@ describe('useWorkspace', () => {
     })
 
     expect(result.current.preferences.defaultTab).toBe('scenarios')
-    expect(result.current.preferences.defaultPortfolio).toBe(DEFAULT_PREFERENCES.defaultPortfolio)
+    expect(result.current.preferences.defaultBook).toBe(DEFAULT_PREFERENCES.defaultBook)
   })
 
   it('handles partial saved preferences gracefully', () => {
@@ -75,6 +75,6 @@ describe('useWorkspace', () => {
     const { result } = renderHook(() => useWorkspace())
 
     expect(result.current.preferences.defaultTab).toBe('risk')
-    expect(result.current.preferences.defaultPortfolio).toBe(DEFAULT_PREFERENCES.defaultPortfolio)
+    expect(result.current.preferences.defaultBook).toBe(DEFAULT_PREFERENCES.defaultBook)
   })
 })

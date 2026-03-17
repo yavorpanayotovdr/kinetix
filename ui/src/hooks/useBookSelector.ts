@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchPortfolios, fetchPositions } from '../api/positions'
+import { fetchBooks, fetchPositions } from '../api/positions'
 import type { PositionDto } from '../types'
 
-export const ALL_PORTFOLIOS = '__ALL__'
+export const ALL_BOOKS = '__ALL__'
 
-export interface PortfolioOption {
+export interface BookOption {
   value: string
   label: string
 }
 
-export interface UsePortfolioSelectorResult {
-  portfolioOptions: PortfolioOption[]
-  selectedPortfolioId: string | null
+export interface UseBookSelectorResult {
+  bookOptions: BookOption[]
+  selectedBookId: string | null
   isAllSelected: boolean
-  allPortfolioIds: string[]
+  allBookIds: string[]
   positions: PositionDto[]
   aggregatedPositions: PositionDto[]
-  selectPortfolio: (id: string) => void
+  selectBook: (id: string) => void
   loading: boolean
   error: string | null
 }
 
-export function usePortfolioSelector(): UsePortfolioSelectorResult {
-  const [portfolioIds, setPortfolioIds] = useState<string[]>([])
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(null)
+export function useBookSelector(): UseBookSelectorResult {
+  const [bookIds, setBookIds] = useState<string[]>([])
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [positions, setPositions] = useState<PositionDto[]>([])
   const [aggregatedPositions, setAggregatedPositions] = useState<PositionDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,21 +34,21 @@ export function usePortfolioSelector(): UsePortfolioSelectorResult {
 
     async function load() {
       try {
-        const portfolioList = await fetchPortfolios()
+        const bookList = await fetchBooks()
         if (cancelled) return
 
-        const ids = portfolioList.map((p) => p.portfolioId).sort()
-        setPortfolioIds(ids)
+        const ids = bookList.map((b) => b.bookId).sort()
+        setBookIds(ids)
 
         if (ids.length === 0) {
           setLoading(false)
           return
         }
 
-        const firstPortfolioId = ids[0]
-        setSelectedPortfolioId(firstPortfolioId)
+        const firstBookId = ids[0]
+        setSelectedBookId(firstBookId)
 
-        const positionData = await fetchPositions(firstPortfolioId)
+        const positionData = await fetchPositions(firstBookId)
         if (cancelled) return
 
         setPositions(positionData)
@@ -69,25 +69,25 @@ export function usePortfolioSelector(): UsePortfolioSelectorResult {
     }
   }, [])
 
-  const isAllSelected = selectedPortfolioId === ALL_PORTFOLIOS
+  const isAllSelected = selectedBookId === ALL_BOOKS
 
-  const portfolioOptions: PortfolioOption[] = [
-    ...(portfolioIds.length > 1
-      ? [{ value: ALL_PORTFOLIOS, label: 'All Portfolios' }]
+  const bookOptions: BookOption[] = [
+    ...(bookIds.length > 1
+      ? [{ value: ALL_BOOKS, label: 'All Books' }]
       : []),
-    ...portfolioIds.map((id) => ({ value: id, label: id })),
+    ...bookIds.map((id) => ({ value: id, label: id })),
   ]
 
-  const selectPortfolio = useCallback(async (id: string) => {
-    setSelectedPortfolioId(id)
+  const selectBook = useCallback(async (id: string) => {
+    setSelectedBookId(id)
     setLoading(true)
     setError(null)
 
     try {
-      if (id === ALL_PORTFOLIOS) {
+      if (id === ALL_BOOKS) {
         const allPositions: PositionDto[] = []
-        for (const portfolioId of portfolioIds) {
-          const posData = await fetchPositions(portfolioId)
+        for (const bookId of bookIds) {
+          const posData = await fetchPositions(bookId)
           allPositions.push(...posData)
         }
         setPositions(allPositions)
@@ -102,16 +102,16 @@ export function usePortfolioSelector(): UsePortfolioSelectorResult {
     } finally {
       setLoading(false)
     }
-  }, [portfolioIds])
+  }, [bookIds])
 
   return {
-    portfolioOptions,
-    selectedPortfolioId,
+    bookOptions,
+    selectedBookId,
     isAllSelected,
-    allPortfolioIds: portfolioIds,
+    allBookIds: bookIds,
     positions,
     aggregatedPositions,
-    selectPortfolio,
+    selectBook,
     loading,
     error,
   }
@@ -139,7 +139,7 @@ function aggregatePositions(positions: PositionDto[]): PositionDto[] {
     const currency = group[0].marketPrice.currency
 
     return {
-      portfolioId: ALL_PORTFOLIOS,
+      bookId: ALL_BOOKS,
       instrumentId,
       assetClass: group[0].assetClass,
       quantity: String(totalQuantity),

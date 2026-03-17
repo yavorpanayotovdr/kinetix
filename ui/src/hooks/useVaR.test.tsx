@@ -14,7 +14,7 @@ const mockTriggerVaR = vi.mocked(triggerVaRCalculation)
 const mockFetchHistory = vi.mocked(fetchChartData)
 
 const varResult: VaRResultDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   calculationType: 'HISTORICAL',
   confidenceLevel: 'CL_95',
   varValue: '1234567.89',
@@ -35,7 +35,7 @@ describe('useVaR', () => {
     vi.useRealTimers()
   })
 
-  it('does nothing when portfolioId is null', () => {
+  it('does nothing when bookId is null', () => {
     const { result } = renderHook(() => useVaR(null))
 
     expect(result.current.varResult).toBeNull()
@@ -48,7 +48,7 @@ describe('useVaR', () => {
   it('starts in loading state on initial fetch', () => {
     mockFetchVaR.mockReturnValue(new Promise(() => {}))
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     expect(result.current.loading).toBe(true)
     expect(result.current.varResult).toBeNull()
@@ -58,7 +58,7 @@ describe('useVaR', () => {
   it('fetches VaR result on mount', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -66,13 +66,13 @@ describe('useVaR', () => {
 
     expect(result.current.varResult).toEqual(varResult)
     expect(result.current.error).toBeNull()
-    expect(mockFetchVaR).toHaveBeenCalledWith('port-1', null)
+    expect(mockFetchVaR).toHaveBeenCalledWith('book-1', null)
   })
 
   it('sets error on fetch failure', async () => {
     mockFetchVaR.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -85,7 +85,7 @@ describe('useVaR', () => {
   it('handles null result (404)', async () => {
     mockFetchVaR.mockResolvedValue(null)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -99,7 +99,7 @@ describe('useVaR', () => {
   it('appends to history on successful fetch', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -118,7 +118,7 @@ describe('useVaR', () => {
   it('deduplicates history by calculatedAt', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.history).toHaveLength(1)
@@ -139,7 +139,7 @@ describe('useVaR', () => {
   it('adds new entry when calculatedAt changes', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.history).toHaveLength(1)
@@ -171,7 +171,7 @@ describe('useVaR', () => {
   it('polls every 30 seconds', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    renderHook(() => useVaR('port-1'))
+    renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(mockFetchVaR).toHaveBeenCalledTimes(1)
@@ -204,7 +204,7 @@ describe('useVaR', () => {
     }
     mockTriggerVaR.mockResolvedValue(freshResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -221,7 +221,7 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockTriggerVaR).toHaveBeenCalledWith('port-1', { confidenceLevel: 'CL_95' })
+    expect(mockTriggerVaR).toHaveBeenCalledWith('book-1', { confidenceLevel: 'CL_95' })
     expect(result.current.varResult).toEqual(freshResult)
     expect(result.current.history).toHaveLength(2)
   })
@@ -236,7 +236,7 @@ describe('useVaR', () => {
       }),
     )
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -280,7 +280,7 @@ describe('useVaR', () => {
 
     mockFetchVaR.mockResolvedValueOnce(oldEntry)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.history).toHaveLength(1)
@@ -312,7 +312,7 @@ describe('useVaR', () => {
   it('setTimeRange clears zoom stack', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -344,7 +344,7 @@ describe('useVaR', () => {
   it('zoomIn pushes current range onto stack', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -376,7 +376,7 @@ describe('useVaR', () => {
   it('resetZoom restores original range', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -413,7 +413,7 @@ describe('useVaR', () => {
   it('zoomDepth reflects stack length', async () => {
     mockFetchVaR.mockResolvedValue(varResult)
 
-    const { result } = renderHook(() => useVaR('port-1'))
+    const { result } = renderHook(() => useVaR('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -449,7 +449,7 @@ describe('useVaR', () => {
         .mockRejectedValueOnce(error503)
         .mockResolvedValueOnce(freshResult)
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -491,7 +491,7 @@ describe('useVaR', () => {
 
       mockTriggerVaR.mockRejectedValue(error500)
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -515,7 +515,7 @@ describe('useVaR', () => {
         .mockRejectedValueOnce(error503)
         .mockRejectedValueOnce(error503)
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -576,7 +576,7 @@ describe('useVaR', () => {
         .mockResolvedValueOnce(entries[3])
         .mockResolvedValueOnce(entries[4])
 
-      const hook = renderHook(() => useVaR('port-1'))
+      const hook = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(hook.result.current.history).toHaveLength(1)
@@ -764,7 +764,7 @@ describe('useVaR', () => {
         bucketSizeMs: 900000,
       })
 
-      renderHook(() => useVaR('port-1'))
+      renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(mockFetchHistory).toHaveBeenCalledTimes(1)
@@ -794,7 +794,7 @@ describe('useVaR', () => {
       mockFetchVaR.mockResolvedValue(varResult)
       mockFetchHistory.mockResolvedValue({ points: [], bucketSizeMs: 900000 })
 
-      renderHook(() => useVaR('port-1', '2025-01-15'))
+      renderHook(() => useVaR('book-1', '2025-01-15'))
 
       await waitFor(() => {
         expect(mockFetchHistory).toHaveBeenCalledTimes(1)
@@ -823,7 +823,7 @@ describe('useVaR', () => {
         bucketSizeMs: 900000,
       })
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       // Wait for both chart data and polling VaR — chart data adds 2, polling adds 1
       await waitFor(() => {
@@ -856,17 +856,17 @@ describe('useVaR', () => {
   })
 
   describe('historyLoading', () => {
-    it('is false immediately when portfolioId is null', () => {
+    it('is false immediately when bookId is null', () => {
       const { result } = renderHook(() => useVaR(null))
 
       expect(result.current.historyLoading).toBe(false)
     })
 
-    it('is true on initial mount with a portfolioId before history resolves', () => {
+    it('is true on initial mount with a bookId before history resolves', () => {
       mockFetchVaR.mockReturnValue(new Promise(() => {}))
       mockFetchHistory.mockReturnValue(new Promise(() => {}) as never)
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       expect(result.current.historyLoading).toBe(true)
     })
@@ -875,7 +875,7 @@ describe('useVaR', () => {
       mockFetchVaR.mockResolvedValue(null)
       mockFetchHistory.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(result.current.historyLoading).toBe(false)
@@ -886,7 +886,7 @@ describe('useVaR', () => {
       mockFetchVaR.mockResolvedValue(null)
       mockFetchHistory.mockRejectedValue(new Error('network failure') as never)
 
-      const { result } = renderHook(() => useVaR('port-1'))
+      const { result } = renderHook(() => useVaR('book-1'))
 
       await waitFor(() => {
         expect(result.current.historyLoading).toBe(false)

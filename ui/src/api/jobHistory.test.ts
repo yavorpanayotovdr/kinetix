@@ -14,7 +14,7 @@ describe('jobHistory API', () => {
 
   const jobSummary = {
     jobId: 'job-1',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'ON_DEMAND',
     status: 'COMPLETED',
     startedAt: '2025-01-15T10:00:00Z',
@@ -51,11 +51,11 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve(paginatedResponse),
       })
 
-      const result = await fetchValuationJobs('port-1')
+      const result = await fetchValuationJobs('book-1')
 
       expect(result).toEqual(paginatedResponse)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1?limit=20&offset=0',
+        '/api/v1/risk/jobs/book-1?limit=20&offset=0',
       )
     })
 
@@ -66,10 +66,10 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
-      await fetchValuationJobs('port-1', 5, 10)
+      await fetchValuationJobs('book-1', 5, 10)
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1?limit=5&offset=10',
+        '/api/v1/risk/jobs/book-1?limit=5&offset=10',
       )
     })
 
@@ -80,10 +80,10 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
-      await fetchValuationJobs('port-1', 20, 0, '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+      await fetchValuationJobs('book-1', 20, 0, '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1?limit=20&offset=0&from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+        '/api/v1/risk/jobs/book-1?limit=20&offset=0&from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
       )
     })
 
@@ -99,7 +99,7 @@ describe('jobHistory API', () => {
       const from = new Date('2025-01-15T10:00').toISOString()
       const to = new Date('2025-01-15T14:00').toISOString()
 
-      await fetchValuationJobs('port-1', 20, 0, from, to)
+      await fetchValuationJobs('book-1', 20, 0, from, to)
 
       const calledUrl = mockFetch.mock.lastCall?.[0] as string
       expect(calledUrl).toContain('from=')
@@ -115,10 +115,10 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve({ items: [], totalCount: 0 }),
       })
 
-      await fetchValuationJobs('port-1', 20, 0, undefined, undefined, 'COMPLETED')
+      await fetchValuationJobs('book-1', 20, 0, undefined, undefined, 'COMPLETED')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1?limit=20&offset=0&status=COMPLETED',
+        '/api/v1/risk/jobs/book-1?limit=20&offset=0&status=COMPLETED',
       )
     })
 
@@ -129,7 +129,7 @@ describe('jobHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchValuationJobs('port-1')).rejects.toThrow(
+      await expect(fetchValuationJobs('book-1')).rejects.toThrow(
         'Failed to fetch valuation jobs: 500 Internal Server Error',
       )
     })
@@ -148,25 +148,25 @@ describe('jobHistory API', () => {
         json: () => Promise.resolve(chartResponse),
       })
 
-      const result = await fetchChartData('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+      const result = await fetchChartData('book-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
 
       expect(result).toEqual(chartResponse)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+        '/api/v1/risk/jobs/book-1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
       )
     })
 
-    it('encodes special characters in portfolioId', async () => {
+    it('encodes special characters in bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve(chartResponse),
       })
 
-      await fetchChartData('port/1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+      await fetchChartData('book/1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port%2F1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+        '/api/v1/risk/jobs/book%2F1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
       )
     })
 
@@ -177,7 +177,7 @@ describe('jobHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchChartData('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')).rejects.toThrow(
+      await expect(fetchChartData('book-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')).rejects.toThrow(
         'Failed to fetch chart data: 500 Internal Server Error',
       )
     })

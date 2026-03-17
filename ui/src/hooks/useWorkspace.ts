@@ -4,7 +4,7 @@ const STORAGE_KEY = 'kinetix:workspace'
 
 export interface WorkspacePreferences {
   defaultTab: string
-  defaultPortfolio: string | null
+  defaultBook: string | null
   timeRange: string
   chartPreferences: {
     showGrid: boolean
@@ -14,7 +14,7 @@ export interface WorkspacePreferences {
 
 export const DEFAULT_PREFERENCES: WorkspacePreferences = {
   defaultTab: 'positions',
-  defaultPortfolio: null,
+  defaultBook: null,
   timeRange: '1d',
   chartPreferences: {
     showGrid: true,

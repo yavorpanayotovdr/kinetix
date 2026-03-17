@@ -12,7 +12,7 @@ const mockFetchChart = vi.mocked(fetchChartData)
 
 const jobSummary = {
   jobId: 'job-1',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggerType: 'ON_DEMAND',
   status: 'COMPLETED',
   startedAt: '2025-01-15T10:00:00Z',
@@ -33,7 +33,7 @@ const jobSummary = {
 
 const jobSummary2 = {
   jobId: 'job-2',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggerType: 'TRADE_EVENT',
   status: 'COMPLETED',
   startedAt: '2025-01-15T09:00:00Z',
@@ -100,7 +100,7 @@ describe('useJobHistory', () => {
     vi.restoreAllMocks()
   })
 
-  it('does nothing when portfolioId is null', () => {
+  it('does nothing when bookId is null', () => {
     const { result } = renderHook(() => useJobHistory(null))
 
     expect(result.current.runs).toEqual([])
@@ -111,10 +111,10 @@ describe('useJobHistory', () => {
     expect(mockFetchJobs).not.toHaveBeenCalled()
   })
 
-  it('fetches jobs on mount when portfolioId is provided', async () => {
+  it('fetches jobs on mount when bookId is provided', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -122,7 +122,7 @@ describe('useJobHistory', () => {
 
     expect(result.current.runs).toEqual([jobSummary])
     expect(mockFetchJobs).toHaveBeenCalledWith(
-      'port-1',
+      'book-1',
       10,
       0,
       expect.any(String),
@@ -133,7 +133,7 @@ describe('useJobHistory', () => {
   it('sets error on fetch failure', async () => {
     mockFetchJobs.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -146,7 +146,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(1)
@@ -169,7 +169,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(1)
@@ -197,7 +197,7 @@ describe('useJobHistory', () => {
       .mockResolvedValueOnce(jobDetail)
       .mockResolvedValueOnce(jobDetail2)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(2)
@@ -228,7 +228,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(1)
@@ -253,7 +253,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
     mockFetchJobDetail.mockResolvedValue(null)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(1)
@@ -274,7 +274,7 @@ describe('useJobHistory', () => {
   it('re-fetches when time range changes', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -297,7 +297,7 @@ describe('useJobHistory', () => {
     })
 
     expect(mockFetchJobs).toHaveBeenLastCalledWith(
-      'port-1',
+      'book-1',
       10,
       0,
       '2025-01-15T00:00:00Z',
@@ -308,7 +308,7 @@ describe('useJobHistory', () => {
   it('exposes zoomDepth of 0 initially', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -320,7 +320,7 @@ describe('useJobHistory', () => {
   it('zoomIn pushes current range onto zoom stack and sets new range', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -354,7 +354,7 @@ describe('useJobHistory', () => {
   it('resetZoom restores the original range and clears the stack', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -389,7 +389,7 @@ describe('useJobHistory', () => {
   it('setTimeRange clears the zoom stack', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -414,12 +414,12 @@ describe('useJobHistory', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
   })
 
-  it('resets jobs and expanded state when portfolioId becomes null', async () => {
+  it('resets jobs and expanded state when bookId becomes null', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { result, rerender } = renderHook(
       ({ pid }) => useJobHistory(pid),
-      { initialProps: { pid: 'port-1' as string | null } },
+      { initialProps: { pid: 'book-1' as string | null } },
     )
 
     await waitFor(() => {
@@ -436,7 +436,7 @@ describe('useJobHistory', () => {
   it('polls every 5 seconds to pick up new jobs and state changes', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
-    renderHook(() => useJobHistory('port-1'))
+    renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
@@ -462,7 +462,7 @@ describe('useJobHistory', () => {
   it('pins from and advances to for relative presets on each poll', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    renderHook(() => useJobHistory('port-1'))
+    renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
@@ -491,7 +491,7 @@ describe('useJobHistory', () => {
   it('does not slide time window for Custom ranges', async () => {
     mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
@@ -526,14 +526,14 @@ describe('useJobHistory', () => {
   it('fetches with limit=10 and offset=0 initially', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
-    renderHook(() => useJobHistory('port-1'))
+    renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledTimes(1)
     })
 
     expect(mockFetchJobs).toHaveBeenCalledWith(
-      'port-1',
+      'book-1',
       10,
       0,
       expect.any(String),
@@ -544,7 +544,7 @@ describe('useJobHistory', () => {
   it('nextPage increments page and re-fetches with offset=10', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -559,7 +559,7 @@ describe('useJobHistory', () => {
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         10,
         10,
         expect.any(String),
@@ -573,7 +573,7 @@ describe('useJobHistory', () => {
   it('prevPage decrements page', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -596,7 +596,7 @@ describe('useJobHistory', () => {
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         10,
         0,
         expect.any(String),
@@ -610,7 +610,7 @@ describe('useJobHistory', () => {
   it('prevPage is a no-op when page is 0', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -629,7 +629,7 @@ describe('useJobHistory', () => {
   it('hasNextPage is true when totalCount exceeds current page, false on last page', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 15 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -653,7 +653,7 @@ describe('useJobHistory', () => {
   it('exposes totalPages computed from totalCount', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 25 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -666,7 +666,7 @@ describe('useJobHistory', () => {
   it('resets page to 0 when time range changes', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -694,7 +694,7 @@ describe('useJobHistory', () => {
   it('resets page to 0 when zoomIn is called', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -723,7 +723,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -749,7 +749,7 @@ describe('useJobHistory', () => {
   it('firstPage resets to page 0', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 60 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -787,7 +787,7 @@ describe('useJobHistory', () => {
   it('lastPage jumps to the final page', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 30 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -807,7 +807,7 @@ describe('useJobHistory', () => {
   it('goToPage jumps to specified page and re-fetches', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -822,7 +822,7 @@ describe('useJobHistory', () => {
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         10,
         20,
         expect.any(String),
@@ -836,7 +836,7 @@ describe('useJobHistory', () => {
   it('goToPage clamps to last page when target exceeds totalPages', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 50 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -856,7 +856,7 @@ describe('useJobHistory', () => {
   it('goToPage clamps to 0 when target is negative', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -875,7 +875,7 @@ describe('useJobHistory', () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 20 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
     mockFetchJobDetail.mockResolvedValue(jobDetail)
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -902,7 +902,7 @@ describe('useJobHistory', () => {
   it('setPageSize changes the limit and re-fetches', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -917,7 +917,7 @@ describe('useJobHistory', () => {
 
     await waitFor(() => {
       expect(mockFetchJobs).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         50,
         0,
         expect.any(String),
@@ -931,7 +931,7 @@ describe('useJobHistory', () => {
   it('setPageSize resets page to 0', async () => {
     mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 100 })
 
-    const { result } = renderHook(() => useJobHistory('port-1'))
+    const { result } = renderHook(() => useJobHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -957,12 +957,12 @@ describe('useJobHistory', () => {
     expect(result.current.pageSize).toBe(20)
   })
 
-  it('stops polling when portfolioId becomes null', async () => {
+  it('stops polling when bookId becomes null', async () => {
     mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
 
     const { rerender } = renderHook(
       ({ pid }) => useJobHistory(pid),
-      { initialProps: { pid: 'port-1' as string | null } },
+      { initialProps: { pid: 'book-1' as string | null } },
     )
 
     await waitFor(() => {
@@ -986,33 +986,33 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChart.mockResolvedValue({ points: [chartPoint1, chartPoint2], bucketSizeMs: 3600000 })
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.chartData?.points).toHaveLength(2)
       })
 
       expect(mockFetchChart).toHaveBeenCalledWith(
-        'port-1',
+        'book-1',
         expect.any(String),
         expect.any(String),
       )
     })
 
-    it('returns null chartData when portfolioId is null', () => {
+    it('returns null chartData when bookId is null', () => {
       const { result } = renderHook(() => useJobHistory(null))
 
       expect(result.current.chartData).toBeNull()
       expect(mockFetchChart).not.toHaveBeenCalled()
     })
 
-    it('clears chartData when portfolioId becomes null', async () => {
+    it('clears chartData when bookId becomes null', async () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChart.mockResolvedValue({ points: [chartPoint1], bucketSizeMs: 3600000 })
 
       const { result, rerender } = renderHook(
         ({ pid }) => useJobHistory(pid),
-        { initialProps: { pid: 'port-1' as string | null } },
+        { initialProps: { pid: 'book-1' as string | null } },
       )
 
       await waitFor(() => {
@@ -1028,7 +1028,7 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChart.mockResolvedValue({ points: [chartPoint1], bucketSizeMs: 3600000 })
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.chartData?.points).toHaveLength(1)
@@ -1059,7 +1059,7 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: Array.from({ length: 10 }, (_, i) => ({ ...jobSummary, jobId: `job-${i}` })), totalCount: 40 })
       mockFetchChart.mockResolvedValue({ points: [chartPoint1], bucketSizeMs: 3600000 })
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.chartData?.points).toHaveLength(1)
@@ -1083,7 +1083,7 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChart.mockResolvedValue({ points: [chartPoint1], bucketSizeMs: 3600000 })
 
-      renderHook(() => useJobHistory('port-1'))
+      renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(mockFetchChart).toHaveBeenCalledTimes(1)
@@ -1105,7 +1105,7 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: [], totalCount: 0 })
       mockFetchChart.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -1126,7 +1126,7 @@ describe('useJobHistory', () => {
       mockFetchChart.mockResolvedValue({ points: [chartPoint2], bucketSizeMs: 3600000 })
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 2 })
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.chartData?.points).toHaveLength(1)
@@ -1151,7 +1151,7 @@ describe('useJobHistory', () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChart.mockRejectedValue(new Error('Network error'))
 
-      const { result } = renderHook(() => useJobHistory('port-1'))
+      const { result } = renderHook(() => useJobHistory('book-1'))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)

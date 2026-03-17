@@ -1,10 +1,10 @@
 import type { PnlAttributionDto, SodBaselineStatusDto } from '../types'
 
 export async function fetchSodBaselineStatus(
-  portfolioId: string,
+  bookId: string,
 ): Promise<SodBaselineStatusDto> {
   const response = await fetch(
-    `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}/status`,
+    `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}/status`,
   )
   if (response.status === 404) {
     return { exists: false, baselineDate: null, snapshotType: null, createdAt: null, sourceJobId: null, calculationType: null }
@@ -18,12 +18,12 @@ export async function fetchSodBaselineStatus(
 }
 
 export async function createSodSnapshot(
-  portfolioId: string,
+  bookId: string,
   jobId?: string,
 ): Promise<SodBaselineStatusDto> {
   const url = jobId
-    ? `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}?jobId=${encodeURIComponent(jobId)}`
-    : `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}`
+    ? `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}?jobId=${encodeURIComponent(jobId)}`
+    : `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}`
   const response = await fetch(url, { method: 'POST' })
   if (!response.ok) {
     const body = await response.json().catch(() => null)
@@ -34,10 +34,10 @@ export async function createSodSnapshot(
 }
 
 export async function resetSodBaseline(
-  portfolioId: string,
+  bookId: string,
 ): Promise<void> {
   const response = await fetch(
-    `/api/v1/risk/sod-snapshot/${encodeURIComponent(portfolioId)}`,
+    `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}`,
     { method: 'DELETE' },
   )
   if (!response.ok) {
@@ -48,10 +48,10 @@ export async function resetSodBaseline(
 }
 
 export async function computePnlAttribution(
-  portfolioId: string,
+  bookId: string,
 ): Promise<PnlAttributionDto> {
   const response = await fetch(
-    `/api/v1/risk/pnl-attribution/${encodeURIComponent(portfolioId)}/compute`,
+    `/api/v1/risk/pnl-attribution/${encodeURIComponent(bookId)}/compute`,
     { method: 'POST' },
   )
   if (response.status === 412) {

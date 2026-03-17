@@ -11,7 +11,7 @@ const mockFetchTradeHistory = vi.mocked(fetchTradeHistory)
 
 const trade: TradeHistoryDto = {
   tradeId: 't-1',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   instrumentId: 'AAPL',
   assetClass: 'EQUITY',
   side: 'BUY',
@@ -25,7 +25,7 @@ describe('useTradeHistory', () => {
     vi.resetAllMocks()
   })
 
-  it('does not fetch when portfolioId is null', () => {
+  it('does not fetch when bookId is null', () => {
     renderHook(() => useTradeHistory(null))
 
     expect(mockFetchTradeHistory).not.toHaveBeenCalled()
@@ -34,7 +34,7 @@ describe('useTradeHistory', () => {
   it('fetches trade history on mount', async () => {
     mockFetchTradeHistory.mockResolvedValue([trade])
 
-    const { result } = renderHook(() => useTradeHistory('port-1'))
+    const { result } = renderHook(() => useTradeHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -42,13 +42,13 @@ describe('useTradeHistory', () => {
 
     expect(result.current.trades).toEqual([trade])
     expect(result.current.error).toBeNull()
-    expect(mockFetchTradeHistory).toHaveBeenCalledWith('port-1')
+    expect(mockFetchTradeHistory).toHaveBeenCalledWith('book-1')
   })
 
   it('sets error on fetch failure', async () => {
     mockFetchTradeHistory.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useTradeHistory('port-1'))
+    const { result } = renderHook(() => useTradeHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -61,7 +61,7 @@ describe('useTradeHistory', () => {
   it('refetches when refetch is called', async () => {
     mockFetchTradeHistory.mockResolvedValue([trade])
 
-    const { result } = renderHook(() => useTradeHistory('port-1'))
+    const { result } = renderHook(() => useTradeHistory('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -79,27 +79,27 @@ describe('useTradeHistory', () => {
     })
   })
 
-  it('refetches when portfolioId changes', async () => {
+  it('refetches when bookId changes', async () => {
     mockFetchTradeHistory.mockResolvedValue([trade])
 
     const { result, rerender } = renderHook(
       ({ id }: { id: string | null }) => useTradeHistory(id),
-      { initialProps: { id: 'port-1' } },
+      { initialProps: { id: 'book-1' } },
     )
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    const trade2: TradeHistoryDto = { ...trade, portfolioId: 'port-2', tradeId: 't-2' }
+    const trade2: TradeHistoryDto = { ...trade, bookId: 'book-2', tradeId: 't-2' }
     mockFetchTradeHistory.mockResolvedValue([trade2])
 
-    rerender({ id: 'port-2' })
+    rerender({ id: 'book-2' })
 
     await waitFor(() => {
       expect(result.current.trades).toEqual([trade2])
     })
 
-    expect(mockFetchTradeHistory).toHaveBeenCalledWith('port-2')
+    expect(mockFetchTradeHistory).toHaveBeenCalledWith('book-2')
   })
 })

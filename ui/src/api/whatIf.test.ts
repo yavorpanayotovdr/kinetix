@@ -48,27 +48,27 @@ describe('whatIf API', () => {
         json: () => Promise.resolve(whatIfResponse),
       })
 
-      const result = await runWhatIfAnalysis('port-1', request)
+      const result = await runWhatIfAnalysis('book-1', request)
 
       expect(result).toEqual(whatIfResponse)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/what-if/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/what-if/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       })
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve(whatIfResponse),
       })
 
-      await runWhatIfAnalysis('port/special & id', request)
+      await runWhatIfAnalysis('book/special & id', request)
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/what-if/port%2Fspecial%20%26%20id',
+        '/api/v1/risk/what-if/book%2Fspecial%20%26%20id',
         expect.objectContaining({ method: 'POST' }),
       )
     })
@@ -80,7 +80,7 @@ describe('whatIf API', () => {
         statusText: 'Not Found',
       })
 
-      await expect(runWhatIfAnalysis('port-1', request)).rejects.toThrow(
+      await expect(runWhatIfAnalysis('book-1', request)).rejects.toThrow(
         'Failed to run what-if analysis: 404 Not Found',
       )
     })
@@ -92,7 +92,7 @@ describe('whatIf API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(runWhatIfAnalysis('port-1', request)).rejects.toThrow(
+      await expect(runWhatIfAnalysis('book-1', request)).rejects.toThrow(
         'Failed to run what-if analysis: 500 Internal Server Error',
       )
     })

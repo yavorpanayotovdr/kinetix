@@ -7,7 +7,7 @@ vi.mock('./hooks/usePriceStream')
 vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useSystemHealth')
 vi.mock('./hooks/useStressTest')
-vi.mock('./hooks/usePortfolioSelector')
+vi.mock('./hooks/useBookSelector')
 vi.mock('./hooks/useDataQuality')
 vi.mock('./hooks/useWorkspace')
 vi.mock('./components/TradeBlotter', () => ({
@@ -29,7 +29,7 @@ import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useStressTest } from './hooks/useStressTest'
-import { usePortfolioSelector } from './hooks/usePortfolioSelector'
+import { useBookSelector } from './hooks/useBookSelector'
 import { useDataQuality } from './hooks/useDataQuality'
 import { useWorkspace, DEFAULT_PREFERENCES } from './hooks/useWorkspace'
 
@@ -38,12 +38,12 @@ const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
 const mockUseStressTest = vi.mocked(useStressTest)
-const mockUsePortfolioSelector = vi.mocked(usePortfolioSelector)
+const mockUseBookSelector = vi.mocked(useBookSelector)
 const mockUseDataQuality = vi.mocked(useDataQuality)
 const mockUseWorkspace = vi.mocked(useWorkspace)
 
 const position: PositionDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   instrumentId: 'AAPL',
   assetClass: 'EQUITY',
   quantity: '100',
@@ -53,14 +53,14 @@ const position: PositionDto = {
   unrealizedPnl: { amount: '500.00', currency: 'USD' },
 }
 
-const selectPortfolio = vi.fn()
+const selectBook = vi.fn()
 
 function setupDefaults() {
   mockUsePositions.mockReturnValue({
     positions: [position],
-    portfolioId: 'port-1',
-    portfolios: ['port-1', 'port-2', 'port-3'],
-    selectPortfolio,
+    bookId: 'book-1',
+    books: ['book-1', 'book-2', 'book-3'],
+    selectBook,
     loading: false,
     error: null,
   })
@@ -98,18 +98,18 @@ function setupDefaults() {
     error: null,
     run: vi.fn(),
   })
-  mockUsePortfolioSelector.mockReturnValue({
-    portfolioOptions: [
-      { value: '__ALL__', label: 'All Portfolios' },
-      { value: 'port-1', label: 'port-1' },
-      { value: 'port-2', label: 'port-2' },
+  mockUseBookSelector.mockReturnValue({
+    bookOptions: [
+      { value: '__ALL__', label: 'All Books' },
+      { value: 'book-1', label: 'book-1' },
+      { value: 'book-2', label: 'book-2' },
     ],
-    selectedPortfolioId: 'port-1',
+    selectedBookId: 'book-1',
     isAllSelected: false,
-    allPortfolioIds: ['port-1', 'port-2'],
+    allBookIds: ['book-1', 'book-2'],
     positions: [position],
     aggregatedPositions: [],
-    selectPortfolio: vi.fn(),
+    selectBook: vi.fn(),
     loading: false,
     error: null,
   })
@@ -131,19 +131,19 @@ describe('App', () => {
     setupDefaults()
   })
 
-  it('renders Kinetix heading and portfolio selector', () => {
+  it('renders Kinetix heading and book selector', () => {
     render(<App />)
 
     expect(screen.getByText('Kinetix')).toBeInTheDocument()
-    expect(screen.getByTestId('portfolio-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('book-selector')).toBeInTheDocument()
   })
 
   it('shows loading message while fetching', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
-      portfolioId: null,
-      portfolios: [],
-      selectPortfolio,
+      bookId: null,
+      books: [],
+      selectBook,
       loading: true,
       error: null,
     })
@@ -156,9 +156,9 @@ describe('App', () => {
   it('shows error message on failure', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
-      portfolioId: null,
-      portfolios: [],
-      selectPortfolio,
+      bookId: null,
+      books: [],
+      selectBook,
       loading: false,
       error: 'Network error',
     })
@@ -224,14 +224,14 @@ describe('App', () => {
     expect(screen.getByTestId('notification-center')).toBeInTheDocument()
   })
 
-  it('portfolio selector calls selectPortfolio', () => {
+  it('book selector calls selectBook', () => {
     render(<App />)
 
-    fireEvent.change(screen.getByTestId('portfolio-selector'), {
-      target: { value: 'port-2' },
+    fireEvent.change(screen.getByTestId('book-selector'), {
+      target: { value: 'book-2' },
     })
 
-    expect(selectPortfolio).toHaveBeenCalledWith('port-2')
+    expect(selectBook).toHaveBeenCalledWith('book-2')
   })
 
   it('shows alert count badge when alerts exist', () => {
@@ -247,7 +247,7 @@ describe('App', () => {
           message: 'VaR exceeded threshold',
           currentValue: 150000,
           threshold: 100000,
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggeredAt: '2025-01-15T10:00:00Z',
         },
       ],
@@ -309,9 +309,9 @@ describe('App', () => {
   it('System tab renders even when positions are loading', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
-      portfolioId: null,
-      portfolios: [],
-      selectPortfolio,
+      bookId: null,
+      books: [],
+      selectBook,
       loading: true,
       error: null,
     })
@@ -327,9 +327,9 @@ describe('App', () => {
   it('System tab renders even when positions have an error', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
-      portfolioId: null,
-      portfolios: [],
-      selectPortfolio,
+      bookId: null,
+      books: [],
+      selectBook,
       loading: false,
       error: 'Network error',
     })

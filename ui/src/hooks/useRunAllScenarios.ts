@@ -17,7 +17,7 @@ export interface UseRunAllScenariosResult {
   appendResult: (result: StressTestResultDto) => void
 }
 
-export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenariosResult {
+export function useRunAllScenarios(bookId: string | null): UseRunAllScenariosResult {
   const [scenarios, setScenarios] = useState<string[]>([])
   const [results, setResults] = useState<StressTestResultDto[]>([])
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null)
@@ -46,14 +46,14 @@ export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenari
     setResults([])
     setSelectedScenario(null)
     setError(null)
-  }, [portfolioId])
+  }, [bookId])
 
   const runAll = useCallback(async () => {
-    if (!portfolioId || scenarios.length === 0) return
+    if (!bookId || scenarios.length === 0) return
     setLoading(true)
     setError(null)
     try {
-      const data = await runAllStressTests(portfolioId, scenarios, {
+      const data = await runAllStressTests(bookId, scenarios, {
         confidenceLevel,
         timeHorizonDays,
       })
@@ -66,7 +66,7 @@ export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenari
     } finally {
       setLoading(false)
     }
-  }, [portfolioId, scenarios, confidenceLevel, timeHorizonDays])
+  }, [bookId, scenarios, confidenceLevel, timeHorizonDays])
 
   const appendResult = useCallback((result: StressTestResultDto) => {
     setResults((prev) => {

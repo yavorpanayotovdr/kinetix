@@ -13,7 +13,7 @@ describe('risk API', () => {
   })
 
   const varResult = {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     calculationType: 'HISTORICAL',
     confidenceLevel: 'CL_95',
     varValue: '1234567.89',
@@ -32,10 +32,10 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      const result = await fetchVaR('port-1')
+      const result = await fetchVaR('book-1')
 
       expect(result).toEqual(varResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1')
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/book-1')
     })
 
     it('returns null on 404', async () => {
@@ -45,7 +45,7 @@ describe('risk API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchVaR('port-1')
+      const result = await fetchVaR('book-1')
 
       expect(result).toBeNull()
     })
@@ -57,22 +57,22 @@ describe('risk API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchVaR('port-1')).rejects.toThrow(
+      await expect(fetchVaR('book-1')).rejects.toThrow(
         'Failed to fetch VaR: 500 Internal Server Error',
       )
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve(varResult),
       })
 
-      await fetchVaR('port/special & id')
+      await fetchVaR('book/special & id')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/var/port%2Fspecial%20%26%20id',
+        '/api/v1/risk/var/book%2Fspecial%20%26%20id',
       )
     })
 
@@ -83,10 +83,10 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      await fetchVaR('port-1', '2025-03-10')
+      await fetchVaR('book-1', '2025-03-10')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/var/port-1?valuationDate=2025-03-10',
+        '/api/v1/risk/var/book-1?valuationDate=2025-03-10',
       )
     })
 
@@ -97,9 +97,9 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      await fetchVaR('port-1', null)
+      await fetchVaR('book-1', null)
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1')
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/book-1')
     })
 
     it('does not append valuationDate when undefined', async () => {
@@ -109,9 +109,9 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      await fetchVaR('port-1')
+      await fetchVaR('book-1')
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1')
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/book-1')
     })
   })
 
@@ -123,10 +123,10 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      const result = await triggerVaRCalculation('port-1')
+      const result = await triggerVaRCalculation('book-1')
 
       expect(result).toEqual(varResult)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestedOutputs: ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'] }),
@@ -140,12 +140,12 @@ describe('risk API', () => {
         json: () => Promise.resolve(varResult),
       })
 
-      await triggerVaRCalculation('port-1', {
+      await triggerVaRCalculation('book-1', {
         calculationType: 'MONTE_CARLO',
         confidenceLevel: 'CL_99',
       })
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/port-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/var/book-1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -163,7 +163,7 @@ describe('risk API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await triggerVaRCalculation('port-1')
+      const result = await triggerVaRCalculation('book-1')
 
       expect(result).toBeNull()
     })
@@ -175,7 +175,7 @@ describe('risk API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(triggerVaRCalculation('port-1')).rejects.toThrow(
+      await expect(triggerVaRCalculation('book-1')).rejects.toThrow(
         '500 Internal Server Error',
       )
     })
@@ -203,10 +203,10 @@ describe('risk API', () => {
         json: () => Promise.resolve(positionRiskData),
       })
 
-      const result = await fetchPositionRisk('port-1')
+      const result = await fetchPositionRisk('book-1')
 
       expect(result).toEqual(positionRiskData)
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/port-1')
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/book-1')
     })
 
     it('returns empty array on 404', async () => {
@@ -216,7 +216,7 @@ describe('risk API', () => {
         statusText: 'Not Found',
       })
 
-      const result = await fetchPositionRisk('port-1')
+      const result = await fetchPositionRisk('book-1')
 
       expect(result).toEqual([])
     })
@@ -228,22 +228,22 @@ describe('risk API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchPositionRisk('port-1')).rejects.toThrow(
+      await expect(fetchPositionRisk('book-1')).rejects.toThrow(
         'Failed to fetch position risk: 500 Internal Server Error',
       )
     })
 
-    it('URL-encodes the portfolioId', async () => {
+    it('URL-encodes the bookId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         json: () => Promise.resolve([]),
       })
 
-      await fetchPositionRisk('port/special & id')
+      await fetchPositionRisk('book/special & id')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/positions/port%2Fspecial%20%26%20id',
+        '/api/v1/risk/positions/book%2Fspecial%20%26%20id',
       )
     })
 
@@ -254,10 +254,10 @@ describe('risk API', () => {
         json: () => Promise.resolve(positionRiskData),
       })
 
-      await fetchPositionRisk('port-1', '2025-03-10')
+      await fetchPositionRisk('book-1', '2025-03-10')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/positions/port-1?valuationDate=2025-03-10',
+        '/api/v1/risk/positions/book-1?valuationDate=2025-03-10',
       )
     })
 
@@ -268,9 +268,9 @@ describe('risk API', () => {
         json: () => Promise.resolve(positionRiskData),
       })
 
-      await fetchPositionRisk('port-1', null)
+      await fetchPositionRisk('book-1', null)
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/port-1')
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/risk/positions/book-1')
     })
   })
 

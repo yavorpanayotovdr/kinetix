@@ -13,7 +13,7 @@ const whatIfResponse: WhatIfResponseDto = {
   baseVaR: '100000.00',
   baseExpectedShortfall: '130000.00',
   baseGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '50000.00', gamma: '1200.00', vega: '8000.00' },
     ],
@@ -25,7 +25,7 @@ const whatIfResponse: WhatIfResponseDto = {
   hypotheticalVaR: '85000.00',
   hypotheticalExpectedShortfall: '110000.00',
   hypotheticalGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '45000.00', gamma: '1100.00', vega: '7500.00' },
     ],
@@ -45,7 +45,7 @@ describe('useWhatIf', () => {
   })
 
   it('initialises with one empty trade in the form', () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     expect(result.current.trades).toHaveLength(1)
     expect(result.current.trades[0].instrumentId).toBe('')
@@ -58,7 +58,7 @@ describe('useWhatIf', () => {
   })
 
   it('adds a trade to the form', () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.addTrade()
@@ -68,7 +68,7 @@ describe('useWhatIf', () => {
   })
 
   it('removes a trade from the form', () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.addTrade()
@@ -84,7 +84,7 @@ describe('useWhatIf', () => {
   })
 
   it('does not remove the last trade', () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     expect(result.current.trades).toHaveLength(1)
 
@@ -96,7 +96,7 @@ describe('useWhatIf', () => {
   })
 
   it('updates a trade field', () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -120,7 +120,7 @@ describe('useWhatIf', () => {
   it('submits the form and returns results', async () => {
     mockRunWhatIfAnalysis.mockResolvedValue(whatIfResponse)
 
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -138,7 +138,7 @@ describe('useWhatIf', () => {
     })
 
     expect(result.current.result).toEqual(whatIfResponse)
-    expect(mockRunWhatIfAnalysis).toHaveBeenCalledWith('port-1', {
+    expect(mockRunWhatIfAnalysis).toHaveBeenCalledWith('book-1', {
       hypotheticalTrades: [
         {
           instrumentId: 'SPY',
@@ -155,7 +155,7 @@ describe('useWhatIf', () => {
   it('sets error when submission fails', async () => {
     mockRunWhatIfAnalysis.mockRejectedValue(new Error('Analysis failed'))
 
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -179,7 +179,7 @@ describe('useWhatIf', () => {
   it('resets the form state', async () => {
     mockRunWhatIfAnalysis.mockResolvedValue(whatIfResponse)
 
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -214,7 +214,7 @@ describe('useWhatIf', () => {
   it('computes impact from results', async () => {
     mockRunWhatIfAnalysis.mockResolvedValue(whatIfResponse)
 
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -246,7 +246,7 @@ describe('useWhatIf', () => {
     expect(result.current.impact!.rhoChange).toBe(-20)
   })
 
-  it('does not submit when portfolioId is null', async () => {
+  it('does not submit when bookId is null', async () => {
     const { result } = renderHook(() => useWhatIf(null))
 
     await act(async () => {
@@ -257,7 +257,7 @@ describe('useWhatIf', () => {
   })
 
   it('rejects submission with empty instrumentId and sets validation errors', async () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     // Leave instrumentId empty but fill other fields
     act(() => {
@@ -274,7 +274,7 @@ describe('useWhatIf', () => {
   })
 
   it('rejects submission with non-numeric quantity', async () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -291,7 +291,7 @@ describe('useWhatIf', () => {
   })
 
   it('rejects submission with negative price', async () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')
@@ -308,7 +308,7 @@ describe('useWhatIf', () => {
   })
 
   it('clears validation errors on reset', async () => {
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     // Trigger validation errors
     await act(async () => {
@@ -329,7 +329,7 @@ describe('useWhatIf', () => {
       new Error('Failed to run what-if analysis: 502 Bad Gateway'),
     )
 
-    const { result } = renderHook(() => useWhatIf('port-1'))
+    const { result } = renderHook(() => useWhatIf('book-1'))
 
     act(() => {
       result.current.updateTrade(0, 'instrumentId', 'SPY')

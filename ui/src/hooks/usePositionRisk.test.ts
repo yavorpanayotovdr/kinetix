@@ -46,10 +46,10 @@ describe('usePositionRisk', () => {
     vi.resetAllMocks()
   })
 
-  it('fetches position risk data on mount when portfolioId is provided', async () => {
+  it('fetches position risk data on mount when bookId is provided', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
-    const { result } = renderHook(() => usePositionRisk('port-1'))
+    const { result } = renderHook(() => usePositionRisk('book-1'))
 
     expect(result.current.loading).toBe(true)
 
@@ -57,12 +57,12 @@ describe('usePositionRisk', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-1', null)
     expect(result.current.positionRisk).toEqual(positionRiskData)
     expect(result.current.error).toBeNull()
   })
 
-  it('does not fetch when portfolioId is null', () => {
+  it('does not fetch when bookId is null', () => {
     const { result } = renderHook(() => usePositionRisk(null))
 
     expect(mockFetchPositionRisk).not.toHaveBeenCalled()
@@ -73,7 +73,7 @@ describe('usePositionRisk', () => {
   it('sets error on fetch failure', async () => {
     mockFetchPositionRisk.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => usePositionRisk('port-1'))
+    const { result } = renderHook(() => usePositionRisk('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -83,58 +83,58 @@ describe('usePositionRisk', () => {
     expect(result.current.positionRisk).toEqual([])
   })
 
-  it('re-fetches when portfolioId changes', async () => {
+  it('re-fetches when bookId changes', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
     const { result, rerender } = renderHook(
-      ({ portfolioId }) => usePositionRisk(portfolioId),
-      { initialProps: { portfolioId: 'port-1' as string | null } },
+      ({ bookId }) => usePositionRisk(bookId),
+      { initialProps: { bookId: 'book-1' as string | null } },
     )
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-1', null)
 
     mockFetchPositionRisk.mockResolvedValue([])
-    rerender({ portfolioId: 'port-2' })
+    rerender({ bookId: 'book-2' })
 
     await waitFor(() => {
-      expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-2', null)
+      expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-2', null)
     })
   })
 
   it('passes valuationDate to fetchPositionRisk when provided', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
-    const { result } = renderHook(() => usePositionRisk('port-1', '2025-03-10'))
+    const { result } = renderHook(() => usePositionRisk('book-1', '2025-03-10'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', '2025-03-10')
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-1', '2025-03-10')
   })
 
   it('passes null valuationDate to fetchPositionRisk when omitted', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
-    const { result } = renderHook(() => usePositionRisk('port-1'))
+    const { result } = renderHook(() => usePositionRisk('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', null)
+    expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-1', null)
   })
 
   it('re-fetches when valuationDate changes', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
     const { result, rerender } = renderHook(
-      ({ portfolioId, valuationDate }) => usePositionRisk(portfolioId, valuationDate),
-      { initialProps: { portfolioId: 'port-1' as string | null, valuationDate: null as string | null } },
+      ({ bookId, valuationDate }) => usePositionRisk(bookId, valuationDate),
+      { initialProps: { bookId: 'book-1' as string | null, valuationDate: null as string | null } },
     )
 
     await waitFor(() => {
@@ -144,17 +144,17 @@ describe('usePositionRisk', () => {
     expect(mockFetchPositionRisk).toHaveBeenCalledTimes(1)
 
     mockFetchPositionRisk.mockResolvedValue([])
-    rerender({ portfolioId: 'port-1', valuationDate: '2025-03-10' })
+    rerender({ bookId: 'book-1', valuationDate: '2025-03-10' })
 
     await waitFor(() => {
-      expect(mockFetchPositionRisk).toHaveBeenCalledWith('port-1', '2025-03-10')
+      expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-1', '2025-03-10')
     })
   })
 
   it('refreshes data when refresh is called', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
-    const { result } = renderHook(() => usePositionRisk('port-1'))
+    const { result } = renderHook(() => usePositionRisk('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -176,7 +176,7 @@ describe('usePositionRisk', () => {
   it('does not flash loading state during refresh', async () => {
     mockFetchPositionRisk.mockResolvedValue(positionRiskData)
 
-    const { result } = renderHook(() => usePositionRisk('port-1'))
+    const { result } = renderHook(() => usePositionRisk('book-1'))
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)

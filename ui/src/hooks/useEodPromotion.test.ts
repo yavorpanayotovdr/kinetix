@@ -15,7 +15,7 @@ const mockDemote = vi.mocked(api.demoteOfficialEod)
 function makeResponse(overrides: Partial<api.EodPromotionResponse> = {}): api.EodPromotionResponse {
   return {
     jobId: 'job-1',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     valuationDate: '2026-03-13',
     runLabel: 'OFFICIAL_EOD',
     promotedAt: '2026-03-13T18:00:00Z',
@@ -52,7 +52,7 @@ describe('useEodPromotion', () => {
   })
 
   it('transitions to error state on 409 conflict', async () => {
-    const err = new Error('An Official EOD already exists for portfolio port-1 on 2026-03-13') as Error & { status: number }
+    const err = new Error('An Official EOD already exists for book book-1 on 2026-03-13') as Error & { status: number }
     err.status = 409
     mockPromote.mockRejectedValue(err)
     const { result } = renderHook(() => useEodPromotion())

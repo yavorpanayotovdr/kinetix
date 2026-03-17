@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchPortfolios, fetchPositions } from '../api/positions'
+import { fetchBooks, fetchPositions } from '../api/positions'
 import type { PositionDto } from '../types'
 
 export interface UsePositionsResult {
   positions: PositionDto[]
-  portfolioId: string | null
-  portfolios: string[]
-  selectPortfolio: (id: string) => void
+  bookId: string | null
+  books: string[]
+  selectBook: (id: string) => void
   loading: boolean
   error: string | null
 }
 
 export function usePositions(): UsePositionsResult {
   const [positions, setPositions] = useState<PositionDto[]>([])
-  const [portfolioId, setPortfolioId] = useState<string | null>(null)
-  const [portfolios, setPortfolios] = useState<string[]>([])
+  const [bookId, setBookId] = useState<string | null>(null)
+  const [books, setBooks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,21 +23,21 @@ export function usePositions(): UsePositionsResult {
 
     async function load() {
       try {
-        const portfolioList = await fetchPortfolios()
+        const bookList = await fetchBooks()
         if (cancelled) return
 
-        const ids = portfolioList.map((p) => p.portfolioId).sort()
-        setPortfolios(ids)
+        const ids = bookList.map((b) => b.bookId).sort()
+        setBooks(ids)
 
-        if (portfolioList.length === 0) {
+        if (bookList.length === 0) {
           setLoading(false)
           return
         }
 
-        const firstPortfolioId = portfolioList[0].portfolioId
-        setPortfolioId(firstPortfolioId)
+        const firstBookId = bookList[0].bookId
+        setBookId(firstBookId)
 
-        const positionData = await fetchPositions(firstPortfolioId)
+        const positionData = await fetchPositions(firstBookId)
         if (cancelled) return
 
         setPositions(positionData)
@@ -58,8 +58,8 @@ export function usePositions(): UsePositionsResult {
     }
   }, [])
 
-  const selectPortfolio = useCallback(async (id: string) => {
-    setPortfolioId(id)
+  const selectBook = useCallback(async (id: string) => {
+    setBookId(id)
     setLoading(true)
     setError(null)
     try {
@@ -72,5 +72,5 @@ export function usePositions(): UsePositionsResult {
     }
   }, [])
 
-  return { positions, portfolioId, portfolios, selectPortfolio, loading, error }
+  return { positions, bookId, books, selectBook, loading, error }
 }
