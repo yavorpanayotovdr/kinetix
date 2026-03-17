@@ -19,9 +19,9 @@ export function buildSearchableText(
   ]
 
   if (detail) {
-    for (const step of detail.phases) {
-      parts.push(...Object.values(step.details))
-      if (step.error) parts.push(step.error)
+    for (const phase of detail.phases) {
+      parts.push(...Object.values(phase.details))
+      if (phase.error) parts.push(phase.error)
     }
     if (detail.error) parts.push(detail.error)
   }

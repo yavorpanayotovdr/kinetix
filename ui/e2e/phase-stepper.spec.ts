@@ -67,7 +67,7 @@ test.describe('Phase stepper', () => {
     await expect(stepper).toBeVisible()
 
     const dots = stepper.locator('[data-testid^="phase-dot-"]')
-    await expect(dots).toHaveCount(3)
+    await expect(dots).toHaveCount(5)
   })
 
   test('highlights the correct dot for the current phase', async ({ page }) => {
@@ -81,21 +81,28 @@ test.describe('Phase stepper', () => {
     await page.goto('/')
     await page.getByTestId('tab-risk').click()
 
-    // FETCH_MARKET_DATA maps to visual phase index 1 (market-data)
-    // Position dot (index 0) should be completed (solid blue)
-    const positionsDot = page.getByTestId('phase-dot-positions')
-    await expect(positionsDot).toBeVisible()
-    await expect(positionsDot).toHaveClass(/bg-blue-400/)
+    // FETCH_POSITIONS and DISCOVER_DEPENDENCIES should be completed (solid blue)
+    const fetchPositionsDot = page.getByTestId('phase-dot-FETCH_POSITIONS')
+    await expect(fetchPositionsDot).toBeVisible()
+    await expect(fetchPositionsDot).toHaveClass(/bg-blue-400/)
 
-    // Market data dot (index 1) should be active (pulsing)
-    const marketDataDot = page.getByTestId('phase-dot-market-data')
+    const discoverDepsDot = page.getByTestId('phase-dot-DISCOVER_DEPENDENCIES')
+    await expect(discoverDepsDot).toBeVisible()
+    await expect(discoverDepsDot).toHaveClass(/bg-blue-400/)
+
+    // FETCH_MARKET_DATA should be active (pulsing)
+    const marketDataDot = page.getByTestId('phase-dot-FETCH_MARKET_DATA')
     await expect(marketDataDot).toBeVisible()
     await expect(marketDataDot).toHaveClass(/animate-pulse/)
 
-    // Valuation dot (index 2) should be pending (grey)
-    const valuationDot = page.getByTestId('phase-dot-valuation')
+    // VALUATION and PUBLISH_RESULT should be pending (grey)
+    const valuationDot = page.getByTestId('phase-dot-VALUATION')
     await expect(valuationDot).toBeVisible()
     await expect(valuationDot).toHaveClass(/bg-slate-200/)
+
+    const publishDot = page.getByTestId('phase-dot-PUBLISH_RESULT')
+    await expect(publishDot).toBeVisible()
+    await expect(publishDot).toHaveClass(/bg-slate-200/)
   })
 
   test('does not show phase stepper for COMPLETED jobs', async ({ page }) => {
@@ -124,7 +131,7 @@ test.describe('Phase stepper', () => {
     await page.getByTestId('tab-risk').click()
 
     const label = page.getByTestId('phase-label')
-    await expect(label).toHaveText('Fetching Market Data')
+    await expect(label).toHaveText('Fetch Market Data')
   })
 
   test('expanded detail shows phases timeline not steps', async ({ page }) => {
@@ -185,7 +192,7 @@ test.describe('Phase stepper', () => {
 
     const summary = page.getByTestId('job-history-summary')
     await expect(summary).toContainText('Running')
-    await expect(summary).toContainText('Fetching Market Data')
+    await expect(summary).toContainText('Fetch Market Data')
   })
 
   test('auto-refreshes detail panel for running job', async ({ page }) => {

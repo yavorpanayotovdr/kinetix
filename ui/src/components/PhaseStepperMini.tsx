@@ -1,35 +1,18 @@
+import { PHASE_LABELS, PHASE_ORDER } from '../constants/phaseLabels'
+
 interface PhaseStepperMiniProps {
   currentPhase: string
   failed?: boolean
 }
 
-interface VisualPhase {
-  key: string
-  label: string
-  phases: string[]
-}
-
-const VISUAL_PHASES: VisualPhase[] = [
-  { key: 'positions', label: 'Loading Positions', phases: ['FETCH_POSITIONS', 'DISCOVER_DEPENDENCIES'] },
-  { key: 'market-data', label: 'Fetching Market Data', phases: ['FETCH_MARKET_DATA'] },
-  { key: 'valuation', label: 'Calculating Risk', phases: ['VALUATION', 'PUBLISH_RESULT'] },
-]
-
-function getVisualIndex(phase: string): number {
-  for (let i = 0; i < VISUAL_PHASES.length; i++) {
-    if (VISUAL_PHASES[i].phases.includes(phase)) return i
-  }
-  return -1
-}
-
 export function PhaseStepperMini({ currentPhase, failed = false }: PhaseStepperMiniProps) {
-  const activeIndex = getVisualIndex(currentPhase)
-  const activeLabel = activeIndex >= 0 ? VISUAL_PHASES[activeIndex].label : currentPhase
+  const activeIndex = PHASE_ORDER.indexOf(currentPhase)
+  const activeLabel = activeIndex >= 0 ? PHASE_LABELS[currentPhase] : currentPhase
 
   return (
     <div data-testid="phase-stepper-mini" role="group" aria-label="Job phases" className="mt-1">
       <div className="flex items-center gap-0.5">
-        {VISUAL_PHASES.map((vp, i) => {
+        {PHASE_ORDER.map((phase, i) => {
           const isCompleted = i < activeIndex
           const isActive = i === activeIndex
           const isPending = i > activeIndex
@@ -45,19 +28,19 @@ export function PhaseStepperMini({ currentPhase, failed = false }: PhaseStepperM
             dotClass = 'bg-slate-200 h-2 w-2 rounded-full'
           }
 
-          const connectorClass = i < VISUAL_PHASES.length - 1
+          const connectorClass = i < PHASE_ORDER.length - 1
             ? (isCompleted ? 'bg-blue-300' : 'bg-slate-200')
             : ''
 
           return (
-            <div key={vp.key} className="flex items-center gap-0.5">
+            <div key={phase} className="flex items-center gap-0.5">
               <span
-                data-testid={`phase-dot-${vp.key}`}
+                data-testid={`phase-dot-${phase}`}
                 className={`inline-block transition-colors duration-300 ${dotClass}`}
-                aria-label={`${vp.label}: ${isCompleted ? 'completed' : isActive ? (failed ? 'failed' : 'active') : 'pending'}`}
+                aria-label={`${PHASE_LABELS[phase]}: ${isCompleted ? 'completed' : isActive ? (failed ? 'failed' : 'active') : 'pending'}`}
               />
               {isPending || isCompleted || isActive ? null : null}
-              {i < VISUAL_PHASES.length - 1 && (
+              {i < PHASE_ORDER.length - 1 && (
                 <span className={`inline-block w-3 h-px transition-colors duration-300 ${connectorClass}`} />
               )}
             </div>

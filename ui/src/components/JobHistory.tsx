@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search, Star } from 'lucide-react'
 
 import type { ValuationJobSummaryDto } from '../types'
+import { PHASE_LABELS } from '../constants/phaseLabels'
 import { useJobHistory } from '../hooks/useJobHistory'
 import { chartPointsToBuckets } from '../utils/timeBuckets'
 import { jobMatchesSearch } from '../utils/jobSearch'
@@ -20,13 +21,6 @@ function formatJobTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-const PHASE_DISPLAY: Record<string, string> = {
-  FETCH_POSITIONS: 'Loading Positions',
-  DISCOVER_DEPENDENCIES: 'Loading Positions',
-  FETCH_MARKET_DATA: 'Fetching Market Data',
-  VALUATION: 'Calculating Risk',
-  PUBLISH_RESULT: 'Calculating Risk',
-}
 
 function formatElapsed(iso: string): string {
   const ms = Math.max(0, Date.now() - new Date(iso).getTime())
@@ -39,7 +33,7 @@ function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): s
   if (runs.length === 0) return 'No calculations'
   const running = runs.find((r) => r.status === 'RUNNING')
   if (running && running.currentPhase) {
-    const label = PHASE_DISPLAY[running.currentPhase] ?? running.currentPhase
+    const label = PHASE_LABELS[running.currentPhase] ?? running.currentPhase
     return `Running: ${label} (${formatElapsed(running.startedAt)}) · ${totalCount} job${totalCount !== 1 ? 's' : ''}`
   }
   const last = runs[0]
@@ -146,7 +140,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
 
   const runningJob = runs.find((r) => r.status === 'RUNNING')
   const runningPhaseLabel = runningJob?.currentPhase
-    ? (PHASE_DISPLAY[runningJob.currentPhase] ?? runningJob.currentPhase)
+    ? (PHASE_LABELS[runningJob.currentPhase] ?? runningJob.currentPhase)
     : ''
   const [liveText, setLiveText] = useState('')
   const prevPhaseRef = useRef(runningPhaseLabel)

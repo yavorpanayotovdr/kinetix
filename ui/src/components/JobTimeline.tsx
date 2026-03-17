@@ -2,18 +2,11 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Check, Search } from 'lucide-react'
 import type { JobPhaseDto } from '../types'
 import { formatDuration } from '../utils/format'
+import { PHASE_LABELS } from '../constants/phaseLabels'
 
 interface JobTimelineProps {
   phases: JobPhaseDto[]
   search?: string
-}
-
-const PHASE_LABELS: Record<string, string> = {
-  FETCH_POSITIONS: 'Fetch Positions',
-  DISCOVER_DEPENDENCIES: 'Discover Dependencies',
-  FETCH_MARKET_DATA: 'Fetch Dependencies',
-  VALUATION: 'Valuation',
-  PUBLISH_RESULT: 'Publish Result',
 }
 
 function StatusDotInline({ status }: { status: string }) {
@@ -25,18 +18,18 @@ function StatusDotInline({ status }: { status: string }) {
         : status === 'FAILED'
           ? 'bg-red-500'
           : 'bg-blue-400 animate-pulse'
-  return <span data-testid={`step-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
+  return <span data-testid={`phase-status-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
 }
 
-function effectiveStepStatus(step: JobPhaseDto): string {
-  if (step.status !== 'COMPLETED') return step.status
-  const raw = step.details['marketDataItems']
-  if (!raw) return step.status
+function effectivePhaseStatus(phase: JobPhaseDto): string {
+  if (phase.status !== 'COMPLETED') return phase.status
+  const raw = phase.details['marketDataItems']
+  if (!raw) return phase.status
   try {
     const items = JSON.parse(raw) as { status: string }[]
     if (items.some((i) => i.status === 'MISSING')) return 'PARTIAL'
   } catch { /* ignore */ }
-  return step.status
+  return phase.status
 }
 
 function CopyButton({ text, testId }: { text: string; testId: string }) {
@@ -86,10 +79,10 @@ interface MarketDataItem {
   [key: string]: string | Record<string, string> | undefined
 }
 
-function stepMatchesSearch(step: JobPhaseDto, term: string): boolean {
+function phaseMatchesSearch(phase: JobPhaseDto, term: string): boolean {
   const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
-  const parts = [PHASE_LABELS[step.name] ?? step.name, ...Object.values(step.details)]
-  if (step.error) parts.push(step.error)
+  const parts = [PHASE_LABELS[phase.name] ?? phase.name, ...Object.values(phase.details)]
+  if (phase.error) parts.push(phase.error)
   const text = parts.join(' ').toLowerCase()
   return tokens.every((t) => text.includes(t))
 }
@@ -131,8 +124,8 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
     setExpandedItems((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const setItemFilter = (stepName: string, value: string) => {
-    setItemFilters((prev) => ({ ...prev, [stepName]: value }))
+  const setItemFilter = (phaseName: string, value: string) => {
+    setItemFilters((prev) => ({ ...prev, [phaseName]: value }))
   }
 
   const parsePositions = (details: Record<string, string>): PositionItem[] | null => {
@@ -185,14 +178,14 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
     }
   }
 
-  const filteredSteps = isSearchActive
-    ? phases.filter((step) => stepMatchesSearch(step, search))
+  const filteredPhases = isSearchActive
+    ? phases.filter((phase) => phaseMatchesSearch(phase, search))
     : phases
 
-  if (isSearchActive && filteredSteps.length === 0) {
+  if (isSearchActive && filteredPhases.length === 0) {
     return (
       <div data-testid="job-timeline" className="relative pl-4">
-        <p className="text-xs text-slate-400 py-2">No steps match your search.</p>
+        <p className="text-xs text-slate-400 py-2">No phases match your search.</p>
       </div>
     )
   }
@@ -200,39 +193,39 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
   return (
     <div data-testid="job-timeline" className="relative pl-4">
       <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-300" />
-      {filteredSteps.map((step) => {
-        const stepIndex = phases.indexOf(step)
-        const isOpen = isSearchActive || (expanded[stepIndex] ?? false)
-        const hasDetails = Object.keys(step.details).length > 0
-        const filter = itemFilters[step.name] ?? ''
+      {filteredPhases.map((phase) => {
+        const phaseIndex = phases.indexOf(phase)
+        const isOpen = isSearchActive || (expanded[phaseIndex] ?? false)
+        const hasDetails = Object.keys(phase.details).length > 0
+        const filter = itemFilters[phase.name] ?? ''
 
         return (
-          <div key={stepIndex} data-testid={`job-phase-${step.name}`} className="relative mb-3 last:mb-0">
+          <div key={phaseIndex} data-testid={`job-phase-${phase.name}`} className="relative mb-3 last:mb-0">
             <div
-              data-testid={`toggle-${step.name}`}
-              onClick={hasDetails ? () => toggle(stepIndex) : undefined}
+              data-testid={`toggle-${phase.name}`}
+              onClick={hasDetails ? () => toggle(phaseIndex) : undefined}
               className={`flex items-center gap-2${hasDetails ? ' cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded' : ''}`}
             >
-              <StatusDotInline status={effectiveStepStatus(step)} />
+              <StatusDotInline status={effectivePhaseStatus(phase)} />
               {hasDetails && (
                 isOpen ? <ChevronDown className="h-3 w-3 text-slate-400" /> : <ChevronRight className="h-3 w-3 text-slate-400" />
               )}
               <span className="text-sm font-medium text-slate-700">
-                {PHASE_LABELS[step.name] ?? step.name}
+                {PHASE_LABELS[phase.name] ?? phase.name}
               </span>
-              {step.durationMs != null && (
-                <span className="text-xs text-slate-400">{formatDuration(step.durationMs)}</span>
+              {phase.durationMs != null && (
+                <span className="text-xs text-slate-400">{formatDuration(phase.durationMs)}</span>
               )}
             </div>
-            {step.error && (
-              <p className="ml-5 text-xs text-red-600 mt-0.5">{step.error}</p>
+            {phase.error && (
+              <p className="ml-5 text-xs text-red-600 mt-0.5">{phase.error}</p>
             )}
             {isOpen && hasDetails && (() => {
-              const positions = parsePositions(step.details)
-              const depsByPosition = parseDependenciesByPosition(step.details)
-              const dependencies = parseDependencies(step.details)
-              const marketDataItems = parseMarketDataItems(step.details)
-              const positionBreakdown = parsePositionBreakdown(step.details)
+              const positions = parsePositions(phase.details)
+              const depsByPosition = parseDependenciesByPosition(phase.details)
+              const dependencies = parseDependencies(phase.details)
+              const marketDataItems = parseMarketDataItems(phase.details)
+              const positionBreakdown = parsePositionBreakdown(phase.details)
               const hasItems = (positions && positions.length > 0) || (dependencies && dependencies.length > 0) || (marketDataItems && marketDataItems.length > 0) || (positionBreakdown && positionBreakdown.length > 0)
               const activeFilter = filter || (isSearchActive ? search : '')
               const filteredPositions = positions && activeFilter
@@ -248,11 +241,11 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                 ? positionBreakdown.filter((b) => itemMatchesFilter(b as unknown as Record<string, unknown>, activeFilter))
                 : positionBreakdown
               return (
-                <div data-testid={`details-${step.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
+                <div data-testid={`details-${phase.name}`} className="ml-5 mt-1 text-xs text-slate-500 space-y-0.5">
                   {(() => {
-                    const scalarEntries = Object.entries(step.details)
+                    const scalarEntries = Object.entries(phase.details)
                       .filter(([key]) => key !== 'positions' && key !== 'dependencies' && key !== 'marketDataItems' && key !== 'dependenciesByPosition' && key !== 'positionBreakdown' && key !== 'dataTypes')
-                    if (step.name === 'VALUATION' && scalarEntries.length > 0) {
+                    if (phase.name === 'VALUATION' && scalarEntries.length > 0) {
                       const DISPLAY_KEYS: Record<string, string> = { varValue: 'var', pvValue: 'pv' }
                       const obj = Object.fromEntries(scalarEntries.map(([k, v]) => [DISPLAY_KEYS[k] ?? k, v]))
                       const json = JSON.stringify(obj, null, 2)
@@ -276,16 +269,16 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                   })()}
                   {hasItems && (
                     <FilterInput
-                      testId={`filter-${step.name}`}
+                      testId={`filter-${phase.name}`}
                       value={filter}
-                      onChange={(v) => setItemFilter(step.name, v)}
+                      onChange={(v) => setItemFilter(phase.name, v)}
                     />
                   )}
                   {filteredPositions && filteredPositions.map((pos, j) => {
-                    const posKey = `${stepIndex}-${pos.instrumentId}`
+                    const posKey = `${phaseIndex}-${pos.instrumentId}`
                     const isPosOpen = expandedItems[posKey] ?? false
                     const posDeps = depsByPosition?.[pos.instrumentId]
-                    const posDepsKey = `${stepIndex}-posdeps-${pos.instrumentId}`
+                    const posDepsKey = `${phaseIndex}-posdeps-${pos.instrumentId}`
                     const isPosDepsOpen = expandedItems[posDepsKey] ?? false
                     return (
                       <div key={j} className="mt-1">
@@ -335,7 +328,7 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                                 {isPosDepsOpen && (
                                   <div className="ml-4 mt-0.5 space-y-1">
                                     {posDeps.map((dep, k) => {
-                                      const posDepKey = `${stepIndex}-posdep-${pos.instrumentId}-${dep.dataType}`
+                                      const posDepKey = `${phaseIndex}-posdep-${pos.instrumentId}-${dep.dataType}`
                                       const isPosDepOpen = expandedItems[posDepKey] ?? false
                                       return (
                                         <div key={k}>
@@ -371,7 +364,7 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                     )
                   })}
                   {filteredDependencies && filteredDependencies.map((dep, j) => {
-                    const depKey = `${stepIndex}-dep-${dep.instrumentId}-${dep.dataType}`
+                    const depKey = `${phaseIndex}-dep-${dep.instrumentId}-${dep.dataType}`
                     const isDepOpen = expandedItems[depKey] ?? false
                     return (
                       <div key={j} className="mt-1">
@@ -398,7 +391,7 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                     )
                   })}
                   {filteredMarketDataItems && filteredMarketDataItems.map((item, j) => {
-                    const mdKey = `${stepIndex}-md-${item.instrumentId}-${item.dataType}`
+                    const mdKey = `${phaseIndex}-md-${item.instrumentId}-${item.dataType}`
                     const isMdOpen = expandedItems[mdKey] ?? false
                     const isFetched = item.status === 'FETCHED'
                     const jsonBg = isFetched ? 'bg-slate-50' : 'bg-red-50'
@@ -461,7 +454,7 @@ export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
                     )
                   })}
                   {filteredPositionBreakdown && filteredPositionBreakdown.map((item, j) => {
-                    const bKey = `${stepIndex}-varb-${item.instrumentId}`
+                    const bKey = `${phaseIndex}-varb-${item.instrumentId}`
                     const isBOpen = expandedItems[bKey] ?? false
                     const BREAKDOWN_DISPLAY_KEYS: Record<string, string> = { marketValue: 'pv' }
                     const displayItem = Object.fromEntries(

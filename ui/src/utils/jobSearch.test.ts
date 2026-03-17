@@ -92,7 +92,7 @@ describe('buildSearchableText', () => {
     expect(text).not.toContain('null')
   })
 
-  it('includes detail steps and errors when detail is provided', () => {
+  it('includes detail phases and errors when detail is provided', () => {
     const detail = {
       ...mockJob,
       phases: [
