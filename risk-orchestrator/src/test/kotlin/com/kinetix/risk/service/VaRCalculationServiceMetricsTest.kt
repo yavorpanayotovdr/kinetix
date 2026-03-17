@@ -29,7 +29,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
     test("timer var.calculation.duration records after calculateVaR") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -68,7 +68,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
     test("counter var.calculation.count increments tagged by calculationType") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

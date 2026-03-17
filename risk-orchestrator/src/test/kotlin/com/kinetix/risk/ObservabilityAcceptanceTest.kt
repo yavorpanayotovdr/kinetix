@@ -72,7 +72,7 @@ private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
     override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
         return listOf(
             Position(
-                portfolioId = portfolioId,
+                bookId = portfolioId,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

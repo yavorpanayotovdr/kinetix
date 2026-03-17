@@ -38,7 +38,7 @@ class GrpcRiskEngineClientTest : FunSpec({
     test("maps request to proto and invokes stub") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -109,7 +109,7 @@ class GrpcRiskEngineClientTest : FunSpec({
 
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -147,7 +147,7 @@ class GrpcRiskEngineClientTest : FunSpec({
     test("passes multiple positions in proto request") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -155,7 +155,7 @@ class GrpcRiskEngineClientTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), USD),
             ),
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("UST10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 quantity = BigDecimal("50"),

@@ -21,7 +21,7 @@ private fun testPosition(
     quantity: String = "100",
     marketPrice: String = "170.00",
 ) = Position(
-    portfolioId = PortfolioId("port-1"),
+    bookId = PortfolioId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

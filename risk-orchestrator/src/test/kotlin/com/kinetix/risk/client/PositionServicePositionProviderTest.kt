@@ -21,7 +21,7 @@ class PositionServicePositionProviderTest : FunSpec({
         val portfolioId = PortfolioId("port-1")
         val positions = listOf(
             Position(
-                portfolioId = portfolioId,
+                bookId = portfolioId,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

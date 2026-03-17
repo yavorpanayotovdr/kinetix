@@ -12,7 +12,7 @@ class PositionMapperTest : FunSpec({
 
     test("maps domain position to proto position with correct fields") {
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
@@ -41,7 +41,7 @@ class PositionMapperTest : FunSpec({
 
         for ((domain, proto) in assetClassMappings) {
             val position = Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("TEST"),
                 assetClass = domain,
                 quantity = BigDecimal("10"),
@@ -54,7 +54,7 @@ class PositionMapperTest : FunSpec({
 
     test("maps position with negative quantity") {
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("-50"),

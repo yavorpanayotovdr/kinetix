@@ -62,7 +62,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR returns a valid VaR result for an EQUITY position") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("contract-port-1"),
+                bookId = PortfolioId("contract-port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -92,7 +92,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR returns a valid result for HISTORICAL calculation type") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("contract-port-2"),
+                bookId = PortfolioId("contract-port-2"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("50"),
@@ -117,7 +117,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR handles multiple positions across asset classes") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("contract-port-3"),
+                bookId = PortfolioId("contract-port-3"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -125,7 +125,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), USD),
             ),
             Position(
-                portfolioId = PortfolioId("contract-port-3"),
+                bookId = PortfolioId("contract-port-3"),
                 instrumentId = InstrumentId("UST10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 quantity = BigDecimal("50"),
@@ -148,7 +148,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("valuate returns VaR and PV when both are requested") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("contract-port-4"),
+                bookId = PortfolioId("contract-port-4"),
                 instrumentId = InstrumentId("GOOGL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("25"),
@@ -175,7 +175,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("discoverDependencies returns required market data for positions") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("contract-port-5"),
+                bookId = PortfolioId("contract-port-5"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

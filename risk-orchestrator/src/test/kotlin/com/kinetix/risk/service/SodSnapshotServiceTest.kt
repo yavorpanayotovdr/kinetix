@@ -31,7 +31,7 @@ private fun position(
     quantity: String = "100",
     price: String = "150.00",
 ) = Position(
-    portfolioId = PORTFOLIO,
+    bookId = PORTFOLIO,
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

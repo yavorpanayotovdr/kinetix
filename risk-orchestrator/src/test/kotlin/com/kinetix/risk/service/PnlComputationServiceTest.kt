@@ -80,7 +80,7 @@ class PnlComputationServiceTest : FunSpec({
 
         val currentPositions = listOf(
             Position(
-                portfolioId = PORTFOLIO,
+                bookId = PORTFOLIO,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -125,7 +125,7 @@ class PnlComputationServiceTest : FunSpec({
 
         val currentPositions = listOf(
             Position(
-                portfolioId = PORTFOLIO,
+                bookId = PORTFOLIO,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

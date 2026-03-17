@@ -15,7 +15,7 @@ import java.util.UUID
 private val USD = Currency.getInstance("USD")
 
 private fun testPosition(instrumentId: String = "AAPL") = Position(
-    portfolioId = PortfolioId("port-1"),
+    bookId = PortfolioId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal("100"),

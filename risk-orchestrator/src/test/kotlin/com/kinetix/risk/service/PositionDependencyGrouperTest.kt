@@ -17,7 +17,7 @@ private fun position(
     instrumentId: String,
     assetClass: AssetClass = AssetClass.EQUITY,
 ) = Position(
-    portfolioId = PortfolioId("port-1"),
+    bookId = PortfolioId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal("100"),
