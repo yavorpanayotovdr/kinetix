@@ -10,7 +10,7 @@ import "kinetix/risk/risk_calculation.proto";
 import "google/protobuf/timestamp.proto";
 
 message StressTestRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   string scenario_name = 2;
   RiskCalculationType calculation_type = 3;
   ConfidenceLevel confidence_level = 4;
@@ -55,7 +55,7 @@ message ListScenariosResponse {
 
 // Deprecated: use ValuationRequest in risk_calculation.proto instead
 message GreeksRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
   ConfidenceLevel confidence_level = 3;
   int32 time_horizon_days = 4;
@@ -72,7 +72,7 @@ message StressGreekValues {
 
 // Deprecated: use ValuationResponse in risk_calculation.proto instead
 message GreeksResponse {
-  string portfolio_id = 1;
+  string book_id = 1;
   repeated StressGreekValues asset_class_greeks = 2;
   double theta = 3;
   double rho = 4;

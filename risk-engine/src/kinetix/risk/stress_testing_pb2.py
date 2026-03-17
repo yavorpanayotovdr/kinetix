@@ -27,7 +27,7 @@ from kinetix.risk import risk_calculation_pb2 as kinetix_dot_risk_dot_risk__calc
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!kinetix/risk/stress_testing.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a#kinetix/risk/risk_calculation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\x04\n\x11StressTestRequest\x12\x31\n\x0cportfolio_id\x18\x01 \x01(\x0b\x32\x1b.kinetix.common.PortfolioId\x12\x15\n\rscenario_name\x18\x02 \x01(\t\x12;\n\x10\x63\x61lculation_type\x18\x03 \x01(\x0e\x32!.kinetix.risk.RiskCalculationType\x12\x37\n\x10\x63onfidence_level\x18\x04 \x01(\x0e\x32\x1d.kinetix.risk.ConfidenceLevel\x12\x19\n\x11time_horizon_days\x18\x05 \x01(\x05\x12+\n\tpositions\x18\x06 \x03(\x0b\x32\x18.kinetix.common.Position\x12\x42\n\nvol_shocks\x18\x07 \x03(\x0b\x32..kinetix.risk.StressTestRequest.VolShocksEntry\x12\x46\n\x0cprice_shocks\x18\x08 \x03(\x0b\x32\x30.kinetix.risk.StressTestRequest.PriceShocksEntry\x12\x13\n\x0b\x64\x65scription\x18\t \x01(\t\x1a\x30\n\x0eVolShocksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\x1a\x32\n\x10PriceShocksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\x89\x01\n\x10\x41ssetClassImpact\x12/\n\x0b\x61sset_class\x18\x01 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x15\n\rbase_exposure\x18\x02 \x01(\x01\x12\x19\n\x11stressed_exposure\x18\x03 \x01(\x01\x12\x12\n\npnl_impact\x18\x04 \x01(\x01\"\xc9\x01\n\x14PositionStressImpact\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12/\n\x0b\x61sset_class\x18\x02 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x19\n\x11\x62\x61se_market_value\x18\x03 \x01(\x01\x12\x1d\n\x15stressed_market_value\x18\x04 \x01(\x01\x12\x12\n\npnl_impact\x18\x05 \x01(\x01\x12\x1b\n\x13percentage_of_total\x18\x06 \x01(\x01\"\x95\x02\n\x12StressTestResponse\x12\x15\n\rscenario_name\x18\x01 \x01(\t\x12\x10\n\x08\x62\x61se_var\x18\x02 \x01(\x01\x12\x14\n\x0cstressed_var\x18\x03 \x01(\x01\x12\x12\n\npnl_impact\x18\x04 \x01(\x01\x12;\n\x13\x61sset_class_impacts\x18\x05 \x03(\x0b\x32\x1e.kinetix.risk.AssetClassImpact\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12<\n\x10position_impacts\x18\x07 \x03(\x0b\x32\".kinetix.risk.PositionStressImpact\"\x16\n\x14ListScenariosRequest\"/\n\x15ListScenariosResponse\x12\x16\n\x0escenario_names\x18\x01 \x03(\t\"\x80\x02\n\rGreeksRequest\x12\x31\n\x0cportfolio_id\x18\x01 \x01(\x0b\x32\x1b.kinetix.common.PortfolioId\x12;\n\x10\x63\x61lculation_type\x18\x02 \x01(\x0e\x32!.kinetix.risk.RiskCalculationType\x12\x37\n\x10\x63onfidence_level\x18\x03 \x01(\x0e\x32\x1d.kinetix.risk.ConfidenceLevel\x12\x19\n\x11time_horizon_days\x18\x04 \x01(\x05\x12+\n\tpositions\x18\x05 \x03(\x0b\x32\x18.kinetix.common.Position\"p\n\x11StressGreekValues\x12/\n\x0b\x61sset_class\x18\x01 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\r\n\x05\x64\x65lta\x18\x02 \x01(\x01\x12\r\n\x05gamma\x18\x03 \x01(\x01\x12\x0c\n\x04vega\x18\x04 \x01(\x01\"\xb2\x01\n\x0eGreeksResponse\x12\x14\n\x0cportfolio_id\x18\x01 \x01(\t\x12;\n\x12\x61sset_class_greeks\x18\x02 \x03(\x0b\x32\x1f.kinetix.risk.StressGreekValues\x12\r\n\x05theta\x18\x03 \x01(\x01\x12\x0b\n\x03rho\x18\x04 \x01(\x01\x12\x31\n\rcalculated_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp2\x8f\x02\n\x11StressTestService\x12R\n\rRunStressTest\x12\x1f.kinetix.risk.StressTestRequest\x1a .kinetix.risk.StressTestResponse\x12X\n\rListScenarios\x12\".kinetix.risk.ListScenariosRequest\x1a#.kinetix.risk.ListScenariosResponse\x12L\n\x0f\x43\x61lculateGreeks\x12\x1b.kinetix.risk.GreeksRequest\x1a\x1c.kinetix.risk.GreeksResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!kinetix/risk/stress_testing.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a#kinetix/risk/risk_calculation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x04\n\x11StressTestRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x15\n\rscenario_name\x18\x02 \x01(\t\x12;\n\x10\x63\x61lculation_type\x18\x03 \x01(\x0e\x32!.kinetix.risk.RiskCalculationType\x12\x37\n\x10\x63onfidence_level\x18\x04 \x01(\x0e\x32\x1d.kinetix.risk.ConfidenceLevel\x12\x19\n\x11time_horizon_days\x18\x05 \x01(\x05\x12+\n\tpositions\x18\x06 \x03(\x0b\x32\x18.kinetix.common.Position\x12\x42\n\nvol_shocks\x18\x07 \x03(\x0b\x32..kinetix.risk.StressTestRequest.VolShocksEntry\x12\x46\n\x0cprice_shocks\x18\x08 \x03(\x0b\x32\x30.kinetix.risk.StressTestRequest.PriceShocksEntry\x12\x13\n\x0b\x64\x65scription\x18\t \x01(\t\x1a\x30\n\x0eVolShocksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\x1a\x32\n\x10PriceShocksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\x89\x01\n\x10\x41ssetClassImpact\x12/\n\x0b\x61sset_class\x18\x01 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x15\n\rbase_exposure\x18\x02 \x01(\x01\x12\x19\n\x11stressed_exposure\x18\x03 \x01(\x01\x12\x12\n\npnl_impact\x18\x04 \x01(\x01\"\xc9\x01\n\x14PositionStressImpact\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12/\n\x0b\x61sset_class\x18\x02 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x19\n\x11\x62\x61se_market_value\x18\x03 \x01(\x01\x12\x1d\n\x15stressed_market_value\x18\x04 \x01(\x01\x12\x12\n\npnl_impact\x18\x05 \x01(\x01\x12\x1b\n\x13percentage_of_total\x18\x06 \x01(\x01\"\x95\x02\n\x12StressTestResponse\x12\x15\n\rscenario_name\x18\x01 \x01(\t\x12\x10\n\x08\x62\x61se_var\x18\x02 \x01(\x01\x12\x14\n\x0cstressed_var\x18\x03 \x01(\x01\x12\x12\n\npnl_impact\x18\x04 \x01(\x01\x12;\n\x13\x61sset_class_impacts\x18\x05 \x03(\x0b\x32\x1e.kinetix.risk.AssetClassImpact\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12<\n\x10position_impacts\x18\x07 \x03(\x0b\x32\".kinetix.risk.PositionStressImpact\"\x16\n\x14ListScenariosRequest\"/\n\x15ListScenariosResponse\x12\x16\n\x0escenario_names\x18\x01 \x03(\t\"\xf6\x01\n\rGreeksRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12;\n\x10\x63\x61lculation_type\x18\x02 \x01(\x0e\x32!.kinetix.risk.RiskCalculationType\x12\x37\n\x10\x63onfidence_level\x18\x03 \x01(\x0e\x32\x1d.kinetix.risk.ConfidenceLevel\x12\x19\n\x11time_horizon_days\x18\x04 \x01(\x05\x12+\n\tpositions\x18\x05 \x03(\x0b\x32\x18.kinetix.common.Position\"p\n\x11StressGreekValues\x12/\n\x0b\x61sset_class\x18\x01 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\r\n\x05\x64\x65lta\x18\x02 \x01(\x01\x12\r\n\x05gamma\x18\x03 \x01(\x01\x12\x0c\n\x04vega\x18\x04 \x01(\x01\"\xad\x01\n\x0eGreeksResponse\x12\x0f\n\x07\x62ook_id\x18\x01 \x01(\t\x12;\n\x12\x61sset_class_greeks\x18\x02 \x03(\x0b\x32\x1f.kinetix.risk.StressGreekValues\x12\r\n\x05theta\x18\x03 \x01(\x01\x12\x0b\n\x03rho\x18\x04 \x01(\x01\x12\x31\n\rcalculated_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp2\x8f\x02\n\x11StressTestService\x12R\n\rRunStressTest\x12\x1f.kinetix.risk.StressTestRequest\x1a .kinetix.risk.StressTestResponse\x12X\n\rListScenarios\x12\".kinetix.risk.ListScenariosRequest\x1a#.kinetix.risk.ListScenariosResponse\x12L\n\x0f\x43\x61lculateGreeks\x12\x1b.kinetix.risk.GreeksRequest\x1a\x1c.kinetix.risk.GreeksResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,27 +40,27 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._loaded_options = None
   _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._serialized_options = b'8\001'
   _globals['_STRESSTESTREQUEST']._serialized_start=150
-  _globals['_STRESSTESTREQUEST']._serialized_end=696
-  _globals['_STRESSTESTREQUEST_VOLSHOCKSENTRY']._serialized_start=596
-  _globals['_STRESSTESTREQUEST_VOLSHOCKSENTRY']._serialized_end=644
-  _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._serialized_start=646
-  _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._serialized_end=696
-  _globals['_ASSETCLASSIMPACT']._serialized_start=699
-  _globals['_ASSETCLASSIMPACT']._serialized_end=836
-  _globals['_POSITIONSTRESSIMPACT']._serialized_start=839
-  _globals['_POSITIONSTRESSIMPACT']._serialized_end=1040
-  _globals['_STRESSTESTRESPONSE']._serialized_start=1043
-  _globals['_STRESSTESTRESPONSE']._serialized_end=1320
-  _globals['_LISTSCENARIOSREQUEST']._serialized_start=1322
-  _globals['_LISTSCENARIOSREQUEST']._serialized_end=1344
-  _globals['_LISTSCENARIOSRESPONSE']._serialized_start=1346
-  _globals['_LISTSCENARIOSRESPONSE']._serialized_end=1393
-  _globals['_GREEKSREQUEST']._serialized_start=1396
-  _globals['_GREEKSREQUEST']._serialized_end=1652
-  _globals['_STRESSGREEKVALUES']._serialized_start=1654
-  _globals['_STRESSGREEKVALUES']._serialized_end=1766
-  _globals['_GREEKSRESPONSE']._serialized_start=1769
-  _globals['_GREEKSRESPONSE']._serialized_end=1947
-  _globals['_STRESSTESTSERVICE']._serialized_start=1950
-  _globals['_STRESSTESTSERVICE']._serialized_end=2221
+  _globals['_STRESSTESTREQUEST']._serialized_end=686
+  _globals['_STRESSTESTREQUEST_VOLSHOCKSENTRY']._serialized_start=586
+  _globals['_STRESSTESTREQUEST_VOLSHOCKSENTRY']._serialized_end=634
+  _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._serialized_start=636
+  _globals['_STRESSTESTREQUEST_PRICESHOCKSENTRY']._serialized_end=686
+  _globals['_ASSETCLASSIMPACT']._serialized_start=689
+  _globals['_ASSETCLASSIMPACT']._serialized_end=826
+  _globals['_POSITIONSTRESSIMPACT']._serialized_start=829
+  _globals['_POSITIONSTRESSIMPACT']._serialized_end=1030
+  _globals['_STRESSTESTRESPONSE']._serialized_start=1033
+  _globals['_STRESSTESTRESPONSE']._serialized_end=1310
+  _globals['_LISTSCENARIOSREQUEST']._serialized_start=1312
+  _globals['_LISTSCENARIOSREQUEST']._serialized_end=1334
+  _globals['_LISTSCENARIOSRESPONSE']._serialized_start=1336
+  _globals['_LISTSCENARIOSRESPONSE']._serialized_end=1383
+  _globals['_GREEKSREQUEST']._serialized_start=1386
+  _globals['_GREEKSREQUEST']._serialized_end=1632
+  _globals['_STRESSGREEKVALUES']._serialized_start=1634
+  _globals['_STRESSGREEKVALUES']._serialized_end=1746
+  _globals['_GREEKSRESPONSE']._serialized_start=1749
+  _globals['_GREEKSRESPONSE']._serialized_end=1922
+  _globals['_STRESSTESTSERVICE']._serialized_start=1925
+  _globals['_STRESSTESTSERVICE']._serialized_end=2196
 # @@protoc_insertion_point(module_scope)

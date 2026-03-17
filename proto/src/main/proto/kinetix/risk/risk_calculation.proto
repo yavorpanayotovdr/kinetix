@@ -73,7 +73,7 @@ message MarketDataValue {
 }
 
 message VaRRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
   ConfidenceLevel confidence_level = 3;
   int32 time_horizon_days = 4;
@@ -83,7 +83,7 @@ message VaRRequest {
 }
 
 message VaRResponse {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
   ConfidenceLevel confidence_level = 3;
   double var_value = 4;
@@ -107,7 +107,7 @@ enum ValuationOutput {
 }
 
 message ValuationRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
   ConfidenceLevel confidence_level = 3;
   int32 time_horizon_days = 4;
@@ -132,7 +132,7 @@ message GreekValues {
 }
 
 message ValuationResponse {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
   ConfidenceLevel confidence_level = 3;
   double var_value = 4;

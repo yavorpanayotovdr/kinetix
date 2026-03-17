@@ -40,12 +40,12 @@ CSV: ReportFormat
 XBRL: ReportFormat
 
 class FrtbRequest(_message.Message):
-    __slots__ = ("portfolio_id", "positions")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "positions")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     POSITIONS_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ...) -> None: ...
 
 class RiskClassCharge(_message.Message):
     __slots__ = ("risk_class", "delta_charge", "vega_charge", "curvature_charge", "total_charge")
@@ -90,39 +90,39 @@ class RraoResult(_message.Message):
     def __init__(self, exotic_notional: _Optional[float] = ..., other_notional: _Optional[float] = ..., total_rrao: _Optional[float] = ...) -> None: ...
 
 class FrtbResponse(_message.Message):
-    __slots__ = ("portfolio_id", "sbm", "drc", "rrao", "total_capital_charge", "calculated_at")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "sbm", "drc", "rrao", "total_capital_charge", "calculated_at")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     SBM_FIELD_NUMBER: _ClassVar[int]
     DRC_FIELD_NUMBER: _ClassVar[int]
     RRAO_FIELD_NUMBER: _ClassVar[int]
     TOTAL_CAPITAL_CHARGE_FIELD_NUMBER: _ClassVar[int]
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: str
+    book_id: str
     sbm: SbmResult
     drc: DrcResult
     rrao: RraoResult
     total_capital_charge: float
     calculated_at: _timestamp_pb2.Timestamp
-    def __init__(self, portfolio_id: _Optional[str] = ..., sbm: _Optional[_Union[SbmResult, _Mapping]] = ..., drc: _Optional[_Union[DrcResult, _Mapping]] = ..., rrao: _Optional[_Union[RraoResult, _Mapping]] = ..., total_capital_charge: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[str] = ..., sbm: _Optional[_Union[SbmResult, _Mapping]] = ..., drc: _Optional[_Union[DrcResult, _Mapping]] = ..., rrao: _Optional[_Union[RraoResult, _Mapping]] = ..., total_capital_charge: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
-    __slots__ = ("portfolio_id", "positions", "format")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "positions", "format")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     POSITIONS_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
     format: ReportFormat
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., format: _Optional[_Union[ReportFormat, str]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., format: _Optional[_Union[ReportFormat, str]] = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
-    __slots__ = ("portfolio_id", "format", "content", "generated_at")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "format", "content", "generated_at")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     GENERATED_AT_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: str
+    book_id: str
     format: ReportFormat
     content: str
     generated_at: _timestamp_pb2.Timestamp
-    def __init__(self, portfolio_id: _Optional[str] = ..., format: _Optional[_Union[ReportFormat, str]] = ..., content: _Optional[str] = ..., generated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[str] = ..., format: _Optional[_Union[ReportFormat, str]] = ..., content: _Optional[str] = ..., generated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

@@ -12,7 +12,7 @@ message Money {
   string currency = 2; // ISO 4217 currency code (e.g., "USD", "EUR")
 }
 
-message PortfolioId {
+message BookId {
   string value = 1;
 }
 
@@ -96,7 +96,7 @@ message SwapAttributes {
 }
 
 message Position {
-  PortfolioId portfolio_id = 1;
+  BookId book_id = 1;
   InstrumentId instrument_id = 2;
   AssetClass asset_class = 3;
   double quantity = 4;

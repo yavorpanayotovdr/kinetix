@@ -12,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class StressTestRequest(_message.Message):
-    __slots__ = ("portfolio_id", "scenario_name", "calculation_type", "confidence_level", "time_horizon_days", "positions", "vol_shocks", "price_shocks", "description")
+    __slots__ = ("book_id", "scenario_name", "calculation_type", "confidence_level", "time_horizon_days", "positions", "vol_shocks", "price_shocks", "description")
     class VolShocksEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -27,7 +27,7 @@ class StressTestRequest(_message.Message):
         key: str
         value: float
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     SCENARIO_NAME_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -36,7 +36,7 @@ class StressTestRequest(_message.Message):
     VOL_SHOCKS_FIELD_NUMBER: _ClassVar[int]
     PRICE_SHOCKS_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     scenario_name: str
     calculation_type: _risk_calculation_pb2.RiskCalculationType
     confidence_level: _risk_calculation_pb2.ConfidenceLevel
@@ -45,7 +45,7 @@ class StressTestRequest(_message.Message):
     vol_shocks: _containers.ScalarMap[str, float]
     price_shocks: _containers.ScalarMap[str, float]
     description: str
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., scenario_name: _Optional[str] = ..., calculation_type: _Optional[_Union[_risk_calculation_pb2.RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[_risk_calculation_pb2.ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., vol_shocks: _Optional[_Mapping[str, float]] = ..., price_shocks: _Optional[_Mapping[str, float]] = ..., description: _Optional[str] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., scenario_name: _Optional[str] = ..., calculation_type: _Optional[_Union[_risk_calculation_pb2.RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[_risk_calculation_pb2.ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., vol_shocks: _Optional[_Mapping[str, float]] = ..., price_shocks: _Optional[_Mapping[str, float]] = ..., description: _Optional[str] = ...) -> None: ...
 
 class AssetClassImpact(_message.Message):
     __slots__ = ("asset_class", "base_exposure", "stressed_exposure", "pnl_impact")
@@ -104,18 +104,18 @@ class ListScenariosResponse(_message.Message):
     def __init__(self, scenario_names: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class GreeksRequest(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "time_horizon_days", "positions")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "time_horizon_days", "positions")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
     TIME_HORIZON_DAYS_FIELD_NUMBER: _ClassVar[int]
     POSITIONS_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     calculation_type: _risk_calculation_pb2.RiskCalculationType
     confidence_level: _risk_calculation_pb2.ConfidenceLevel
     time_horizon_days: int
     positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[_risk_calculation_pb2.RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[_risk_calculation_pb2.ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[_risk_calculation_pb2.RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[_risk_calculation_pb2.ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ...) -> None: ...
 
 class StressGreekValues(_message.Message):
     __slots__ = ("asset_class", "delta", "gamma", "vega")
@@ -130,15 +130,15 @@ class StressGreekValues(_message.Message):
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ...) -> None: ...
 
 class GreeksResponse(_message.Message):
-    __slots__ = ("portfolio_id", "asset_class_greeks", "theta", "rho", "calculated_at")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "asset_class_greeks", "theta", "rho", "calculated_at")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     ASSET_CLASS_GREEKS_FIELD_NUMBER: _ClassVar[int]
     THETA_FIELD_NUMBER: _ClassVar[int]
     RHO_FIELD_NUMBER: _ClassVar[int]
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: str
+    book_id: str
     asset_class_greeks: _containers.RepeatedCompositeFieldContainer[StressGreekValues]
     theta: float
     rho: float
     calculated_at: _timestamp_pb2.Timestamp
-    def __init__(self, portfolio_id: _Optional[str] = ..., asset_class_greeks: _Optional[_Iterable[_Union[StressGreekValues, _Mapping]]] = ..., theta: _Optional[float] = ..., rho: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[str] = ..., asset_class_greeks: _Optional[_Iterable[_Union[StressGreekValues, _Mapping]]] = ..., theta: _Optional[float] = ..., rho: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

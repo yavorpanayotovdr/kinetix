@@ -128,40 +128,40 @@ class MarketDataValue(_message.Message):
     def __init__(self, data_type: _Optional[_Union[MarketDataType, str]] = ..., instrument_id: _Optional[str] = ..., asset_class: _Optional[str] = ..., scalar: _Optional[float] = ..., time_series: _Optional[_Union[TimeSeries, _Mapping]] = ..., matrix: _Optional[_Union[Matrix, _Mapping]] = ..., curve: _Optional[_Union[Curve, _Mapping]] = ...) -> None: ...
 
 class VaRRequest(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "time_horizon_days", "num_simulations", "positions", "market_data")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "time_horizon_days", "num_simulations", "positions", "market_data")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
     TIME_HORIZON_DAYS_FIELD_NUMBER: _ClassVar[int]
     NUM_SIMULATIONS_FIELD_NUMBER: _ClassVar[int]
     POSITIONS_FIELD_NUMBER: _ClassVar[int]
     MARKET_DATA_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
     time_horizon_days: int
     num_simulations: int
     positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
     market_data: _containers.RepeatedCompositeFieldContainer[MarketDataValue]
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., num_simulations: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., market_data: _Optional[_Iterable[_Union[MarketDataValue, _Mapping]]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., num_simulations: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., market_data: _Optional[_Iterable[_Union[MarketDataValue, _Mapping]]] = ...) -> None: ...
 
 class VaRResponse(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
     VAR_VALUE_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_SHORTFALL_FIELD_NUMBER: _ClassVar[int]
     COMPONENT_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
     var_value: float
     expected_shortfall: float
     component_breakdown: _containers.RepeatedCompositeFieldContainer[VaRComponentBreakdown]
     calculated_at: _timestamp_pb2.Timestamp
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class VaRComponentBreakdown(_message.Message):
     __slots__ = ("asset_class", "var_contribution", "percentage_of_total")
@@ -174,8 +174,8 @@ class VaRComponentBreakdown(_message.Message):
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., var_contribution: _Optional[float] = ..., percentage_of_total: _Optional[float] = ...) -> None: ...
 
 class ValuationRequest(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "time_horizon_days", "num_simulations", "positions", "market_data", "requested_outputs", "monte_carlo_seed")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "time_horizon_days", "num_simulations", "positions", "market_data", "requested_outputs", "monte_carlo_seed")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
     TIME_HORIZON_DAYS_FIELD_NUMBER: _ClassVar[int]
@@ -184,7 +184,7 @@ class ValuationRequest(_message.Message):
     MARKET_DATA_FIELD_NUMBER: _ClassVar[int]
     REQUESTED_OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     MONTE_CARLO_SEED_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
     time_horizon_days: int
@@ -193,7 +193,7 @@ class ValuationRequest(_message.Message):
     market_data: _containers.RepeatedCompositeFieldContainer[MarketDataValue]
     requested_outputs: _containers.RepeatedScalarFieldContainer[ValuationOutput]
     monte_carlo_seed: int
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., num_simulations: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., market_data: _Optional[_Iterable[_Union[MarketDataValue, _Mapping]]] = ..., requested_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., time_horizon_days: _Optional[int] = ..., num_simulations: _Optional[int] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., market_data: _Optional[_Iterable[_Union[MarketDataValue, _Mapping]]] = ..., requested_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...
 
 class GreeksSummary(_message.Message):
     __slots__ = ("asset_class_greeks", "theta", "rho")
@@ -218,8 +218,8 @@ class GreekValues(_message.Message):
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ...) -> None: ...
 
 class ValuationResponse(_message.Message):
-    __slots__ = ("portfolio_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs", "pv_value", "model_version", "monte_carlo_seed")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs", "pv_value", "model_version", "monte_carlo_seed")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
     VAR_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -231,7 +231,7 @@ class ValuationResponse(_message.Message):
     PV_VALUE_FIELD_NUMBER: _ClassVar[int]
     MODEL_VERSION_FIELD_NUMBER: _ClassVar[int]
     MONTE_CARLO_SEED_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: _types_pb2.PortfolioId
+    book_id: _types_pb2.BookId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
     var_value: float
@@ -243,4 +243,4 @@ class ValuationResponse(_message.Message):
     pv_value: float
     model_version: str
     monte_carlo_seed: int
-    def __init__(self, portfolio_id: _Optional[_Union[_types_pb2.PortfolioId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., pv_value: _Optional[float] = ..., model_version: _Optional[str] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., pv_value: _Optional[float] = ..., model_version: _Optional[str] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...

@@ -20,7 +20,7 @@ enum FrtbRiskClass {
 }
 
 message FrtbRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   repeated kinetix.common.Position positions = 2;
 }
 
@@ -50,7 +50,7 @@ message RraoResult {
 }
 
 message FrtbResponse {
-  string portfolio_id = 1;
+  string book_id = 1;
   SbmResult sbm = 2;
   DrcResult drc = 3;
   RraoResult rrao = 4;
@@ -65,13 +65,13 @@ enum ReportFormat {
 }
 
 message GenerateReportRequest {
-  kinetix.common.PortfolioId portfolio_id = 1;
+  kinetix.common.BookId book_id = 1;
   repeated kinetix.common.Position positions = 2;
   ReportFormat format = 3;
 }
 
 message GenerateReportResponse {
-  string portfolio_id = 1;
+  string book_id = 1;
   ReportFormat format = 2;
   string content = 3;
   google.protobuf.Timestamp generated_at = 4;

@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1akinetix/common/types.proto\x12\x0ekinetix.common\x1a\x1fgoogle/protobuf/timestamp.proto\")\n\x05Money\x12\x0e\n\x06\x61mount\x18\x01 \x01(\t\x12\x10\n\x08\x63urrency\x18\x02 \x01(\t\"\x1c\n\x0bPortfolioId\x12\r\n\x05value\x18\x01 \x01(\t\"\x18\n\x07TradeId\x12\r\n\x05value\x18\x01 \x01(\t\"\x1d\n\x0cInstrumentId\x12\r\n\x05value\x18\x01 \x01(\t\"\xb0\x01\n\x10OptionAttributes\x12\x15\n\runderlying_id\x18\x01 \x01(\t\x12\x13\n\x0boption_type\x18\x02 \x01(\t\x12\x0e\n\x06strike\x18\x03 \x01(\x01\x12\x13\n\x0b\x65xpiry_date\x18\x04 \x01(\t\x12\x16\n\x0e\x65xercise_style\x18\x05 \x01(\t\x12\x1b\n\x13\x63ontract_multiplier\x18\x06 \x01(\x01\x12\x16\n\x0e\x64ividend_yield\x18\x07 \x01(\x01\"\xc2\x01\n\x0e\x42ondAttributes\x12\x12\n\nface_value\x18\x01 \x01(\x01\x12\x13\n\x0b\x63oupon_rate\x18\x02 \x01(\x01\x12\x18\n\x10\x63oupon_frequency\x18\x03 \x01(\x05\x12\x15\n\rmaturity_date\x18\x04 \x01(\t\x12\x0e\n\x06issuer\x18\x05 \x01(\t\x12\x15\n\rcredit_rating\x18\x06 \x01(\t\x12\x11\n\tseniority\x18\x07 \x01(\t\x12\x1c\n\x14\x64\x61y_count_convention\x18\x08 \x01(\t\"U\n\x10\x46utureAttributes\x12\x15\n\runderlying_id\x18\x01 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x02 \x01(\t\x12\x15\n\rcontract_size\x18\x03 \x01(\x01\"j\n\x0c\x46xAttributes\x12\x15\n\rbase_currency\x18\x01 \x01(\t\x12\x16\n\x0equote_currency\x18\x02 \x01(\t\x12\x15\n\rdelivery_date\x18\x03 \x01(\t\x12\x14\n\x0c\x66orward_rate\x18\x04 \x01(\x01\"\xf5\x01\n\x0eSwapAttributes\x12\x10\n\x08notional\x18\x01 \x01(\x01\x12\x12\n\nfixed_rate\x18\x02 \x01(\x01\x12\x13\n\x0b\x66loat_index\x18\x03 \x01(\t\x12\x14\n\x0c\x66loat_spread\x18\x04 \x01(\x01\x12\x16\n\x0e\x65\x66\x66\x65\x63tive_date\x18\x05 \x01(\t\x12\x15\n\rmaturity_date\x18\x06 \x01(\t\x12\x13\n\x0bpay_receive\x18\x07 \x01(\t\x12\x17\n\x0f\x66ixed_frequency\x18\x08 \x01(\x05\x12\x17\n\x0f\x66loat_frequency\x18\t \x01(\x05\x12\x1c\n\x14\x64\x61y_count_convention\x18\n \x01(\t\"\xa4\x05\n\x08Position\x12\x31\n\x0cportfolio_id\x18\x01 \x01(\x0b\x32\x1b.kinetix.common.PortfolioId\x12\x33\n\rinstrument_id\x18\x02 \x01(\x0b\x32\x1c.kinetix.common.InstrumentId\x12/\n\x0b\x61sset_class\x18\x03 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x10\n\x08quantity\x18\x04 \x01(\x01\x12+\n\x0cmarket_value\x18\x05 \x01(\x0b\x32\x15.kinetix.common.Money\x12-\n\x0eunrealized_pnl\x18\x06 \x01(\x0b\x32\x15.kinetix.common.Money\x12)\n\x05\x61s_of\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12;\n\x0finstrument_type\x18\x08 \x01(\x0e\x32\".kinetix.common.InstrumentTypeEnum\x12\x38\n\x0coption_attrs\x18\t \x01(\x0b\x32 .kinetix.common.OptionAttributesH\x00\x12\x34\n\nbond_attrs\x18\n \x01(\x0b\x32\x1e.kinetix.common.BondAttributesH\x00\x12\x38\n\x0c\x66uture_attrs\x18\x0b \x01(\x0b\x32 .kinetix.common.FutureAttributesH\x00\x12\x30\n\x08\x66x_attrs\x18\x0c \x01(\x0b\x32\x1c.kinetix.common.FxAttributesH\x00\x12\x34\n\nswap_attrs\x18\r \x01(\x0b\x32\x1e.kinetix.common.SwapAttributesH\x00\x42\x17\n\x15instrument_attributes*n\n\nAssetClass\x12\x1b\n\x17\x41SSET_CLASS_UNSPECIFIED\x10\x00\x12\n\n\x06\x45QUITY\x10\x01\x12\x10\n\x0c\x46IXED_INCOME\x10\x02\x12\x06\n\x02\x46X\x10\x03\x12\r\n\tCOMMODITY\x10\x04\x12\x0e\n\nDERIVATIVE\x10\x05*\x85\x02\n\x12InstrumentTypeEnum\x12\x1f\n\x1bINSTRUMENT_TYPE_UNSPECIFIED\x10\x00\x12\x0f\n\x0b\x43\x41SH_EQUITY\x10\x01\x12\x13\n\x0fGOVERNMENT_BOND\x10\x02\x12\x12\n\x0e\x43ORPORATE_BOND\x10\x03\x12\x0b\n\x07\x46X_SPOT\x10\x04\x12\x0e\n\nFX_FORWARD\x10\x05\x12\x11\n\rEQUITY_OPTION\x10\x06\x12\x11\n\rEQUITY_FUTURE\x10\x07\x12\x14\n\x10\x43OMMODITY_FUTURE\x10\x08\x12\x14\n\x10\x43OMMODITY_OPTION\x10\t\x12\r\n\tFX_OPTION\x10\n\x12\x16\n\x12INTEREST_RATE_SWAP\x10\x0b\x42\x1c\n\x18\x63om.kinetix.proto.commonP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1akinetix/common/types.proto\x12\x0ekinetix.common\x1a\x1fgoogle/protobuf/timestamp.proto\")\n\x05Money\x12\x0e\n\x06\x61mount\x18\x01 \x01(\t\x12\x10\n\x08\x63urrency\x18\x02 \x01(\t\"\x17\n\x06\x42ookId\x12\r\n\x05value\x18\x01 \x01(\t\"\x18\n\x07TradeId\x12\r\n\x05value\x18\x01 \x01(\t\"\x1d\n\x0cInstrumentId\x12\r\n\x05value\x18\x01 \x01(\t\"\xb0\x01\n\x10OptionAttributes\x12\x15\n\runderlying_id\x18\x01 \x01(\t\x12\x13\n\x0boption_type\x18\x02 \x01(\t\x12\x0e\n\x06strike\x18\x03 \x01(\x01\x12\x13\n\x0b\x65xpiry_date\x18\x04 \x01(\t\x12\x16\n\x0e\x65xercise_style\x18\x05 \x01(\t\x12\x1b\n\x13\x63ontract_multiplier\x18\x06 \x01(\x01\x12\x16\n\x0e\x64ividend_yield\x18\x07 \x01(\x01\"\xc2\x01\n\x0e\x42ondAttributes\x12\x12\n\nface_value\x18\x01 \x01(\x01\x12\x13\n\x0b\x63oupon_rate\x18\x02 \x01(\x01\x12\x18\n\x10\x63oupon_frequency\x18\x03 \x01(\x05\x12\x15\n\rmaturity_date\x18\x04 \x01(\t\x12\x0e\n\x06issuer\x18\x05 \x01(\t\x12\x15\n\rcredit_rating\x18\x06 \x01(\t\x12\x11\n\tseniority\x18\x07 \x01(\t\x12\x1c\n\x14\x64\x61y_count_convention\x18\x08 \x01(\t\"U\n\x10\x46utureAttributes\x12\x15\n\runderlying_id\x18\x01 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x02 \x01(\t\x12\x15\n\rcontract_size\x18\x03 \x01(\x01\"j\n\x0c\x46xAttributes\x12\x15\n\rbase_currency\x18\x01 \x01(\t\x12\x16\n\x0equote_currency\x18\x02 \x01(\t\x12\x15\n\rdelivery_date\x18\x03 \x01(\t\x12\x14\n\x0c\x66orward_rate\x18\x04 \x01(\x01\"\xf5\x01\n\x0eSwapAttributes\x12\x10\n\x08notional\x18\x01 \x01(\x01\x12\x12\n\nfixed_rate\x18\x02 \x01(\x01\x12\x13\n\x0b\x66loat_index\x18\x03 \x01(\t\x12\x14\n\x0c\x66loat_spread\x18\x04 \x01(\x01\x12\x16\n\x0e\x65\x66\x66\x65\x63tive_date\x18\x05 \x01(\t\x12\x15\n\rmaturity_date\x18\x06 \x01(\t\x12\x13\n\x0bpay_receive\x18\x07 \x01(\t\x12\x17\n\x0f\x66ixed_frequency\x18\x08 \x01(\x05\x12\x17\n\x0f\x66loat_frequency\x18\t \x01(\x05\x12\x1c\n\x14\x64\x61y_count_convention\x18\n \x01(\t\"\x9a\x05\n\x08Position\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x33\n\rinstrument_id\x18\x02 \x01(\x0b\x32\x1c.kinetix.common.InstrumentId\x12/\n\x0b\x61sset_class\x18\x03 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x10\n\x08quantity\x18\x04 \x01(\x01\x12+\n\x0cmarket_value\x18\x05 \x01(\x0b\x32\x15.kinetix.common.Money\x12-\n\x0eunrealized_pnl\x18\x06 \x01(\x0b\x32\x15.kinetix.common.Money\x12)\n\x05\x61s_of\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12;\n\x0finstrument_type\x18\x08 \x01(\x0e\x32\".kinetix.common.InstrumentTypeEnum\x12\x38\n\x0coption_attrs\x18\t \x01(\x0b\x32 .kinetix.common.OptionAttributesH\x00\x12\x34\n\nbond_attrs\x18\n \x01(\x0b\x32\x1e.kinetix.common.BondAttributesH\x00\x12\x38\n\x0c\x66uture_attrs\x18\x0b \x01(\x0b\x32 .kinetix.common.FutureAttributesH\x00\x12\x30\n\x08\x66x_attrs\x18\x0c \x01(\x0b\x32\x1c.kinetix.common.FxAttributesH\x00\x12\x34\n\nswap_attrs\x18\r \x01(\x0b\x32\x1e.kinetix.common.SwapAttributesH\x00\x42\x17\n\x15instrument_attributes*n\n\nAssetClass\x12\x1b\n\x17\x41SSET_CLASS_UNSPECIFIED\x10\x00\x12\n\n\x06\x45QUITY\x10\x01\x12\x10\n\x0c\x46IXED_INCOME\x10\x02\x12\x06\n\x02\x46X\x10\x03\x12\r\n\tCOMMODITY\x10\x04\x12\x0e\n\nDERIVATIVE\x10\x05*\x85\x02\n\x12InstrumentTypeEnum\x12\x1f\n\x1bINSTRUMENT_TYPE_UNSPECIFIED\x10\x00\x12\x0f\n\x0b\x43\x41SH_EQUITY\x10\x01\x12\x13\n\x0fGOVERNMENT_BOND\x10\x02\x12\x12\n\x0e\x43ORPORATE_BOND\x10\x03\x12\x0b\n\x07\x46X_SPOT\x10\x04\x12\x0e\n\nFX_FORWARD\x10\x05\x12\x11\n\rEQUITY_OPTION\x10\x06\x12\x11\n\rEQUITY_FUTURE\x10\x07\x12\x14\n\x10\x43OMMODITY_FUTURE\x10\x08\x12\x14\n\x10\x43OMMODITY_OPTION\x10\t\x12\r\n\tFX_OPTION\x10\n\x12\x16\n\x12INTEREST_RATE_SWAP\x10\x0b\x42\x1c\n\x18\x63om.kinetix.proto.commonP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,28 +33,28 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kinetix.common.types_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\030com.kinetix.proto.commonP\001'
-  _globals['_ASSETCLASS']._serialized_start=1707
-  _globals['_ASSETCLASS']._serialized_end=1817
-  _globals['_INSTRUMENTTYPEENUM']._serialized_start=1820
-  _globals['_INSTRUMENTTYPEENUM']._serialized_end=2081
+  _globals['_ASSETCLASS']._serialized_start=1692
+  _globals['_ASSETCLASS']._serialized_end=1802
+  _globals['_INSTRUMENTTYPEENUM']._serialized_start=1805
+  _globals['_INSTRUMENTTYPEENUM']._serialized_end=2066
   _globals['_MONEY']._serialized_start=79
   _globals['_MONEY']._serialized_end=120
-  _globals['_PORTFOLIOID']._serialized_start=122
-  _globals['_PORTFOLIOID']._serialized_end=150
-  _globals['_TRADEID']._serialized_start=152
-  _globals['_TRADEID']._serialized_end=176
-  _globals['_INSTRUMENTID']._serialized_start=178
-  _globals['_INSTRUMENTID']._serialized_end=207
-  _globals['_OPTIONATTRIBUTES']._serialized_start=210
-  _globals['_OPTIONATTRIBUTES']._serialized_end=386
-  _globals['_BONDATTRIBUTES']._serialized_start=389
-  _globals['_BONDATTRIBUTES']._serialized_end=583
-  _globals['_FUTUREATTRIBUTES']._serialized_start=585
-  _globals['_FUTUREATTRIBUTES']._serialized_end=670
-  _globals['_FXATTRIBUTES']._serialized_start=672
-  _globals['_FXATTRIBUTES']._serialized_end=778
-  _globals['_SWAPATTRIBUTES']._serialized_start=781
-  _globals['_SWAPATTRIBUTES']._serialized_end=1026
-  _globals['_POSITION']._serialized_start=1029
-  _globals['_POSITION']._serialized_end=1705
+  _globals['_BOOKID']._serialized_start=122
+  _globals['_BOOKID']._serialized_end=145
+  _globals['_TRADEID']._serialized_start=147
+  _globals['_TRADEID']._serialized_end=171
+  _globals['_INSTRUMENTID']._serialized_start=173
+  _globals['_INSTRUMENTID']._serialized_end=202
+  _globals['_OPTIONATTRIBUTES']._serialized_start=205
+  _globals['_OPTIONATTRIBUTES']._serialized_end=381
+  _globals['_BONDATTRIBUTES']._serialized_start=384
+  _globals['_BONDATTRIBUTES']._serialized_end=578
+  _globals['_FUTUREATTRIBUTES']._serialized_start=580
+  _globals['_FUTUREATTRIBUTES']._serialized_end=665
+  _globals['_FXATTRIBUTES']._serialized_start=667
+  _globals['_FXATTRIBUTES']._serialized_end=773
+  _globals['_SWAPATTRIBUTES']._serialized_start=776
+  _globals['_SWAPATTRIBUTES']._serialized_end=1021
+  _globals['_POSITION']._serialized_start=1024
+  _globals['_POSITION']._serialized_end=1690
 # @@protoc_insertion_point(module_scope)

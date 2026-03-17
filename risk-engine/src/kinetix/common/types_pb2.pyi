@@ -59,7 +59,7 @@ class Money(_message.Message):
     currency: str
     def __init__(self, amount: _Optional[str] = ..., currency: _Optional[str] = ...) -> None: ...
 
-class PortfolioId(_message.Message):
+class BookId(_message.Message):
     __slots__ = ("value",)
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: str
@@ -162,8 +162,8 @@ class SwapAttributes(_message.Message):
     def __init__(self, notional: _Optional[float] = ..., fixed_rate: _Optional[float] = ..., float_index: _Optional[str] = ..., float_spread: _Optional[float] = ..., effective_date: _Optional[str] = ..., maturity_date: _Optional[str] = ..., pay_receive: _Optional[str] = ..., fixed_frequency: _Optional[int] = ..., float_frequency: _Optional[int] = ..., day_count_convention: _Optional[str] = ...) -> None: ...
 
 class Position(_message.Message):
-    __slots__ = ("portfolio_id", "instrument_id", "asset_class", "quantity", "market_value", "unrealized_pnl", "as_of", "instrument_type", "option_attrs", "bond_attrs", "future_attrs", "fx_attrs", "swap_attrs")
-    PORTFOLIO_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("book_id", "instrument_id", "asset_class", "quantity", "market_value", "unrealized_pnl", "as_of", "instrument_type", "option_attrs", "bond_attrs", "future_attrs", "fx_attrs", "swap_attrs")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
     ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
     QUANTITY_FIELD_NUMBER: _ClassVar[int]
@@ -176,7 +176,7 @@ class Position(_message.Message):
     FUTURE_ATTRS_FIELD_NUMBER: _ClassVar[int]
     FX_ATTRS_FIELD_NUMBER: _ClassVar[int]
     SWAP_ATTRS_FIELD_NUMBER: _ClassVar[int]
-    portfolio_id: PortfolioId
+    book_id: BookId
     instrument_id: InstrumentId
     asset_class: AssetClass
     quantity: float
@@ -189,4 +189,4 @@ class Position(_message.Message):
     future_attrs: FutureAttributes
     fx_attrs: FxAttributes
     swap_attrs: SwapAttributes
-    def __init__(self, portfolio_id: _Optional[_Union[PortfolioId, _Mapping]] = ..., instrument_id: _Optional[_Union[InstrumentId, _Mapping]] = ..., asset_class: _Optional[_Union[AssetClass, str]] = ..., quantity: _Optional[float] = ..., market_value: _Optional[_Union[Money, _Mapping]] = ..., unrealized_pnl: _Optional[_Union[Money, _Mapping]] = ..., as_of: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., instrument_type: _Optional[_Union[InstrumentTypeEnum, str]] = ..., option_attrs: _Optional[_Union[OptionAttributes, _Mapping]] = ..., bond_attrs: _Optional[_Union[BondAttributes, _Mapping]] = ..., future_attrs: _Optional[_Union[FutureAttributes, _Mapping]] = ..., fx_attrs: _Optional[_Union[FxAttributes, _Mapping]] = ..., swap_attrs: _Optional[_Union[SwapAttributes, _Mapping]] = ...) -> None: ...
+    def __init__(self, book_id: _Optional[_Union[BookId, _Mapping]] = ..., instrument_id: _Optional[_Union[InstrumentId, _Mapping]] = ..., asset_class: _Optional[_Union[AssetClass, str]] = ..., quantity: _Optional[float] = ..., market_value: _Optional[_Union[Money, _Mapping]] = ..., unrealized_pnl: _Optional[_Union[Money, _Mapping]] = ..., as_of: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., instrument_type: _Optional[_Union[InstrumentTypeEnum, str]] = ..., option_attrs: _Optional[_Union[OptionAttributes, _Mapping]] = ..., bond_attrs: _Optional[_Union[BondAttributes, _Mapping]] = ..., future_attrs: _Optional[_Union[FutureAttributes, _Mapping]] = ..., fx_attrs: _Optional[_Union[FxAttributes, _Mapping]] = ..., swap_attrs: _Optional[_Union[SwapAttributes, _Mapping]] = ...) -> None: ...
