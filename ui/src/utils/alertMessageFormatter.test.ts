@@ -14,6 +14,7 @@ function makeAlert(overrides: Partial<AlertEventDto> = {}): AlertEventDto {
     threshold: 250000,
     bookId: 'macro-hedge',
     triggeredAt: '2026-02-28T12:00:00Z',
+    status: 'TRIGGERED',
     ...overrides,
   }
 }

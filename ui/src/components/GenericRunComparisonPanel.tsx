@@ -84,7 +84,7 @@ export function GenericRunComparisonPanel({
       <InputChangesPanel
         inputChanges={comparison.inputChanges ?? null}
         parameterDiffs={comparison.parameterDiffs}
-        portfolioId={comparison.portfolioId}
+        bookId={comparison.bookId}
       />
 
       <RunDiffSummary diff={comparison.portfolioDiff} />

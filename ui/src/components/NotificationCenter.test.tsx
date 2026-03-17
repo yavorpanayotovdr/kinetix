@@ -38,6 +38,7 @@ const sampleAlerts: AlertEventDto[] = [
     threshold: 100000,
     bookId: 'book-1',
     triggeredAt: '2025-01-15T10:00:00Z',
+    status: 'TRIGGERED',
   },
   {
     id: 'evt-2',
@@ -50,6 +51,7 @@ const sampleAlerts: AlertEventDto[] = [
     threshold: 200000,
     bookId: 'book-1',
     triggeredAt: '2025-01-15T10:05:00Z',
+    status: 'TRIGGERED',
   },
 ]
 

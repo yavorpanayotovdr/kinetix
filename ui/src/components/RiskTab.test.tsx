@@ -230,6 +230,7 @@ describe('RiskTab', () => {
           threshold: 2000000,
           bookId: 'book-1',
           triggeredAt: '2026-02-28T10:00:00Z',
+          status: 'TRIGGERED',
         },
       ],
       dismissAlert: vi.fn(),

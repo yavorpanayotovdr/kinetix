@@ -23,6 +23,7 @@ const alertFixtures: AlertEventDto[] = [
     threshold: 2000000,
     bookId: 'book-1',
     triggeredAt: '2026-02-28T10:00:00Z',
+    status: 'TRIGGERED',
   },
   {
     id: 'alert-2',
@@ -35,6 +36,7 @@ const alertFixtures: AlertEventDto[] = [
     threshold: 30,
     bookId: 'book-1',
     triggeredAt: '2026-02-28T09:55:00Z',
+    status: 'TRIGGERED',
   },
 ]
 

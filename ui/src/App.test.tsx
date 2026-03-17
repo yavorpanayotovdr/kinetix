@@ -260,6 +260,7 @@ describe('App', () => {
           threshold: 100000,
           bookId: 'book-1',
           triggeredAt: '2025-01-15T10:00:00Z',
+          status: 'TRIGGERED',
         },
       ],
       loading: false,

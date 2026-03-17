@@ -17,6 +17,7 @@ function makeAlert(overrides: Partial<AlertEventDto> = {}): AlertEventDto {
     threshold: 2000000,
     bookId: 'book-1',
     triggeredAt: '2026-02-28T11:58:00Z',
+    status: 'TRIGGERED',
     ...overrides,
   }
 }

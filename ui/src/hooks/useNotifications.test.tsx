@@ -34,6 +34,7 @@ const alert: AlertEventDto = {
   threshold: 1000000,
   bookId: 'book-1',
   triggeredAt: '2025-01-15T10:30:00Z',
+  status: 'TRIGGERED',
 }
 
 describe('useNotifications', () => {
