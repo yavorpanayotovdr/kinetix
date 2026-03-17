@@ -7,6 +7,8 @@ import com.kinetix.common.model.ReferenceDataSource
 import com.kinetix.common.model.instrument.*
 import com.kinetix.referencedata.model.Instrument
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
+import com.kinetix.referencedata.persistence.DeskRepository
+import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.InstrumentRepository
 import org.slf4j.LoggerFactory
@@ -16,6 +18,8 @@ class DevDataSeeder(
     private val dividendYieldRepository: DividendYieldRepository,
     private val creditSpreadRepository: CreditSpreadRepository,
     private val instrumentRepository: InstrumentRepository? = null,
+    private val divisionRepository: DivisionRepository? = null,
+    private val deskRepository: DeskRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 

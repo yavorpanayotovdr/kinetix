@@ -7,12 +7,20 @@ import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DatabaseConfig
 import com.kinetix.referencedata.seed.DevDataSeeder
 import com.kinetix.referencedata.persistence.DatabaseFactory
+import com.kinetix.referencedata.persistence.DeskRepository
+import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDeskRepository
+import com.kinetix.referencedata.persistence.ExposedDivisionRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
+import com.kinetix.referencedata.routes.deskRoutes
+import com.kinetix.referencedata.routes.divisionRoutes
 import com.kinetix.referencedata.routes.instrumentRoutes
 import com.kinetix.referencedata.routes.referenceDataRoutes
+import com.kinetix.referencedata.service.DeskService
+import com.kinetix.referencedata.service.DivisionService
 import com.kinetix.referencedata.service.InstrumentService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -88,6 +96,8 @@ fun Application.module(
     creditSpreadRepository: CreditSpreadRepository,
     ingestionService: ReferenceDataIngestionService,
     instrumentService: InstrumentService? = null,
+    divisionService: DivisionService? = null,
+    deskService: DeskService? = null,
 ) {
     module()
     install(StatusPages) {
@@ -109,6 +119,10 @@ fun Application.module(
         referenceDataRoutes(dividendYieldRepository, creditSpreadRepository, ingestionService)
         if (instrumentService != null) {
             instrumentRoutes(instrumentService)
+        }
+        if (divisionService != null && deskService != null) {
+            divisionRoutes(divisionService, deskService)
+            deskRoutes(deskService)
         }
     }
 }
@@ -150,6 +164,11 @@ fun Application.moduleWithRoutes() {
     val instrumentRepository = ExposedInstrumentRepository(db)
     val instrumentService = InstrumentService(instrumentRepository)
 
+    val divisionRepository = ExposedDivisionRepository(db)
+    val deskRepository = ExposedDeskRepository(db)
+    val divisionService = DivisionService(divisionRepository)
+    val deskService = DeskService(deskRepository, divisionRepository)
+
     val seedDone = AtomicBoolean(false)
     val readinessChecker = ReadinessChecker(
         dataSource = DatabaseFactory.dataSource,
@@ -157,7 +176,7 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService)
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService)
 
     routing {
         get("/health/ready") {
@@ -174,7 +193,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository).seed()
+            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository, divisionRepository, deskRepository).seed()
             seedDone.set(true)
         }
     } else {
