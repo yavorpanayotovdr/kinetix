@@ -1,6 +1,10 @@
 package com.kinetix.referencedata.seed
 
 import com.kinetix.common.model.CreditSpread
+import com.kinetix.common.model.Desk
+import com.kinetix.common.model.DeskId
+import com.kinetix.common.model.Division
+import com.kinetix.common.model.DivisionId
 import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.ReferenceDataSource
@@ -35,6 +39,8 @@ class DevDataSeeder(
         seedDividendYields()
         seedCreditSpreads()
         seedInstruments()
+        seedDivisions()
+        seedDesks()
 
         log.info("Reference data seeding complete")
     }
@@ -83,6 +89,22 @@ class DevDataSeeder(
         log.info("Seeded {} instruments", INSTRUMENTS.size)
     }
 
+    private suspend fun seedDivisions() {
+        val repo = divisionRepository ?: return
+        for ((id, config) in DIVISIONS) {
+            repo.save(Division(id = DivisionId(id), name = config.name, description = config.description))
+        }
+        log.info("Seeded {} divisions", DIVISIONS.size)
+    }
+
+    private suspend fun seedDesks() {
+        val repo = deskRepository ?: return
+        for ((id, config) in DESKS) {
+            repo.save(Desk(id = DeskId(id), name = config.name, divisionId = DivisionId(config.divisionId), deskHead = config.deskHead))
+        }
+        log.info("Seeded {} desks", DESKS.size)
+    }
+
     private data class InstrumentConfig(
         val type: InstrumentType,
         val displayName: String,
@@ -92,6 +114,17 @@ class DevDataSeeder(
     private data class CreditSpreadConfig(
         val spread: Double,
         val rating: String,
+    )
+
+    private data class DivisionConfig(
+        val name: String,
+        val description: String? = null,
+    )
+
+    private data class DeskConfig(
+        val name: String,
+        val divisionId: String,
+        val deskHead: String? = null,
     )
 
     companion object {
@@ -163,6 +196,23 @@ class DevDataSeeder(
             "DE10Y" to CreditSpreadConfig(spread = 0.0008, rating = "AAA"),
             "JPM" to CreditSpreadConfig(spread = 0.0050, rating = "A+"),
             "BABA" to CreditSpreadConfig(spread = 0.0180, rating = "A"),
+        )
+
+        private val DIVISIONS: Map<String, DivisionConfig> = mapOf(
+            "equities" to DivisionConfig(name = "Equities"),
+            "fixed-income-rates" to DivisionConfig(name = "Fixed Income & Rates"),
+            "multi-asset" to DivisionConfig(name = "Multi-Asset"),
+        )
+
+        private val DESKS: Map<String, DeskConfig> = mapOf(
+            "equity-growth" to DeskConfig(name = "Equity Growth", divisionId = "equities"),
+            "tech-momentum" to DeskConfig(name = "Tech Momentum", divisionId = "equities"),
+            "emerging-markets" to DeskConfig(name = "Emerging Markets", divisionId = "equities"),
+            "rates-trading" to DeskConfig(name = "Rates Trading", divisionId = "fixed-income-rates"),
+            "multi-asset-strategies" to DeskConfig(name = "Multi-Asset Strategies", divisionId = "multi-asset"),
+            "macro-hedge" to DeskConfig(name = "Macro Hedge", divisionId = "multi-asset"),
+            "balanced-income" to DeskConfig(name = "Balanced Income", divisionId = "multi-asset"),
+            "derivatives-trading" to DeskConfig(name = "Derivatives Trading", divisionId = "multi-asset"),
         )
     }
 }
