@@ -1,5 +1,9 @@
 package com.kinetix.position.service
 
+import com.kinetix.common.model.Desk
+import com.kinetix.common.model.DeskId
+import com.kinetix.common.model.DivisionId
+import com.kinetix.position.client.ReferenceDataServiceClient
 import com.kinetix.position.model.LimitCheckStatus
 import com.kinetix.position.model.LimitDefinition
 import com.kinetix.position.model.LimitLevel
@@ -20,12 +24,16 @@ class LimitHierarchyServiceTest : FunSpec({
 
     val limitDefinitionRepo = mockk<LimitDefinitionRepository>()
     val temporaryLimitIncreaseRepo = mockk<TemporaryLimitIncreaseRepository>()
-    val service = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
+    val referenceDataClient = mockk<ReferenceDataServiceClient>()
+    val service = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo, referenceDataClient)
+    val serviceWithoutRefData = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
 
     beforeEach {
-        clearMocks(limitDefinitionRepo, temporaryLimitIncreaseRepo)
+        clearMocks(limitDefinitionRepo, temporaryLimitIncreaseRepo, referenceDataClient)
         coEvery { temporaryLimitIncreaseRepo.findActiveByLimitId(any(), any()) } returns null
         coEvery { limitDefinitionRepo.findByEntityAndType(any(), any(), any()) } returns null
+        coEvery { referenceDataClient.getDeskById(any()) } returns null
+        coEvery { referenceDataClient.getDivisionById(any()) } returns null
     }
 
     test("firm limits apply to all desks") {
@@ -43,7 +51,7 @@ class LimitHierarchyServiceTest : FunSpec({
         coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns null
         coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns firmLimit
 
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "desk-A",
             level = LimitLevel.DESK,
             limitType = LimitType.NOTIONAL,
@@ -79,7 +87,7 @@ class LimitHierarchyServiceTest : FunSpec({
         coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns deskLimit
         coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns firmLimit
 
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "desk-A",
             level = LimitLevel.DESK,
             limitType = LimitType.NOTIONAL,
@@ -104,7 +112,7 @@ class LimitHierarchyServiceTest : FunSpec({
 
         coEvery { limitDefinitionRepo.findByEntityAndType("trader-1", LimitLevel.TRADER, LimitType.POSITION) } returns limit
 
-        val intradayResult = service.checkLimit(
+        val intradayResult = serviceWithoutRefData.checkLimit(
             entityId = "trader-1",
             level = LimitLevel.TRADER,
             limitType = LimitType.POSITION,
@@ -114,7 +122,7 @@ class LimitHierarchyServiceTest : FunSpec({
 
         intradayResult.status shouldBe LimitCheckStatus.OK
 
-        val overnightResult = service.checkLimit(
+        val overnightResult = serviceWithoutRefData.checkLimit(
             entityId = "trader-1",
             level = LimitLevel.TRADER,
             limitType = LimitType.POSITION,
@@ -151,7 +159,7 @@ class LimitHierarchyServiceTest : FunSpec({
         coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns limit
         coEvery { temporaryLimitIncreaseRepo.findActiveByLimitId(limitId, any()) } returns tempIncrease
 
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "desk-A",
             level = LimitLevel.DESK,
             limitType = LimitType.NOTIONAL,
@@ -199,7 +207,7 @@ class LimitHierarchyServiceTest : FunSpec({
         coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.VAR) } returns firmLimit
 
         // Within trader limit but breaches desk limit
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "trader-1",
             level = LimitLevel.TRADER,
             limitType = LimitType.VAR,
@@ -226,7 +234,7 @@ class LimitHierarchyServiceTest : FunSpec({
 
         coEvery { limitDefinitionRepo.findByEntityAndType("trader-1", LimitLevel.TRADER, LimitType.NOTIONAL) } returns traderLimit
 
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "trader-1",
             level = LimitLevel.TRADER,
             limitType = LimitType.NOTIONAL,
@@ -250,7 +258,7 @@ class LimitHierarchyServiceTest : FunSpec({
 
         coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns limit
 
-        val result = service.checkLimit(
+        val result = serviceWithoutRefData.checkLimit(
             entityId = "desk-A",
             level = LimitLevel.DESK,
             limitType = LimitType.NOTIONAL,
@@ -258,5 +266,182 @@ class LimitHierarchyServiceTest : FunSpec({
         )
 
         result.status shouldBe LimitCheckStatus.WARNING
+    }
+
+    // --- New hierarchy tests for BOOK, DIVISION ---
+
+    test("book limit breaches at book level when book limit is set") {
+        val deskId = DeskId("desk-A")
+        val desk = Desk(id = deskId, name = "Equities", divisionId = DivisionId("div-1"))
+
+        val bookLimit = LimitDefinition(
+            id = UUID.randomUUID().toString(),
+            level = LimitLevel.BOOK,
+            entityId = "book-1",
+            limitType = LimitType.NOTIONAL,
+            limitValue = BigDecimal("500000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        )
+
+        coEvery { referenceDataClient.getDeskById(deskId) } returns desk
+        coEvery { limitDefinitionRepo.findByEntityAndType("book-1", LimitLevel.BOOK, LimitType.NOTIONAL) } returns bookLimit
+        coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("div-1", LimitLevel.DIVISION, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns null
+
+        val result = service.checkLimit(
+            entityId = "book-1",
+            level = LimitLevel.BOOK,
+            limitType = LimitType.NOTIONAL,
+            currentExposure = BigDecimal("600000"),
+            parentEntityIds = mapOf(LimitLevel.DESK to "desk-A"),
+        )
+
+        result.status shouldBe LimitCheckStatus.BREACHED
+        result.breachedAt shouldBe LimitLevel.BOOK
+    }
+
+    test("book limit escalates to desk when book has no limit defined") {
+        val deskId = DeskId("desk-A")
+        val desk = Desk(id = deskId, name = "Equities", divisionId = DivisionId("div-1"))
+
+        val deskLimit = LimitDefinition(
+            id = UUID.randomUUID().toString(),
+            level = LimitLevel.DESK,
+            entityId = "desk-A",
+            limitType = LimitType.NOTIONAL,
+            limitValue = BigDecimal("1000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        )
+
+        coEvery { referenceDataClient.getDeskById(deskId) } returns desk
+        coEvery { limitDefinitionRepo.findByEntityAndType("book-1", LimitLevel.BOOK, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns deskLimit
+        coEvery { limitDefinitionRepo.findByEntityAndType("div-1", LimitLevel.DIVISION, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns null
+
+        val result = service.checkLimit(
+            entityId = "book-1",
+            level = LimitLevel.BOOK,
+            limitType = LimitType.NOTIONAL,
+            currentExposure = BigDecimal("1500000"),
+            parentEntityIds = mapOf(LimitLevel.DESK to "desk-A"),
+        )
+
+        result.status shouldBe LimitCheckStatus.BREACHED
+        result.breachedAt shouldBe LimitLevel.DESK
+    }
+
+    test("book limit escalates to division limit via auto-resolution from desk") {
+        val deskId = DeskId("desk-A")
+        val desk = Desk(id = deskId, name = "Equities", divisionId = DivisionId("div-1"))
+
+        val divisionLimit = LimitDefinition(
+            id = UUID.randomUUID().toString(),
+            level = LimitLevel.DIVISION,
+            entityId = "div-1",
+            limitType = LimitType.NOTIONAL,
+            limitValue = BigDecimal("5000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        )
+
+        coEvery { referenceDataClient.getDeskById(deskId) } returns desk
+        coEvery { limitDefinitionRepo.findByEntityAndType("book-1", LimitLevel.BOOK, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("div-1", LimitLevel.DIVISION, LimitType.NOTIONAL) } returns divisionLimit
+        coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns null
+
+        // Caller supplies desk; service auto-resolves division from reference data
+        val result = service.checkLimit(
+            entityId = "book-1",
+            level = LimitLevel.BOOK,
+            limitType = LimitType.NOTIONAL,
+            currentExposure = BigDecimal("6000000"),
+            parentEntityIds = mapOf(LimitLevel.DESK to "desk-A"),
+        )
+
+        result.status shouldBe LimitCheckStatus.BREACHED
+        result.breachedAt shouldBe LimitLevel.DIVISION
+    }
+
+    test("book limit passes when no limit defined at any level") {
+        val deskId = DeskId("desk-A")
+        val desk = Desk(id = deskId, name = "Equities", divisionId = DivisionId("div-1"))
+
+        coEvery { referenceDataClient.getDeskById(deskId) } returns desk
+
+        val result = service.checkLimit(
+            entityId = "book-1",
+            level = LimitLevel.BOOK,
+            limitType = LimitType.NOTIONAL,
+            currentExposure = BigDecimal("999999999"),
+            parentEntityIds = mapOf(LimitLevel.DESK to "desk-A"),
+        )
+
+        result.status shouldBe LimitCheckStatus.OK
+    }
+
+    test("desk limit resolves division via reference data client") {
+        val deskId = DeskId("desk-A")
+        val desk = Desk(id = deskId, name = "Equities", divisionId = DivisionId("div-1"))
+
+        val divisionLimit = LimitDefinition(
+            id = UUID.randomUUID().toString(),
+            level = LimitLevel.DIVISION,
+            entityId = "div-1",
+            limitType = LimitType.VAR,
+            limitValue = BigDecimal("2000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        )
+
+        coEvery { referenceDataClient.getDeskById(deskId) } returns desk
+        coEvery { limitDefinitionRepo.findByEntityAndType("desk-A", LimitLevel.DESK, LimitType.VAR) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("div-1", LimitLevel.DIVISION, LimitType.VAR) } returns divisionLimit
+        coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.VAR) } returns null
+
+        val result = service.checkLimit(
+            entityId = "desk-A",
+            level = LimitLevel.DESK,
+            limitType = LimitType.VAR,
+            currentExposure = BigDecimal("3000000"),
+        )
+
+        result.status shouldBe LimitCheckStatus.BREACHED
+        result.breachedAt shouldBe LimitLevel.DIVISION
+    }
+
+    test("book limit check falls back to firm when reference data not available") {
+        val firmLimit = LimitDefinition(
+            id = UUID.randomUUID().toString(),
+            level = LimitLevel.FIRM,
+            entityId = "FIRM",
+            limitType = LimitType.NOTIONAL,
+            limitValue = BigDecimal("10000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        )
+
+        coEvery { referenceDataClient.getDeskById(any()) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("book-orphan", LimitLevel.BOOK, LimitType.NOTIONAL) } returns null
+        coEvery { limitDefinitionRepo.findByEntityAndType("FIRM", LimitLevel.FIRM, LimitType.NOTIONAL) } returns firmLimit
+
+        val result = service.checkLimit(
+            entityId = "book-orphan",
+            level = LimitLevel.BOOK,
+            limitType = LimitType.NOTIONAL,
+            currentExposure = BigDecimal("11000000"),
+        )
+
+        result.status shouldBe LimitCheckStatus.BREACHED
+        result.breachedAt shouldBe LimitLevel.FIRM
     }
 })

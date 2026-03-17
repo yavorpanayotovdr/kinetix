@@ -1,5 +1,7 @@
 package com.kinetix.position.service
 
+import com.kinetix.common.model.DeskId
+import com.kinetix.position.client.ReferenceDataServiceClient
 import com.kinetix.position.model.LimitCheckResult
 import com.kinetix.position.model.LimitCheckStatus
 import com.kinetix.position.model.LimitDefinition
@@ -13,6 +15,7 @@ import java.time.Instant
 class LimitHierarchyService(
     private val limitDefinitionRepo: LimitDefinitionRepository,
     private val temporaryLimitIncreaseRepo: TemporaryLimitIncreaseRepository,
+    private val referenceDataClient: ReferenceDataServiceClient? = null,
     private val warningThresholdPct: Double = 0.8,
 ) {
     suspend fun checkLimit(
@@ -34,12 +37,11 @@ class LimitHierarchyService(
             }
         }
 
-        val hierarchyOrder = listOf(LimitLevel.DESK, LimitLevel.FIRM)
-        for (parentLevel in hierarchyOrder) {
-            if (parentLevel == level) continue
-            if (parentLevel.ordinal >= level.ordinal && level != LimitLevel.TRADER) continue
+        val resolvedParents = resolveParentIds(entityId, level, parentEntityIds)
+        val hierarchyOrder = parentHierarchyFor(level)
 
-            val parentEntityId = parentEntityIds[parentLevel]
+        for (parentLevel in hierarchyOrder) {
+            val parentEntityId = resolvedParents[parentLevel]
                 ?: if (parentLevel == LimitLevel.FIRM) "FIRM" else continue
             val parentExposure = parentExposures[parentLevel] ?: currentExposure
 
@@ -53,14 +55,57 @@ class LimitHierarchyService(
         }
 
         if (entityLimit != null) {
-            val result = evaluateLimit(entityLimit, currentExposure, intraday, now)
-            return result
+            return evaluateLimit(entityLimit, currentExposure, intraday, now)
         }
 
         return LimitCheckResult(
             status = LimitCheckStatus.OK,
             currentExposure = currentExposure,
         )
+    }
+
+    private suspend fun resolveParentIds(
+        entityId: String,
+        level: LimitLevel,
+        suppliedParents: Map<LimitLevel, String>,
+    ): Map<LimitLevel, String> {
+        if (referenceDataClient == null) return suppliedParents
+
+        val resolved = suppliedParents.toMutableMap()
+
+        when (level) {
+            LimitLevel.BOOK -> {
+                // For BOOK level: caller supplies the desk ID. We auto-resolve division from it.
+                val deskId = resolved[LimitLevel.DESK] ?: return resolved
+                if (!resolved.containsKey(LimitLevel.DIVISION)) {
+                    val desk = referenceDataClient.getDeskById(DeskId(deskId))
+                    if (desk != null) {
+                        resolved[LimitLevel.DIVISION] = desk.divisionId.value
+                    }
+                }
+            }
+            LimitLevel.DESK -> {
+                // For DESK level: auto-resolve division from the desk's own entityId.
+                if (!resolved.containsKey(LimitLevel.DIVISION)) {
+                    val desk = referenceDataClient.getDeskById(DeskId(entityId))
+                    if (desk != null) {
+                        resolved[LimitLevel.DIVISION] = desk.divisionId.value
+                    }
+                }
+            }
+            else -> {}
+        }
+
+        return resolved
+    }
+
+    private fun parentHierarchyFor(level: LimitLevel): List<LimitLevel> = when (level) {
+        LimitLevel.BOOK -> listOf(LimitLevel.DESK, LimitLevel.DIVISION, LimitLevel.FIRM)
+        LimitLevel.DESK -> listOf(LimitLevel.DIVISION, LimitLevel.FIRM)
+        LimitLevel.DIVISION -> listOf(LimitLevel.FIRM)
+        LimitLevel.TRADER -> listOf(LimitLevel.DESK, LimitLevel.DIVISION, LimitLevel.FIRM)
+        LimitLevel.COUNTERPARTY -> listOf(LimitLevel.FIRM)
+        LimitLevel.FIRM -> emptyList()
     }
 
     private suspend fun evaluateLimit(
