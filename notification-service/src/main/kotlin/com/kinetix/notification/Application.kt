@@ -257,6 +257,7 @@ data class AlertEventResponse(
     val resolvedAt: String? = null,
     val resolvedReason: String? = null,
     val correlationId: String? = null,
+    val suggestedAction: String? = null,
 )
 
 fun Route.notificationRoutes(
@@ -438,4 +439,5 @@ private fun com.kinetix.notification.model.AlertEvent.toEventResponse() = AlertE
     resolvedAt = resolvedAt?.toString(),
     resolvedReason = resolvedReason,
     correlationId = correlationId,
+    suggestedAction = suggestedAction,
 )

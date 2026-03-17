@@ -131,6 +131,17 @@ export function AlertDrillDownPanel({ alert, onClose }: AlertDrillDownPanelProps
             {remaining} more position{remaining > 1 ? 's' : ''}
           </button>
         )}
+
+        {/* Suggested Action */}
+        {alert.suggestedAction && (
+          <div data-testid="suggested-action" className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h4 className="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase mb-1">Suggested Action</h4>
+            <p className="text-sm text-blue-900 dark:text-blue-200">{alert.suggestedAction}</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+              Actual VaR depends on correlations at time of execution
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -27,6 +27,7 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
             it[resolvedReason] = event.resolvedReason
             it[correlationId] = event.correlationId
             it[contributors] = event.contributors
+            it[suggestedAction] = event.suggestedAction
         }
     }
 
@@ -109,5 +110,6 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         resolvedReason = this[AlertEventsTable.resolvedReason],
         correlationId = this[AlertEventsTable.correlationId],
         contributors = this[AlertEventsTable.contributors],
+        suggestedAction = this[AlertEventsTable.suggestedAction],
     )
 }

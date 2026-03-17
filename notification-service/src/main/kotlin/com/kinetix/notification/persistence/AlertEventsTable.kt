@@ -19,6 +19,7 @@ object AlertEventsTable : Table("alert_events") {
     val resolvedReason = text("resolved_reason").nullable()
     val contributors = text("contributors").nullable()
     val correlationId = varchar("correlation_id", 255).nullable()
+    val suggestedAction = text("suggested_action").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

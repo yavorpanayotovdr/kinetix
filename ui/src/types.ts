@@ -215,6 +215,7 @@ export interface AlertEventDto {
   resolvedAt?: string
   resolvedReason?: string
   correlationId?: string
+  suggestedAction?: string
 }
 
 export interface CreateAlertRuleRequestDto {

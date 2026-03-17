@@ -599,6 +599,7 @@ data class AlertEventDto(
     val resolvedAt: String? = null,
     val resolvedReason: String? = null,
     val correlationId: String? = null,
+    val suggestedAction: String? = null,
 )
 
 @Serializable
@@ -645,6 +646,7 @@ fun AlertEventItem.toDto(): AlertEventDto = AlertEventDto(
     resolvedAt = resolvedAt?.toString(),
     resolvedReason = resolvedReason,
     correlationId = correlationId,
+    suggestedAction = suggestedAction,
 )
 
 fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRuleParams(

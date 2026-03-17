@@ -283,6 +283,7 @@ data class AlertEventDto(
     val resolvedAt: String? = null,
     val resolvedReason: String? = null,
     val correlationId: String? = null,
+    val suggestedAction: String? = null,
 )
 
 @Serializable
@@ -649,6 +650,7 @@ fun AlertEventDto.toDomain() = AlertEventItem(
     resolvedAt = resolvedAt?.let { Instant.parse(it) },
     resolvedReason = resolvedReason,
     correlationId = correlationId,
+    suggestedAction = suggestedAction,
 )
 
 fun JobPhaseClientDto.toDomain() = JobPhaseItem(

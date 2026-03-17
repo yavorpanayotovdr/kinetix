@@ -20,6 +20,7 @@ class RulesEngine(
     private val meterRegistry: MeterRegistry? = null,
     private val eventRepository: AlertEventRepository? = null,
     extractors: List<MetricExtractor> = DEFAULT_EXTRACTORS,
+    private val suggestedActionGenerator: SuggestedActionGenerator = SuggestedActionGenerator(),
 ) {
 
     private val extractorsByType: Map<AlertType, MetricExtractor> = extractors.associateBy { it.type }
@@ -69,6 +70,13 @@ class RulesEngine(
                     "severity", rule.severity.name,
                 )?.increment()
 
+                val topContributors = event.positionBreakdown
+                    ?.sortedByDescending { abs(it.varContribution.toDoubleOrNull() ?: 0.0) }
+                    ?.take(10)
+                    ?: emptyList()
+
+                val suggestion = suggestedActionGenerator.generate(rule, event, topContributors)
+
                 AlertEvent(
                     id = UUID.randomUUID().toString(),
                     ruleId = rule.id,
@@ -82,6 +90,7 @@ class RulesEngine(
                     triggeredAt = Instant.now(),
                     correlationId = event.correlationId,
                     contributors = serializeTopContributors(event.positionBreakdown),
+                    suggestedAction = suggestion,
                 )
             } else {
                 null

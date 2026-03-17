@@ -28,6 +28,7 @@ data class AlertEventItem(
     val resolvedAt: Instant? = null,
     val resolvedReason: String? = null,
     val correlationId: String? = null,
+    val suggestedAction: String? = null,
 )
 
 data class CreateAlertRuleParams(
