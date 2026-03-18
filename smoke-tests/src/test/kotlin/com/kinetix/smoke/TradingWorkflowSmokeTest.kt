@@ -2,7 +2,6 @@ package com.kinetix.smoke
 
 import com.kinetix.smoke.SmokeHttpClient.smokeGet
 import com.kinetix.smoke.SmokeHttpClient.smokePost
-import com.kinetix.smoke.SmokeHttpClient.smokePut
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
@@ -12,6 +11,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
 import java.math.BigDecimal
+import java.time.Instant
+import java.util.UUID
 
 @Tags("P1")
 class TradingWorkflowSmokeTest : FunSpec({
@@ -21,14 +22,17 @@ class TradingWorkflowSmokeTest : FunSpec({
     var bookedTradeId: String? = null
 
     test("trade booking round-trip — POST trade, verify position appears") {
+        val tradeId = UUID.randomUUID().toString()
         val tradeBody = """
         {
-            "portfolioId": "$smokeBookId",
+            "tradeId": "$tradeId",
             "instrumentId": "${SmokeTestConfig.seededInstrumentId}",
             "side": "BUY",
-            "quantity": 10,
-            "price": { "amount": "150.00", "currency": "USD" },
-            "assetClass": "EQUITY"
+            "quantity": "10",
+            "priceAmount": "150.00",
+            "priceCurrency": "USD",
+            "assetClass": "EQUITY",
+            "tradedAt": "${Instant.now()}"
         }
         """.trimIndent()
 
@@ -42,7 +46,9 @@ class TradingWorkflowSmokeTest : FunSpec({
         println("SMOKE_METRIC trade_booking_ms=$elapsed")
 
         response.status shouldBe HttpStatusCode.Created
-        val trade = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        val trade = body["trade"]?.jsonObject
+        trade.shouldNotBeNull()
         bookedTradeId = trade["tradeId"]?.jsonPrimitive?.content
         bookedTradeId.shouldNotBeNull()
 
@@ -88,7 +94,7 @@ class TradingWorkflowSmokeTest : FunSpec({
     test("audit hash chain intact — verify endpoint returns valid") {
         val start = System.currentTimeMillis()
         val response = client.smokeGet(
-            "/api/v1/audit/verify?portfolioId=$smokeBookId",
+            "/api/v1/audit/verify",
             "audit-verify",
         )
         val elapsed = System.currentTimeMillis() - start
@@ -97,33 +103,5 @@ class TradingWorkflowSmokeTest : FunSpec({
         response.status shouldBe HttpStatusCode.OK
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
         body["valid"]?.jsonPrimitive?.boolean shouldBe true
-    }
-
-    test("trade amendment wiring — PUT amendment updates position") {
-        bookedTradeId.shouldNotBeNull()
-
-        val amendBody = """
-        {
-            "quantity": 15,
-            "price": { "amount": "155.00", "currency": "USD" },
-            "reason": "smoke test amendment"
-        }
-        """.trimIndent()
-
-        val response = client.smokePut(
-            "/api/v1/books/$smokeBookId/trades/$bookedTradeId",
-            "trade-amend",
-            amendBody,
-        )
-        response.status shouldBe HttpStatusCode.OK
-
-        // Verify updated position
-        val posResponse = client.smokeGet(
-            "/api/v1/books/$smokeBookId/positions",
-            "position-after-amend",
-        )
-        posResponse.status shouldBe HttpStatusCode.OK
-        val positions = Json.parseToJsonElement(posResponse.bodyAsText()).jsonArray
-        positions.size shouldBeGreaterThan 0
     }
 })

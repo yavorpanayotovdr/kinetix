@@ -22,6 +22,7 @@ import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
 import com.kinetix.gateway.routes.priceRoutes
+import com.kinetix.gateway.routes.auditProxyRoutes
 import com.kinetix.gateway.routes.instrumentRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
@@ -281,6 +282,7 @@ fun Application.devModule() {
         stressScenarioRoutes(regulatoryClient)
         backtestProxyRoutes(regulatoryClient)
         instrumentRoutes(httpClient, referenceDataUrl)
+        auditProxyRoutes(httpClient, auditUrl)
         dataQualityRoutes()
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(
