@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 from concurrent import futures
 from pathlib import Path
 
@@ -216,6 +217,15 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
         logger.info("Risk engine gRPC server started on port %d (plaintext)", port)
 
     server.start()
+
+    def handle_sigterm(signum, frame):
+        logger.info("SIGTERM received, initiating graceful shutdown")
+        stopped = server.stop(grace=30)
+        stopped.wait()
+        logger.info("gRPC server stopped cleanly")
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
     server.wait_for_termination()
 
 
