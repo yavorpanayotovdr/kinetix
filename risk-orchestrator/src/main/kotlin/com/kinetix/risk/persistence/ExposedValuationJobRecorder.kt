@@ -609,6 +609,18 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         )
     }
 
+    override suspend fun resetOrphanedRunningJobs(): Int = newSuspendedTransaction(db = db) {
+        val cutoff = OffsetDateTime.ofInstant(Instant.now().minus(Duration.ofMinutes(10)), ZoneOffset.UTC)
+        ValuationJobsTable.update({
+            (ValuationJobsTable.status eq "RUNNING") and
+                (ValuationJobsTable.startedAt less cutoff)
+        }) {
+            it[status] = "FAILED"
+            it[completedAt] = OffsetDateTime.ofInstant(Instant.now(), ZoneOffset.UTC)
+            it[error] = "Orphaned RUNNING job reset on startup"
+        }
+    }
+
     companion object {
         fun bucketInterval(from: Instant, to: Instant): String {
             val durationMs = Duration.between(from, to).toMillis()

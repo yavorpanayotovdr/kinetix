@@ -28,4 +28,5 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD supersession")
     override suspend fun findChartData(portfolioId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
+    override suspend fun resetOrphanedRunningJobs(): Int = 0
 }

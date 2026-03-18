@@ -253,6 +253,11 @@ fun Application.moduleWithRoutes() {
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
 
+    launch {
+        val resetCount = jobRecorder.resetOrphanedRunningJobs()
+        if (resetCount > 0) log.warn("Reset {} orphaned RUNNING valuation jobs to FAILED", resetCount)
+    }
+
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
 
