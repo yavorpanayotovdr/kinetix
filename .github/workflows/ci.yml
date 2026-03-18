@@ -441,6 +441,22 @@ jobs:
             -f docker-compose.services.yml \
             up --build --wait --timeout 300
 
+      - name: Wait for all services to be ready
+        run: |
+          echo "Polling gateway /api/v1/system/health until all services report READY..."
+          for i in $(seq 1 60); do
+            STATUS=$(curl -sf http://localhost:8080/api/v1/system/health 2>/dev/null | jq -r '.status // empty' 2>/dev/null)
+            if [ "$STATUS" = "UP" ]; then
+              echo "All services READY after ${i} attempts"
+              exit 0
+            fi
+            echo "Attempt $i: status=$STATUS — waiting 5s..."
+            sleep 5
+          done
+          echo "Services did not become ready within 5 minutes"
+          curl -sf http://localhost:8080/api/v1/system/health 2>/dev/null | jq . || true
+          exit 1
+
       - name: Run smoke tests
         run: ./gradlew :smoke-tests:smokeTest
 
