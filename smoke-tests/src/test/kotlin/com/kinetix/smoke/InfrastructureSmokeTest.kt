@@ -4,6 +4,7 @@ import com.kinetix.smoke.SmokeHttpClient.smokeGet
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.statement.*
@@ -52,7 +53,7 @@ class InfrastructureSmokeTest : FunSpec({
         response.status shouldBe HttpStatusCode.OK
 
         val instruments = Json.parseToJsonElement(response.bodyAsText()).jsonArray
-        instruments.size shouldBe instruments.size // non-empty check below
+        instruments.size shouldBeGreaterThan 0
 
         val types = instruments.map {
             it.jsonObject["instrumentType"]?.jsonPrimitive?.content
