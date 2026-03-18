@@ -35,7 +35,7 @@ test.describe('P&L Color Coding', () => {
     // Use default positions (total P&L = $3050 > 0)
     await mockPositions(page, [
       {
-        portfolioId: 'port-1',
+        bookId: 'port-1',
         instrumentId: 'AAPL',
         assetClass: 'EQUITY',
         quantity: '100',
@@ -57,7 +57,7 @@ test.describe('P&L Color Coding', () => {
     // Override with single TSLA position (P&L = -6000 < 0)
     await mockPositions(page, [
       {
-        portfolioId: 'port-1',
+        bookId: 'port-1',
         instrumentId: 'TSLA',
         assetClass: 'EQUITY',
         quantity: '30',

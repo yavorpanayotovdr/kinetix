@@ -151,9 +151,13 @@ async function mockHierarchyRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
   })
 
-  // Fallback for old portfolios routes (some tests may trigger them)
-  await page.route('**/api/v1/portfolios**', (route) => {
-    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify([]) })
+  // Desks for division desks endpoint
+  await page.route('**/api/v1/desks/*/books', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_BOOKS),
+    })
   })
 }
 
@@ -203,12 +207,11 @@ test.describe('Hierarchy Navigation', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hierarchy-selector"]')
 
-    // Select division
+    // Select division — panel stays open after clicking
     await page.getByTestId('hierarchy-selector-toggle').click()
     await page.getByTestId('hierarchy-division-div-1').click()
 
-    // Open panel again
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Desks load asynchronously; wait for them inside the still-open panel
     await page.waitForSelector('[data-testid="hierarchy-desk-desk-1"]')
 
     await expect(page.getByTestId('hierarchy-desk-desk-1')).toBeVisible()
@@ -219,17 +222,15 @@ test.describe('Hierarchy Navigation', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hierarchy-selector"]')
 
-    // Navigate to division
+    // Navigate to division — panel stays open
     await page.getByTestId('hierarchy-selector-toggle').click()
     await page.getByTestId('hierarchy-division-div-1').click()
 
-    // Navigate to desk
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Wait for desks to load, then navigate to desk — panel stays open
     await page.waitForSelector('[data-testid="hierarchy-desk-desk-1"]')
     await page.getByTestId('hierarchy-desk-desk-1').click()
 
-    // Open panel and see books
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Books appear inside the still-open panel
     await expect(page.getByTestId('hierarchy-book-book-1')).toBeVisible()
   })
 
@@ -237,17 +238,15 @@ test.describe('Hierarchy Navigation', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hierarchy-selector"]')
 
-    // Navigate to division
+    // Navigate to division — panel stays open
     await page.getByTestId('hierarchy-selector-toggle').click()
     await page.getByTestId('hierarchy-division-div-1').click()
 
-    // Navigate to desk
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Wait for desks, then navigate to desk — panel stays open
     await page.waitForSelector('[data-testid="hierarchy-desk-desk-1"]')
     await page.getByTestId('hierarchy-desk-desk-1').click()
 
-    // Open panel to see breadcrumb
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Panel is still open; breadcrumb should be visible
     await expect(page.getByTestId('hierarchy-panel')).toBeVisible()
 
     // Breadcrumb inside panel shows full trail
@@ -260,19 +259,21 @@ test.describe('Hierarchy Navigation', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hierarchy-selector"]')
 
-    // Navigate to division
+    // Navigate to division — panel stays open
     await page.getByTestId('hierarchy-selector-toggle').click()
     await page.getByTestId('hierarchy-division-div-1').click()
 
-    // Open panel and click breadcrumb Firm link
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Breadcrumb is visible in the still-open panel; click Firm to go back
     await page.waitForSelector('[data-testid="breadcrumb-firm"]')
     await page.getByTestId('breadcrumb-firm').click()
 
     // Toggle should now show just "Firm"
     await expect(page.getByTestId('hierarchy-selector-toggle')).toContainText('Firm')
-    // And panel should show divisions again
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Open panel to verify divisions are shown at firm level
+    const panelVisible = await page.getByTestId('hierarchy-panel').isVisible().catch(() => false)
+    if (!panelVisible) {
+      await page.getByTestId('hierarchy-selector-toggle').click()
+    }
     await expect(page.getByTestId('hierarchy-division-div-1')).toBeVisible()
   })
 
@@ -287,11 +288,11 @@ test.describe('Hierarchy Navigation', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hierarchy-selector"]')
 
-    // Navigate to division then desk
+    // Navigate to division — panel stays open
     await page.getByTestId('hierarchy-selector-toggle').click()
     await page.getByTestId('hierarchy-division-div-1').click()
 
-    await page.getByTestId('hierarchy-selector-toggle').click()
+    // Wait for desks to load, then click desk
     await page.waitForSelector('[data-testid="hierarchy-desk-desk-1"]')
     await page.getByTestId('hierarchy-desk-desk-1').click()
 

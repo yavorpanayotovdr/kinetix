@@ -1,7 +1,7 @@
 import type { Page, Route } from '@playwright/test'
 
 export interface PositionFixture {
-  portfolioId: string
+  bookId: string
   instrumentId: string
   displayName?: string
   instrumentType?: string
@@ -13,11 +13,11 @@ export interface PositionFixture {
   unrealizedPnl: { amount: string; currency: string }
 }
 
-export const TEST_BOOKS = [{ portfolioId: 'port-1' }]
+export const TEST_BOOKS = [{ bookId: 'port-1' }]
 
 export const TEST_POSITIONS: PositionFixture[] = [
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     displayName: 'Apple Inc',
     instrumentType: 'STOCK',
@@ -29,7 +29,7 @@ export const TEST_POSITIONS: PositionFixture[] = [
     unrealizedPnl: { amount: '500.00', currency: 'USD' },
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'GOOGL',
     displayName: 'Alphabet Inc',
     instrumentType: 'STOCK',
@@ -41,7 +41,7 @@ export const TEST_POSITIONS: PositionFixture[] = [
     unrealizedPnl: { amount: '2500.00', currency: 'USD' },
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'EUR_USD',
     displayName: 'Euro/US Dollar',
     instrumentType: 'FX_SPOT',
@@ -56,7 +56,7 @@ export const TEST_POSITIONS: PositionFixture[] = [
 
 export interface TradeFixture {
   tradeId: string
-  portfolioId: string
+  bookId: string
   instrumentId: string
   assetClass: string
   side: 'BUY' | 'SELL'
@@ -68,7 +68,7 @@ export interface TradeFixture {
 export const TEST_TRADES: TradeFixture[] = [
   {
     tradeId: 'trade-1',
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -78,7 +78,7 @@ export const TEST_TRADES: TradeFixture[] = [
   },
   {
     tradeId: 'trade-2',
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'GOOGL',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -88,7 +88,7 @@ export const TEST_TRADES: TradeFixture[] = [
   },
   {
     tradeId: 'trade-3',
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     side: 'SELL',
@@ -115,7 +115,37 @@ export const DATA_QUALITY_STATUS = {
  * This allows Playwright tests to run without a real backend.
  */
 export async function mockAllApiRoutes(page: Page): Promise<void> {
-  await page.route('**/api/v1/portfolios', (route: Route) => {
+  await page.route('**/api/v1/divisions', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/v1/desks', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**/api/v1/firm/summary*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        bookId: 'firm',
+        baseCurrency: 'USD',
+        totalNav: { amount: '168850.00', currency: 'USD' },
+        totalUnrealizedPnl: { amount: '3050.00', currency: 'USD' },
+        currencyBreakdown: [],
+      }),
+    })
+  })
+
+  await page.route('**/api/v1/books', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -123,7 +153,7 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  await page.route('**/api/v1/portfolios/*/positions', (route: Route) => {
+  await page.route('**/api/v1/books/*/positions', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -131,7 +161,7 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  await page.route('**/api/v1/portfolios/*/trades', (route: Route) => {
+  await page.route('**/api/v1/books/*/trades', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -207,12 +237,12 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  await page.route('**/api/v1/portfolios/*/summary*', (route: Route) => {
+  await page.route('**/api/v1/books/*/summary*', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        portfolioId: 'port-1',
+        bookId: 'port-1',
         baseCurrency: 'USD',
         totalNav: { amount: '168850.00', currency: 'USD' },
         totalUnrealizedPnl: { amount: '3050.00', currency: 'USD' },
@@ -260,7 +290,7 @@ export function generatePositions(count: number): PositionFixture[] {
     const mv = price * qty
     const pnl = (price - cost) * qty
     return {
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       instrumentId: ticker,
       assetClass: ASSET_CLASSES[i % ASSET_CLASSES.length],
       quantity: String(qty),
@@ -279,8 +309,8 @@ export function generatePositions(count: number): PositionFixture[] {
 export async function mockManyPositions(page: Page, count: number): Promise<PositionFixture[]> {
   const positions = generatePositions(count)
   // Unroute the default positions handler and add a new one
-  await page.unroute('**/api/v1/portfolios/*/positions')
-  await page.route('**/api/v1/portfolios/*/positions', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/positions')
+  await page.route('**/api/v1/books/*/positions', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -304,7 +334,7 @@ export function generateTrades(count: number): TradeFixture[] {
     const tradedAt = new Date(baseTime + i * 60_000).toISOString()
     return {
       tradeId: `trade-gen-${i}`,
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       instrumentId: ticker,
       assetClass: ASSET_CLASSES[i % ASSET_CLASSES.length],
       side: sides[i % sides.length],
@@ -321,8 +351,8 @@ export function generateTrades(count: number): TradeFixture[] {
  */
 export async function mockManyTrades(page: Page, count: number): Promise<TradeFixture[]> {
   const trades = generateTrades(count)
-  await page.unroute('**/api/v1/portfolios/*/trades')
-  await page.route('**/api/v1/portfolios/*/trades', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/trades')
+  await page.route('**/api/v1/books/*/trades', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -398,7 +428,7 @@ export const TEST_POSITION_RISK: PositionRiskFixture[] = [
 
 export const TEST_POSITIONS_MIXED_PNL: PositionFixture[] = [
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     quantity: '100',
@@ -408,7 +438,7 @@ export const TEST_POSITIONS_MIXED_PNL: PositionFixture[] = [
     unrealizedPnl: { amount: '500.00', currency: 'USD' },
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'TSLA',
     assetClass: 'EQUITY',
     quantity: '30',
@@ -418,7 +448,7 @@ export const TEST_POSITIONS_MIXED_PNL: PositionFixture[] = [
     unrealizedPnl: { amount: '-6000.00', currency: 'USD' },
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'MSFT',
     assetClass: 'EQUITY',
     quantity: '50',
@@ -434,7 +464,7 @@ export const TEST_POSITIONS_MIXED_PNL: PositionFixture[] = [
 // ---------------------------------------------------------------------------
 
 export const TEST_PORTFOLIO_SUMMARY_MULTI_CURRENCY = {
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   baseCurrency: 'USD',
   totalNav: { amount: '250000.00', currency: 'USD' },
   totalUnrealizedPnl: { amount: '12500.00', currency: 'USD' },
@@ -462,7 +492,7 @@ export const TEST_WHATIF_RESPONSE = {
   baseVaR: '1142.00',
   baseExpectedShortfall: '1502.90',
   baseGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '8675.25', gamma: '57.50', vega: '1210.00' },
     ],
@@ -488,7 +518,7 @@ export const TEST_WHATIF_RESPONSE = {
   hypotheticalVaR: '1380.50',
   hypotheticalExpectedShortfall: '1820.00',
   hypotheticalGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '13175.25', gamma: '82.50', vega: '1710.00' },
     ],
@@ -553,8 +583,8 @@ export async function mockPositionRisk(page: Page, risk: PositionRiskFixture[]):
  * Call AFTER mockAllApiRoutes.
  */
 export async function mockPositions(page: Page, positions: PositionFixture[]): Promise<void> {
-  await page.unroute('**/api/v1/portfolios/*/positions')
-  await page.route('**/api/v1/portfolios/*/positions', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/positions')
+  await page.route('**/api/v1/books/*/positions', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -568,8 +598,17 @@ export async function mockPositions(page: Page, positions: PositionFixture[]): P
  * Call AFTER mockAllApiRoutes.
  */
 export async function mockPortfolioSummary(page: Page, summary: object): Promise<void> {
-  await page.unroute('**/api/v1/portfolios/*/summary*')
-  await page.route('**/api/v1/portfolios/*/summary*', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/summary*')
+  await page.route('**/api/v1/books/*/summary*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(summary),
+    })
+  })
+  // Also override firm-level summary (used at firm hierarchy level)
+  await page.unroute('**/api/v1/firm/summary*')
+  await page.route('**/api/v1/firm/summary*', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -638,7 +677,7 @@ export interface AlertEventFixture {
 // ---------------------------------------------------------------------------
 
 export const TEST_VAR_RESULT = {
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   varValue: '125000.50',
   expectedShortfall: '187500.75',
   confidenceLevel: 'CL_95',
@@ -649,7 +688,7 @@ export const TEST_VAR_RESULT = {
   ],
   calculatedAt: '2025-01-15T12:00:00Z',
   greeks: {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '1500.00', gamma: '25.00', vega: '800.00' },
       { assetClass: 'FX', delta: '500.00', gamma: '10.00', vega: '200.00' },
@@ -663,7 +702,7 @@ export const TEST_VAR_RESULT = {
 }
 
 export const TEST_HISTORICAL_VAR_RESULT = {
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   varValue: '98000.25',
   expectedShortfall: '147000.38',
   confidenceLevel: 'CL_95',
@@ -674,7 +713,7 @@ export const TEST_HISTORICAL_VAR_RESULT = {
   ],
   calculatedAt: '2025-01-14T18:00:00Z',
   greeks: {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '1200.00', gamma: '20.00', vega: '650.00' },
       { assetClass: 'FX', delta: '400.00', gamma: '8.00', vega: '150.00' },
@@ -703,7 +742,7 @@ export const TEST_JOB_HISTORY = {
   items: [
     {
       jobId: 'job-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: '2025-01-15T12:00:00Z',
@@ -772,7 +811,7 @@ export const TEST_VAR_LIMIT_RULE = [
 
 export const TEST_JOB_DETAIL = {
   jobId: 'job-1',
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   triggerType: 'ON_DEMAND',
   status: 'COMPLETED',
   startedAt: '2025-01-15T12:00:00Z',
@@ -823,7 +862,7 @@ export const TEST_JOB_DETAIL = {
 export const TEST_RUN_MANIFEST = {
   manifestId: 'manifest-abc-123',
   jobId: 'job-1',
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   valuationDate: '2025-01-15',
   capturedAt: '2025-01-15T12:00:02Z',
   modelVersion: '1.4.2-abc9876',
@@ -1204,14 +1243,14 @@ export const TEST_EOD_TIMELINE_ENTRIES: EodTimelineEntryFixture[] = [
 ]
 
 export const TEST_EOD_TIMELINE_RESPONSE = {
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   from: '2026-02-01',
   to: '2026-03-15',
   entries: TEST_EOD_TIMELINE_ENTRIES,
 }
 
 export const TEST_EOD_TIMELINE_EMPTY = {
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   from: '2026-02-01',
   to: '2026-03-15',
   entries: [],

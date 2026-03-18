@@ -131,8 +131,8 @@ test.describe('Trade Blotter - Empty and Error States', () => {
   })
 
   test('shows empty state when book has no trades', async ({ page }) => {
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -147,8 +147,8 @@ test.describe('Trade Blotter - Empty and Error States', () => {
   })
 
   test('shows error message when API returns 500', async ({ page }) => {
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       route.fulfill({ status: 500 })
     })
 
@@ -189,8 +189,8 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
   })
 
   test('loading state shown before trades resolve', async ({ page }) => {
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', async (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
       route.fulfill({
         status: 200,
@@ -208,8 +208,8 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
   })
 
   test('error on network failure (aborted request)', async ({ page }) => {
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       route.abort()
     })
 
@@ -219,11 +219,11 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
     await expect(page.locator('.text-red-600')).toBeVisible()
   })
 
-  test('trades refetch when book changes', async ({ page }) => {
-    const port2Trades: TradeFixture[] = [
+  test('trades refetch when book changes via hierarchy', async ({ page }) => {
+    const book2Trades: TradeFixture[] = [
       {
-        tradeId: 'trade-p2-1',
-        portfolioId: 'port-2',
+        tradeId: 'trade-b2-1',
+        bookId: 'book-2',
         instrumentId: 'TSLA',
         assetClass: 'EQUITY',
         side: 'BUY',
@@ -234,14 +234,14 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
     ]
 
     // Override trades route to return different data per book
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       const url = route.request().url()
-      if (url.includes('port-2')) {
+      if (url.includes('book-2')) {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(port2Trades),
+          body: JSON.stringify(book2Trades),
         })
       } else {
         route.fulfill({
@@ -252,19 +252,44 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       }
     })
 
-    // Override books to expose port-1 and port-2
-    await page.unroute('**/api/v1/portfolios')
-    await page.route('**/api/v1/portfolios', (route) => {
+    // Override books to expose book-1 and book-2
+    await page.unroute('**/api/v1/books')
+    await page.route('**/api/v1/books', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([{ portfolioId: 'port-1' }, { portfolioId: 'port-2' }]),
+        body: JSON.stringify([{ bookId: 'book-1' }, { bookId: 'book-2' }]),
       })
     })
 
-    // Override positions to avoid interfering with the book selector
-    await page.unroute('**/api/v1/portfolios/*/positions')
-    await page.route('**/api/v1/portfolios/*/positions', (route) => {
+    // Set up hierarchy with a division and desk so we can drill to a book
+    await page.unroute('**/api/v1/divisions')
+    await page.route('**/api/v1/divisions', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 'div-1', name: 'Equities', description: '', deskCount: 1 }]),
+      })
+    })
+
+    await page.route('**/api/v1/divisions/*/desks', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 'desk-1', name: 'EU Equities', divisionId: 'div-1', deskHead: 'Alice', bookCount: 2 }]),
+      })
+    })
+
+    await page.route('**/api/v1/divisions/*/summary*', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ bookId: 'div-1', baseCurrency: 'USD', totalNav: { amount: '0', currency: 'USD' }, totalUnrealizedPnl: { amount: '0', currency: 'USD' }, currencyBreakdown: [] }) })
+    })
+    await page.route('**/api/v1/desks/*/summary*', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ bookId: 'desk-1', baseCurrency: 'USD', totalNav: { amount: '0', currency: 'USD' }, totalUnrealizedPnl: { amount: '0', currency: 'USD' }, currencyBreakdown: [] }) })
+    })
+
+    // Override positions
+    await page.unroute('**/api/v1/books/*/positions')
+    await page.route('**/api/v1/books/*/positions', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -272,17 +297,24 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       })
     })
 
-    await goToTradesTab(page)
+    // Navigate to Trades tab at firm level (shows all 3 trades from all books)
+    await page.goto('/')
+    await page.getByTestId('tab-trades').click()
+    await page.waitForSelector('[data-testid^="trade-row-"]')
 
-    // Initially on port-1 → 3 trades
-    await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(3)
+    // Navigate to book-2 via hierarchy: division -> desk -> book
+    await page.getByTestId('hierarchy-selector-toggle').click()
+    await page.getByTestId('hierarchy-division-div-1').click()
+    await page.waitForSelector('[data-testid="hierarchy-desk-desk-1"]')
+    await page.getByTestId('hierarchy-desk-desk-1').click()
+    await page.waitForSelector('[data-testid="hierarchy-book-book-2"]')
+    await page.getByTestId('hierarchy-book-book-2').click()
 
-    // Switch to port-2
-    await page.getByTestId('book-selector').selectOption('port-2')
-    await page.waitForSelector('[data-testid="trade-row-trade-p2-1"]')
+    // After navigating to book-2, trades should refetch for that book
+    await page.waitForSelector('[data-testid="trade-row-trade-b2-1"]')
 
     await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(1)
-    await expect(page.getByTestId('trade-row-trade-p2-1')).toBeVisible()
+    await expect(page.getByTestId('trade-row-trade-b2-1')).toBeVisible()
   })
 })
 
@@ -386,7 +418,7 @@ test.describe('Trade Blotter - Edge Cases', () => {
   test('zero-price trade displays $0.00 notional', async ({ page }) => {
     const zeroTrade: TradeFixture = {
       tradeId: 'trade-zero',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       instrumentId: 'ZERO',
       assetClass: 'EQUITY',
       side: 'BUY',
@@ -395,8 +427,8 @@ test.describe('Trade Blotter - Edge Cases', () => {
       tradedAt: '2025-01-15T15:00:00Z',
     }
 
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -414,7 +446,7 @@ test.describe('Trade Blotter - Edge Cases', () => {
   test('very large quantity formats with commas', async ({ page }) => {
     const bigTrade: TradeFixture = {
       tradeId: 'trade-big',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       instrumentId: 'BIG',
       assetClass: 'EQUITY',
       side: 'BUY',
@@ -423,8 +455,8 @@ test.describe('Trade Blotter - Edge Cases', () => {
       tradedAt: '2025-01-15T15:00:00Z',
     }
 
-    await page.unroute('**/api/v1/portfolios/*/trades')
-    await page.route('**/api/v1/portfolios/*/trades', (route) => {
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',

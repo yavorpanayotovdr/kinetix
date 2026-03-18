@@ -4,7 +4,7 @@ import type { Page, Route } from '@playwright/test'
 
 const POSITIONS_WITH_TYPES = [
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     quantity: '100',
@@ -16,7 +16,7 @@ const POSITIONS_WITH_TYPES = [
     displayName: 'Apple Inc.',
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL-C-200-20260620',
     assetClass: 'EQUITY',
     quantity: '10',
@@ -28,7 +28,7 @@ const POSITIONS_WITH_TYPES = [
     displayName: 'AAPL Call 200 Jun2026',
   },
   {
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'US10Y',
     assetClass: 'FIXED_INCOME',
     quantity: '500',
@@ -44,7 +44,7 @@ const POSITIONS_WITH_TYPES = [
 const TRADES_WITH_TYPES = [
   {
     tradeId: 'trade-1',
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -55,7 +55,7 @@ const TRADES_WITH_TYPES = [
   },
   {
     tradeId: 'trade-2',
-    portfolioId: 'port-1',
+    bookId: 'port-1',
     instrumentId: 'AAPL-C-200-20260620',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -70,8 +70,8 @@ async function setupWithInstrumentTypes(page: Page) {
   await mockAllApiRoutes(page)
 
   // Override positions with instrument type data
-  await page.unroute('**/api/v1/portfolios/*/positions')
-  await page.route('**/api/v1/portfolios/*/positions', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/positions')
+  await page.route('**/api/v1/books/*/positions', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -80,8 +80,8 @@ async function setupWithInstrumentTypes(page: Page) {
   })
 
   // Override trades with instrument type data
-  await page.unroute('**/api/v1/portfolios/*/trades')
-  await page.route('**/api/v1/portfolios/*/trades', (route: Route) => {
+  await page.unroute('**/api/v1/books/*/trades')
+  await page.route('**/api/v1/books/*/trades', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',

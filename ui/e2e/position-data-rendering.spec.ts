@@ -23,32 +23,33 @@ test.describe('Position Data Rendering', () => {
     await page.waitForSelector('[data-testid="position-row-AAPL"]')
 
     const aaplRow = page.getByTestId('position-row-AAPL')
-    await expect(aaplRow.locator('td').nth(0)).toHaveText('AAPL')
-    await expect(aaplRow.locator('td').nth(1)).toHaveText('Apple Inc')
-    await expect(aaplRow.locator('td').nth(2)).toHaveText('STOCK')
-    await expect(aaplRow.locator('td').nth(3)).toHaveText('EQUITY')
+    await expect(aaplRow.locator('td').nth(0)).toHaveText('port-1')
+    await expect(aaplRow.locator('td').nth(1)).toHaveText('AAPL')
+    await expect(aaplRow.locator('td').nth(2)).toHaveText('Apple Inc')
+    await expect(aaplRow.locator('td').nth(3)).toHaveText('STOCK')
+    await expect(aaplRow.locator('td').nth(4)).toHaveText('EQUITY')
 
     const googlRow = page.getByTestId('position-row-GOOGL')
-    await expect(googlRow.locator('td').nth(0)).toHaveText('GOOGL')
-    await expect(googlRow.locator('td').nth(1)).toHaveText('Alphabet Inc')
-    await expect(googlRow.locator('td').nth(3)).toHaveText('EQUITY')
+    await expect(googlRow.locator('td').nth(1)).toHaveText('GOOGL')
+    await expect(googlRow.locator('td').nth(2)).toHaveText('Alphabet Inc')
+    await expect(googlRow.locator('td').nth(4)).toHaveText('EQUITY')
 
     const eurRow = page.getByTestId('position-row-EUR_USD')
-    await expect(eurRow.locator('td').nth(0)).toHaveText('EUR_USD')
-    await expect(eurRow.locator('td').nth(3)).toHaveText('FX')
+    await expect(eurRow.locator('td').nth(1)).toHaveText('EUR_USD')
+    await expect(eurRow.locator('td').nth(4)).toHaveText('FX')
   })
 
   test('formats quantity without trailing zeros', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="position-row-AAPL"]')
 
-    const aaplQty = page.getByTestId('position-row-AAPL').locator('td').nth(4)
+    const aaplQty = page.getByTestId('position-row-AAPL').locator('td').nth(5)
     await expect(aaplQty).toHaveText('100')
 
-    const googlQty = page.getByTestId('position-row-GOOGL').locator('td').nth(4)
+    const googlQty = page.getByTestId('position-row-GOOGL').locator('td').nth(5)
     await expect(googlQty).toHaveText('50')
 
-    const eurQty = page.getByTestId('position-row-EUR_USD').locator('td').nth(4)
+    const eurQty = page.getByTestId('position-row-EUR_USD').locator('td').nth(5)
     await expect(eurQty).toHaveText('10000')
   })
 
@@ -58,14 +59,14 @@ test.describe('Position Data Rendering', () => {
 
     const aaplRow = page.getByTestId('position-row-AAPL')
     // Avg Cost
-    await expect(aaplRow.locator('td').nth(5)).toHaveText('$150.00')
+    await expect(aaplRow.locator('td').nth(6)).toHaveText('$150.00')
     // Market Price
-    await expect(aaplRow.locator('td').nth(6)).toHaveText('$155.00')
+    await expect(aaplRow.locator('td').nth(7)).toHaveText('$155.00')
     // Market Value
-    await expect(aaplRow.locator('td').nth(7)).toHaveText('$15,500.00')
+    await expect(aaplRow.locator('td').nth(8)).toHaveText('$15,500.00')
 
     const googlRow = page.getByTestId('position-row-GOOGL')
-    await expect(googlRow.locator('td').nth(7)).toHaveText('$142,500.00')
+    await expect(googlRow.locator('td').nth(8)).toHaveText('$142,500.00')
   })
 
   test('displays P&L values with currency formatting', async ({ page }) => {
@@ -86,7 +87,7 @@ test.describe('Position Data Rendering', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="position-row-AAPL"]')
 
-    const headers = ['Instrument', 'Name', 'Type', 'Asset Class', 'Quantity', 'Avg Cost', 'Market Price', 'Market Value', 'Unrealized P&L']
+    const headers = ['Book', 'Instrument', 'Name', 'Type', 'Asset Class', 'Quantity', 'Avg Cost', 'Market Price', 'Market Value', 'Unrealized P&L']
     for (const header of headers) {
       await expect(page.locator('th', { hasText: header })).toBeVisible()
     }

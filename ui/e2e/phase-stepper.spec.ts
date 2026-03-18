@@ -3,7 +3,7 @@ import { mockAllApiRoutes, mockRiskTabRoutes, TEST_JOB_DETAIL } from './fixtures
 
 const RUNNING_JOB_SUMMARY = {
   jobId: 'running-job-1',
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   triggerType: 'ON_DEMAND',
   status: 'RUNNING',
   startedAt: new Date(Date.now() - 5000).toISOString(),

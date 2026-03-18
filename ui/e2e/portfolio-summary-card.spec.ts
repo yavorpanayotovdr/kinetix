@@ -47,16 +47,15 @@ test.describe('Book Summary Card', () => {
 
     // Set up mock for EUR-denominated summary before changing currency
     const eurSummary = {
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       baseCurrency: 'EUR',
       totalNav: { amount: '156000.00', currency: 'EUR' },
       totalUnrealizedPnl: { amount: '2820.00', currency: 'EUR' },
       currencyBreakdown: [],
     }
 
-    // Intercept the API call with baseCurrency=EUR
+    // Intercept the API call with baseCurrency=EUR (firm-level summary)
     const summaryPromise = page.waitForRequest((req) =>
-      req.url().includes('/api/v1/portfolios/') &&
       req.url().includes('/summary') &&
       req.url().includes('baseCurrency=EUR'),
     )
@@ -105,9 +104,13 @@ test.describe('Book Summary Card', () => {
   })
 
   test('does not render card when summary fetch fails', async ({ page }) => {
-    // Make summary request fail so summary stays null
-    await page.unroute('**/api/v1/portfolios/*/summary*')
-    await page.route('**/api/v1/portfolios/*/summary*', (route) => {
+    // Make summary request fail so summary stays null (override both book and firm endpoints)
+    await page.unroute('**/api/v1/books/*/summary*')
+    await page.route('**/api/v1/books/*/summary*', (route) => {
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+    })
+    await page.unroute('**/api/v1/firm/summary*')
+    await page.route('**/api/v1/firm/summary*', (route) => {
       route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
     })
 
@@ -120,11 +123,11 @@ test.describe('Book Summary Card', () => {
     await expect(page.getByTestId('total-nav')).not.toBeVisible()
   })
 
-  test('renders "Book Summary" heading', async ({ page }) => {
+  test('renders "Firm Summary" heading at firm level', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="book-summary-card"]')
 
     await expect(page.getByTestId('book-summary-card')).toBeVisible()
-    await expect(page.getByTestId('book-summary-card')).toContainText('Book Summary')
+    await expect(page.getByTestId('book-summary-card')).toContainText('Firm Summary')
   })
 })

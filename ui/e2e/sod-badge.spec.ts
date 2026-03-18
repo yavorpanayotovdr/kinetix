@@ -16,7 +16,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
   const defaults = [
     {
       jobId: 'job-sod-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'SCHEDULED',
       status: 'COMPLETED',
       startedAt: '2025-01-15T06:00:00Z',
@@ -38,7 +38,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
     },
     {
       jobId: 'job-eod-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'SCHEDULED',
       status: 'COMPLETED',
       startedAt: '2025-01-15T18:00:00Z',
@@ -60,7 +60,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
     },
     {
       jobId: 'job-adhoc-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: '2025-01-15T10:00:00Z',

@@ -37,7 +37,7 @@ test.describe('Empty State and Summary Cards', () => {
   test('summary card positions count matches actual number', async ({ page }) => {
     await mockPositions(page, [
       {
-        portfolioId: 'port-1',
+        bookId: 'port-1',
         instrumentId: 'AAPL',
         assetClass: 'EQUITY',
         quantity: '100',

@@ -831,7 +831,7 @@ test.describe('Job History', () => {
     // Build 25 jobs so pagination returns real data on each page
     const jobs = Array.from({ length: 25 }, (_, i) => ({
       jobId: `job-${i + 1}`,
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: new Date(Date.now() - (10 - i) * 60_000).toISOString(),
@@ -911,7 +911,7 @@ test.describe('Job History', () => {
 
     // Verify the job timeline shows the steps from the detail response
     await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Positions')
-    await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Dependencies')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Market Data')
     await expect(page.getByTestId('job-detail-panel')).toContainText('Valuation')
 
     // Click close to collapse

@@ -52,7 +52,7 @@ const TARGET_SNAPSHOT = {
 const MOCK_COMPARISON = {
   comparisonId: 'comp-123',
   comparisonType: 'RUN_OVER_RUN',
-  portfolioId: 'port-1',
+  bookId: 'port-1',
   baseRun: BASE_SNAPSHOT,
   targetRun: TARGET_SNAPSHOT,
   portfolioDiff: {

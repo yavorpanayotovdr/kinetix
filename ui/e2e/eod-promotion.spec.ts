@@ -15,7 +15,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
   const defaults = [
     {
       jobId: 'job-completed-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: '2025-01-15T12:00:00Z',
@@ -37,7 +37,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
     },
     {
       jobId: 'job-eod-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'SCHEDULED',
       status: 'COMPLETED',
       startedAt: '2025-01-15T18:00:00Z',
@@ -59,7 +59,7 @@ function makeJobHistory(overrides: Record<string, unknown>[] = []) {
     },
     {
       jobId: 'job-failed-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'FAILED',
       startedAt: '2025-01-15T09:00:00Z',
@@ -241,7 +241,7 @@ test.describe('EOD Promotion - Promote Button', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             jobId: 'job-completed-1',
-            portfolioId: 'port-1',
+            bookId: 'port-1',
             valuationDate: '2025-01-15',
             runLabel: 'OFFICIAL_EOD',
             promotedAt: '2025-01-15T19:00:00Z',
@@ -332,7 +332,7 @@ test.describe('EOD Promotion - Demotion', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             jobId: 'job-eod-1',
-            portfolioId: 'port-1',
+            bookId: 'port-1',
             valuationDate: '2025-01-15',
             runLabel: 'ADHOC',
             promotedAt: null,
@@ -393,7 +393,7 @@ test.describe('EOD Promotion - Auto-Select Notice', () => {
         body: JSON.stringify({
           comparisonId: 'cmp-1',
           comparisonType: 'DAILY_VAR',
-          portfolioId: 'port-1',
+          bookId: 'port-1',
           baseRun: {
             jobId: 'job-eod-base',
             label: 'Official EOD 2025-01-14',

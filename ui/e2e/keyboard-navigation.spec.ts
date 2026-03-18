@@ -15,7 +15,7 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
     // Start tabbing from the top of the page
     await page.keyboard.press('Tab')
 
-    // Keep tabbing until we reach book-selector, save-workspace-button,
+    // Keep tabbing until we reach hierarchy-selector-toggle, save-workspace-button,
     // or dark-mode-toggle. Collect test IDs of focused elements.
     const visitedTestIds = new Set<string>()
     for (let i = 0; i < 30; i++) {
@@ -26,7 +26,7 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
       await page.keyboard.press('Tab')
     }
 
-    expect(visitedTestIds.has('book-selector')).toBe(true)
+    expect(visitedTestIds.has('hierarchy-selector-toggle')).toBe(true)
     expect(visitedTestIds.has('dark-mode-toggle')).toBe(true)
     expect(visitedTestIds.has('save-workspace-button')).toBe(true)
   })
@@ -126,7 +126,7 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
 
     // Verify key interactive controls are reachable
     const expectedControls = [
-      'book-selector',
+      'hierarchy-selector-toggle',
       'dark-mode-toggle',
       'save-workspace-button',
       'csv-export-button',

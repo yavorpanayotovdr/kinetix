@@ -13,7 +13,7 @@ const JOB_WITH_MANIFEST = {
   items: [
     {
       jobId: 'job-1',
-      portfolioId: 'port-1',
+      bookId: 'port-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: '2025-01-15T12:00:00Z',
