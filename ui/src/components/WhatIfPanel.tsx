@@ -19,8 +19,10 @@ interface WhatIfPanelProps {
   impact: WhatIfImpactDto | null
   loading: boolean
   error: string | null
+  errorTransient?: boolean
   validationErrors?: ValidationErrors
   onCompareInDetail?: () => void
+  onRetry?: () => void
 }
 
 function ChangeIcon({ value }: { value: number }) {
@@ -82,8 +84,10 @@ export function WhatIfPanel({
   impact,
   loading,
   error,
+  errorTransient = false,
   validationErrors = {},
   onCompareInDetail,
+  onRetry,
 }: WhatIfPanelProps) {
   const firstInputRef = useRef<HTMLInputElement>(null)
 
@@ -280,8 +284,25 @@ export function WhatIfPanel({
 
         {/* Error message */}
         {error && (
-          <div data-testid="whatif-error" role="alert" className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
+          <div
+            data-testid="whatif-error"
+            role="alert"
+            className={`text-sm rounded-md px-3 py-2 ${
+              errorTransient
+                ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20'
+                : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+            }`}
+          >
             {error}
+            {errorTransient && onRetry && (
+              <button
+                data-testid="whatif-retry"
+                onClick={onRetry}
+                className="ml-2 underline font-medium hover:no-underline"
+              >
+                Retry now
+              </button>
+            )}
           </div>
         )}
 

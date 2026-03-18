@@ -310,7 +310,9 @@ function App() {
         impact={whatIf.impact}
         loading={whatIf.loading}
         error={whatIf.error}
+        errorTransient={whatIf.errorTransient}
         validationErrors={whatIf.validationErrors}
+        onRetry={whatIf.retry}
         onCompareInDetail={() => {
           setWhatIfOpen(false)
           setActiveTab('risk')
