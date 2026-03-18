@@ -5,6 +5,7 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.instrument.InstrumentType
 import com.kinetix.referencedata.model.Instrument
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
@@ -17,7 +18,7 @@ class ExposedInstrumentRepository(
 
     override suspend fun save(instrument: Instrument): Unit = newSuspendedTransaction(db = db) {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
-        val attributesJson = json.encodeToString(InstrumentType.serializer(), instrument.instrumentType)
+        val attributesJson = json.encodeToJsonElement(InstrumentType.serializer(), instrument.instrumentType)
 
         val existing = InstrumentsTable
             .selectAll()
@@ -84,7 +85,7 @@ class ExposedInstrumentRepository(
 
     private fun ResultRow.toInstrument(): Instrument {
         val attrs = this[InstrumentsTable.attributes]
-        val type = json.decodeFromString(InstrumentType.serializer(), attrs)
+        val type = json.decodeFromJsonElement(InstrumentType.serializer(), attrs)
         return Instrument(
             instrumentId = InstrumentId(this[InstrumentsTable.instrumentId]),
             instrumentType = type,

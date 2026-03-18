@@ -62,7 +62,7 @@ class ReadinessChecker(
                 details["connection"] = "OK"
 
                 collectPoolStats(ds, details)
-                collectFlywayInfo(conn, details)
+                collectFlywayInfo(ds, details)
                 checkTimescaleDb(conn, details)
             }
 
@@ -90,11 +90,11 @@ class ReadinessChecker(
         }
     }
 
-    private fun collectFlywayInfo(conn: Connection, details: MutableMap<String, String>) {
+    private fun collectFlywayInfo(ds: DataSource, details: MutableMap<String, String>) {
         if (flywayLocation == null) return
         try {
             val flyway = org.flywaydb.core.Flyway.configure()
-                .dataSource(conn.metaData.url, conn.metaData.userName, null)
+                .dataSource(ds)
                 .locations(flywayLocation)
                 .load()
             val info = flyway.info()

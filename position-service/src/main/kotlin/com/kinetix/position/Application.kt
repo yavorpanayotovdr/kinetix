@@ -240,8 +240,15 @@ fun Application.moduleWithRoutes() {
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
+        val seederBookingService = TradeBookingService(
+            tradeEventRepository = tradeEventRepository,
+            positionRepository = positionRepository,
+            transactional = transactionalRunner,
+            tradeEventPublisher = tradeEventPublisher,
+            limitCheckService = null,
+        )
         launch {
-            DevDataSeeder(tradeBookingService, positionRepository).seed()
+            DevDataSeeder(seederBookingService, positionRepository).seed()
             seedDone.set(true)
         }
     } else {
