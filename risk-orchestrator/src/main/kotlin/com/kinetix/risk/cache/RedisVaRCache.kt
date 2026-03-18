@@ -19,6 +19,7 @@ class RedisVaRCache(
 ) : VaRCache {
 
     private val sync = connection.sync()
+    private val cacheJson = Json { ignoreUnknownKeys = true }
 
     override fun put(portfolioId: String, result: ValuationResult) {
         val key = keyFor(portfolioId)
@@ -29,10 +30,14 @@ class RedisVaRCache(
     override fun get(portfolioId: String): ValuationResult? {
         val key = keyFor(portfolioId)
         val value = sync.get(key) ?: return null
-        return Json.decodeFromString<CachedValuationResult>(value).toValuationResult()
+        return cacheJson.decodeFromString<CachedValuationResult>(value).toValuationResult()
     }
 
-    private fun keyFor(portfolioId: String): String = "var:$portfolioId"
+    private fun keyFor(portfolioId: String): String = "var:v$CACHE_SCHEMA_VERSION:$portfolioId"
+
+    companion object {
+        const val CACHE_SCHEMA_VERSION = 1
+    }
 }
 
 @Serializable
