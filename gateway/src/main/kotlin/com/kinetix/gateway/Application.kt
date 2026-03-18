@@ -301,7 +301,7 @@ fun Application.devModule() {
                 serviceUrls.map { (name, url) ->
                     name to async {
                         try {
-                            val resp = withTimeoutOrNull(2000L) {
+                            val resp = withTimeoutOrNull(5000L) {
                                 httpClient.get("$url/health/ready")
                             }
                             if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
