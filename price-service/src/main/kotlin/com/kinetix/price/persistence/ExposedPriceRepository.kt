@@ -67,7 +67,7 @@ class ExposedPriceRepository(private val db: Database? = null) : PriceRepository
         val toOffset = to.atOffset(ZoneOffset.UTC)
         val sql = """
             SELECT DISTINCT ON (instrument_id, date(timestamp AT TIME ZONE 'UTC'))
-                   instrument_id, price_amount, price_currency, timestamp, source, created_at
+                   instrument_id, price_amount, price_currency, timestamp, source
             FROM prices
             WHERE instrument_id = ? AND timestamp >= ? AND timestamp <= ?
             ORDER BY instrument_id, date(timestamp AT TIME ZONE 'UTC'), timestamp DESC

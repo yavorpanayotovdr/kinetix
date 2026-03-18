@@ -168,6 +168,70 @@ class PriceRepositoryIntegrationTest : FunSpec({
         results[0].price.amount.compareTo(BigDecimal("150.00")) shouldBe 0
     }
 
+    test("findDailyCloseByInstrumentId correctly separates prices at UTC midnight boundary") {
+        // 23:55 UTC on Jan 15 should belong to Jan 15
+        repository.save(point(timestamp = Instant.parse("2025-01-15T23:55:00Z"), priceAmount = BigDecimal("151.00")))
+        // 00:05 UTC on Jan 16 should belong to Jan 16
+        repository.save(point(timestamp = Instant.parse("2025-01-16T00:05:00Z"), priceAmount = BigDecimal("152.00")))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-16T23:59:59Z"),
+        )
+
+        results shouldHaveSize 2
+        // Descending: Jan 16 first, then Jan 15
+        results[0].price.amount.compareTo(BigDecimal("152.00")) shouldBe 0
+        results[0].timestamp shouldBe Instant.parse("2025-01-16T00:05:00Z")
+        results[1].price.amount.compareTo(BigDecimal("151.00")) shouldBe 0
+        results[1].timestamp shouldBe Instant.parse("2025-01-15T23:55:00Z")
+    }
+
+    test("findDailyCloseByInstrumentId handles price at exactly UTC midnight") {
+        // Exactly midnight belongs to the new day (date('2025-01-16T00:00:00Z' AT TIME ZONE 'UTC') = 2025-01-16)
+        repository.save(point(timestamp = Instant.parse("2025-01-15T23:59:59Z"), priceAmount = BigDecimal("150.00")))
+        repository.save(point(timestamp = Instant.parse("2025-01-16T00:00:00Z"), priceAmount = BigDecimal("151.00")))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-16T23:59:59Z"),
+        )
+
+        results shouldHaveSize 2
+        results[0].timestamp shouldBe Instant.parse("2025-01-16T00:00:00Z")
+        results[1].timestamp shouldBe Instant.parse("2025-01-15T23:59:59Z")
+    }
+
+    test("findDailyCloseByInstrumentId returns single price when only one exists in range") {
+        repository.save(point(timestamp = Instant.parse("2025-01-15T14:30:00Z"), priceAmount = BigDecimal("150.00")))
+
+        val results = repository.findDailyCloseByInstrumentId(
+            InstrumentId("AAPL"),
+            from = Instant.parse("2025-01-15T00:00:00Z"),
+            to = Instant.parse("2025-01-15T23:59:59Z"),
+        )
+
+        results shouldHaveSize 1
+        results[0].price.amount.compareTo(BigDecimal("150.00")) shouldBe 0
+        results[0].timestamp shouldBe Instant.parse("2025-01-15T14:30:00Z")
+    }
+
+    test("findByInstrumentId time range boundary is inclusive on both ends") {
+        val exactFrom = Instant.parse("2025-01-15T10:00:00Z")
+        val exactTo = Instant.parse("2025-01-15T12:00:00Z")
+        repository.save(point(timestamp = exactFrom, priceAmount = BigDecimal("150.00")))
+        repository.save(point(timestamp = exactTo, priceAmount = BigDecimal("155.00")))
+
+        val results = repository.findByInstrumentId(
+            InstrumentId("AAPL"),
+            from = exactFrom,
+            to = exactTo,
+        )
+        results shouldHaveSize 2
+    }
+
     test("save and retrieve with all price sources") {
         PriceSource.entries.forEachIndexed { idx, src ->
             repository.save(
