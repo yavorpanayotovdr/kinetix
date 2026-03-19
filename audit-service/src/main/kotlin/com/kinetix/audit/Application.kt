@@ -7,6 +7,7 @@ import com.kinetix.audit.persistence.DatabaseConfig
 import com.kinetix.audit.persistence.DatabaseFactory
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.audit.routes.auditRoutes
+import com.kinetix.audit.routes.internalRoutes
 import com.kinetix.audit.seed.DevDataSeeder
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.openApi
@@ -94,6 +95,7 @@ fun Application.module(repository: AuditEventRepository) {
     module()
     routing {
         auditRoutes(repository)
+        internalRoutes(repository)
     }
 }
 
@@ -160,6 +162,7 @@ fun Application.moduleWithRoutes() {
 
     routing {
         auditRoutes(repository)
+        internalRoutes(repository)
     }
 
     launch {

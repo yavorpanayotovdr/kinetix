@@ -14,6 +14,7 @@ import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.reconciliation.ExposedReconciliationRepository
 import com.kinetix.position.reconciliation.PositionReconciliationJob
 import com.kinetix.position.routes.counterpartyRoutes
+import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.service.CounterpartyExposureService
@@ -239,6 +240,7 @@ fun Application.moduleWithRoutes() {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
         limitRoutes(limitDefinitionRepo, temporaryLimitIncreaseRepo)
         counterpartyRoutes(counterpartyExposureService)
+        internalRoutes(tradeEventRepository)
     }
 
     launch {

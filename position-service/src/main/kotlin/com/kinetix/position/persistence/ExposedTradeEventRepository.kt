@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Currency
@@ -53,6 +54,13 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
         TradeEventsTable.update({ TradeEventsTable.tradeId eq tradeId.value }) {
             it[TradeEventsTable.status] = status.name
         }
+    }
+
+    override suspend fun countSince(since: Instant): Long = newSuspendedTransaction(db = db) {
+        TradeEventsTable
+            .selectAll()
+            .where { TradeEventsTable.createdAt greaterEq since.atOffset(ZoneOffset.UTC) }
+            .count()
     }
 
     private fun ResultRow.toTrade(): Trade = Trade(

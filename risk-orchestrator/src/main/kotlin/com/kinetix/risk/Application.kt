@@ -15,8 +15,10 @@ import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.mapper.toValuationResult
 import com.kinetix.risk.client.GrpcRiskEngineClient
+import com.kinetix.risk.client.HttpAuditServiceClient
 import com.kinetix.risk.client.HttpLimitServiceClient
 import com.kinetix.risk.client.HttpPositionServiceClient
+import com.kinetix.risk.client.HttpPositionServiceInternalClient
 import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.HttpRatesServiceClient
 import com.kinetix.risk.client.HttpReferenceDataServiceClient
@@ -52,6 +54,7 @@ import com.kinetix.risk.service.SnapshotDiffer
 import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.persistence.ExposedBlobRetentionRepository
 import com.kinetix.risk.persistence.ExposedManifestRetentionRepository
+import com.kinetix.risk.reconciliation.TradeAuditReconciliationJob
 import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
 import com.kinetix.risk.schedule.ScheduledCrossBookVaRCalculator
 import com.kinetix.risk.schedule.ScheduledManifestRetentionJob
@@ -198,6 +201,10 @@ fun Application.moduleWithRoutes() {
     val positionProvider = PositionServicePositionProvider(positionServiceClient)
     val limitServiceClient = HttpLimitServiceClient(priceHttpClient, positionServiceBaseUrl)
     val stressLimitCheckService = StressLimitCheckService(limitServiceClient)
+    val auditServiceBaseUrl = environment.config
+        .propertyOrNull("auditService.baseUrl")?.getString() ?: "http://localhost:8087"
+    val positionServiceInternalClient = HttpPositionServiceInternalClient(priceHttpClient, positionServiceBaseUrl)
+    val auditServiceClient = HttpAuditServiceClient(priceHttpClient, auditServiceBaseUrl)
 
     val simulationDelays = SimulationDelays.from(environment.config)
     if (simulationDelays != null) {
@@ -522,6 +529,12 @@ fun Application.moduleWithRoutes() {
     launch {
         ScheduledManifestRetentionJob(
             manifestRetentionRepository = ExposedManifestRetentionRepository(riskDb),
+        ).start()
+    }
+    launch {
+        TradeAuditReconciliationJob(
+            positionServiceClient = positionServiceInternalClient,
+            auditServiceClient = auditServiceClient,
         ).start()
     }
 

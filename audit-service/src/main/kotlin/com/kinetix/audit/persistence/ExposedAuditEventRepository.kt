@@ -88,6 +88,13 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         AuditEventsTable.selectAll().count()
     }
 
+    override suspend fun countSince(since: Instant): Long = newSuspendedTransaction(db = db) {
+        AuditEventsTable
+            .selectAll()
+            .where { AuditEventsTable.receivedAt greaterEq since.atOffset(ZoneOffset.UTC) }
+            .count()
+    }
+
     private fun ResultRow.toAuditEvent(): AuditEvent = AuditEvent(
         id = this[AuditEventsTable.id],
         tradeId = this[AuditEventsTable.tradeId],
