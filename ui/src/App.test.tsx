@@ -499,6 +499,71 @@ describe('App', () => {
     })
   })
 
+  describe('maintenance banner', () => {
+    it('shows maintenance banner when system health is DEGRADED and not reconnecting', () => {
+      mockUseSystemHealth.mockReturnValue({
+        health: {
+          status: 'DEGRADED',
+          services: {
+            gateway: { status: 'UP' },
+            'position-service': { status: 'DOWN' },
+            'price-service': { status: 'UP' },
+            'risk-orchestrator': { status: 'UP' },
+            'notification-service': { status: 'UP' },
+          },
+        },
+        loading: false,
+        error: null,
+        refresh: vi.fn(),
+      })
+
+      render(<App />)
+
+      const banner = screen.getByTestId('maintenance-banner')
+      expect(banner).toBeInTheDocument()
+      expect(banner).toHaveAttribute('role', 'status')
+      expect(banner).toHaveTextContent('Scheduled maintenance in progress')
+    })
+
+    it('does not show maintenance banner when system is UP', () => {
+      render(<App />)
+
+      expect(screen.queryByTestId('maintenance-banner')).not.toBeInTheDocument()
+    })
+
+    it('does not show maintenance banner when reconnecting (reconnect banner takes precedence)', () => {
+      mockUseSystemHealth.mockReturnValue({
+        health: {
+          status: 'DEGRADED',
+          services: {
+            gateway: { status: 'UP' },
+            'position-service': { status: 'DOWN' },
+            'price-service': { status: 'UP' },
+            'risk-orchestrator': { status: 'UP' },
+            'notification-service': { status: 'UP' },
+          },
+        },
+        loading: false,
+        error: null,
+        refresh: vi.fn(),
+      })
+      mockUsePriceStream.mockReturnValue({
+        positions: [position],
+        connected: false,
+        reconnecting: true,
+        exhausted: false,
+        lastConnectedAt: null,
+        disconnectedSince: null,
+        manualReconnect: vi.fn(),
+      })
+
+      render(<App />)
+
+      // The reconnecting banner should show, not the maintenance banner
+      expect(screen.queryByTestId('maintenance-banner')).not.toBeInTheDocument()
+    })
+  })
+
   describe('reconnecting indicator', () => {
     it('shows reconnecting banner when WebSocket is reconnecting', () => {
       mockUsePriceStream.mockReturnValue({

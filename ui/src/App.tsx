@@ -253,6 +253,16 @@ function App() {
         )
       })()}
 
+      {systemHealth.health?.status === 'DEGRADED' && !reconnecting && (
+        <div
+          data-testid="maintenance-banner"
+          className="bg-blue-50 border-b border-blue-200 text-blue-700 px-6 py-2 text-sm font-medium"
+          role="status"
+        >
+          Scheduled maintenance in progress. Some features may be temporarily limited.
+        </div>
+      )}
+
       <main className="flex-1 p-6 dark:bg-surface-900" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (
           <SystemDashboard
