@@ -9,6 +9,7 @@ import com.kinetix.regulatory.persistence.DatabaseFactory
 import com.kinetix.regulatory.persistence.ExposedBacktestResultRepository
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
 import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
+import com.kinetix.regulatory.persistence.ExposedStressTestResultRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.service.BacktestComparisonService
@@ -16,6 +17,7 @@ import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
 import com.kinetix.regulatory.stress.StressScenarioRepository
 import com.kinetix.regulatory.stress.StressScenarioService
+import com.kinetix.regulatory.stress.StressTestResultRepository
 import com.kinetix.regulatory.stress.stressScenarioRoutes
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -92,6 +94,7 @@ fun Application.module(
     client: RiskOrchestratorClient,
     backtestRepository: BacktestResultRepository? = null,
     stressScenarioRepository: StressScenarioRepository? = null,
+    stressTestResultRepository: StressTestResultRepository? = null,
 ) {
     module()
     routing {
@@ -100,7 +103,7 @@ fun Application.module(
             backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository))
         }
         if (stressScenarioRepository != null) {
-            stressScenarioRoutes(StressScenarioService(stressScenarioRepository))
+            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository))
         }
     }
 }
@@ -118,6 +121,7 @@ fun Application.moduleWithRoutes() {
     val repository = ExposedFrtbCalculationRepository(db)
     val backtestRepository = ExposedBacktestResultRepository(db)
     val stressScenarioRepository = ExposedStressScenarioRepository(db)
+    val stressTestResultRepository = ExposedStressTestResultRepository(db)
 
     val riskOrchestratorUrl = environment.config
         .config("services.riskOrchestrator")
@@ -139,7 +143,7 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(repository, client, backtestRepository, stressScenarioRepository)
+    module(repository, client, backtestRepository, stressScenarioRepository, stressTestResultRepository)
 
     routing {
         get("/health/ready") {

@@ -2,7 +2,9 @@ package com.kinetix.regulatory.stress
 
 import com.kinetix.regulatory.stress.dto.ApproveScenarioRequest
 import com.kinetix.regulatory.stress.dto.CreateScenarioRequest
+import com.kinetix.regulatory.stress.dto.RunStressTestRequest
 import com.kinetix.regulatory.stress.dto.StressScenarioResponse
+import com.kinetix.regulatory.stress.dto.StressTestResultResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
@@ -93,6 +95,22 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             logger.info("Stress scenario retired: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
         }
+
+        post("/{id}/run", {
+            summary = "Run a stress scenario against a portfolio"
+            tags = listOf("Stress Testing")
+            request {
+                pathParameter<String>("id") { description = "Scenario identifier" }
+            }
+        }) {
+            val id = call.parameters["id"]
+                ?: throw IllegalArgumentException("Missing required path parameter: id")
+            val request = call.receive<RunStressTestRequest>()
+            logger.info("Running stress scenario: id={}, portfolioId={}", id, request.portfolioId)
+            val result = service.runScenario(id, request.portfolioId, request.modelVersion)
+            logger.info("Stress scenario run complete: id={}, portfolioId={}, pnlImpact={}", id, request.portfolioId, result.pnlImpact)
+            call.respond(HttpStatusCode.Created, result.toResponse())
+        }
     }
 }
 
@@ -106,4 +124,17 @@ private fun StressScenario.toResponse() = StressScenarioResponse(
     approvedBy = approvedBy,
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),
+)
+
+private fun StressTestResult.toResponse() = StressTestResultResponse(
+    id = id,
+    scenarioId = scenarioId,
+    portfolioId = portfolioId,
+    calculatedAt = calculatedAt.toString(),
+    basePv = basePv?.toPlainString(),
+    stressedPv = stressedPv?.toPlainString(),
+    pnlImpact = pnlImpact?.toPlainString(),
+    varImpact = varImpact?.toString(),
+    positionImpacts = positionImpacts,
+    modelVersion = modelVersion,
 )

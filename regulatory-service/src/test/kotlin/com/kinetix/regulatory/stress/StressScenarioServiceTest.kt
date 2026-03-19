@@ -8,12 +8,14 @@ import io.kotest.matchers.shouldNotBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
 class StressScenarioServiceTest : FunSpec({
 
     val repository = mockk<StressScenarioRepository>()
+    val resultRepository = mockk<StressTestResultRepository>()
     val service = StressScenarioService(repository)
 
     test("creates a scenario in DRAFT status") {
@@ -123,6 +125,41 @@ class StressScenarioServiceTest : FunSpec({
         val result = service.listAll()
 
         result shouldHaveSize 2
+    }
+
+    test("runScenario computes pnlImpact from shocks and persists result") {
+        val id = UUID.randomUUID().toString()
+        val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = """{"EQ":-0.30,"IR":0.01}""")
+        val serviceWithResultRepo = StressScenarioService(repository, resultRepository)
+        coEvery { repository.findById(id) } returns scenario
+        coEvery { resultRepository.save(any()) } returns Unit
+
+        val result = serviceWithResultRepo.runScenario(id, "portfolio-1", null)
+
+        result.scenarioId shouldBe id
+        result.portfolioId shouldBe "portfolio-1"
+        result.pnlImpact shouldBe BigDecimal.valueOf(-0.30 + 0.01)
+        coVerify(exactly = 1) { resultRepository.save(any()) }
+    }
+
+    test("runScenario rejects non-APPROVED scenario") {
+        val id = UUID.randomUUID().toString()
+        val scenario = aScenario(id = id, status = ScenarioStatus.DRAFT)
+        coEvery { repository.findById(id) } returns scenario
+
+        shouldThrow<IllegalStateException> {
+            service.runScenario(id, "portfolio-1", null)
+        }
+    }
+
+    test("runScenario without resultRepository does not persist") {
+        val id = UUID.randomUUID().toString()
+        val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = """{"EQ":-0.10}""")
+        coEvery { repository.findById(id) } returns scenario
+
+        val result = service.runScenario(id, "portfolio-1", null)
+
+        result.pnlImpact shouldBe BigDecimal.valueOf(-0.10)
     }
 })
 
