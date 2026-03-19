@@ -161,6 +161,78 @@ class TestBlackScholesRho:
         assert rho_put < 0.0
 
 
+class TestBlackScholesAtExpiry:
+    """T=0 (expiry_days=0) must not crash — return intrinsic values."""
+
+    def _expired_itm_call(self) -> OptionPosition:
+        return OptionPosition(
+            instrument_id="AAPL-C-150",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=150.0,
+            expiry_days=0,
+            spot_price=170.0,
+            implied_vol=0.25,
+            risk_free_rate=0.05,
+        )
+
+    def _expired_otm_call(self) -> OptionPosition:
+        return OptionPosition(
+            instrument_id="AAPL-C-200",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=0,
+            spot_price=170.0,
+            implied_vol=0.25,
+            risk_free_rate=0.05,
+        )
+
+    def _expired_itm_put(self) -> OptionPosition:
+        return OptionPosition(
+            instrument_id="AAPL-P-200",
+            underlying_id="AAPL",
+            option_type=OptionType.PUT,
+            strike=200.0,
+            expiry_days=0,
+            spot_price=170.0,
+            implied_vol=0.25,
+            risk_free_rate=0.05,
+        )
+
+    def _expired_otm_put(self) -> OptionPosition:
+        return OptionPosition(
+            instrument_id="AAPL-P-150",
+            underlying_id="AAPL",
+            option_type=OptionType.PUT,
+            strike=150.0,
+            expiry_days=0,
+            spot_price=170.0,
+            implied_vol=0.25,
+            risk_free_rate=0.05,
+        )
+
+    def test_bs_delta_at_expiry_returns_intrinsic_delta(self):
+        assert bs_delta(self._expired_itm_call()) == 1.0
+        assert bs_delta(self._expired_otm_call()) == 0.0
+        assert bs_delta(self._expired_itm_put()) == -1.0
+        assert bs_delta(self._expired_otm_put()) == 0.0
+
+    def test_bs_price_at_expiry_returns_intrinsic_value(self):
+        assert bs_price(self._expired_itm_call()) == pytest.approx(20.0)  # 170 - 150
+        assert bs_price(self._expired_otm_call()) == 0.0
+        assert bs_price(self._expired_itm_put()) == pytest.approx(30.0)  # 200 - 170
+        assert bs_price(self._expired_otm_put()) == 0.0
+
+    def test_bs_gamma_at_expiry_returns_zero(self):
+        assert bs_gamma(self._expired_itm_call()) == 0.0
+        assert bs_gamma(self._expired_otm_call()) == 0.0
+
+    def test_bs_vega_at_expiry_returns_zero(self):
+        assert bs_vega(self._expired_itm_call()) == 0.0
+        assert bs_vega(self._expired_otm_call()) == 0.0
+
+
 class TestBlackScholesGreeksBundle:
     def test_bs_greeks_returns_all_greeks(self):
         greeks = bs_greeks(_atm_call())

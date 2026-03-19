@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 
 from kinetix_risk.expected_shortfall import calculate_expected_shortfall
 from kinetix_risk.models import AssetClassExposure, ConfidenceLevel, ComponentBreakdown, VaRResult
+
+logger = logging.getLogger(__name__)
 
 TRADING_DAYS_PER_YEAR = 252
 
@@ -30,6 +34,7 @@ def calculate_historical_var(
         correlated_returns = historical_returns
     else:
         # Fallback: simulated returns via Cholesky (backward-compatible)
+        logger.warning("historical_returns not provided — falling back to Cholesky simulation")
         daily_vols = np.array([e.volatility / np.sqrt(TRADING_DAYS_PER_YEAR) for e in exposures])
         rng = np.random.default_rng(seed)
         try:

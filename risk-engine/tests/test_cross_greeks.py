@@ -71,6 +71,36 @@ class TestCharm:
         assert charm != 0.0, "Charm should be nonzero for OTM call"
 
 
+class TestPutCharmFormula:
+    def test_put_charm_uses_dividend_yield_not_risk_free_rate(self):
+        """Put charm = charm_call + q*exp(-q*T), not r*exp(-r*T)."""
+        S, K, T, r, sigma, q = 100.0, 100.0, 0.5, 0.05, 0.20, 0.02
+
+        charm_call = calculate_charm(S, K, T, r, sigma, OptionType.CALL, q)
+        charm_put = calculate_charm(S, K, T, r, sigma, OptionType.PUT, q)
+
+        # Put-call parity for charm with dividends: charm_put = charm_call + q*exp(-q*T)
+        expected_put = charm_call + q * math.exp(-q * T)
+        assert charm_put == pytest.approx(expected_put, abs=1e-10)
+
+        # Verify it does NOT equal the wrong formula (r instead of q)
+        wrong_put = charm_call + r * math.exp(-r * T)
+        assert charm_put != pytest.approx(wrong_put, abs=1e-6)
+
+
+class TestCrossGreeksAtExpiry:
+    """T=0 must return 0.0 for all cross-Greeks, not crash."""
+
+    def test_vanna_at_expiry_returns_zero(self):
+        assert calculate_vanna(100.0, 100.0, 0.0, 0.05, 0.20) == 0.0
+
+    def test_volga_at_expiry_returns_zero(self):
+        assert calculate_volga(100.0, 100.0, 0.0, 0.05, 0.20) == 0.0
+
+    def test_charm_at_expiry_returns_zero(self):
+        assert calculate_charm(100.0, 100.0, 0.0, 0.05, 0.20) == 0.0
+
+
 class TestCrossGreeksFiniteness:
     def test_cross_greeks_are_finite(self):
         """All cross-Greeks should be finite numbers for reasonable inputs."""

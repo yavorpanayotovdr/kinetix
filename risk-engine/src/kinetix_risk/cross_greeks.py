@@ -16,10 +16,14 @@ from kinetix_risk.models import OptionType
 
 
 def _d1(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
+    if T <= 0:
+        return 0.0
     return (math.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
 
 
 def _d2(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
+    if T <= 0:
+        return 0.0
     return _d1(S, K, T, r, sigma, q) - sigma * math.sqrt(T)
 
 
@@ -37,6 +41,8 @@ def calculate_vanna(S: float, K: float, T: float, r: float, sigma: float, q: flo
     but the cleanest analytical form is:
         vanna = -(norm.pdf(d1) * d2) / sigma
     """
+    if T <= 0:
+        return 0.0
     d1 = _d1(S, K, T, r, sigma, q)
     d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
@@ -56,6 +62,8 @@ def calculate_volga(S: float, K: float, T: float, r: float, sigma: float, q: flo
 
     Volga is non-negative away from ATM and zero at ATM where d1*d2 crosses zero.
     """
+    if T <= 0:
+        return 0.0
     d1 = _d1(S, K, T, r, sigma, q)
     d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
@@ -79,6 +87,8 @@ def calculate_charm(
 
     For a put, charm_put = charm_call + r*exp(-r*T)  (from put-call parity).
     """
+    if T <= 0:
+        return 0.0
     d1 = _d1(S, K, T, r, sigma, q)
     d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
@@ -89,4 +99,4 @@ def calculate_charm(
     if option_type == OptionType.CALL:
         return float(charm_call)
     else:
-        return float(charm_call + r * math.exp(-r * T))
+        return float(charm_call + q * math.exp(-q * T))

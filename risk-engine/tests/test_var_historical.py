@@ -5,6 +5,19 @@ from kinetix_risk.models import AssetClass, AssetClassExposure, ConfidenceLevel
 from kinetix_risk.var_historical import calculate_historical_var
 
 
+class TestHistoricalVaRFallbackWarning:
+    def test_warns_when_historical_returns_is_none(self, caplog):
+        """When historical_returns is not provided, a WARNING must be logged."""
+        import logging
+        exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]
+        corr = np.array([[1.0]])
+        with caplog.at_level(logging.WARNING, logger="kinetix_risk.var_historical"):
+            calculate_historical_var(
+                exposures, ConfidenceLevel.CL_95, 1, corr, seed=42,
+            )
+        assert any("historical_returns not provided" in msg for msg in caplog.messages)
+
+
 class TestHistoricalVaRSingleAsset:
     def test_var_is_positive(self):
         exposures = [AssetClassExposure(AssetClass.EQUITY, 100_000.0, 0.20)]

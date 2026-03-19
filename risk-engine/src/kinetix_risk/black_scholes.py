@@ -5,6 +5,17 @@ from scipy.stats import norm
 from kinetix_risk.models import OptionPosition, OptionType
 
 
+def _is_expired(option: OptionPosition) -> bool:
+    return option.expiry_days <= 0
+
+
+def _intrinsic_value(option: OptionPosition) -> float:
+    if option.option_type == OptionType.CALL:
+        return max(0.0, option.spot_price - option.strike)
+    else:
+        return max(0.0, option.strike - option.spot_price)
+
+
 def _d1(option: OptionPosition) -> float:
     S = option.spot_price
     K = option.strike
@@ -21,6 +32,8 @@ def _d2(option: OptionPosition) -> float:
 
 
 def bs_price(option: OptionPosition) -> float:
+    if _is_expired(option):
+        return _intrinsic_value(option)
     S = option.spot_price
     K = option.strike
     r = option.risk_free_rate
@@ -35,6 +48,11 @@ def bs_price(option: OptionPosition) -> float:
 
 
 def bs_delta(option: OptionPosition) -> float:
+    if _is_expired(option):
+        if option.option_type == OptionType.CALL:
+            return 1.0 if option.spot_price > option.strike else 0.0
+        else:
+            return -1.0 if option.spot_price < option.strike else 0.0
     q = option.dividend_yield
     T = option.expiry_days / 365.0
     d1 = _d1(option)
@@ -45,6 +63,8 @@ def bs_delta(option: OptionPosition) -> float:
 
 
 def bs_gamma(option: OptionPosition) -> float:
+    if _is_expired(option):
+        return 0.0
     S = option.spot_price
     q = option.dividend_yield
     T = option.expiry_days / 365.0
@@ -54,6 +74,8 @@ def bs_gamma(option: OptionPosition) -> float:
 
 
 def bs_vega(option: OptionPosition) -> float:
+    if _is_expired(option):
+        return 0.0
     S = option.spot_price
     q = option.dividend_yield
     T = option.expiry_days / 365.0
@@ -62,6 +84,8 @@ def bs_vega(option: OptionPosition) -> float:
 
 
 def bs_theta(option: OptionPosition) -> float:
+    if _is_expired(option):
+        return 0.0
     S = option.spot_price
     K = option.strike
     r = option.risk_free_rate
@@ -78,6 +102,8 @@ def bs_theta(option: OptionPosition) -> float:
 
 
 def bs_rho(option: OptionPosition) -> float:
+    if _is_expired(option):
+        return 0.0
     K = option.strike
     r = option.risk_free_rate
     T = option.expiry_days / 365.0
