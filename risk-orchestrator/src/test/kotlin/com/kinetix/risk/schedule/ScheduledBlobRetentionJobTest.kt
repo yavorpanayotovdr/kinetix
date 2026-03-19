@@ -17,24 +17,24 @@ class ScheduledBlobRetentionJobTest : FunSpec({
     }
 
     test("deletes orphaned blobs when run time has passed") {
-        coEvery { blobRetentionRepository.deleteOrphanedBlobs(90) } returns 42
+        coEvery { blobRetentionRepository.deleteOrphanedBlobs(2555) } returns 42
 
         val job = ScheduledBlobRetentionJob(
             blobRetentionRepository = blobRetentionRepository,
-            retentionDays = 90,
+            retentionDays = 2555,
             runAtTime = LocalTime.of(3, 0),
             nowProvider = { LocalTime.of(3, 30) },
         )
 
         job.tick()
 
-        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(90) }
+        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(2555) }
     }
 
     test("skips cleanup before the scheduled run time") {
         val job = ScheduledBlobRetentionJob(
             blobRetentionRepository = blobRetentionRepository,
-            retentionDays = 90,
+            retentionDays = 2555,
             runAtTime = LocalTime.of(3, 0),
             nowProvider = { LocalTime.of(2, 59) },
         )
@@ -64,28 +64,28 @@ class ScheduledBlobRetentionJobTest : FunSpec({
 
         val job = ScheduledBlobRetentionJob(
             blobRetentionRepository = blobRetentionRepository,
-            retentionDays = 90,
+            retentionDays = 2555,
             runAtTime = LocalTime.of(3, 0),
             nowProvider = { LocalTime.of(4, 0) },
         )
 
         job.tick()
 
-        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(90) }
+        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(2555) }
     }
 
     test("runs cleanup when current time is exactly at the scheduled run time") {
-        coEvery { blobRetentionRepository.deleteOrphanedBlobs(90) } returns 0
+        coEvery { blobRetentionRepository.deleteOrphanedBlobs(2555) } returns 0
 
         val job = ScheduledBlobRetentionJob(
             blobRetentionRepository = blobRetentionRepository,
-            retentionDays = 90,
+            retentionDays = 2555,
             runAtTime = LocalTime.of(3, 0),
             nowProvider = { LocalTime.of(3, 0) },
         )
 
         job.tick()
 
-        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(90) }
+        coVerify(exactly = 1) { blobRetentionRepository.deleteOrphanedBlobs(2555) }
     }
 })

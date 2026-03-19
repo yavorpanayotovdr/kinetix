@@ -9,7 +9,7 @@ import kotlin.coroutines.coroutineContext
 
 class ScheduledBlobRetentionJob(
     private val blobRetentionRepository: BlobRetentionRepository,
-    private val retentionDays: Long = 90,
+    private val retentionDays: Long = 2555,
     private val runAtTime: LocalTime = LocalTime.of(3, 0),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },
