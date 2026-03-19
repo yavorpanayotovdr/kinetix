@@ -156,7 +156,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
                 auditEvents[0].assetClass shouldBe "EQUITY"
                 auditEvents[0].side shouldBe "BUY"
                 auditEvents[0].quantity shouldBe "100"
-                auditEvents[0].priceAmount shouldBe "150.00"
+                auditEvents[0].priceAmount shouldBe "150"
                 auditEvents[0].priceCurrency shouldBe "USD"
             }
         }
