@@ -13,6 +13,7 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -40,21 +41,21 @@ fun Route.regulatoryRoutes(
                 val record = FrtbCalculationRecord(
                     id = UUID.randomUUID().toString(),
                     portfolioId = portfolioId,
-                    totalSbmCharge = frtbResult.totalSbmCharge.toDouble(),
-                    grossJtd = frtbResult.grossJtd.toDouble(),
-                    hedgeBenefit = frtbResult.hedgeBenefit.toDouble(),
-                    netDrc = frtbResult.netDrc.toDouble(),
-                    exoticNotional = frtbResult.exoticNotional.toDouble(),
-                    otherNotional = frtbResult.otherNotional.toDouble(),
-                    totalRrao = frtbResult.totalRrao.toDouble(),
-                    totalCapitalCharge = frtbResult.totalCapitalCharge.toDouble(),
+                    totalSbmCharge = BigDecimal(frtbResult.totalSbmCharge),
+                    grossJtd = BigDecimal(frtbResult.grossJtd),
+                    hedgeBenefit = BigDecimal(frtbResult.hedgeBenefit),
+                    netDrc = BigDecimal(frtbResult.netDrc),
+                    exoticNotional = BigDecimal(frtbResult.exoticNotional),
+                    otherNotional = BigDecimal(frtbResult.otherNotional),
+                    totalRrao = BigDecimal(frtbResult.totalRrao),
+                    totalCapitalCharge = BigDecimal(frtbResult.totalCapitalCharge),
                     sbmCharges = frtbResult.sbmCharges.map {
                         RiskClassCharge(
                             riskClass = it.riskClass,
-                            deltaCharge = it.deltaCharge.toDouble(),
-                            vegaCharge = it.vegaCharge.toDouble(),
-                            curvatureCharge = it.curvatureCharge.toDouble(),
-                            totalCharge = it.totalCharge.toDouble(),
+                            deltaCharge = BigDecimal(it.deltaCharge),
+                            vegaCharge = BigDecimal(it.vegaCharge),
+                            curvatureCharge = BigDecimal(it.curvatureCharge),
+                            totalCharge = BigDecimal(it.totalCharge),
                         )
                     },
                     calculatedAt = Instant.parse(frtbResult.calculatedAt),

@@ -16,6 +16,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.math.BigDecimal
 import java.time.Instant
 
 class RegulatoryRoutesTest : FunSpec({
@@ -39,15 +40,15 @@ class RegulatoryRoutesTest : FunSpec({
     val sampleRecord = FrtbCalculationRecord(
         id = "calc-1",
         portfolioId = "port-1",
-        totalSbmCharge = 175.0,
-        grossJtd = 200.0,
-        hedgeBenefit = 50.0,
-        netDrc = 150.0,
-        exoticNotional = 10.0,
-        otherNotional = 5.0,
-        totalRrao = 15.0,
-        totalCapitalCharge = 340.0,
-        sbmCharges = listOf(RiskClassCharge("GIRR", 100.0, 50.0, 25.0, 175.0)),
+        totalSbmCharge = BigDecimal("175.0"),
+        grossJtd = BigDecimal("200.0"),
+        hedgeBenefit = BigDecimal("50.0"),
+        netDrc = BigDecimal("150.0"),
+        exoticNotional = BigDecimal("10.0"),
+        otherNotional = BigDecimal("5.0"),
+        totalRrao = BigDecimal("15.0"),
+        totalCapitalCharge = BigDecimal("340.0"),
+        sbmCharges = listOf(RiskClassCharge("GIRR", BigDecimal("100.0"), BigDecimal("50.0"), BigDecimal("25.0"), BigDecimal("175.0"))),
         calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
         storedAt = Instant.parse("2025-01-15T10:00:01Z"),
     )

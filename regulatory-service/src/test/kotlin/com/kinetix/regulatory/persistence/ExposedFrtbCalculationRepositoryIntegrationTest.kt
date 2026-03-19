@@ -9,6 +9,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -18,17 +19,17 @@ private val NOW = Instant.now()
 private fun record(
     id: String = UUID.randomUUID().toString(),
     portfolioId: String = "port-1",
-    totalSbmCharge: Double = 1000.0,
-    grossJtd: Double = 500.0,
-    hedgeBenefit: Double = 100.0,
-    netDrc: Double = 400.0,
-    exoticNotional: Double = 200.0,
-    otherNotional: Double = 150.0,
-    totalRrao: Double = 50.0,
-    totalCapitalCharge: Double = 1450.0,
+    totalSbmCharge: BigDecimal = BigDecimal("1000.0"),
+    grossJtd: BigDecimal = BigDecimal("500.0"),
+    hedgeBenefit: BigDecimal = BigDecimal("100.0"),
+    netDrc: BigDecimal = BigDecimal("400.0"),
+    exoticNotional: BigDecimal = BigDecimal("200.0"),
+    otherNotional: BigDecimal = BigDecimal("150.0"),
+    totalRrao: BigDecimal = BigDecimal("50.0"),
+    totalCapitalCharge: BigDecimal = BigDecimal("1450.0"),
     sbmCharges: List<RiskClassCharge> = listOf(
-        RiskClassCharge("GIRR", 300.0, 200.0, 100.0, 600.0),
-        RiskClassCharge("CSR", 150.0, 100.0, 50.0, 300.0),
+        RiskClassCharge("GIRR", BigDecimal("300.0"), BigDecimal("200.0"), BigDecimal("100.0"), BigDecimal("600.0")),
+        RiskClassCharge("CSR", BigDecimal("150.0"), BigDecimal("100.0"), BigDecimal("50.0"), BigDecimal("300.0")),
     ),
     calculatedAt: Instant = NOW,
     storedAt: Instant = NOW,
@@ -63,11 +64,11 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
         val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
         found.portfolioId shouldBe "port-1"
-        found.totalSbmCharge shouldBe 1000.0
-        found.totalCapitalCharge shouldBe 1450.0
+        found.totalSbmCharge shouldBe BigDecimal("1000.00000000")
+        found.totalCapitalCharge shouldBe BigDecimal("1450.00000000")
         found.sbmCharges shouldHaveSize 2
         found.sbmCharges[0].riskClass shouldBe "GIRR"
-        found.sbmCharges[0].totalCharge shouldBe 600.0
+        found.sbmCharges[0].totalCharge shouldBe BigDecimal.valueOf(600.0)
     }
 
     test("findLatestByBookId returns null for unknown portfolio") {
@@ -75,12 +76,12 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
     }
 
     test("findLatestByBookId returns the most recent calculation") {
-        repository.save(record(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS), totalCapitalCharge = 1000.0))
-        repository.save(record(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS), totalCapitalCharge = 1500.0))
+        repository.save(record(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS), totalCapitalCharge = BigDecimal("1000.0")))
+        repository.save(record(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS), totalCapitalCharge = BigDecimal("1500.0")))
 
         val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
-        found.totalCapitalCharge shouldBe 1500.0
+        found.totalCapitalCharge shouldBe BigDecimal("1500.00000000")
     }
 
     test("findByBookId returns records with limit and offset") {
@@ -101,9 +102,9 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
 
     test("save preserves JSON serialized sbmCharges") {
         val charges = listOf(
-            RiskClassCharge("GIRR", 100.0, 200.0, 50.0, 350.0),
-            RiskClassCharge("CSR", 75.0, 125.0, 25.0, 225.0),
-            RiskClassCharge("Equity", 50.0, 80.0, 30.0, 160.0),
+            RiskClassCharge("GIRR", BigDecimal("100.0"), BigDecimal("200.0"), BigDecimal("50.0"), BigDecimal("350.0")),
+            RiskClassCharge("CSR", BigDecimal("75.0"), BigDecimal("125.0"), BigDecimal("25.0"), BigDecimal("225.0")),
+            RiskClassCharge("Equity", BigDecimal("50.0"), BigDecimal("80.0"), BigDecimal("30.0"), BigDecimal("160.0")),
         )
         repository.save(record(sbmCharges = charges))
 
@@ -111,6 +112,6 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
         found.shouldNotBeNull()
         found.sbmCharges shouldHaveSize 3
         found.sbmCharges[2].riskClass shouldBe "Equity"
-        found.sbmCharges[2].deltaCharge shouldBe 50.0
+        found.sbmCharges[2].deltaCharge shouldBe BigDecimal.valueOf(50.0)
     }
 })
