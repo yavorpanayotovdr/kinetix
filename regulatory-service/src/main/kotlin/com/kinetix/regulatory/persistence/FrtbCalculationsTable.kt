@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object FrtbCalculationsTable : Table("frtb_calculations") {
     val id = varchar("id", 255)
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val totalSbmCharge = decimal("total_sbm_charge", 28, 8)
     val grossJtd = decimal("gross_jtd", 28, 8)
     val hedgeBenefit = decimal("hedge_benefit", 28, 8)

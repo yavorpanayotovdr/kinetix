@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class StressTestResultResponse(
     val id: String,
     val scenarioId: String,
-    val portfolioId: String,
+    val bookId: String,
     val calculatedAt: String,
     val basePv: String?,
     val stressedPv: String?,

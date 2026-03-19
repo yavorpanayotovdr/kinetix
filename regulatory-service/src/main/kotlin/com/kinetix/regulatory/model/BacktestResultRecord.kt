@@ -5,7 +5,7 @@ import java.time.LocalDate
 
 data class BacktestResultRecord(
     val id: String,
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: Double,
     val totalDays: Int,

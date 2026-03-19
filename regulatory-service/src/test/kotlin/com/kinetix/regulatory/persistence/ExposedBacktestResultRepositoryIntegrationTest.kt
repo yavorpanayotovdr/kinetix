@@ -16,7 +16,7 @@ private val NOW = Instant.now()
 
 private fun backtestRecord(
     id: String = UUID.randomUUID().toString(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     calculationType: String = "PARAMETRIC",
     confidenceLevel: Double = 0.99,
     totalDays: Int = 250,
@@ -32,7 +32,7 @@ private fun backtestRecord(
     calculatedAt: Instant = NOW,
 ) = BacktestResultRecord(
     id = id,
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
     totalDays = totalDays,
@@ -63,7 +63,7 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
-        found.portfolioId shouldBe "port-1"
+        found.bookId shouldBe "port-1"
         found.totalDays shouldBe 250
         found.violationCount shouldBe 3
         found.violationRate shouldBe 0.012

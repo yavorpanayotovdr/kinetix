@@ -20,7 +20,7 @@ class BacktestRoutesTest : FunSpec({
 
     val sampleRecord = BacktestResultRecord(
         id = "bt-1",
-        portfolioId = "port-1",
+        bookId = "port-1",
         calculationType = "PARAMETRIC",
         confidenceLevel = 0.99,
         totalDays = 250,
@@ -50,7 +50,7 @@ class BacktestRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.Created
             val body = response.bodyAsText()
-            body shouldContain "\"portfolioId\":\"port-1\""
+            body shouldContain "\"bookId\":\"port-1\""
             body shouldContain "\"violationCount\":1"
             body shouldContain "\"trafficLightZone\":\"GREEN\""
         }
@@ -97,7 +97,7 @@ class BacktestRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
             body shouldContain "\"results\""
-            body shouldContain "\"portfolioId\":\"port-1\""
+            body shouldContain "\"bookId\":\"port-1\""
         }
     }
 })

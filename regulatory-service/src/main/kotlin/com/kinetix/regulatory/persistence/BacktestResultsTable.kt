@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object BacktestResultsTable : Table("backtest_results") {
     val id = varchar("id", 255)
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val calculationType = varchar("calculation_type", 50)
     val confidenceLevel = double("confidence_level")
     val totalDays = integer("total_days")

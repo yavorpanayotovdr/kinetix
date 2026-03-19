@@ -74,7 +74,7 @@ class StressScenarioService(
 
     suspend fun findById(id: String): StressScenario? = repository.findById(id)
 
-    suspend fun runScenario(scenarioId: String, portfolioId: String, modelVersion: String?): StressTestResult {
+    suspend fun runScenario(scenarioId: String, bookId: String, modelVersion: String?): StressTestResult {
         val scenario = findOrThrow(scenarioId)
         if (scenario.status != ScenarioStatus.APPROVED) {
             throw IllegalStateException("Can only run APPROVED scenarios, current: ${scenario.status}")
@@ -84,7 +84,7 @@ class StressScenarioService(
         val result = StressTestResult(
             id = UUID.randomUUID().toString(),
             scenarioId = scenarioId,
-            portfolioId = portfolioId,
+            bookId = bookId,
             calculatedAt = Instant.now(),
             basePv = null,
             stressedPv = null,

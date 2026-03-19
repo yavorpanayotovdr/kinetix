@@ -38,7 +38,7 @@ class DevDataSeeder(
             // equity-growth: 3 records over the week
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-eq-01".toByteArray()).toString(),
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 totalSbmCharge = BigDecimal("185400.0"),
                 grossJtd = BigDecimal("62000.0"),
                 hedgeBenefit = BigDecimal("12400.0"),
@@ -55,7 +55,7 @@ class DevDataSeeder(
             ),
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-eq-02".toByteArray()).toString(),
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 totalSbmCharge = BigDecimal("192600.0"),
                 grossJtd = BigDecimal("64500.0"),
                 hedgeBenefit = BigDecimal("12900.0"),
@@ -72,7 +72,7 @@ class DevDataSeeder(
             ),
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-eq-03".toByteArray()).toString(),
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 totalSbmCharge = BigDecimal("198100.0"),
                 grossJtd = BigDecimal("66200.0"),
                 hedgeBenefit = BigDecimal("13200.0"),
@@ -91,7 +91,7 @@ class DevDataSeeder(
             // multi-asset: 2 records
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-ma-01".toByteArray()).toString(),
-                portfolioId = "multi-asset",
+                bookId = "multi-asset",
                 totalSbmCharge = BigDecimal("310500.0"),
                 grossJtd = BigDecimal("95000.0"),
                 hedgeBenefit = BigDecimal("28500.0"),
@@ -112,7 +112,7 @@ class DevDataSeeder(
             ),
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-ma-02".toByteArray()).toString(),
-                portfolioId = "multi-asset",
+                bookId = "multi-asset",
                 totalSbmCharge = BigDecimal("325800.0"),
                 grossJtd = BigDecimal("98400.0"),
                 hedgeBenefit = BigDecimal("29500.0"),
@@ -135,7 +135,7 @@ class DevDataSeeder(
             // derivatives-book: 2 records
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-db-01".toByteArray()).toString(),
-                portfolioId = "derivatives-book",
+                bookId = "derivatives-book",
                 totalSbmCharge = BigDecimal("278300.0"),
                 grossJtd = BigDecimal("45200.0"),
                 hedgeBenefit = BigDecimal("13500.0"),
@@ -153,7 +153,7 @@ class DevDataSeeder(
             ),
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-db-02".toByteArray()).toString(),
-                portfolioId = "derivatives-book",
+                bookId = "derivatives-book",
                 totalSbmCharge = BigDecimal("295600.0"),
                 grossJtd = BigDecimal("48100.0"),
                 hedgeBenefit = BigDecimal("14400.0"),
@@ -173,7 +173,7 @@ class DevDataSeeder(
             // fixed-income: 1 record
             FrtbCalculationRecord(
                 id = UUID.nameUUIDFromBytes("seed-frtb-fi-01".toByteArray()).toString(),
-                portfolioId = "fixed-income",
+                bookId = "fixed-income",
                 totalSbmCharge = BigDecimal("42800.0"),
                 grossJtd = BigDecimal("18500.0"),
                 hedgeBenefit = BigDecimal("5500.0"),

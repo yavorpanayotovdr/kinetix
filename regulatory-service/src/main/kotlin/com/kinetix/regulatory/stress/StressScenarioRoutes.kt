@@ -97,7 +97,7 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
         }
 
         post("/{id}/run", {
-            summary = "Run a stress scenario against a portfolio"
+            summary = "Run a stress scenario against a book"
             tags = listOf("Stress Testing")
             request {
                 pathParameter<String>("id") { description = "Scenario identifier" }
@@ -106,9 +106,9 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
             val request = call.receive<RunStressTestRequest>()
-            logger.info("Running stress scenario: id={}, portfolioId={}", id, request.portfolioId)
-            val result = service.runScenario(id, request.portfolioId, request.modelVersion)
-            logger.info("Stress scenario run complete: id={}, portfolioId={}, pnlImpact={}", id, request.portfolioId, result.pnlImpact)
+            logger.info("Running stress scenario: id={}, bookId={}", id, request.bookId)
+            val result = service.runScenario(id, request.bookId, request.modelVersion)
+            logger.info("Stress scenario run complete: id={}, bookId={}, pnlImpact={}", id, request.bookId, result.pnlImpact)
             call.respond(HttpStatusCode.Created, result.toResponse())
         }
     }
@@ -129,7 +129,7 @@ private fun StressScenario.toResponse() = StressScenarioResponse(
 private fun StressTestResult.toResponse() = StressTestResultResponse(
     id = id,
     scenarioId = scenarioId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculatedAt = calculatedAt.toString(),
     basePv = basePv?.toPlainString(),
     stressedPv = stressedPv?.toPlainString(),

@@ -7,10 +7,10 @@ interface BacktestResultRepository {
     suspend fun save(record: BacktestResultRecord)
     suspend fun findById(id: String): BacktestResultRecord?
     suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int,
         offset: Int,
         from: Instant? = null,
     ): List<BacktestResultRecord>
-    suspend fun findLatestByBookId(portfolioId: String): BacktestResultRecord?
+    suspend fun findLatestByBookId(bookId: String): BacktestResultRecord?
 }

@@ -70,13 +70,13 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
 
                     val runResponse = client.post("/api/v1/stress-scenarios/$scenarioId/run") {
                         contentType(ContentType.Application.Json)
-                        setBody("""{"portfolioId":"portfolio-1"}""")
+                        setBody("""{"bookId":"portfolio-1"}""")
                     }
 
                     runResponse.status shouldBe HttpStatusCode.Created
                     val body = Json.parseToJsonElement(runResponse.bodyAsText()).jsonObject
                     body["scenarioId"]?.jsonPrimitive?.content shouldBe scenarioId
-                    body["portfolioId"]?.jsonPrimitive?.content shouldBe "portfolio-1"
+                    body["bookId"]?.jsonPrimitive?.content shouldBe "portfolio-1"
                     body.containsKey("id") shouldBe true
                     body.containsKey("calculatedAt") shouldBe true
                     body["pnlImpact"]?.jsonPrimitive?.content shouldNotBe null
@@ -114,7 +114,7 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
 
                     val runResponse = client.post("/api/v1/stress-scenarios/$scenarioId/run") {
                         contentType(ContentType.Application.Json)
-                        setBody("""{"portfolioId":"portfolio-1"}""")
+                        setBody("""{"bookId":"portfolio-1"}""")
                     }
 
                     runResponse.status shouldBe HttpStatusCode.InternalServerError
@@ -158,7 +158,7 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
 
                     val runResponse = client.post("/api/v1/stress-scenarios/$scenarioId/run") {
                         contentType(ContentType.Application.Json)
-                        setBody("""{"portfolioId":"portfolio-2","modelVersion":"v1.0"}""")
+                        setBody("""{"bookId":"portfolio-2","modelVersion":"v1.0"}""")
                     }
 
                     runResponse.status shouldBe HttpStatusCode.Created

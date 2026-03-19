@@ -20,7 +20,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
     override suspend fun save(record: FrtbCalculationRecord): Unit = newSuspendedTransaction(db = db) {
         FrtbCalculationsTable.insert {
             it[id] = record.id
-            it[portfolioId] = record.portfolioId
+            it[bookId] = record.bookId
             it[totalSbmCharge] = record.totalSbmCharge
             it[grossJtd] = record.grossJtd
             it[hedgeBenefit] = record.hedgeBenefit
@@ -46,7 +46,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
     }
 
     override suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int,
         offset: Int,
         from: Instant?,
@@ -58,7 +58,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
         FrtbCalculationsTable
             .selectAll()
             .where {
-                (FrtbCalculationsTable.portfolioId eq portfolioId) and
+                (FrtbCalculationsTable.bookId eq bookId) and
                     (FrtbCalculationsTable.calculatedAt greaterEq cutoff)
             }
             .orderBy(FrtbCalculationsTable.calculatedAt, SortOrder.DESC)
@@ -66,11 +66,11 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
             .map { it.toRecord() }
     }
 
-    override suspend fun findLatestByBookId(portfolioId: String): FrtbCalculationRecord? =
+    override suspend fun findLatestByBookId(bookId: String): FrtbCalculationRecord? =
         newSuspendedTransaction(db = db) {
             FrtbCalculationsTable
                 .selectAll()
-                .where { FrtbCalculationsTable.portfolioId eq portfolioId }
+                .where { FrtbCalculationsTable.bookId eq bookId }
                 .orderBy(FrtbCalculationsTable.calculatedAt, SortOrder.DESC)
                 .limit(1)
                 .map { it.toRecord() }
@@ -81,7 +81,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
         val charges = json.decodeFromJsonElement<List<SbmChargeJson>>(this[FrtbCalculationsTable.sbmChargesJson])
         return FrtbCalculationRecord(
             id = this[FrtbCalculationsTable.id],
-            portfolioId = this[FrtbCalculationsTable.portfolioId],
+            bookId = this[FrtbCalculationsTable.bookId],
             totalSbmCharge = this[FrtbCalculationsTable.totalSbmCharge],
             grossJtd = this[FrtbCalculationsTable.grossJtd],
             hedgeBenefit = this[FrtbCalculationsTable.hedgeBenefit],

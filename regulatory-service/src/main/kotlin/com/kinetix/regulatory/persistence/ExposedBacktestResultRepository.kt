@@ -13,7 +13,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
     override suspend fun save(record: BacktestResultRecord): Unit = newSuspendedTransaction(db = db) {
         BacktestResultsTable.insert {
             it[id] = record.id
-            it[portfolioId] = record.portfolioId
+            it[bookId] = record.bookId
             it[calculationType] = record.calculationType
             it[confidenceLevel] = record.confidenceLevel
             it[totalDays] = record.totalDays
@@ -35,7 +35,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
     }
 
     override suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int,
         offset: Int,
         from: Instant?,
@@ -47,7 +47,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
         BacktestResultsTable
             .selectAll()
             .where {
-                (BacktestResultsTable.portfolioId eq portfolioId) and
+                (BacktestResultsTable.bookId eq bookId) and
                     (BacktestResultsTable.calculatedAt greaterEq cutoff)
             }
             .orderBy(BacktestResultsTable.calculatedAt, SortOrder.DESC)
@@ -63,11 +63,11 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
             ?.toRecord()
     }
 
-    override suspend fun findLatestByBookId(portfolioId: String): BacktestResultRecord? =
+    override suspend fun findLatestByBookId(bookId: String): BacktestResultRecord? =
         newSuspendedTransaction(db = db) {
             BacktestResultsTable
                 .selectAll()
-                .where { BacktestResultsTable.portfolioId eq portfolioId }
+                .where { BacktestResultsTable.bookId eq bookId }
                 .orderBy(BacktestResultsTable.calculatedAt, SortOrder.DESC)
                 .limit(1)
                 .map { it.toRecord() }
@@ -76,7 +76,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
 
     private fun ResultRow.toRecord() = BacktestResultRecord(
         id = this[BacktestResultsTable.id],
-        portfolioId = this[BacktestResultsTable.portfolioId],
+        bookId = this[BacktestResultsTable.bookId],
         calculationType = this[BacktestResultsTable.calculationType],
         confidenceLevel = this[BacktestResultsTable.confidenceLevel],
         totalDays = this[BacktestResultsTable.totalDays],

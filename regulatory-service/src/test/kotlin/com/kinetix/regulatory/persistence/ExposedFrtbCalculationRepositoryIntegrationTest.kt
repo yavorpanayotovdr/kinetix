@@ -18,7 +18,7 @@ private val NOW = Instant.now()
 
 private fun record(
     id: String = UUID.randomUUID().toString(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     totalSbmCharge: BigDecimal = BigDecimal("1000.0"),
     grossJtd: BigDecimal = BigDecimal("500.0"),
     hedgeBenefit: BigDecimal = BigDecimal("100.0"),
@@ -35,7 +35,7 @@ private fun record(
     storedAt: Instant = NOW,
 ) = FrtbCalculationRecord(
     id = id,
-    portfolioId = portfolioId,
+    bookId = bookId,
     totalSbmCharge = totalSbmCharge,
     grossJtd = grossJtd,
     hedgeBenefit = hedgeBenefit,
@@ -63,7 +63,7 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
-        found.portfolioId shouldBe "port-1"
+        found.bookId shouldBe "port-1"
         found.totalSbmCharge shouldBe BigDecimal("1000.00000000")
         found.totalCapitalCharge shouldBe BigDecimal("1450.00000000")
         found.sbmCharges shouldHaveSize 2

@@ -137,7 +137,7 @@ class StressScenarioServiceTest : FunSpec({
         val result = serviceWithResultRepo.runScenario(id, "portfolio-1", null)
 
         result.scenarioId shouldBe id
-        result.portfolioId shouldBe "portfolio-1"
+        result.bookId shouldBe "portfolio-1"
         result.pnlImpact shouldBe BigDecimal.valueOf(-0.30 + 0.01)
         coVerify(exactly = 1) { resultRepository.save(any()) }
     }

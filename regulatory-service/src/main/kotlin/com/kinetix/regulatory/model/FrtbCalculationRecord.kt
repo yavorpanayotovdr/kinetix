@@ -13,7 +13,7 @@ data class RiskClassCharge(
 
 data class FrtbCalculationRecord(
     val id: String,
-    val portfolioId: String,
+    val bookId: String,
     val totalSbmCharge: BigDecimal,
     val grossJtd: BigDecimal,
     val hedgeBenefit: BigDecimal,

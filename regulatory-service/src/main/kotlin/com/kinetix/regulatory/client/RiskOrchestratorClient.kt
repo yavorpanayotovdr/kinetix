@@ -10,8 +10,8 @@ class RiskOrchestratorClient(
     private val httpClient: HttpClient,
     private val baseUrl: String,
 ) {
-    suspend fun calculateFrtb(portfolioId: String): FrtbResultResponse {
-        val response = httpClient.post("$baseUrl/api/v1/regulatory/frtb/$portfolioId") {
+    suspend fun calculateFrtb(bookId: String): FrtbResultResponse {
+        val response = httpClient.post("$baseUrl/api/v1/regulatory/frtb/$bookId") {
             contentType(ContentType.Application.Json)
         }
         return response.body()

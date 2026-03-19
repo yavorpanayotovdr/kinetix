@@ -14,7 +14,7 @@ class ExposedStressTestResultRepository(private val db: Database? = null) : Stre
         StressTestResultsTable.insert {
             it[id] = result.id
             it[scenarioId] = result.scenarioId
-            it[portfolioId] = result.portfolioId
+            it[bookId] = result.bookId
             it[calculatedAt] = OffsetDateTime.ofInstant(result.calculatedAt, ZoneOffset.UTC)
             it[basePv] = result.basePv
             it[stressedPv] = result.stressedPv
@@ -34,11 +34,11 @@ class ExposedStressTestResultRepository(private val db: Database? = null) : Stre
                 .map { it.toResult() }
         }
 
-    override suspend fun findByPortfolioId(portfolioId: String): List<StressTestResult> =
+    override suspend fun findByBookId(bookId: String): List<StressTestResult> =
         newSuspendedTransaction(db = db) {
             StressTestResultsTable
                 .selectAll()
-                .where { StressTestResultsTable.portfolioId eq portfolioId }
+                .where { StressTestResultsTable.bookId eq bookId }
                 .orderBy(StressTestResultsTable.calculatedAt, SortOrder.DESC)
                 .map { it.toResult() }
         }
@@ -54,7 +54,7 @@ class ExposedStressTestResultRepository(private val db: Database? = null) : Stre
     private fun ResultRow.toResult() = StressTestResult(
         id = this[StressTestResultsTable.id],
         scenarioId = this[StressTestResultsTable.scenarioId],
-        portfolioId = this[StressTestResultsTable.portfolioId],
+        bookId = this[StressTestResultsTable.bookId],
         calculatedAt = this[StressTestResultsTable.calculatedAt].toInstant(),
         basePv = this[StressTestResultsTable.basePv],
         stressedPv = this[StressTestResultsTable.stressedPv],

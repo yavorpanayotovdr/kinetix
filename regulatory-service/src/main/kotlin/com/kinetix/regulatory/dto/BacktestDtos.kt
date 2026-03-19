@@ -13,7 +13,7 @@ data class BacktestRequest(
 @Serializable
 data class BacktestResultResponse(
     val id: String,
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val totalDays: Int,

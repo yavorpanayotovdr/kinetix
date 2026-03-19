@@ -22,7 +22,7 @@ import java.time.Instant
 class RegulatoryRoutesTest : FunSpec({
 
     val sampleFrtbResult = FrtbResultResponse(
-        portfolioId = "port-1",
+        bookId = "port-1",
         sbmCharges = listOf(
             RiskClassChargeDto("GIRR", "100.00", "50.00", "25.00", "175.00"),
         ),
@@ -39,7 +39,7 @@ class RegulatoryRoutesTest : FunSpec({
 
     val sampleRecord = FrtbCalculationRecord(
         id = "calc-1",
-        portfolioId = "port-1",
+        bookId = "port-1",
         totalSbmCharge = BigDecimal("175.0"),
         grossJtd = BigDecimal("200.0"),
         hedgeBenefit = BigDecimal("50.0"),
@@ -64,7 +64,7 @@ class RegulatoryRoutesTest : FunSpec({
             val response = this.client.post("/api/v1/regulatory/frtb/port-1/calculate")
             response.status shouldBe HttpStatusCode.Created
             val body = response.bodyAsText()
-            body shouldContain "\"portfolioId\":\"port-1\""
+            body shouldContain "\"bookId\":\"port-1\""
             body shouldContain "\"totalCapitalCharge\":\"340.00\""
         }
     }
@@ -80,7 +80,7 @@ class RegulatoryRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
             body shouldContain "\"calculations\""
-            body shouldContain "\"portfolioId\":\"port-1\""
+            body shouldContain "\"bookId\":\"port-1\""
         }
     }
 

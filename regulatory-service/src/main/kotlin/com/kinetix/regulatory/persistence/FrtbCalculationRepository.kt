@@ -6,10 +6,10 @@ import java.time.Instant
 interface FrtbCalculationRepository {
     suspend fun save(record: FrtbCalculationRecord)
     suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int,
         offset: Int,
         from: Instant? = null,
     ): List<FrtbCalculationRecord>
-    suspend fun findLatestByBookId(portfolioId: String): FrtbCalculationRecord?
+    suspend fun findLatestByBookId(bookId: String): FrtbCalculationRecord?
 }

@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 object StressTestResultsTable : Table("stress_test_results") {
     val id = varchar("id", 255)
     val scenarioId = varchar("scenario_id", 255)
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val calculatedAt = timestampWithTimeZone("calculated_at")
     val basePv = decimal("base_pv", 28, 8).nullable()
     val stressedPv = decimal("stressed_pv", 28, 8).nullable()

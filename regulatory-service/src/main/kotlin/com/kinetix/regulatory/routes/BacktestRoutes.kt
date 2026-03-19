@@ -28,19 +28,19 @@ fun Route.backtestRoutes(
     repository: BacktestResultRepository,
     comparisonService: BacktestComparisonService? = null,
 ) {
-    route("/api/v1/regulatory/backtest/{portfolioId}") {
+    route("/api/v1/regulatory/backtest/{bookId}") {
         post({
-            summary = "Trigger VaR backtest for a portfolio"
+            summary = "Trigger VaR backtest for a book"
             tags = listOf("Backtesting")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+            val bookId = call.parameters["bookId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: bookId")
 
             val request = call.receive<BacktestRequest>()
-            backtestLogger.info("Backtest requested for portfolio={}, days={}, confidenceLevel={}", portfolioId, request.dailyVarPredictions.size, request.confidenceLevel)
+            backtestLogger.info("Backtest requested for book={}, days={}, confidenceLevel={}", bookId, request.dailyVarPredictions.size, request.confidenceLevel)
 
             if (request.dailyVarPredictions.size != request.dailyPnl.size) {
                 throw IllegalArgumentException("dailyVarPredictions and dailyPnl must have the same length")
@@ -55,7 +55,7 @@ fun Route.backtestRoutes(
 
             val record = BacktestResultRecord(
                 id = UUID.randomUUID().toString(),
-                portfolioId = portfolioId,
+                bookId = bookId,
                 calculationType = request.calculationType,
                 confidenceLevel = request.confidenceLevel,
                 totalDays = result.totalDays,
@@ -75,7 +75,7 @@ fun Route.backtestRoutes(
             )
 
             repository.save(record)
-            backtestLogger.info("Backtest completed for portfolio={}, violations={}/{}, zone={}", portfolioId, record.violationCount, record.totalDays, record.trafficLightZone)
+            backtestLogger.info("Backtest completed for book={}, violations={}/{}, zone={}", bookId, record.violationCount, record.totalDays, record.trafficLightZone)
             call.respond(HttpStatusCode.Created, record.toResponse())
         }
 
@@ -83,13 +83,13 @@ fun Route.backtestRoutes(
             summary = "Get latest backtest result"
             tags = listOf("Backtesting")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+            val bookId = call.parameters["bookId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: bookId")
 
-            val record = repository.findLatestByBookId(portfolioId)
+            val record = repository.findLatestByBookId(bookId)
             if (record != null) {
                 call.respond(record.toResponse())
             } else {
@@ -121,7 +121,7 @@ fun Route.backtestRoutes(
             summary = "Get backtest history"
             tags = listOf("Backtesting")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
                 queryParameter<String>("limit") {
                     description = "Maximum number of results"
                     required = false
@@ -132,12 +132,12 @@ fun Route.backtestRoutes(
                 }
             }
         }) {
-            val portfolioId = call.parameters["portfolioId"]
-                ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+            val bookId = call.parameters["bookId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: bookId")
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
             val offset = call.queryParameters["offset"]?.toIntOrNull() ?: 0
 
-            val records = repository.findByBookId(portfolioId, limit, offset)
+            val records = repository.findByBookId(bookId, limit, offset)
             call.respond(
                 BacktestHistoryResponse(
                     results = records.map { it.toResponse() },
@@ -364,7 +364,7 @@ private fun BacktestComparison.toResponse() = BacktestComparisonResponse(
 
 private fun BacktestResultRecord.toResponse() = BacktestResultResponse(
     id = id,
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = calculationType,
     confidenceLevel = "%.4f".format(confidenceLevel),
     totalDays = totalDays,

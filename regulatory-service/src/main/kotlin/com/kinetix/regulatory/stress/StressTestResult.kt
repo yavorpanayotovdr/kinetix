@@ -6,7 +6,7 @@ import java.time.Instant
 data class StressTestResult(
     val id: String,
     val scenarioId: String,
-    val portfolioId: String,
+    val bookId: String,
     val calculatedAt: Instant,
     val basePv: BigDecimal?,
     val stressedPv: BigDecimal?,

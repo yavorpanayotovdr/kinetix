@@ -13,7 +13,7 @@ data class RiskClassChargeDto(
 
 @Serializable
 data class FrtbResultResponse(
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeDto>,
     val totalSbmCharge: String,
     val grossJtd: String,
@@ -29,7 +29,7 @@ data class FrtbResultResponse(
 @Serializable
 data class FrtbCalculationResponse(
     val id: String,
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeDto>,
     val totalSbmCharge: String,
     val grossJtd: String,

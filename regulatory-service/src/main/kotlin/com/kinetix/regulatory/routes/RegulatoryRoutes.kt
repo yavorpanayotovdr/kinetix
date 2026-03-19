@@ -23,24 +23,24 @@ fun Route.regulatoryRoutes(
     repository: FrtbCalculationRepository,
     client: RiskOrchestratorClient,
 ) {
-    route("/api/v1/regulatory/frtb/{portfolioId}") {
+    route("/api/v1/regulatory/frtb/{bookId}") {
         route("/calculate") {
             post({
-                summary = "Calculate FRTB for a portfolio"
+                summary = "Calculate FRTB for a book"
                 tags = listOf("FRTB")
                 request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("bookId") { description = "Book identifier" }
                 }
             }) {
-                val portfolioId = call.parameters["portfolioId"]
-                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+                val bookId = call.parameters["bookId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: bookId")
 
-                logger.info("FRTB calculation requested for portfolio={}", portfolioId)
-                val frtbResult = client.calculateFrtb(portfolioId)
+                logger.info("FRTB calculation requested for book={}", bookId)
+                val frtbResult = client.calculateFrtb(bookId)
 
                 val record = FrtbCalculationRecord(
                     id = UUID.randomUUID().toString(),
-                    portfolioId = portfolioId,
+                    bookId = bookId,
                     totalSbmCharge = BigDecimal(frtbResult.totalSbmCharge),
                     grossJtd = BigDecimal(frtbResult.grossJtd),
                     hedgeBenefit = BigDecimal(frtbResult.hedgeBenefit),
@@ -63,7 +63,7 @@ fun Route.regulatoryRoutes(
                 )
 
                 repository.save(record)
-                logger.info("FRTB calculation completed for portfolio={}, totalCapitalCharge={}", portfolioId, record.totalCapitalCharge)
+                logger.info("FRTB calculation completed for book={}, totalCapitalCharge={}", bookId, record.totalCapitalCharge)
                 call.respond(HttpStatusCode.Created, record.toResponse())
             }
         }
@@ -73,7 +73,7 @@ fun Route.regulatoryRoutes(
                 summary = "Get FRTB calculation history"
                 tags = listOf("FRTB")
                 request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("bookId") { description = "Book identifier" }
                     queryParameter<String>("limit") {
                         description = "Maximum number of results"
                         required = false
@@ -84,12 +84,12 @@ fun Route.regulatoryRoutes(
                     }
                 }
             }) {
-                val portfolioId = call.parameters["portfolioId"]
-                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+                val bookId = call.parameters["bookId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: bookId")
                 val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
                 val offset = call.queryParameters["offset"]?.toIntOrNull() ?: 0
 
-                val records = repository.findByBookId(portfolioId, limit, offset)
+                val records = repository.findByBookId(bookId, limit, offset)
                 call.respond(
                     FrtbHistoryResponse(
                         calculations = records.map { it.toResponse() },
@@ -106,13 +106,13 @@ fun Route.regulatoryRoutes(
                 summary = "Get latest FRTB calculation"
                 tags = listOf("FRTB")
                 request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("bookId") { description = "Book identifier" }
                 }
             }) {
-                val portfolioId = call.parameters["portfolioId"]
-                    ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
+                val bookId = call.parameters["bookId"]
+                    ?: throw IllegalArgumentException("Missing required path parameter: bookId")
 
-                val record = repository.findLatestByBookId(portfolioId)
+                val record = repository.findLatestByBookId(bookId)
                 if (record != null) {
                     call.respond(record.toResponse())
                 } else {
@@ -125,7 +125,7 @@ fun Route.regulatoryRoutes(
 
 private fun FrtbCalculationRecord.toResponse() = FrtbCalculationResponse(
     id = id,
-    portfolioId = portfolioId,
+    bookId = bookId,
     sbmCharges = sbmCharges.map {
         RiskClassChargeDto(
             riskClass = it.riskClass,

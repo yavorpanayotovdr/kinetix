@@ -14,7 +14,7 @@ import java.util.UUID
 
 private fun backtestResult(
     id: String = UUID.randomUUID().toString(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     calculationType: String = "PARAMETRIC",
     confidenceLevel: Double = 0.99,
     totalDays: Int = 250,
@@ -29,7 +29,7 @@ private fun backtestResult(
     trafficLightZone: String = "GREEN",
 ) = BacktestResultRecord(
     id = id,
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
     totalDays = totalDays,
