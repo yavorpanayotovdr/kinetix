@@ -515,6 +515,24 @@ fun Application.moduleWithRoutes() {
             blobRetentionRepository = ExposedBlobRetentionRepository(riskDb),
         ).start()
     }
+
+    // Scheduled cross-book VaR: parse group definitions from config
+    // Format: "groupId1:bookA,bookB;groupId2:bookC,bookD"
+    val riskGroupsConfig = environment.config.propertyOrNull("riskGroups")?.getString().orEmpty()
+    if (riskGroupsConfig.isNotBlank()) {
+        val groupDefs = riskGroupsConfig.split(";").filter { it.contains(":") }.associate { entry ->
+            val (groupId, booksStr) = entry.split(":", limit = 2)
+            groupId.trim() to booksStr.split(",").map { com.kinetix.common.model.BookId(it.trim()) }
+        }
+        log.info("Configured {} cross-book VaR groups: {}", groupDefs.size, groupDefs.keys)
+        launch {
+            ScheduledCrossBookVaRCalculator(
+                crossBookVaRService = crossBookVaRService,
+                crossBookVaRCache = crossBookVaRCache,
+                groups = { groupDefs },
+            ).start()
+        }
+    }
 }
 
 private suspend fun seedCacheFromDb(
