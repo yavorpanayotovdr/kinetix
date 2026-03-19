@@ -8,7 +8,7 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
 
   test('shows blue maintenance banner when system health is DEGRADED and not reconnecting', async ({ page }) => {
     // Override health endpoint to return DEGRADED
-    await page.route('**/api/v1/health', (route) =>
+    await page.route('**/api/v1/system/health', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -34,7 +34,7 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
   })
 
   test('maintenance banner has role="status" for non-urgent announcements', async ({ page }) => {
-    await page.route('**/api/v1/health', (route) =>
+    await page.route('**/api/v1/system/health', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -59,7 +59,7 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
   })
 
   test('maintenance banner has blue styling', async ({ page }) => {
-    await page.route('**/api/v1/health', (route) =>
+    await page.route('**/api/v1/system/health', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
