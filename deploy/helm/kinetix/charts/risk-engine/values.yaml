@@ -27,6 +27,8 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 
+minReadySeconds: 10
+
 pdb:
   enabled: false
   minAvailable: 1

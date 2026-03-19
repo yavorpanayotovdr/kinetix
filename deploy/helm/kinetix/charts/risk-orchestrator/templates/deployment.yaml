@@ -6,6 +6,7 @@ metadata:
     {{- include "risk-orchestrator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  minReadySeconds: {{ .Values.minReadySeconds | default 30 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

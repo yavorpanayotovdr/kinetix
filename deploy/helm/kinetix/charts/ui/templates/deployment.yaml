@@ -6,6 +6,7 @@ metadata:
     {{- include "ui.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  minReadySeconds: {{ .Values.minReadySeconds | default 5 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

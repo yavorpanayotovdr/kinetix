@@ -6,6 +6,7 @@ metadata:
     {{- include "price-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  minReadySeconds: {{ .Values.minReadySeconds | default 10 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

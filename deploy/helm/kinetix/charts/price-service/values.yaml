@@ -38,6 +38,8 @@ probes:
   path: /health
   readinessPath: /health/ready
 
+minReadySeconds: 10
+
 pdb:
   enabled: false
   minAvailable: 1
