@@ -13,4 +13,6 @@ data class PositionRiskDto(
     val varContribution: String,
     val esContribution: String,
     val percentageOfTotal: String,
+    val instrumentType: String? = null,
+    val displayName: String? = null,
 )

@@ -64,7 +64,7 @@ class InstrumentTypeTest : FunSpec({
         inst.instrumentTypeName shouldBe "CORPORATE_BOND"
     }
 
-    test("InterestRateSwap derives FIXED_INCOME asset class") {
+    test("InterestRateSwap derives DERIVATIVE asset class") {
         val inst = InterestRateSwap(
             notional = 10_000_000.0,
             currency = "USD",
@@ -74,7 +74,7 @@ class InstrumentTypeTest : FunSpec({
             effectiveDate = "2026-06-15",
             payReceive = "PAY_FIXED",
         )
-        inst.assetClass() shouldBe AssetClass.FIXED_INCOME
+        inst.assetClass() shouldBe AssetClass.DERIVATIVE
         inst.instrumentTypeName shouldBe "INTEREST_RATE_SWAP"
     }
 

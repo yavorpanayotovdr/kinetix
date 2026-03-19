@@ -14,4 +14,5 @@ data class PositionBreakdownItem(
     val gamma: String? = null,
     val vega: String? = null,
     val quantity: String? = null,
+    val instrumentType: String? = null,
 )

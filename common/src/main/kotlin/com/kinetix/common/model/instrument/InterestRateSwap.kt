@@ -20,5 +20,5 @@ data class InterestRateSwap(
     val dayCountConvention: String = "ACT/360",
 ) : InstrumentType {
     override val instrumentTypeName: String get() = "INTEREST_RATE_SWAP"
-    override fun assetClass(): AssetClass = AssetClass.FIXED_INCOME
+    override fun assetClass(): AssetClass = AssetClass.DERIVATIVE
 }

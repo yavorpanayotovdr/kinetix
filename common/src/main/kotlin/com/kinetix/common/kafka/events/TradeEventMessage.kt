@@ -27,6 +27,7 @@ data class TradeEventMessage(
     val userRole: String? = null,
     val auditEventType: String = "TRADE_BOOKED",
     val bookId: String = portfolioId,
+    val instrumentType: String? = null,
 ) {
     companion object {
         fun from(event: TradeEvent): TradeEventMessage = TradeEventMessage(

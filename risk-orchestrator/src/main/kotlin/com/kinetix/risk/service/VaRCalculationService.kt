@@ -280,7 +280,7 @@ class VaRCalculationService(
 
             val calcDuration = java.time.Duration.between(calcStart, Instant.now()).toMillis()
 
-            val positionRiskList = computePositionRisk(positions, result)
+            val positionRiskList = computePositionRisk(positions, result, instrumentMap)
             val positionBreakdown = serializePositionBreakdown(positionRiskList, result.greeks)
 
             val calcDetails = buildMap<String, Any> {
@@ -398,6 +398,7 @@ class VaRCalculationService(
     internal fun computePositionRisk(
         positions: List<com.kinetix.common.model.Position>,
         result: ValuationResult,
+        instrumentMap: Map<String, InstrumentDto> = emptyMap(),
     ): List<PositionRisk> {
         val breakdownByAssetClass = result.componentBreakdown.associateBy { it.assetClass }
         val greeksByAssetClass = result.greeks?.assetClassGreeks?.associateBy { it.assetClass }
@@ -429,6 +430,7 @@ class VaRCalculationService(
             }
 
             val greeks = greeksByAssetClass?.get(pos.assetClass)
+            val instrument = instrumentMap[pos.instrumentId.value]
 
             PositionRisk(
                 instrumentId = pos.instrumentId,
@@ -440,6 +442,8 @@ class VaRCalculationService(
                 varContribution = varContribution.setScale(2, RoundingMode.HALF_UP),
                 esContribution = esContribution.setScale(2, RoundingMode.HALF_UP),
                 percentageOfTotal = percentageOfTotal.setScale(2, RoundingMode.HALF_UP),
+                instrumentType = instrument?.instrumentType,
+                displayName = instrument?.displayName,
             )
         }
     }

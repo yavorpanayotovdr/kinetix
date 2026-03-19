@@ -14,4 +14,6 @@ data class PositionRisk(
     val varContribution: BigDecimal,
     val esContribution: BigDecimal,
     val percentageOfTotal: BigDecimal,
+    val instrumentType: String? = null,
+    val displayName: String? = null,
 )

@@ -74,6 +74,8 @@ internal fun PositionRisk.toDto() = PositionRiskDto(
     varContribution = varContribution.toPlainString(),
     esContribution = esContribution.toPlainString(),
     percentageOfTotal = percentageOfTotal.toPlainString(),
+    instrumentType = instrumentType,
+    displayName = displayName,
 )
 
 internal fun HypotheticalTradeDto.toDomain() = HypotheticalTrade(
