@@ -7,6 +7,7 @@ export interface UsePositionsResult {
   bookId: string | null
   books: string[]
   selectBook: (id: string) => void
+  refreshPositions: () => void
   loading: boolean
   error: string | null
 }
@@ -72,5 +73,15 @@ export function usePositions(): UsePositionsResult {
     }
   }, [])
 
-  return { positions, bookId, books, selectBook, loading, error }
+  const refreshPositions = useCallback(async () => {
+    if (!bookId) return
+    try {
+      const positionData = await fetchPositions(bookId)
+      setPositions(positionData)
+    } catch {
+      // Silently ignore — refresh is best-effort on reconnect
+    }
+  }, [bookId])
+
+  return { positions, bookId, books, selectBook, refreshPositions, loading, error }
 }

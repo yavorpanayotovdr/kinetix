@@ -79,13 +79,15 @@ function App() {
     tabRefs.current.get(tabKeys[nextIndex])?.focus()
   }
 
-  const { positions: initialPositions, bookId: rawBookId, selectBook: rawSelectBook, loading: rawLoading, error: rawError } = usePositions()
+  const { positions: initialPositions, bookId: rawBookId, selectBook: rawSelectBook, refreshPositions, loading: rawLoading, error: rawError } = usePositions()
   const bookSelector = useBookSelector()
   const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
   const effectiveBookId = hierarchy.effectiveBookId ?? (isAllSelected ? null : rawBookId)
   const { positions, connected, reconnecting, lastConnectedAt, disconnectedSince } = usePriceStream(
     isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
+    undefined,
+    refreshPositions,
   )
   const { positionRisk } = usePositionRisk(effectiveBookId)
 

@@ -41,6 +41,7 @@ interface UsePriceStreamResult {
 export function usePriceStream(
   initialPositions: PositionDto[],
   wsUrl?: string,
+  onReconnect?: () => void,
 ): UsePriceStreamResult {
   const [positions, setPositions] = useState<PositionDto[]>(initialPositions)
   const [connected, setConnected] = useState(false)
@@ -73,11 +74,15 @@ export function usePriceStream(
       ]
 
       ws.onopen = () => {
+        const wasReconnecting = attemptRef.current > 0
         setConnected(true)
         setReconnecting(false)
         setLastConnectedAt(new Date())
         setDisconnectedSince(null)
         attemptRef.current = 0
+        if (wasReconnecting && onReconnect) {
+          onReconnect()
+        }
         const subscribeMsg: ClientMessage = {
           type: 'subscribe',
           instrumentIds,
@@ -155,7 +160,7 @@ export function usePriceStream(
         ws.close()
       }
     }
-  }, [initialPositions, wsUrl])
+  }, [initialPositions, wsUrl, onReconnect])
 
   return { positions, connected, reconnecting, lastConnectedAt, disconnectedSince }
 }
