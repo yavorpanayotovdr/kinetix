@@ -5,6 +5,7 @@ import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.routes.dtos.EodPromotionResponse
 import com.kinetix.risk.routes.dtos.PromoteEodRequest
 import com.kinetix.risk.service.EodPromotionService
+import com.kinetix.risk.service.IncompleteMarketDataException
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.ktor.http.*
@@ -32,10 +33,11 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
         }
 
         val body = call.receive<PromoteEodRequest>()
+        val force = call.request.queryParameters["force"]?.toBoolean() ?: false
 
         if (body.label == RunLabel.OFFICIAL_EOD.name) {
             try {
-                val promoted = eodPromotionService.promoteToOfficialEod(jobId, body.promotedBy)
+                val promoted = eodPromotionService.promoteToOfficialEod(jobId, body.promotedBy, force)
                 call.respond(
                     HttpStatusCode.OK,
                     EodPromotionResponse(
@@ -57,6 +59,8 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to e.message))
             } catch (e: EodPromotionException.ConflictingOfficialEod) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to e.message))
+            } catch (e: IncompleteMarketDataException) {
+                call.respond(HttpStatusCode.UnprocessableEntity, mapOf("error" to e.message))
             }
         } else if (body.label == RunLabel.ADHOC.name) {
             try {

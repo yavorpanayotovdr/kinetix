@@ -16,10 +16,11 @@ class EodPromotionService(
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
     private val riskAuditPublisher: RiskAuditEventPublisher? = null,
     private val matViewRefresher: (suspend () -> Unit)? = null,
+    private val manifestRepository: RunManifestRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
 
-    suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String): ValuationJob {
+    suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, force: Boolean = false): ValuationJob {
         val sample = Timer.start(meterRegistry)
         try {
             val job = jobRecorder.findByJobId(jobId)
@@ -35,6 +36,29 @@ class EodPromotionService(
 
             if (job.triggeredBy != null && job.triggeredBy == promotedBy) {
                 throw EodPromotionException.SelfPromotion(promotedBy)
+            }
+
+            // Market data completeness gate: reject promotion when any market data
+            // entry is MISSING, unless the caller explicitly sets force=true.
+            if (manifestRepository != null && job.manifestId != null) {
+                val marketDataRefs = manifestRepository.findMarketDataRefs(job.manifestId)
+                val incompleteRefs = marketDataRefs.filter { it.status == MarketDataSnapshotStatus.MISSING }
+                if (incompleteRefs.isNotEmpty()) {
+                    if (!force) {
+                        val summary = incompleteRefs
+                            .take(5)
+                            .joinToString { "${it.dataType}/${it.instrumentId}" }
+                        throw IncompleteMarketDataException(
+                            "EOD promotion rejected: ${incompleteRefs.size} market data entries are MISSING for job $jobId ($summary)"
+                        )
+                    }
+                    logger.warn(
+                        "Force-promoting job {} with {} incomplete market data entries: {}",
+                        jobId,
+                        incompleteRefs.size,
+                        incompleteRefs.take(5).joinToString { "${it.dataType}/${it.instrumentId}" },
+                    )
+                }
             }
 
             // Supersede existing Official EOD for same portfolio/date if one exists
