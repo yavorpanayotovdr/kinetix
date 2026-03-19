@@ -8,6 +8,9 @@ spec:
   replicas: {{ .Values.replicaCount }}
   minReadySeconds: {{ .Values.minReadySeconds | default 10 }}
   strategy:
+    # Recreate (not RollingUpdate): audit-service maintains a hash-chained audit trail.
+    # Running two instances concurrently risks hash chain corruption since each event's
+    # hash depends on the previous event.
     type: Recreate
   selector:
     matchLabels:
