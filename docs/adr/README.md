@@ -26,3 +26,4 @@
 | [0022](0022-correlation-id-propagation.md) | Correlation ID propagation | Accepted |
 | [0023](0023-hierarchical-limit-management.md) | Hierarchical limit management | Accepted |
 | [0024](0024-unified-valuation-rpc.md) | Unified valuation RPC | Accepted |
+| [0025](0025-flyway-backward-compatible-migrations.md) | Flyway backward-compatible migration convention | Accepted |
