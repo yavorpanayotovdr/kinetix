@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object SodBaselinesTable : Table("sod_baselines") {
     val id = long("id").autoIncrement()
-    val portfolioId = varchar("portfolio_id", 64)
+    val portfolioId = varchar("portfolio_id", 255)
     val baselineDate = date("baseline_date")
     val snapshotType = varchar("snapshot_type", 16)
     val createdAt = timestampWithTimeZone("created_at")
