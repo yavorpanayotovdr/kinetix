@@ -3,9 +3,11 @@ package com.kinetix.regulatory.persistence
 import com.kinetix.regulatory.model.FrtbCalculationRecord
 import com.kinetix.regulatory.model.RiskClassCharge
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -27,9 +29,17 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
             it[otherNotional] = record.otherNotional
             it[totalRrao] = record.totalRrao
             it[totalCapitalCharge] = record.totalCapitalCharge
-            it[sbmChargesJson] = json.encodeToString(record.sbmCharges.map { ch ->
-                SbmChargeJson(ch.riskClass, ch.deltaCharge, ch.vegaCharge, ch.curvatureCharge, ch.totalCharge)
-            })
+            it[sbmChargesJson] = json.parseToJsonElement(
+                json.encodeToString(record.sbmCharges.map { ch ->
+                    SbmChargeJson(
+                        riskClass = ch.riskClass,
+                        deltaCharge = ch.deltaCharge.toDouble(),
+                        vegaCharge = ch.vegaCharge.toDouble(),
+                        curvatureCharge = ch.curvatureCharge.toDouble(),
+                        totalCharge = ch.totalCharge.toDouble(),
+                    )
+                })
+            )
             it[calculatedAt] = OffsetDateTime.ofInstant(record.calculatedAt, ZoneOffset.UTC)
             it[storedAt] = OffsetDateTime.ofInstant(record.storedAt, ZoneOffset.UTC)
         }
@@ -68,7 +78,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
         }
 
     private fun ResultRow.toRecord(): FrtbCalculationRecord {
-        val charges = json.decodeFromString<List<SbmChargeJson>>(this[FrtbCalculationsTable.sbmChargesJson])
+        val charges = json.decodeFromJsonElement<List<SbmChargeJson>>(this[FrtbCalculationsTable.sbmChargesJson])
         return FrtbCalculationRecord(
             id = this[FrtbCalculationsTable.id],
             portfolioId = this[FrtbCalculationsTable.portfolioId],
@@ -81,7 +91,13 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
             totalRrao = this[FrtbCalculationsTable.totalRrao],
             totalCapitalCharge = this[FrtbCalculationsTable.totalCapitalCharge],
             sbmCharges = charges.map {
-                RiskClassCharge(it.riskClass, it.deltaCharge, it.vegaCharge, it.curvatureCharge, it.totalCharge)
+                RiskClassCharge(
+                    riskClass = it.riskClass,
+                    deltaCharge = BigDecimal.valueOf(it.deltaCharge),
+                    vegaCharge = BigDecimal.valueOf(it.vegaCharge),
+                    curvatureCharge = BigDecimal.valueOf(it.curvatureCharge),
+                    totalCharge = BigDecimal.valueOf(it.totalCharge),
+                )
             },
             calculatedAt = this[FrtbCalculationsTable.calculatedAt].toInstant(),
             storedAt = this[FrtbCalculationsTable.storedAt].toInstant(),
