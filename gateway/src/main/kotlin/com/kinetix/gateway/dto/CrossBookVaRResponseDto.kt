@@ -34,6 +34,7 @@ fun CrossBookVaRResultSummary.toResponse(): CrossBookVaRResponseDto = CrossBookV
             standaloneVar = "%.2f".format(it.standaloneVar),
             diversificationBenefit = "%.2f".format(it.diversificationBenefit),
             marginalVar = "%.6f".format(it.marginalVar),
+            incrementalVar = "%.2f".format(it.incrementalVar),
         )
     },
     totalStandaloneVar = "%.2f".format(totalStandaloneVar),

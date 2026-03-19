@@ -10,4 +10,5 @@ data class BookVaRContributionResponse(
     val standaloneVar: String,
     val diversificationBenefit: String,
     val marginalVar: String,
+    val incrementalVar: String,
 )

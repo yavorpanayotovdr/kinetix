@@ -14,4 +14,5 @@ data class BookVaRContributionEvent(
     val standaloneVar: String,
     val diversificationBenefit: String,
     val marginalVar: String = "0.0",
+    val incrementalVar: String = "0.0",
 )

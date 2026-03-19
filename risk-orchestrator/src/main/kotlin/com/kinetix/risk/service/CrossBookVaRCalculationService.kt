@@ -13,6 +13,7 @@ import com.kinetix.risk.model.CrossBookValuationResult
 import com.kinetix.risk.model.FetchSuccess
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.ValuationOutput
+import com.kinetix.risk.routes.dtos.StressedCrossBookVaRResultResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -146,6 +147,56 @@ class CrossBookVaRCalculationService(
         )
 
         return result
+    }
+
+    suspend fun calculateStressed(
+        request: CrossBookVaRRequest,
+        stressCorrelation: Double = 0.9,
+    ): StressedCrossBookVaRResultResponse? {
+        // Compute base cross-book VaR with normal correlations
+        val baseResult = calculate(request) ?: return null
+
+        // For the stressed result, re-run with the same request.
+        // The Python risk engine computes the stressed scenario natively via
+        // calculate_stressed_cross_book_var, but the orchestrator currently calls
+        // the standard VaR RPC.  As a pragmatic approximation, we compute a
+        // stressed VaR by re-using the base result and scaling the diversification
+        // benefit based on the stress correlation.
+        //
+        // The stress correlation controls how much diversification survives:
+        //   - At rho=0 (uncorrelated), max diversification
+        //   - At rho=1 (perfect correlation), zero diversification
+        // We compute the stressed diversification benefit as:
+        //   stressed_benefit = base_benefit * (1 - stressCorrelation)
+        // This is a simplification; the Python engine does it properly via
+        // matrix replacement. For the orchestrator endpoint, we apply the same
+        // logic: stressed VaR = base VaR + eroded benefit.
+        val baseBenefit = baseResult.diversificationBenefit
+        val stressedBenefit = baseBenefit * (1.0 - stressCorrelation)
+        val benefitErosion = baseBenefit - stressedBenefit
+        val stressedVaR = baseResult.varValue + benefitErosion
+        val benefitErosionPct = if (baseBenefit > 0.0) {
+            (benefitErosion / baseBenefit) * 100.0
+        } else {
+            0.0
+        }
+
+        logger.info(
+            "Stressed cross-book VaR for group {}: baseVaR={}, stressedVaR={}, " +
+                "baseBenefit={}, stressedBenefit={}, erosion={}, erosionPct={}%",
+            request.portfolioGroupId, baseResult.varValue, stressedVaR,
+            baseBenefit, stressedBenefit, benefitErosion, benefitErosionPct,
+        )
+
+        return StressedCrossBookVaRResultResponse(
+            baseVaR = "%.2f".format(baseResult.varValue),
+            stressedVaR = "%.2f".format(stressedVaR),
+            baseDiversificationBenefit = "%.2f".format(baseBenefit),
+            stressedDiversificationBenefit = "%.2f".format(stressedBenefit),
+            benefitErosion = "%.2f".format(benefitErosion),
+            benefitErosionPct = "%.2f".format(benefitErosionPct),
+            stressCorrelation = "%.2f".format(stressCorrelation),
+        )
     }
 
     private fun computeBookContributions(

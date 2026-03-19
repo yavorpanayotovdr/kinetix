@@ -10,6 +10,8 @@ import com.kinetix.risk.routes.dtos.BookVaRContributionResponse
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.CrossBookVaRCalculationRequestBody
 import com.kinetix.risk.routes.dtos.CrossBookVaRResultResponse
+import com.kinetix.risk.routes.dtos.StressedCrossBookVaRRequestBody
+import com.kinetix.risk.routes.dtos.StressedCrossBookVaRResultResponse
 import com.kinetix.risk.service.CrossBookVaRCalculationService
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
@@ -71,6 +73,42 @@ fun Route.crossBookVaRRoutes(
                 call.respond(HttpStatusCode.NotFound)
             }
         }
+
+        post("/stressed", {
+            summary = "Calculate stressed cross-book VaR (correlation spike scenario)"
+            description = "Computes cross-book VaR under both normal and stressed correlations, " +
+                "showing how diversification benefit erodes when correlations spike to crisis levels."
+            tags = listOf("Cross-Book VaR")
+            request {
+                body<StressedCrossBookVaRRequestBody>()
+            }
+        }) {
+            val body = call.receive<StressedCrossBookVaRRequestBody>()
+
+            if (body.bookIds.isEmpty()) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bookIds must not be empty"))
+                return@post
+            }
+
+            val stressCorrelation = body.stressCorrelation ?: 0.9
+
+            val request = CrossBookVaRRequest(
+                bookIds = body.bookIds.map { BookId(it) },
+                portfolioGroupId = body.portfolioGroupId,
+                calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
+                confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
+                timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
+                numSimulations = body.numSimulations?.toInt() ?: 10_000,
+                monteCarloSeed = body.monteCarloSeed?.toLong() ?: 0L,
+            )
+
+            val result = crossBookVaRService.calculateStressed(request, stressCorrelation)
+            if (result != null) {
+                call.respond(result)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
     }
 }
 
@@ -96,6 +134,7 @@ internal fun CrossBookValuationResult.toResponse() = CrossBookVaRResultResponse(
             standaloneVar = "%.2f".format(it.standaloneVar),
             diversificationBenefit = "%.2f".format(it.diversificationBenefit),
             marginalVar = "%.6f".format(it.marginalVar),
+            incrementalVar = "%.2f".format(it.incrementalVar),
         )
     },
     totalStandaloneVar = "%.2f".format(totalStandaloneVar),

@@ -22,6 +22,7 @@ export function BookContributionTable({ contributions, onBookClick }: BookContri
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Standalone VaR</th>
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Diversification</th>
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Marginal VaR</th>
+              <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Incremental VaR</th>
             </tr>
           </thead>
           <tbody>
@@ -41,6 +42,9 @@ export function BookContributionTable({ contributions, onBookClick }: BookContri
                 </td>
                 <td className="py-1.5 px-2 text-right tabular-nums text-slate-500">
                   {Number(c.marginalVar).toFixed(4)}
+                </td>
+                <td className={`py-1.5 px-2 text-right tabular-nums ${Number(c.incrementalVar) < 0 ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                  {formatMoney(c.incrementalVar, 'USD')}
                 </td>
               </tr>
             ))}

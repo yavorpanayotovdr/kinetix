@@ -168,6 +168,7 @@ message BookVaRContribution {
   double standalone_var = 4;
   double diversification_benefit = 5;
   double marginal_var = 6;  // VaR per unit of book exposure (dVaR/dw_i)
+  double incremental_var = 7;  // Change in portfolio VaR when this book is removed
 }
 
 message CrossBookVaRResponse {

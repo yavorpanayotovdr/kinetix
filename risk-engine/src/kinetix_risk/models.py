@@ -257,6 +257,7 @@ class BookVaRContribution:
     standalone_var: float
     diversification_benefit: float
     marginal_var: float = 0.0  # VaR per unit of book exposure (dVaR/dw_i)
+    incremental_var: float = 0.0  # Change in portfolio VaR when this book is removed
 
 
 @dataclass(frozen=True)
@@ -265,6 +266,17 @@ class CrossBookVaRResult:
     book_contributions: list[BookVaRContribution]
     total_standalone_var: float
     diversification_benefit: float
+
+
+@dataclass(frozen=True)
+class StressedDiversificationResult:
+    base_result: CrossBookVaRResult
+    stressed_result: CrossBookVaRResult
+    base_diversification_benefit: float
+    stressed_diversification_benefit: float
+    benefit_erosion: float  # base_benefit - stressed_benefit (how much diversification was lost)
+    benefit_erosion_pct: float  # benefit_erosion / base_benefit * 100
+    stress_correlation: float
 
 
 class TrafficLightZone(str, Enum):

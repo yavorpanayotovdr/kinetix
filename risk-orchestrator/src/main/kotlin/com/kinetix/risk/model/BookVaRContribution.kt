@@ -9,4 +9,5 @@ data class BookVaRContribution(
     val standaloneVar: Double,
     val diversificationBenefit: Double,
     val marginalVar: Double = 0.0,
+    val incrementalVar: Double = 0.0,
 )

@@ -327,6 +327,7 @@ def cross_book_var_result_to_proto_response(
             standalone_var=bc.standalone_var,
             diversification_benefit=bc.diversification_benefit,
             marginal_var=bc.marginal_var,
+            incremental_var=bc.incremental_var,
         ))
 
     return risk_calculation_pb2.CrossBookVaRResponse(

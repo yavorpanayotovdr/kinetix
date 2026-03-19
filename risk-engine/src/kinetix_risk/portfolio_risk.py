@@ -62,7 +62,14 @@ def calculate_portfolio_var(
     # When historical_returns are provided and a correlation_method is specified,
     # estimate the correlation dynamically using the requested method (e.g. Ledoit-Wolf).
     if correlation_matrix is not None:
-        corr = correlation_matrix
+        # If the provided matrix is larger than the number of asset classes present,
+        # extract the sub-matrix using the same index mapping as get_sub_correlation_matrix.
+        if correlation_matrix.shape[0] > len(asset_classes):
+            from kinetix_risk.volatility import _ASSET_CLASS_INDEX
+            indices = [_ASSET_CLASS_INDEX[ac] for ac in asset_classes]
+            corr = correlation_matrix[np.ix_(indices, indices)].copy()
+        else:
+            corr = correlation_matrix
     elif correlation_method is not None and historical_returns is not None:
         corr = estimate_correlation(historical_returns, method=correlation_method)
     else:
