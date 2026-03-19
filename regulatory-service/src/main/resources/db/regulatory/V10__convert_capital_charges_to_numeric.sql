@@ -2,8 +2,9 @@
 -- for exact reproducibility.
 -- frtb_calculations is a hypertable — decompress chunks before altering.
 
-SELECT decompress_chunk(c) FROM show_chunks('frtb_calculations') c
-WHERE is_compressed;
+SELECT decompress_chunk(c.chunk_name::regclass)
+FROM timescaledb_information.chunks c
+WHERE c.hypertable_name = 'frtb_calculations' AND c.is_compressed = true;
 
 ALTER TABLE frtb_calculations
     ALTER COLUMN total_sbm_charge     TYPE NUMERIC(28,8) USING total_sbm_charge::NUMERIC(28,8),
@@ -15,6 +16,7 @@ ALTER TABLE frtb_calculations
     ALTER COLUMN total_rrao           TYPE NUMERIC(28,8) USING total_rrao::NUMERIC(28,8),
     ALTER COLUMN total_capital_charge TYPE NUMERIC(28,8) USING total_capital_charge::NUMERIC(28,8);
 
-SELECT compress_chunk(c) FROM show_chunks('frtb_calculations') c
-WHERE NOT is_compressed
-  AND range_end < NOW() - INTERVAL '90 days';
+SELECT compress_chunk(c.chunk_name::regclass)
+FROM timescaledb_information.chunks c
+WHERE c.hypertable_name = 'frtb_calculations' AND c.is_compressed = false
+  AND c.range_end < NOW() - INTERVAL '90 days';
