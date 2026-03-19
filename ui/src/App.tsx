@@ -84,7 +84,7 @@ function App() {
   const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
   const effectiveBookId = hierarchy.effectiveBookId ?? (isAllSelected ? null : rawBookId)
-  const { positions, connected, reconnecting, lastConnectedAt, disconnectedSince } = usePriceStream(
+  const { positions, connected, reconnecting, exhausted, lastConnectedAt, disconnectedSince, manualReconnect } = usePriceStream(
     isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
     undefined,
     refreshPositions,
@@ -200,7 +200,24 @@ function App() {
         ))}
       </nav>
 
-      {reconnecting && (() => {
+      {exhausted && (
+        <div
+          data-testid="connection-lost-banner"
+          className="bg-red-50 border-b border-red-200 text-red-700 px-6 py-2 text-sm font-medium flex items-center justify-between"
+          role="alert"
+        >
+          <span>Connection lost. Live prices are unavailable.</span>
+          <button
+            data-testid="reconnect-button"
+            onClick={manualReconnect}
+            className="ml-4 px-3 py-1 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+          >
+            Reconnect
+          </button>
+        </div>
+      )}
+
+      {!exhausted && reconnecting && (() => {
         const healthUp = systemHealth.health?.status === 'UP'
         const healthDegraded = systemHealth.health?.status === 'DEGRADED'
         const healthUnknown = !systemHealth.health

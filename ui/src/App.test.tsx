@@ -68,7 +68,7 @@ function setupDefaults() {
     loading: false,
     error: null,
   })
-  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true, reconnecting: false, lastConnectedAt: null, disconnectedSince: null })
+  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true, reconnecting: false, exhausted: false, lastConnectedAt: null, disconnectedSince: null, manualReconnect: vi.fn() })
   mockUseNotifications.mockReturnValue({
     rules: [],
     alerts: [],
@@ -498,8 +498,10 @@ describe('App', () => {
         positions: [position],
         connected: false,
         reconnecting: true,
+        exhausted: false,
         lastConnectedAt: null,
         disconnectedSince: null,
+        manualReconnect: vi.fn(),
       })
 
       render(<App />)
