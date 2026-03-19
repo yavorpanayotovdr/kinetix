@@ -3,6 +3,8 @@ package com.kinetix.gateway.routes
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.CrossBookVaRRequestDto
 import com.kinetix.gateway.dto.CrossBookVaRResponseDto
+import com.kinetix.gateway.dto.StressedCrossBookVaRRequestDto
+import com.kinetix.gateway.dto.StressedCrossBookVaRResponseDto
 import com.kinetix.gateway.dto.toParams
 import com.kinetix.gateway.dto.toResponse
 import io.github.smiley4.ktoropenapi.get
@@ -50,6 +52,30 @@ fun Route.crossBookVaRRoutes(client: RiskServiceClient) {
         }) {
             val groupId = call.requirePathParam("groupId")
             val result = client.getCrossBookVaR(groupId)
+            if (result != null) {
+                call.respond(result.toResponse())
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        post("/stressed", {
+            summary = "Calculate stressed cross-book VaR (correlation spike scenario)"
+            description = "Computes cross-book VaR under both normal and stressed correlations, " +
+                "showing how diversification benefit erodes when correlations spike to crisis levels."
+            tags = listOf("VaR")
+            request {
+                body<StressedCrossBookVaRRequestDto>()
+            }
+            response {
+                HttpStatusCode.OK to { body<StressedCrossBookVaRResponseDto>() }
+                HttpStatusCode.BadRequest to { description = "Invalid request (e.g. empty bookIds)" }
+                HttpStatusCode.NotFound to { description = "No positions found for any of the specified books" }
+            }
+        }) {
+            val request = call.receive<StressedCrossBookVaRRequestDto>()
+            val params = request.toParams()
+            val result = client.calculateStressedCrossBookVaR(params)
             if (result != null) {
                 call.respond(result.toResponse())
             } else {

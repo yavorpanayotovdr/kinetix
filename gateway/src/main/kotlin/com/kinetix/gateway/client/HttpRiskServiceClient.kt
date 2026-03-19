@@ -420,4 +420,27 @@ class HttpRiskServiceClient(
         val dto: com.kinetix.gateway.client.dtos.CrossBookVaRResultClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun calculateStressedCrossBookVaR(
+        params: com.kinetix.gateway.dto.StressedCrossBookVaRParams,
+    ): StressedCrossBookVaRResultSummary? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/var/cross-book/stressed") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                com.kinetix.gateway.client.dtos.StressedCrossBookVaRRequestClientDto(
+                    bookIds = params.bookIds,
+                    portfolioGroupId = params.portfolioGroupId,
+                    stressCorrelation = params.stressCorrelation,
+                    calculationType = params.calculationType,
+                    confidenceLevel = params.confidenceLevel,
+                    timeHorizonDays = params.timeHorizonDays.toString(),
+                    numSimulations = params.numSimulations.toString(),
+                )
+            )
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: com.kinetix.gateway.client.dtos.StressedCrossBookVaRResultClientDto = response.body()
+        return dto.toDomain()
+    }
 }
