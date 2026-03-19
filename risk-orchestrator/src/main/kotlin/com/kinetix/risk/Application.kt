@@ -53,6 +53,7 @@ import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.persistence.ExposedBlobRetentionRepository
 import com.kinetix.risk.persistence.ExposedManifestRetentionRepository
 import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
+import com.kinetix.risk.schedule.ScheduledCrossBookVaRCalculator
 import com.kinetix.risk.schedule.ScheduledManifestRetentionJob
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
