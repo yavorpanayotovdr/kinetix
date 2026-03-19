@@ -21,6 +21,7 @@ import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.HttpRatesServiceClient
 import com.kinetix.risk.client.HttpReferenceDataServiceClient
 import com.kinetix.risk.client.HttpCorrelationServiceClient
+import com.kinetix.risk.client.HttpInstrumentServiceClient
 import com.kinetix.risk.client.HttpVolatilityServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.ResilientRiskEngineClient
@@ -180,6 +181,7 @@ fun Application.moduleWithRoutes() {
     val referenceDataServiceBaseUrl = environment.config
         .propertyOrNull("referenceDataService.baseUrl")?.getString() ?: "http://localhost:8089"
     val referenceDataServiceClient = HttpReferenceDataServiceClient(priceHttpClient, referenceDataServiceBaseUrl)
+    val instrumentServiceClient = HttpInstrumentServiceClient(priceHttpClient, referenceDataServiceBaseUrl)
     val volatilityServiceBaseUrl = environment.config
         .propertyOrNull("volatilityService.baseUrl")?.getString() ?: "http://localhost:8090"
     val volatilityServiceClient = HttpVolatilityServiceClient(priceHttpClient, volatilityServiceBaseUrl)
@@ -288,6 +290,7 @@ fun Application.moduleWithRoutes() {
         marketDataFetcher = marketDataFetcher,
         jobRecorder = jobRecorder,
         runManifestCapture = runManifestCapture,
+        instrumentServiceClient = instrumentServiceClient,
     )
     val redisUrl = environment.config.propertyOrNull("redis.url")?.getString().orEmpty()
     val redisConnection = if (redisUrl.isNotBlank()) {

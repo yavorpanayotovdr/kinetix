@@ -7,6 +7,7 @@ import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt.MarketDataDepe
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub
 import com.kinetix.proto.risk.VaRRequest
 import com.kinetix.proto.risk.ValuationRequest
+import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.mapper.toProto
 import com.kinetix.risk.mapper.toDomain
 import com.kinetix.risk.mapper.toDomainValuation
@@ -38,6 +39,7 @@ class GrpcRiskEngineClient(
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): VaRResult {
         val protoRequest = VaRRequest.newBuilder()
             .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
@@ -45,7 +47,7 @@ class GrpcRiskEngineClient(
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)
             .setNumSimulations(request.numSimulations)
-            .addAllPositions(positions.map { it.toProto() })
+            .addAllPositions(positions.map { it.toProto(instrumentMap[it.instrumentId.value]) })
             .addAllMarketData(marketData.map { it.toProto() })
             .build()
 
@@ -58,6 +60,7 @@ class GrpcRiskEngineClient(
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): ValuationResult {
         val protoRequest = ValuationRequest.newBuilder()
             .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
@@ -65,7 +68,7 @@ class GrpcRiskEngineClient(
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)
             .setNumSimulations(request.numSimulations)
-            .addAllPositions(positions.map { it.toProto() })
+            .addAllPositions(positions.map { it.toProto(instrumentMap[it.instrumentId.value]) })
             .addAllMarketData(marketData.map { it.toProto() })
             .addAllRequestedOutputs(request.requestedOutputs.map { DOMAIN_VALUATION_OUTPUT_TO_PROTO.getValue(it) })
             .setMonteCarloSeed(request.monteCarloSeed)
@@ -80,12 +83,13 @@ class GrpcRiskEngineClient(
         positions: List<Position>,
         calculationType: String,
         confidenceLevel: String,
+        instrumentMap: Map<String, InstrumentDto>,
     ): DataDependenciesResponse {
         val calcType = CalculationType.valueOf(calculationType)
         val confLevel = ConfidenceLevel.valueOf(confidenceLevel)
 
         val protoRequest = DataDependenciesRequest.newBuilder()
-            .addAllPositions(positions.map { it.toProto() })
+            .addAllPositions(positions.map { it.toProto(instrumentMap[it.instrumentId.value]) })
             .setCalculationType(calcType.toProto())
             .setConfidenceLevel(confLevel.toProto())
             .build()

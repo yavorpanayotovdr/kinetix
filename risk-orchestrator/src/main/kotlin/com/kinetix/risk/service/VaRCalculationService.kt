@@ -1,7 +1,9 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.client.InstrumentServiceClient
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
@@ -31,6 +33,7 @@ class VaRCalculationService(
     private val jobRecorder: ValuationJobRecorder = NoOpValuationJobRecorder(),
     private val positionDependencyGrouper: PositionDependencyGrouper = PositionDependencyGrouper(),
     private val runManifestCapture: RunManifestCapture? = null,
+    private val instrumentServiceClient: InstrumentServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -95,9 +98,17 @@ class VaRCalculationService(
                 return null
             }
 
+            // Fetch instrument enrichment data (graceful degradation)
+            val instrumentMap: Map<String, InstrumentDto> = try {
+                instrumentServiceClient?.getInstruments(positions.map { it.instrumentId }) ?: emptyMap()
+            } catch (e: Exception) {
+                logger.warn("Failed to fetch instruments, proceeding without enrichment", e)
+                emptyMap()
+            }
+
             logger.info(
-                "Calculating {} VaR for portfolio {} with {} positions",
-                request.calculationType, request.portfolioId.value, positions.size,
+                "Calculating {} VaR for portfolio {} with {} positions ({} instruments enriched)",
+                request.calculationType, request.portfolioId.value, positions.size, instrumentMap.size,
             )
 
             // Phase 2: Discover dependencies
@@ -244,7 +255,7 @@ class VaRCalculationService(
             val timer = meterRegistry.timer("var.calculation.duration")
             val sample = io.micrometer.core.instrument.Timer.start(meterRegistry)
 
-            val result = riskEngineClient.valuate(effectiveRequest, positions, marketData)
+            val result = riskEngineClient.valuate(effectiveRequest, positions, marketData, instrumentMap)
 
             sample.stop(timer)
             meterRegistry.counter(

@@ -2,6 +2,7 @@ package com.kinetix.risk
 
 import com.kinetix.common.model.*
 import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
@@ -25,6 +26,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<com.kinetix.risk.model.MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): VaRResult {
         delay(31_000)
         return VaRResult(
@@ -44,6 +46,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<com.kinetix.risk.model.MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): ValuationResult {
         delay(31_000)
         return ValuationResult(
@@ -65,6 +68,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
         positions: List<Position>,
         calculationType: String,
         confidenceLevel: String,
+        instrumentMap: Map<String, InstrumentDto>,
     ) = throw UnsupportedOperationException("Not used in observability test")
 }
 
