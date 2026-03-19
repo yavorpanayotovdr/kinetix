@@ -137,7 +137,16 @@ function App() {
         <div className="flex items-center gap-3">
           <HierarchySelector hierarchy={hierarchy} />
           <DataQualityIndicator
-            status={reconnecting && dataQuality.status ? { ...dataQuality.status, overall: 'WARNING' } : dataQuality.status}
+            status={reconnecting && dataQuality.status
+              ? {
+                  ...dataQuality.status,
+                  overall: 'WARNING',
+                  checks: [
+                    { name: 'Price Feed', status: 'WARNING', message: 'WebSocket reconnecting', lastChecked: new Date().toISOString() },
+                    ...dataQuality.status.checks,
+                  ],
+                }
+              : dataQuality.status}
             loading={dataQuality.loading}
           />
           <button
