@@ -154,14 +154,14 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                     </div>
                     {books.map((book) => (
                       <button
-                        key={book.bookId}
-                        data-testid={`hierarchy-book-${book.bookId}`}
-                        onClick={() => handleBookClick(book.bookId)}
+                        key={book.portfolioId}
+                        data-testid={`hierarchy-book-${book.portfolioId}`}
+                        onClick={() => handleBookClick(book.portfolioId)}
                         className={`w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 transition-colors ${
-                          selection.bookId === book.bookId ? 'font-semibold text-primary-700' : ''
+                          selection.bookId === book.portfolioId ? 'font-semibold text-primary-700' : ''
                         }`}
                       >
-                        {book.bookId}
+                        {book.portfolioId}
                       </button>
                     ))}
                   </div>

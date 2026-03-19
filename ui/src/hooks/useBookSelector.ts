@@ -37,7 +37,7 @@ export function useBookSelector(): UseBookSelectorResult {
         const bookList = await fetchBooks()
         if (cancelled) return
 
-        const ids = bookList.map((b) => b.bookId).sort()
+        const ids = bookList.map((b) => b.portfolioId).sort()
         setBookIds(ids)
 
         if (ids.length === 0) {

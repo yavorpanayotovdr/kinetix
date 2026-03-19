@@ -155,7 +155,7 @@ export function useHierarchySelector(): UseHierarchySelectorResult {
     if (selection.level === 'book' && selection.bookId) {
       return [selection.bookId]
     }
-    return books.map((b) => b.bookId)
+    return books.map((b) => b.portfolioId)
   })()
 
   return {

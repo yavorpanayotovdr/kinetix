@@ -43,7 +43,7 @@ export interface TradeHistoryDto {
 }
 
 export interface BookDto {
-  bookId: string
+  portfolioId: string
 }
 
 export interface PriceUpdateMessage {

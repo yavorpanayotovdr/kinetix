@@ -125,7 +125,7 @@ function setupDefaults() {
     effectiveBookIds: ['book-1', 'book-2'],
     divisions: [],
     desks: [],
-    books: [{ bookId: 'book-1' }, { bookId: 'book-2' }],
+    books: [{ portfolioId: 'book-1' }, { portfolioId: 'book-2' }],
     loading: false,
     error: null,
   })
