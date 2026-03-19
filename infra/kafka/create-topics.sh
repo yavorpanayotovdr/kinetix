@@ -60,7 +60,7 @@ create_topic "reference-data.credit-spreads" 3
 create_topic "volatility.surfaces"   3
 create_topic "correlation.matrices"  3
 
-# ── Dead-letter queues ───────────────────────────────────────────────
+# ── Dead-letter queues (same REPLICATION_FACTOR as regular topics) ────
 create_topic "trades.lifecycle.dlq"  1
 create_topic "price.updates.dlq"    1
 create_topic "risk.results.dlq"     1
