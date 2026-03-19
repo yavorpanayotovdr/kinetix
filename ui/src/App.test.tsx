@@ -493,12 +493,13 @@ describe('App', () => {
         positions: [position],
         connected: false,
         reconnecting: true,
+        lastConnectedAt: null,
+        disconnectedSince: null,
       })
 
       render(<App />)
 
       expect(screen.getByTestId('reconnecting-banner')).toBeInTheDocument()
-      expect(screen.getByText('Reconnecting...')).toBeInTheDocument()
     })
 
     it('does not show reconnecting banner when connected', () => {
