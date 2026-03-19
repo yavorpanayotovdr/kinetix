@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
+import { useCrossBookVaR } from '../hooks/useCrossBookVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
@@ -8,6 +9,7 @@ import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
+import { BookContributionTable } from './BookContributionTable'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
@@ -27,6 +29,9 @@ interface RiskTabProps {
   onWhatIf?: () => void
   onViewPnlTab?: () => void
   aggregatedView?: boolean
+  effectiveBookIds?: string[]
+  portfolioGroupId?: string | null
+  onNavigateToBook?: (bookId: string) => void
 }
 
 export function RiskTab({
@@ -38,6 +43,9 @@ export function RiskTab({
   onWhatIf,
   onViewPnlTab,
   aggregatedView = false,
+  effectiveBookIds = [],
+  portfolioGroupId = null,
+  onNavigateToBook,
 }: RiskTabProps) {
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
   const [valuationDate, setValuationDate] = useState<string | null>(null)
@@ -74,6 +82,17 @@ export function RiskTab({
     refresh: refreshPositionRisk,
   } = usePositionRisk(bookId, valuationDate)
 
+  const {
+    result: crossBookResult,
+    loading: crossBookLoading,
+    refreshing: crossBookRefreshing,
+    error: crossBookError,
+    refresh: crossBookRefresh,
+  } = useCrossBookVaR(
+    aggregatedView ? effectiveBookIds : [],
+    aggregatedView ? portfolioGroupId : null,
+  )
+
   const { varLimit } = useVarLimit()
   const { alerts, dismissAlert } = useAlerts()
 
@@ -83,10 +102,13 @@ export function RiskTab({
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
   const handleRefresh = useCallback(async () => {
+    if (aggregatedView) {
+      await crossBookRefresh()
+    }
     await refresh()
     await refreshPositionRisk()
     setJobRefreshSignal((prev) => prev + 1)
-  }, [refresh, refreshPositionRisk])
+  }, [refresh, refreshPositionRisk, crossBookRefresh, aggregatedView])
 
   const lastUpdated = varResult?.calculatedAt ?? null
 
@@ -117,12 +139,12 @@ export function RiskTab({
 
       {subTab === 'dashboard' && (
         <>
-          {aggregatedView && (
+          {aggregatedView && !crossBookResult && !crossBookLoading && (
             <div
               data-testid="aggregated-var-note"
               className="mb-3 px-3 py-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md"
             >
-              Showing sum of book VaRs — true aggregated VaR requires backend support.
+              Showing sum of book VaRs — click Recalculate All to compute diversified portfolio VaR.
             </div>
           )}
           {alerts.length > 0 && (
@@ -139,8 +161,8 @@ export function RiskTab({
             filteredHistory={filteredHistory}
             loading={varLoading}
             historyLoading={varHistoryLoading}
-            refreshing={varRefreshing}
-            error={varError}
+            refreshing={varRefreshing || crossBookRefreshing}
+            error={crossBookError || varError}
             onRefresh={handleRefresh}
             timeRange={varTimeRange}
             setTimeRange={setVarTimeRange}
@@ -154,7 +176,17 @@ export function RiskTab({
             onConfidenceLevelChange={setSelectedConfidenceLevel}
             isLive={isLive}
             valuationDate={valuationDate}
+            totalStandaloneVar={crossBookResult ? Number(crossBookResult.totalStandaloneVar) : undefined}
+            diversificationBenefit={crossBookResult ? Number(crossBookResult.diversificationBenefit) : undefined}
           />
+          {aggregatedView && crossBookResult && (
+            <div className="mt-4">
+              <BookContributionTable
+                contributions={crossBookResult.bookContributions}
+                onBookClick={onNavigateToBook}
+              />
+            </div>
+          )}
           <div className="mt-4">
             <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
           </div>

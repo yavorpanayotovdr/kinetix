@@ -676,3 +676,36 @@ export interface BacktestComparisonDto {
   targetTrafficLightZone: string
   trafficLightChanged: boolean
 }
+
+// --- Cross-Book VaR ---
+
+export interface BookVaRContributionDto {
+  bookId: string
+  varContribution: string
+  percentageOfTotal: string
+  standaloneVar: string
+  diversificationBenefit: string
+}
+
+export interface CrossBookVaRRequestDto {
+  bookIds: string[]
+  portfolioGroupId: string
+  calculationType?: string
+  confidenceLevel?: string
+  timeHorizonDays?: string
+  numSimulations?: string
+}
+
+export interface CrossBookVaRResultDto {
+  portfolioGroupId: string
+  bookIds: string[]
+  calculationType: string
+  confidenceLevel: string
+  varValue: string
+  expectedShortfall: string
+  componentBreakdown: ComponentBreakdownDto[]
+  bookContributions: BookVaRContributionDto[]
+  totalStandaloneVar: string
+  diversificationBenefit: string
+  calculatedAt: string
+}

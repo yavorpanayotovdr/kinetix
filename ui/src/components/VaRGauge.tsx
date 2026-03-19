@@ -20,6 +20,8 @@ interface VaRGaugeProps {
   previousVaR?: number | null
   onConfidenceLevelChange?: (level: string) => void
   disabled?: boolean
+  totalStandaloneVar?: number | null
+  diversificationBenefit?: number | null
 }
 
 function gaugeColorEsBased(ratio: number): string {
@@ -40,7 +42,7 @@ function confidenceLabel(level: string): string {
   return 'VaR (95%)'
 }
 
-export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue, previousVaR, onConfidenceLevelChange, disabled }: VaRGaugeProps) {
+export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimit, pvValue, previousVaR, onConfidenceLevelChange, disabled, totalStandaloneVar, diversificationBenefit }: VaRGaugeProps) {
   const [openPopover, setOpenPopover] = useState<Metric | null>(null)
   const gaugeRef = useRef<HTMLDivElement>(null)
 
@@ -173,6 +175,22 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
           </span>
         )}
       </div>
+
+      {totalStandaloneVar != null && diversificationBenefit != null && (
+        <div data-testid="diversification-summary" className="border-t border-slate-100 mt-1 pt-1 space-y-0.5">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>Sum of books</span>
+            <span data-testid="sum-of-books-var">{formatMoney(totalStandaloneVar.toFixed(2), 'USD')}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-green-600">
+            <span>Diversification benefit</span>
+            <span data-testid="diversification-benefit-value">
+              -{formatMoney(diversificationBenefit.toFixed(2), 'USD')}
+              {totalStandaloneVar > 0 && ` (${((diversificationBenefit / totalStandaloneVar) * 100).toFixed(1)}%)`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {pvValue && (
         <div data-testid="var-pv" className="text-sm text-slate-600">

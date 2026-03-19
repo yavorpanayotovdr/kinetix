@@ -390,4 +390,34 @@ class HttpRiskServiceClient(
         val dto: EodTimelineClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun calculateCrossBookVaR(
+        params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams,
+    ): CrossBookVaRResultSummary? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/var/cross-book") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                com.kinetix.gateway.client.dtos.CrossBookVaRRequestClientDto(
+                    bookIds = params.bookIds,
+                    portfolioGroupId = params.portfolioGroupId,
+                    calculationType = params.calculationType,
+                    confidenceLevel = params.confidenceLevel,
+                    timeHorizonDays = params.timeHorizonDays.toString(),
+                    numSimulations = params.numSimulations.toString(),
+                )
+            )
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: com.kinetix.gateway.client.dtos.CrossBookVaRResultClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/var/cross-book/$groupId")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: com.kinetix.gateway.client.dtos.CrossBookVaRResultClientDto = response.body()
+        return dto.toDomain()
+    }
 }

@@ -37,9 +37,11 @@ interface VaRDashboardProps {
   onConfidenceLevelChange?: (level: string) => void
   isLive?: boolean
   valuationDate?: string | null
+  totalStandaloneVar?: number
+  diversificationBenefit?: number
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, historyLoading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange, isLive = true, valuationDate }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, historyLoading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange, isLive = true, valuationDate, totalStandaloneVar, diversificationBenefit }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [chartView, setChartView] = useState<'var' | 'greeks'>('var')
   const calcTypeRef = useRef<HTMLSpanElement>(null)
@@ -107,6 +109,8 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
           previousVaR={previousVaR}
           onConfidenceLevelChange={onConfidenceLevelChange}
           disabled={refreshing}
+          totalStandaloneVar={totalStandaloneVar}
+          diversificationBenefit={diversificationBenefit}
         />
 
         <div data-testid="var-sensitivities" className="md:col-span-2 flex flex-col items-center justify-center">

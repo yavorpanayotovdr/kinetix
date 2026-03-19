@@ -6,7 +6,7 @@ from kinetix.common import types_pb2
 from kinetix.risk import market_data_dependencies_pb2, regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
     AssetClass, BondPosition, CalculationType, ConfidenceLevel,
-    FrtbResult, FrtbRiskClass, FuturePosition, FxPosition,
+    CrossBookVaRResult, FrtbResult, FrtbRiskClass, FuturePosition, FxPosition,
     GreeksResult, OptionPosition, OptionType, PositionRisk,
     PositionStressImpact, StressScenario, StressTestResult,
     SwapPosition, VaRResult, ValuationResult,
@@ -293,6 +293,55 @@ def valuation_result_to_proto_response(
         response.greeks.CopyFrom(greeks_summary)
 
     return response
+
+
+def cross_book_var_result_to_proto_response(
+    result: CrossBookVaRResult,
+    book_ids: list[str],
+    portfolio_group_id: str,
+    calculation_type,
+    confidence_level,
+    model_version: str = "",
+    monte_carlo_seed: int = 0,
+) -> risk_calculation_pb2.CrossBookVaRResponse:
+    now = Timestamp()
+    now.FromSeconds(int(time.time()))
+
+    breakdown = []
+    if result.var_result is not None:
+        for cb in result.var_result.component_breakdown:
+            proto_ac = _DOMAIN_ASSET_CLASS_TO_PROTO[cb.asset_class]
+            breakdown.append(risk_calculation_pb2.VaRComponentBreakdown(
+                asset_class=proto_ac,
+                var_contribution=cb.var_contribution,
+                percentage_of_total=cb.percentage_of_total,
+            ))
+
+    book_contributions = []
+    for bc in result.book_contributions:
+        book_contributions.append(risk_calculation_pb2.BookVaRContribution(
+            book_id=types_pb2.BookId(value=bc.book_id),
+            var_contribution=bc.var_contribution,
+            percentage_of_total=bc.percentage_of_total,
+            standalone_var=bc.standalone_var,
+            diversification_benefit=bc.diversification_benefit,
+        ))
+
+    return risk_calculation_pb2.CrossBookVaRResponse(
+        portfolio_group_id=portfolio_group_id,
+        book_ids=[types_pb2.BookId(value=bid) for bid in book_ids],
+        calculation_type=calculation_type,
+        confidence_level=confidence_level,
+        var_value=result.var_result.var_value,
+        expected_shortfall=result.var_result.expected_shortfall,
+        component_breakdown=breakdown,
+        book_contributions=book_contributions,
+        total_standalone_var=result.total_standalone_var,
+        diversification_benefit=result.diversification_benefit,
+        calculated_at=now,
+        model_version=model_version,
+        monte_carlo_seed=monte_carlo_seed,
+    )
 
 
 _ASSET_CLASS_NAME_TO_DOMAIN = {ac.value: ac for ac in AssetClass}

@@ -327,6 +327,28 @@ data class ChartDataSummary(
     val bucketSizeMs: Long,
 )
 
+data class BookVaRContributionSummary(
+    val bookId: String,
+    val varContribution: Double,
+    val percentageOfTotal: Double,
+    val standaloneVar: Double,
+    val diversificationBenefit: Double,
+)
+
+data class CrossBookVaRResultSummary(
+    val portfolioGroupId: String,
+    val bookIds: List<String>,
+    val calculationType: String,
+    val confidenceLevel: String,
+    val varValue: Double,
+    val expectedShortfall: Double,
+    val componentBreakdown: List<ComponentBreakdownItem>,
+    val bookContributions: List<BookVaRContributionSummary>,
+    val totalStandaloneVar: Double,
+    val diversificationBenefit: Double,
+    val calculatedAt: Instant,
+)
+
 data class WhatIfResultSummary(
     val baseVaR: String,
     val baseExpectedShortfall: String,
@@ -370,4 +392,6 @@ interface RiskServiceClient {
     suspend fun getMarketDataQuantDiff(portfolioId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary?
     suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary
+    suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
+    suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
 }

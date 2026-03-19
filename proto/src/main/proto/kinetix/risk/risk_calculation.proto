@@ -146,9 +146,49 @@ message ValuationResponse {
   int64 monte_carlo_seed = 12;            // seed used (0 = not applicable / unseeded)
 }
 
+// Cross-book aggregated VaR: computes portfolio-level VaR across multiple books
+// with proper correlation/diversification effects and per-book Euler decomposition.
+message CrossBookVaRRequest {
+  repeated kinetix.common.BookId book_ids = 1;
+  RiskCalculationType calculation_type = 2;
+  ConfidenceLevel confidence_level = 3;
+  int32 time_horizon_days = 4;
+  int32 num_simulations = 5;
+  repeated kinetix.common.Position positions = 6;
+  repeated MarketDataValue market_data = 7;
+  repeated ValuationOutput requested_outputs = 8;
+  int64 monte_carlo_seed = 9;
+  string portfolio_group_id = 10;
+}
+
+message BookVaRContribution {
+  kinetix.common.BookId book_id = 1;
+  double var_contribution = 2;
+  double percentage_of_total = 3;
+  double standalone_var = 4;
+  double diversification_benefit = 5;
+}
+
+message CrossBookVaRResponse {
+  string portfolio_group_id = 1;
+  repeated kinetix.common.BookId book_ids = 2;
+  RiskCalculationType calculation_type = 3;
+  ConfidenceLevel confidence_level = 4;
+  double var_value = 5;
+  double expected_shortfall = 6;
+  repeated VaRComponentBreakdown component_breakdown = 7;
+  repeated BookVaRContribution book_contributions = 8;
+  double total_standalone_var = 9;
+  double diversification_benefit = 10;
+  google.protobuf.Timestamp calculated_at = 11;
+  string model_version = 12;
+  int64 monte_carlo_seed = 13;
+}
+
 service RiskCalculationService {
   // Deprecated: use Valuate instead
   rpc CalculateVaR(VaRRequest) returns (VaRResponse);
   rpc CalculateVaRStream(stream VaRRequest) returns (stream VaRResponse);
   rpc Valuate(ValuationRequest) returns (ValuationResponse);
+  rpc CalculateCrossBookVaR(CrossBookVaRRequest) returns (CrossBookVaRResponse);
 }

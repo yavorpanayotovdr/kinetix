@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from kinetix.risk import market_data_dependencies_pb2_grpc, ml_prediction_pb2_grpc, regulatory_reporting_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
 from kinetix_risk.converters import (
+    cross_book_var_result_to_proto_response,
     proto_calculation_type_to_domain,
     proto_confidence_to_domain,
     proto_market_data_to_domain,
@@ -24,6 +25,7 @@ from kinetix_risk.market_data_consumer import consume_market_data
 from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expected_shortfall, risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
+from kinetix_risk.cross_book_var import calculate_cross_book_var
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
 from kinetix_risk.valuation import calculate_valuation
 from kinetix_risk.volatility import VolatilityProvider
@@ -124,6 +126,53 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         except Exception as e:
             logger.exception("Valuate failed")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
+
+    def CalculateCrossBookVaR(self, request, context):
+        try:
+            positions = proto_positions_to_domain(request.positions)
+            calc_type = proto_calculation_type_to_domain(request.calculation_type)
+            confidence = proto_confidence_to_domain(request.confidence_level)
+
+            market_data_dicts = proto_market_data_to_domain(request.market_data)
+            bundle = consume_market_data(market_data_dicts)
+
+            # Group positions by book_id
+            book_ids = list(request.book_ids)
+            books: dict[str, list] = {bid: [] for bid in book_ids}
+            for pos, proto_pos in zip(positions, request.positions):
+                bid = proto_pos.book_id if proto_pos.book_id else ""
+                if bid in books:
+                    books[bid].append(pos)
+                else:
+                    books.setdefault(bid, []).append(pos)
+
+            seed = request.monte_carlo_seed if request.monte_carlo_seed > 0 else None
+
+            result = calculate_cross_book_var(
+                books=books,
+                calculation_type=calc_type,
+                confidence_level=confidence,
+                time_horizon_days=request.time_horizon_days or 1,
+                num_simulations=request.num_simulations or 10_000,
+                volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
+                correlation_matrix=bundle.correlation_matrix,
+                seed=seed,
+            )
+
+            return cross_book_var_result_to_proto_response(
+                result,
+                book_ids=book_ids,
+                portfolio_group_id=request.portfolio_group_id,
+                calculation_type=request.calculation_type,
+                confidence_level=request.confidence_level,
+                model_version=get_model_version(),
+                monte_carlo_seed=request.monte_carlo_seed,
+            )
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except Exception as e:
+            logger.exception("CalculateCrossBookVaR failed")
             context.abort(grpc.StatusCode.INTERNAL, str(e))
 
     def CalculateVaRStream(self, request_iterator, context):

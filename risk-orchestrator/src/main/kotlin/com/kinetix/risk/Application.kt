@@ -38,6 +38,7 @@ import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
+import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -307,6 +308,15 @@ fun Application.moduleWithRoutes() {
         InMemoryVaRCache()
     }
 
+    val crossBookResultPublisher = com.kinetix.risk.kafka.KafkaCrossBookRiskResultPublisher(kafkaProducer)
+    val crossBookVaRCache = com.kinetix.risk.cache.InMemoryCrossBookVaRCache()
+    val crossBookVaRService = com.kinetix.risk.service.CrossBookVaRCalculationService(
+        effectivePositionProvider, effectiveRiskEngineClient, crossBookResultPublisher,
+        varCache = varCache,
+        dependenciesDiscoverer = dependenciesDiscoverer,
+        marketDataFetcher = marketDataFetcher,
+    )
+
     val quantDiffCache: QuantDiffCache = if (redisConnection != null) {
         log.info("Using RedisQuantDiffCache (24hr TTL)")
         RedisQuantDiffCache(redisConnection)
@@ -468,6 +478,7 @@ fun Application.moduleWithRoutes() {
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
+        crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)

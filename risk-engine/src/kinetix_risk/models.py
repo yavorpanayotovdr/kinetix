@@ -248,6 +248,23 @@ class FrtbResult:
     total_capital_charge: float
 
 
+@dataclass(frozen=True)
+class BookVaRContribution:
+    book_id: str
+    var_contribution: float
+    percentage_of_total: float
+    standalone_var: float
+    diversification_benefit: float
+
+
+@dataclass(frozen=True)
+class CrossBookVaRResult:
+    var_result: VaRResult
+    book_contributions: list[BookVaRContribution]
+    total_standalone_var: float
+    diversification_benefit: float
+
+
 class TrafficLightZone(str, Enum):
     GREEN = "GREEN"
     YELLOW = "YELLOW"

@@ -34,6 +34,7 @@ import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.whatIfRoutes
 import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
+import com.kinetix.gateway.routes.crossBookVaRRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.websocket.PriceBroadcaster
 import com.kinetix.gateway.websocket.priceWebSocket
@@ -171,6 +172,7 @@ fun Application.module(riskClient: RiskServiceClient) {
     module()
     routing {
         varRoutes(riskClient)
+        crossBookVaRRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
         positionRiskRoutes(riskClient)
@@ -208,6 +210,7 @@ fun Application.module(
         priceRoutes(priceClient)
         priceWebSocket(broadcaster)
         varRoutes(riskClient)
+        crossBookVaRRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
         positionRiskRoutes(riskClient)
@@ -365,6 +368,7 @@ fun Application.module(
             if (riskClient != null) {
                 requirePermission(Permission.CALCULATE_RISK) {
                     varRoutes(riskClient)
+                    crossBookVaRRoutes(riskClient)
                     whatIfRoutes(riskClient)
                     positionRiskRoutes(riskClient)
                     dependenciesRoutes(riskClient)

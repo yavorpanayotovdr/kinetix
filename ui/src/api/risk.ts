@@ -1,4 +1,4 @@
-import type { PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '../types'
+import type { CrossBookVaRRequestDto, CrossBookVaRResultDto, PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '../types'
 
 export async function fetchVaR(
   bookId: string,
@@ -36,6 +36,45 @@ export async function triggerVaRCalculation(
       body: JSON.stringify(body),
     },
   )
+  if (response.status === 404) {
+    return null
+  }
+  if (!response.ok) {
+    let message: string
+    try {
+      const body = await response.json()
+      message = body.message || `${response.status} ${response.statusText}`
+    } catch {
+      message = `${response.status} ${response.statusText}`
+    }
+    const error = new Error(message) as Error & { status: number }
+    error.status = response.status
+    throw error
+  }
+  return response.json()
+}
+
+export async function fetchCrossBookVaR(
+  groupId: string,
+): Promise<CrossBookVaRResultDto | null> {
+  const response = await fetch(`/api/v1/risk/var/cross-book/${encodeURIComponent(groupId)}`)
+  if (response.status === 404) {
+    return null
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch cross-book VaR: ${response.status} ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function triggerCrossBookVaR(
+  request: CrossBookVaRRequestDto,
+): Promise<CrossBookVaRResultDto | null> {
+  const response = await fetch('/api/v1/risk/var/cross-book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
   if (response.status === 404) {
     return null
   }
