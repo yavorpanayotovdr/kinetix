@@ -1,11 +1,11 @@
-import type { PortfolioAggregationDto } from '../types'
+import type { BookAggregationDto } from '../types'
 import { formatMoney, pnlColorClass } from '../utils/format'
 import { Card, Spinner } from './ui'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY']
 
 interface BookSummaryCardProps {
-  summary: PortfolioAggregationDto | null
+  summary: BookAggregationDto | null
   baseCurrency: string
   onBaseCurrencyChange: (currency: string) => void
   loading?: boolean

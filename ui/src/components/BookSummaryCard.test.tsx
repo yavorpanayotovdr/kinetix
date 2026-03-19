@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { PortfolioAggregationDto } from '../types'
+import type { BookAggregationDto } from '../types'
 import { BookSummaryCard } from './BookSummaryCard'
 
-const summary: PortfolioAggregationDto = {
+const summary: BookAggregationDto = {
   bookId: 'book-1',
   baseCurrency: 'USD',
   totalNav: { amount: '38050.00', currency: 'USD' },
@@ -108,7 +108,7 @@ describe('BookSummaryCard', () => {
   })
 
   it('applies red colour to negative P&L', () => {
-    const negativeSummary: PortfolioAggregationDto = {
+    const negativeSummary: BookAggregationDto = {
       ...summary,
       totalUnrealizedPnl: { amount: '-500.00', currency: 'USD' },
     }

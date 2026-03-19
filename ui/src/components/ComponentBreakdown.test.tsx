@@ -157,12 +157,12 @@ describe('ComponentBreakdown', () => {
   })
 
   describe('diversification benefit', () => {
-    it('displays diversification benefit when portfolioVaR is provided', () => {
+    it('displays diversification benefit when bookVaR is provided', () => {
       // Sum of component VaRs: 800000 + 300000 + 134567.89 = 1234567.89
       // Portfolio VaR: 1000000
       // Benefit: 1234567.89 - 1000000 = 234567.89
       // Percentage: 234567.89 / 1234567.89 * 100 ≈ 19.00%
-      render(<ComponentBreakdown breakdown={breakdown} portfolioVaR="1000000.00" />)
+      render(<ComponentBreakdown breakdown={breakdown} bookVaR="1000000.00" />)
 
       const benefit = screen.getByTestId('diversification-benefit')
       expect(benefit).toBeInTheDocument()
@@ -171,14 +171,14 @@ describe('ComponentBreakdown', () => {
       expect(benefit).toHaveTextContent('19.00%')
     })
 
-    it('does not display diversification benefit when portfolioVaR is not provided', () => {
+    it('does not display diversification benefit when bookVaR is not provided', () => {
       render(<ComponentBreakdown breakdown={breakdown} />)
 
       expect(screen.queryByTestId('diversification-benefit')).not.toBeInTheDocument()
     })
 
     it('does not display diversification benefit when breakdown is empty', () => {
-      render(<ComponentBreakdown breakdown={[]} portfolioVaR="1000000.00" />)
+      render(<ComponentBreakdown breakdown={[]} bookVaR="1000000.00" />)
 
       expect(screen.queryByTestId('diversification-benefit')).not.toBeInTheDocument()
     })
@@ -187,7 +187,7 @@ describe('ComponentBreakdown', () => {
       const simple = [
         { assetClass: 'EQUITY', varContribution: '1000000.00', percentageOfTotal: '100.00' },
       ]
-      render(<ComponentBreakdown breakdown={simple} portfolioVaR="1000000.00" />)
+      render(<ComponentBreakdown breakdown={simple} bookVaR="1000000.00" />)
 
       const benefit = screen.getByTestId('diversification-benefit')
       expect(benefit).toHaveTextContent('$0.00')
@@ -195,7 +195,7 @@ describe('ComponentBreakdown', () => {
     })
 
     it('applies green color to the benefit amount', () => {
-      render(<ComponentBreakdown breakdown={breakdown} portfolioVaR="1000000.00" />)
+      render(<ComponentBreakdown breakdown={breakdown} bookVaR="1000000.00" />)
 
       const benefit = screen.getByTestId('diversification-benefit')
       expect(benefit.querySelector('[data-testid="diversification-amount"]')).toHaveClass('text-green-600')

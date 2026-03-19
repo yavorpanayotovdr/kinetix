@@ -30,7 +30,7 @@ export function GenericRunComparisonPanel({
 }: GenericRunComparisonPanelProps) {
   const handleExportCsv = () => {
     const headers = ['Metric', 'Base', 'Target', 'Change']
-    const diff = comparison.portfolioDiff
+    const diff = comparison.bookDiff
     const rows: string[][] = [
       ['VaR', String(comparison.baseRun.varValue ?? ''), String(comparison.targetRun.varValue ?? ''), String(diff.varChange)],
       ['ES', String(comparison.baseRun.es ?? ''), String(comparison.targetRun.es ?? ''), String(diff.esChange)],
@@ -87,7 +87,7 @@ export function GenericRunComparisonPanel({
         bookId={comparison.bookId}
       />
 
-      <RunDiffSummary diff={comparison.portfolioDiff} />
+      <RunDiffSummary diff={comparison.bookDiff} />
 
       {comparison.componentDiffs.length > 0 && (
         <ComponentDiffChart diffs={comparison.componentDiffs} />

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchBookSummary } from '../api/bookSummary'
-import type { PortfolioAggregationDto } from '../types'
+import type { BookAggregationDto } from '../types'
 
 export interface UseBookSummaryResult {
-  summary: PortfolioAggregationDto | null
+  summary: BookAggregationDto | null
   baseCurrency: string
   setBaseCurrency: (currency: string) => void
   loading: boolean
@@ -11,7 +11,7 @@ export interface UseBookSummaryResult {
 }
 
 export function useBookSummary(bookId: string | null): UseBookSummaryResult {
-  const [summary, setSummary] = useState<PortfolioAggregationDto | null>(null)
+  const [summary, setSummary] = useState<BookAggregationDto | null>(null)
   const [baseCurrency, setBaseCurrency] = useState('USD')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -1,4 +1,4 @@
-import type { DivisionDto, DeskDto, PortfolioAggregationDto } from '../types'
+import type { DivisionDto, DeskDto, BookAggregationDto } from '../types'
 
 export async function fetchDivisions(): Promise<DivisionDto[]> {
   const response = await fetch('/api/v1/divisions')
@@ -26,7 +26,7 @@ export async function fetchDesks(divisionId?: string): Promise<DeskDto[]> {
 export async function fetchDeskSummary(
   deskId: string,
   baseCurrency?: string,
-): Promise<PortfolioAggregationDto> {
+): Promise<BookAggregationDto> {
   const url = baseCurrency
     ? `/api/v1/desks/${encodeURIComponent(deskId)}/summary?baseCurrency=${encodeURIComponent(baseCurrency)}`
     : `/api/v1/desks/${encodeURIComponent(deskId)}/summary`
@@ -42,7 +42,7 @@ export async function fetchDeskSummary(
 export async function fetchDivisionSummary(
   divisionId: string,
   baseCurrency?: string,
-): Promise<PortfolioAggregationDto> {
+): Promise<BookAggregationDto> {
   const url = baseCurrency
     ? `/api/v1/divisions/${encodeURIComponent(divisionId)}/summary?baseCurrency=${encodeURIComponent(baseCurrency)}`
     : `/api/v1/divisions/${encodeURIComponent(divisionId)}/summary`
@@ -57,7 +57,7 @@ export async function fetchDivisionSummary(
 
 export async function fetchFirmSummary(
   baseCurrency?: string,
-): Promise<PortfolioAggregationDto> {
+): Promise<BookAggregationDto> {
   const url = baseCurrency
     ? `/api/v1/firm/summary?baseCurrency=${encodeURIComponent(baseCurrency)}`
     : '/api/v1/firm/summary'

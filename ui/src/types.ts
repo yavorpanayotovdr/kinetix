@@ -43,7 +43,7 @@ export interface TradeHistoryDto {
 }
 
 export interface BookDto {
-  portfolioId: string
+  bookId: string
 }
 
 export interface PriceUpdateMessage {
@@ -433,7 +433,7 @@ export interface DataQualityStatus {
   checks: DataQualityCheck[]
 }
 
-export interface PortfolioAggregationDto {
+export interface BookAggregationDto {
   bookId: string
   baseCurrency: string
   totalNav: MoneyDto
@@ -492,7 +492,7 @@ export interface RunSnapshotDto {
   calculatedAt: string | null
 }
 
-export interface PortfolioDiffDto {
+export interface BookDiffDto {
   varChange: string
   varChangePercent: string | null
   esChange: string
@@ -596,7 +596,7 @@ export interface RunComparisonResponseDto {
   bookId: string
   baseRun: RunSnapshotDto
   targetRun: RunSnapshotDto
-  portfolioDiff: PortfolioDiffDto
+  bookDiff: BookDiffDto
   componentDiffs: ComponentDiffDto[]
   positionDiffs: PositionDiffDto[]
   parameterDiffs: ParameterDiffDto[]
@@ -691,7 +691,7 @@ export interface BookVaRContributionDto {
 
 export interface CrossBookVaRRequestDto {
   bookIds: string[]
-  portfolioGroupId: string
+  bookGroupId: string
   calculationType?: string
   confidenceLevel?: string
   timeHorizonDays?: string
@@ -699,7 +699,7 @@ export interface CrossBookVaRRequestDto {
 }
 
 export interface CrossBookVaRResultDto {
-  portfolioGroupId: string
+  bookGroupId: string
   bookIds: string[]
   calculationType: string
   confidenceLevel: string

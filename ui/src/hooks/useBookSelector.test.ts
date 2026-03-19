@@ -19,8 +19,8 @@ describe('useBookSelector', () => {
 
   it('should include All Books option when multiple books exist', async () => {
     mockFetchBooks.mockResolvedValue([
-      { portfolioId: 'book-1' },
-      { portfolioId: 'book-2' },
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
@@ -46,7 +46,7 @@ describe('useBookSelector', () => {
 
   it('should not include All Books option when only one book exists', async () => {
     mockFetchBooks.mockResolvedValue([
-      { portfolioId: 'book-1' },
+      { bookId: 'book-1' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
@@ -63,8 +63,8 @@ describe('useBookSelector', () => {
 
   it('should set isAllSelected to true when All Books is selected', async () => {
     mockFetchBooks.mockResolvedValue([
-      { portfolioId: 'book-1' },
-      { portfolioId: 'book-2' },
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 
@@ -84,8 +84,8 @@ describe('useBookSelector', () => {
 
   it('should aggregate positions when All Books is selected', async () => {
     mockFetchBooks.mockResolvedValue([
-      { portfolioId: 'book-1' },
-      { portfolioId: 'book-2' },
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions
       .mockResolvedValueOnce([]) // initial load for book-1
@@ -135,8 +135,8 @@ describe('useBookSelector', () => {
 
   it('should return individual book IDs list when All Books selected', async () => {
     mockFetchBooks.mockResolvedValue([
-      { portfolioId: 'book-1' },
-      { portfolioId: 'book-2' },
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ])
     mockFetchPositions.mockResolvedValue([])
 

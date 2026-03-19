@@ -2,10 +2,10 @@ import { ArrowDown, ArrowUp } from 'lucide-react'
 import { Card } from './ui'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
-import type { PortfolioDiffDto } from '../types'
+import type { BookDiffDto } from '../types'
 
 interface RunDiffSummaryProps {
-  diff: PortfolioDiffDto
+  diff: BookDiffDto
 }
 
 function ChangeIcon({ value }: { value: number }) {

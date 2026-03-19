@@ -1,9 +1,9 @@
-import type { PortfolioAggregationDto } from '../types'
+import type { BookAggregationDto } from '../types'
 
 export async function fetchBookSummary(
   bookId: string,
   baseCurrency: string,
-): Promise<PortfolioAggregationDto> {
+): Promise<BookAggregationDto> {
   const response = await fetch(
     `/api/v1/books/${encodeURIComponent(bookId)}/summary?baseCurrency=${encodeURIComponent(baseCurrency)}`,
   )

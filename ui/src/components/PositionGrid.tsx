@@ -232,7 +232,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         </div>
       )}
 
-      <div data-testid="portfolio-summary" className={`grid gap-3 mb-4 ${hasRisk ? 'grid-cols-5' : 'grid-cols-3'}`}>
+      <div data-testid="book-summary" className={`grid gap-3 mb-4 ${hasRisk ? 'grid-cols-5' : 'grid-cols-3'}`}>
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Positions</div>
@@ -257,8 +257,8 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         </Card>
         {hasRisk && totalDelta != null && (
           <Card>
-            <div data-testid="summary-portfolio-delta" className="text-center -my-1">
-              <div className="text-xs text-slate-500">Portfolio Delta</div>
+            <div data-testid="summary-book-delta" className="text-center -my-1">
+              <div className="text-xs text-slate-500">Book Delta</div>
               <div className="text-lg font-bold text-slate-800">
                 {formatCompactCurrency(totalDelta)}
               </div>
@@ -267,8 +267,8 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         )}
         {hasRisk && totalVar != null && (
           <Card>
-            <div data-testid="summary-portfolio-var" className="text-center -my-1">
-              <div className="text-xs text-slate-500">Portfolio VaR</div>
+            <div data-testid="summary-book-var" className="text-center -my-1">
+              <div className="text-xs text-slate-500">Book VaR</div>
               <div className="text-lg font-bold text-slate-800">
                 {formatCompactCurrency(totalVar)}
               </div>

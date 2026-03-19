@@ -31,7 +31,7 @@ export function usePositions(): UsePositionsResult {
         const bookList = await fetchBooks()
         if (cancelled) return
 
-        const ids = bookList.map((b) => b.portfolioId).sort()
+        const ids = bookList.map((b) => b.bookId).sort()
         setBooks(ids)
 
         if (bookList.length === 0) {
@@ -39,7 +39,7 @@ export function usePositions(): UsePositionsResult {
           return
         }
 
-        const firstBookId = bookList[0].portfolioId
+        const firstBookId = bookList[0].bookId
         setBookId(firstBookId)
 
         const positionData = await fetchPositions(firstBookId)

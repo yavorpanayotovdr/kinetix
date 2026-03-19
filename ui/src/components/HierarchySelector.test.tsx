@@ -15,7 +15,7 @@ function makeHierarchy(overrides: Partial<UseHierarchySelectorResult> = {}): Use
       { id: 'div-2', name: 'Fixed Income', deskCount: 1 },
     ],
     desks: [],
-    books: [{ portfolioId: 'book-1' }, { portfolioId: 'book-2' }],
+    books: [{ bookId: 'book-1' }, { bookId: 'book-2' }],
     loading: false,
     error: null,
     ...overrides,

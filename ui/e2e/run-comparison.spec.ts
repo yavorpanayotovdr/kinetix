@@ -55,7 +55,7 @@ const MOCK_COMPARISON = {
   bookId: 'port-1',
   baseRun: BASE_SNAPSHOT,
   targetRun: TARGET_SNAPSHOT,
-  portfolioDiff: {
+  bookDiff: {
     varChange: '2000.00',
     varChangePercent: '40.00',
     esChange: '2500.00',

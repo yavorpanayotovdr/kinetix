@@ -106,9 +106,9 @@ test.describe('Position Data Rendering', () => {
 
   test('displays summary cards with correct totals', async ({ page }) => {
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    const summary = page.getByTestId('portfolio-summary')
+    const summary = page.getByTestId('book-summary')
 
     // Positions count
     await expect(summary.locator('text=Positions').locator('..')).toContainText('3')

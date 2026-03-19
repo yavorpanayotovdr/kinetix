@@ -14,7 +14,7 @@ describe('positions API', () => {
 
   describe('fetchBooks', () => {
     it('returns parsed JSON on 200', async () => {
-      const books = [{ portfolioId: 'book-1' }]
+      const books = [{ bookId: 'book-1' }]
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(books),

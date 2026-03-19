@@ -51,16 +51,16 @@ test.describe('Empty State and Summary Cards', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="position-row-AAPL"]')
 
-    const summary = page.getByTestId('portfolio-summary')
+    const summary = page.getByTestId('book-summary')
     await expect(summary.locator('text=Positions').locator('..')).toContainText('1')
   })
 
   test('summary card market value is the sum across all positions', async ({ page }) => {
     // Default 3 positions: 15500 + 142500 + 10850 = 168850
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    const summary = page.getByTestId('portfolio-summary')
+    const summary = page.getByTestId('book-summary')
     await expect(summary).toContainText('$168.8K')
   })
 
@@ -69,9 +69,9 @@ test.describe('Empty State and Summary Cards', () => {
     await mockPositions(page, TEST_POSITIONS_MIXED_PNL)
 
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    const summary = page.getByTestId('portfolio-summary')
+    const summary = page.getByTestId('book-summary')
     await expect(summary).toContainText('-$5.5K')
 
     const pnlCard = summary.locator('text=Unrealized P&L').locator('..')

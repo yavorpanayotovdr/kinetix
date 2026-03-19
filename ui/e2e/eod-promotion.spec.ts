@@ -434,7 +434,7 @@ test.describe('EOD Promotion - Auto-Select Notice', () => {
             parameters: {},
             calculatedAt: '2025-01-15T12:00:00Z',
           },
-          portfolioDiff: {
+          bookDiff: {
             varChange: '5000',
             varChangePercent: '4',
             esChange: '7500',

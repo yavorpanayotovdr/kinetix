@@ -132,7 +132,7 @@ describe('PositionGrid', () => {
     ]
     render(<PositionGrid positions={positions} />)
 
-    const summary = screen.getByTestId('portfolio-summary')
+    const summary = screen.getByTestId('book-summary')
     expect(summary).toBeInTheDocument()
     expect(within(summary).getByText('2')).toBeInTheDocument()
     expect(within(summary).getByText('$25.5K')).toBeInTheDocument()
@@ -324,9 +324,9 @@ describe('PositionGrid', () => {
 
       render(<PositionGrid positions={positions} positionRisk={risk} />)
 
-      const summary = screen.getByTestId('portfolio-summary')
-      expect(within(summary).getByTestId('summary-portfolio-delta')).toBeInTheDocument()
-      expect(within(summary).getByTestId('summary-portfolio-var')).toBeInTheDocument()
+      const summary = screen.getByTestId('book-summary')
+      expect(within(summary).getByTestId('summary-book-delta')).toBeInTheDocument()
+      expect(within(summary).getByTestId('summary-book-var')).toBeInTheDocument()
     })
   })
 

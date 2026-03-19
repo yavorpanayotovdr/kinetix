@@ -40,8 +40,8 @@ describe('usePositions', () => {
 
   it('loads positions from first book and exposes sorted book list', async () => {
     const books: BookDto[] = [
-      { portfolioId: 'book-2' },
-      { portfolioId: 'book-1' },
+      { bookId: 'book-2' },
+      { bookId: 'book-1' },
     ]
     mockFetchBooks.mockResolvedValue(books)
     mockFetchPositions.mockResolvedValue([position])
@@ -89,8 +89,8 @@ describe('usePositions', () => {
 
   it('selectBook switches book and reloads positions', async () => {
     const books: BookDto[] = [
-      { portfolioId: 'book-1' },
-      { portfolioId: 'book-2' },
+      { bookId: 'book-1' },
+      { bookId: 'book-2' },
     ]
     mockFetchBooks.mockResolvedValue(books)
     mockFetchPositions.mockResolvedValue([position])

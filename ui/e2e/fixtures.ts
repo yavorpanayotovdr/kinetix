@@ -13,7 +13,7 @@ export interface PositionFixture {
   unrealizedPnl: { amount: string; currency: string }
 }
 
-export const TEST_BOOKS = [{ portfolioId: 'port-1' }]
+export const TEST_BOOKS = [{ bookId: 'port-1' }]
 
 export const TEST_POSITIONS: PositionFixture[] = [
   {

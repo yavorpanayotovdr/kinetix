@@ -30,9 +30,9 @@ const TEST_DESKS = [
 ]
 
 const TEST_BOOKS = [
-  { portfolioId: 'book-1' },
-  { portfolioId: 'book-2' },
-  { portfolioId: 'book-3' },
+  { bookId: 'book-1' },
+  { bookId: 'book-2' },
+  { bookId: 'book-3' },
 ]
 
 describe('useHierarchySelector', () => {

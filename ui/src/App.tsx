@@ -348,7 +348,7 @@ function App() {
                     onViewPnlTab={() => setActiveTab('pnl')}
                     aggregatedView={hierarchy.selection.level !== 'book'}
                     effectiveBookIds={hierarchy.effectiveBookIds}
-                    portfolioGroupId={hierarchy.selection.deskId ?? hierarchy.selection.divisionId ?? (hierarchy.selection.level === 'firm' ? 'firm' : null)}
+                    bookGroupId={hierarchy.selection.deskId ?? hierarchy.selection.divisionId ?? (hierarchy.selection.level === 'firm' ? 'firm' : null)}
                     onNavigateToBook={(bid) => hierarchy.setSelection({ level: 'book', divisionId: hierarchy.selection.divisionId, deskId: hierarchy.selection.deskId, bookId: bid })}
                   />
                 )}

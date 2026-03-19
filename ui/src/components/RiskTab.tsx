@@ -31,7 +31,7 @@ interface RiskTabProps {
   onViewPnlTab?: () => void
   aggregatedView?: boolean
   effectiveBookIds?: string[]
-  portfolioGroupId?: string | null
+  bookGroupId?: string | null
   onNavigateToBook?: (bookId: string) => void
 }
 
@@ -45,7 +45,7 @@ export function RiskTab({
   onViewPnlTab,
   aggregatedView = false,
   effectiveBookIds = [],
-  portfolioGroupId = null,
+  bookGroupId = null,
   onNavigateToBook,
 }: RiskTabProps) {
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
@@ -91,7 +91,7 @@ export function RiskTab({
     refresh: crossBookRefresh,
   } = useCrossBookVaR(
     aggregatedView ? effectiveBookIds : [],
-    aggregatedView ? portfolioGroupId : null,
+    aggregatedView ? bookGroupId : null,
   )
 
   const { varLimit } = useVarLimit()

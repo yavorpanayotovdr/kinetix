@@ -6,7 +6,7 @@ import { formatInstrumentTypeLabel, INSTRUMENT_TYPE_SVG_COLORS } from '../utils/
 
 interface ComponentBreakdownProps {
   breakdown: ComponentBreakdownDto[]
-  portfolioVaR?: string
+  bookVaR?: string
   instrumentTypeBreakdown?: ComponentBreakdownDto[]
 }
 
@@ -21,7 +21,7 @@ const DEFAULT_COLOR = '#9ca3af'
 
 type BreakdownMode = 'asset-class' | 'instrument-type'
 
-export function ComponentBreakdown({ breakdown, portfolioVaR, instrumentTypeBreakdown }: ComponentBreakdownProps) {
+export function ComponentBreakdown({ breakdown, bookVaR, instrumentTypeBreakdown }: ComponentBreakdownProps) {
   const [mode, setMode] = useState<BreakdownMode>('asset-class')
 
   const hasInstrumentTypeData = instrumentTypeBreakdown != null && instrumentTypeBreakdown.length > 0
@@ -48,13 +48,13 @@ export function ComponentBreakdown({ breakdown, portfolioVaR, instrumentTypeBrea
   )
 
   const diversification = useMemo(() => {
-    if (!portfolioVaR || breakdown.length === 0) return null
+    if (!bookVaR || breakdown.length === 0) return null
     const sumComponentVaR = breakdown.reduce((sum, c) => sum + Number(c.varContribution), 0)
-    const portfolioValue = Number(portfolioVaR)
+    const portfolioValue = Number(bookVaR)
     const benefit = sumComponentVaR - portfolioValue
     const pct = sumComponentVaR !== 0 ? (benefit / sumComponentVaR) * 100 : 0
     return { benefit, pct }
-  }, [breakdown, portfolioVaR])
+  }, [breakdown, bookVaR])
 
   const getColor = (key: string): string => {
     if (mode === 'instrument-type') {

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchBookSummary } from '../api/bookSummary'
 import { fetchDeskSummary, fetchDivisionSummary, fetchFirmSummary } from '../api/hierarchy'
-import type { PortfolioAggregationDto } from '../types'
+import type { BookAggregationDto } from '../types'
 import type { HierarchySelection } from './useHierarchySelector'
 
 export interface UseHierarchySummaryResult {
-  summary: PortfolioAggregationDto | null
+  summary: BookAggregationDto | null
   baseCurrency: string
   setBaseCurrency: (currency: string) => void
   loading: boolean
@@ -16,7 +16,7 @@ export interface UseHierarchySummaryResult {
 export function useHierarchySummary(
   selection: HierarchySelection,
 ): UseHierarchySummaryResult {
-  const [summary, setSummary] = useState<PortfolioAggregationDto | null>(null)
+  const [summary, setSummary] = useState<BookAggregationDto | null>(null)
   const [baseCurrency, setBaseCurrencyState] = useState('USD')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export function useHierarchySummary(
 
     async function fetchSummary() {
       try {
-        let data: PortfolioAggregationDto
+        let data: BookAggregationDto
         switch (selection.level) {
           case 'firm':
             data = await fetchFirmSummary(baseCurrency)

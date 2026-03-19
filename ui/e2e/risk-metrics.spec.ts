@@ -87,32 +87,32 @@ test.describe('Risk Metrics', () => {
     await mockPositionRisk(page, TEST_POSITION_RISK)
 
     await page.goto('/')
-    await page.waitForSelector('[data-testid="summary-portfolio-delta"]')
+    await page.waitForSelector('[data-testid="summary-book-delta"]')
 
     // totalDelta = 1550.25 + 7125.00 + 0 (null FX) = 8675.25 -> "$8.7K"
-    await expect(page.getByTestId('summary-portfolio-delta')).toContainText('$8.7K')
+    await expect(page.getByTestId('summary-book-delta')).toContainText('$8.7K')
   })
 
   test('shows Portfolio VaR summary card in compact format', async ({ page }) => {
     await mockPositionRisk(page, TEST_POSITION_RISK)
 
     await page.goto('/')
-    await page.waitForSelector('[data-testid="summary-portfolio-var"]')
+    await page.waitForSelector('[data-testid="summary-book-var"]')
 
     // totalVar = 485.50 + 520.75 + 135.75 = 1142.00 -> "$1.1K"
-    await expect(page.getByTestId('summary-portfolio-var')).toContainText('$1.1K')
+    await expect(page.getByTestId('summary-book-var')).toContainText('$1.1K')
   })
 
   test('hides Portfolio Delta/VaR cards when risk data absent', async ({ page }) => {
     // Default mock: no risk data
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    await expect(page.getByTestId('summary-portfolio-delta')).not.toBeVisible()
-    await expect(page.getByTestId('summary-portfolio-var')).not.toBeVisible()
+    await expect(page.getByTestId('summary-book-delta')).not.toBeVisible()
+    await expect(page.getByTestId('summary-book-var')).not.toBeVisible()
 
     // Grid should show 3 cards (Positions, Market Value, P&L) not 5
-    const cards = page.getByTestId('portfolio-summary').locator('> div')
+    const cards = page.getByTestId('book-summary').locator('> div')
     await expect(cards).toHaveCount(3)
   })
 })

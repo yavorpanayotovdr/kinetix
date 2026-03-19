@@ -18,7 +18,7 @@ describe('usePositions — retryInitialLoad', () => {
   })
 
   it('retryInitialLoad function is exposed on the hook result', async () => {
-    mockFetchBooks.mockResolvedValue([{ portfolioId: 'book-1' }])
+    mockFetchBooks.mockResolvedValue([{ bookId: 'book-1' }])
     mockFetchPositions.mockResolvedValue([])
 
     const { result } = renderHook(() => usePositions())
@@ -32,7 +32,7 @@ describe('usePositions — retryInitialLoad', () => {
     // First call fails
     mockFetchBooks.mockRejectedValueOnce(new Error('Network error'))
     // Retry succeeds
-    mockFetchBooks.mockResolvedValue([{ portfolioId: 'book-1' }])
+    mockFetchBooks.mockResolvedValue([{ bookId: 'book-1' }])
     mockFetchPositions.mockResolvedValue([])
 
     const { result } = renderHook(() => usePositions())
@@ -52,7 +52,7 @@ describe('usePositions — retryInitialLoad', () => {
 
   it('retryInitialLoad clears the error before re-fetching', async () => {
     mockFetchBooks.mockRejectedValueOnce(new Error('Server down'))
-    mockFetchBooks.mockResolvedValue([{ portfolioId: 'book-1' }])
+    mockFetchBooks.mockResolvedValue([{ bookId: 'book-1' }])
     mockFetchPositions.mockResolvedValue([])
 
     const { result } = renderHook(() => usePositions())

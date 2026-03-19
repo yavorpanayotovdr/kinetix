@@ -12,7 +12,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const TEST_CROSS_BOOK_VAR_RESULT = {
-  portfolioGroupId: 'firm',
+  bookGroupId: 'firm',
   bookIds: ['port-1', 'port-2'],
   calculationType: 'PARAMETRIC',
   confidenceLevel: 'CL_95',
@@ -32,8 +32,8 @@ const TEST_CROSS_BOOK_VAR_RESULT = {
 }
 
 const TEST_BOOKS_MULTI = [
-  { portfolioId: 'port-1' },
-  { portfolioId: 'port-2' },
+  { bookId: 'port-1' },
+  { bookId: 'port-2' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -242,6 +242,6 @@ test.describe('Cross-Book VaR', () => {
     const body = JSON.parse(postRequests[0].body)
     expect(body.bookIds).toContain('port-1')
     expect(body.bookIds).toContain('port-2')
-    expect(body.portfolioGroupId).toBe('firm')
+    expect(body.bookGroupId).toBe('firm')
   })
 })

@@ -61,7 +61,7 @@ function makeComparison(overrides: Partial<RunComparisonResponseDto> = {}): RunC
       parameters: {},
       calculatedAt: '2025-01-15T10:00:00Z',
     },
-    portfolioDiff: {
+    bookDiff: {
       varChange: '500',
       varChangePercent: '10',
       esChange: '625',

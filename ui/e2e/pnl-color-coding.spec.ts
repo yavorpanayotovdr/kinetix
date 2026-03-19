@@ -47,9 +47,9 @@ test.describe('P&L Color Coding', () => {
     ])
 
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    const pnlCard = page.getByTestId('portfolio-summary').locator('text=Unrealized P&L').locator('..')
+    const pnlCard = page.getByTestId('book-summary').locator('text=Unrealized P&L').locator('..')
     await expect(pnlCard.locator('.text-green-600')).toBeVisible()
   })
 
@@ -69,9 +69,9 @@ test.describe('P&L Color Coding', () => {
     ])
 
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary"]')
+    await page.waitForSelector('[data-testid="book-summary"]')
 
-    const pnlCard = page.getByTestId('portfolio-summary').locator('text=Unrealized P&L').locator('..')
+    const pnlCard = page.getByTestId('book-summary').locator('text=Unrealized P&L').locator('..')
     await expect(pnlCard.locator('.text-red-600')).toBeVisible()
   })
 })
