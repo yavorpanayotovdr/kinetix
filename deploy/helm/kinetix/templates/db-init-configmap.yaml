@@ -18,5 +18,17 @@ data:
     -- Enable TimescaleDB on price database (time-series hypertables)
     \c kinetix_price
     CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+    -- Enable TimescaleDB on audit database (hash-chained hypertable with 7yr retention)
+    \c kinetix_audit
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+    -- Enable TimescaleDB on risk database (hourly VaR summary continuous aggregates)
+    \c kinetix_risk
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+    -- Enable TimescaleDB on regulatory database (time-series submissions and backtests)
+    \c kinetix_regulatory
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
   02-create-keycloak-db.sql: |
     CREATE DATABASE keycloak;
