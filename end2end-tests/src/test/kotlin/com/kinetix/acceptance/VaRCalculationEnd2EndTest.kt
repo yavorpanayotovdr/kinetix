@@ -9,6 +9,7 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.model.*
@@ -94,6 +95,7 @@ private class StubRiskEngineClient : RiskEngineClient {
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<com.kinetix.risk.model.MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): VaRResult {
         val (totalVar, breakdown) = compute(request, positions)
         return VaRResult(
@@ -111,6 +113,7 @@ private class StubRiskEngineClient : RiskEngineClient {
         request: VaRCalculationRequest,
         positions: List<Position>,
         marketData: List<com.kinetix.risk.model.MarketDataValue>,
+        instrumentMap: Map<String, InstrumentDto>,
     ): ValuationResult {
         val (totalVar, breakdown) = compute(request, positions)
         return ValuationResult(
@@ -130,6 +133,7 @@ private class StubRiskEngineClient : RiskEngineClient {
         positions: List<Position>,
         calculationType: String,
         confidenceLevel: String,
+        instrumentMap: Map<String, InstrumentDto>,
     ) = throw UnsupportedOperationException("Not used in VaR acceptance test")
 }
 
