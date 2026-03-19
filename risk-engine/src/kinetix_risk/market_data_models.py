@@ -89,3 +89,11 @@ class YieldCurveData:
                 t = (days - d_lo) / (d_hi - d_lo)
                 return r_lo + t * (r_hi - r_lo)
         return sorted_tenors[-1][1]
+
+    def interpolate(self, days: int) -> float:
+        """Linear interpolation of the yield curve at the given number of days."""
+        return self.rate_at(days)
+
+    def shift(self, bps: float) -> "YieldCurveData":
+        """Return a new YieldCurveData with all rates shifted by bps (parallel shift)."""
+        return YieldCurveData(tenors=[(d, r + bps) for d, r in self.tenors])

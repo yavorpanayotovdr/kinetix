@@ -71,15 +71,20 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
         if inst_type in _OPTION_INSTRUMENT_TYPES and p.HasField("option_attrs"):
             attrs = p.option_attrs
             option_type = OptionType.CALL if attrs.option_type == "CALL" else OptionType.PUT
-            # expiry_days and spot_price/implied_vol are not in proto — they must be
-            # enriched at the orchestrator level or defaulted. For now, create an
-            # OptionPosition with placeholder values that the position_resolver can use.
+            # Compute expiry_days from expiry_date if present; default 0 if expired or absent
+            from datetime import date as _date
+            expiry_days = 0
+            if attrs.expiry_date:
+                try:
+                    expiry_days = max(0, (_date.fromisoformat(attrs.expiry_date) - _date.today()).days)
+                except ValueError:
+                    expiry_days = 0
             result.append(OptionPosition(
                 instrument_id=instrument_id,
                 underlying_id=attrs.underlying_id,
                 option_type=option_type,
                 strike=attrs.strike,
-                expiry_days=0,  # must be enriched with market data
+                expiry_days=expiry_days,
                 spot_price=0.0,  # must be enriched with market data
                 implied_vol=0.0,  # must be enriched with market data
                 risk_free_rate=0.05,

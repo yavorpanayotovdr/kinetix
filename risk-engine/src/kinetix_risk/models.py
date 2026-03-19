@@ -171,6 +171,7 @@ class ValuationResult:
     greeks_result: GreeksResult | None
     computed_outputs: list[str]
     pv_value: float | None = None
+    position_greeks: dict | None = None
 
 
 class FrtbRiskClass(Enum):

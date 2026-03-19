@@ -155,6 +155,71 @@ class TestValuationPV:
         assert result.computed_outputs == []
 
 
+class TestValuationMarketData:
+    def test_valuation_passes_market_data_to_resolve_positions(self):
+        """OptionPosition with spot=0 should get enriched from market_data_bundle."""
+        from kinetix_risk.models import OptionPosition, OptionType
+        from kinetix_risk.market_data_consumer import MarketDataBundle
+
+        option = OptionPosition(
+            instrument_id="AAPL-C-150",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=150.0,
+            expiry_days=30,
+            spot_price=0.0,  # not enriched yet
+            implied_vol=0.0,
+            risk_free_rate=0.05,
+            quantity=10.0,
+        )
+        bundle = MarketDataBundle(spot_prices={"AAPL": 170.0})
+
+        result = calculate_valuation(
+            positions=[option],
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR"],
+            market_data_bundle=bundle,
+        )
+        # With spot enrichment the option should produce non-zero VaR
+        assert result.var_result is not None
+        assert result.var_result.var_value > 0
+
+
+class TestValuationPositionGreeks:
+    def test_valuation_returns_position_greeks_for_options(self):
+        from kinetix_risk.models import OptionPosition, OptionType
+
+        option = OptionPosition(
+            instrument_id="AAPL-C-150",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=150.0,
+            expiry_days=30,
+            spot_price=170.0,
+            implied_vol=0.25,
+            risk_free_rate=0.05,
+            quantity=10.0,
+        )
+        result = calculate_valuation(
+            positions=[option],
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR", "GREEKS"],
+        )
+        assert result.position_greeks is not None
+        assert "AAPL-C-150" in result.position_greeks
+        greeks = result.position_greeks["AAPL-C-150"]
+        assert "delta" in greeks
+        assert 0 < greeks["delta"] < 1  # ITM call
+        assert "gamma" in greeks
+        assert greeks["gamma"] > 0
+        assert "vega" in greeks
+        assert greeks["vega"] > 0
+
+
 class TestValuationEdgeCases:
     def test_empty_positions_returns_none_results(self):
         result = calculate_valuation(

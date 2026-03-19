@@ -224,6 +224,41 @@ class TestConverterFxPosition:
 
 
 @pytest.mark.unit
+class TestConverterExpiryComputation:
+    def test_option_computes_expiry_days_from_expiry_date(self):
+        from datetime import date, timedelta
+
+        future_date = (date.today() + timedelta(days=30)).isoformat()
+        attrs = types_pb2.OptionAttributes(
+            underlying_id="AAPL",
+            option_type="CALL",
+            strike=150.0,
+            expiry_date=future_date,
+            contract_multiplier=100.0,
+        )
+        pos = _make_position(instrument_type=types_pb2.EQUITY_OPTION, option_attrs=attrs)
+        result = proto_positions_to_domain([pos])
+        assert isinstance(result[0], OptionPosition)
+        assert result[0].expiry_days == 30
+
+    def test_expired_option_gets_zero_expiry_days(self):
+        from datetime import date, timedelta
+
+        past_date = (date.today() - timedelta(days=5)).isoformat()
+        attrs = types_pb2.OptionAttributes(
+            underlying_id="AAPL",
+            option_type="CALL",
+            strike=150.0,
+            expiry_date=past_date,
+            contract_multiplier=100.0,
+        )
+        pos = _make_position(instrument_type=types_pb2.EQUITY_OPTION, option_attrs=attrs)
+        result = proto_positions_to_domain([pos])
+        assert isinstance(result[0], OptionPosition)
+        assert result[0].expiry_days == 0
+
+
+@pytest.mark.unit
 class TestConverterSwapPosition:
     def test_interest_rate_swap_produces_swap_position(self):
         attrs = types_pb2.SwapAttributes(

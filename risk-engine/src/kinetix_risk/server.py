@@ -99,6 +99,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 requested_outputs=requested_outputs,
                 book_id=request.book_id.value,
                 seed=seed,
+                market_data_bundle=bundle,
             )
 
             if result.var_result is not None:
