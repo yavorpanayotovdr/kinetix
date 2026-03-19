@@ -20,7 +20,7 @@ class HttpPositionServiceClientTest : FunSpec({
             when {
                 request.url.encodedPath == "/api/v1/books" && request.method == HttpMethod.Get -> {
                     respond(
-                        content = """[{"portfolioId":"port-1"},{"portfolioId":"port-2"}]""",
+                        content = """[{"bookId":"port-1"},{"bookId":"port-2"}]""",
                         status = HttpStatusCode.OK,
                         headers = headersOf(HttpHeaders.ContentType, "application/json")
                     )
@@ -44,7 +44,7 @@ class HttpPositionServiceClientTest : FunSpec({
         val responseJson = """
             [
               {
-                "portfolioId": "port-1",
+                "bookId": "port-1",
                 "instrumentId": "AAPL",
                 "assetClass": "EQUITY",
                 "quantity": "100",
@@ -93,7 +93,7 @@ class HttpPositionServiceClientTest : FunSpec({
             {
               "trade": {
                 "tradeId": "trade-1",
-                "portfolioId": "port-1",
+                "bookId": "port-1",
                 "instrumentId": "AAPL",
                 "assetClass": "EQUITY",
                 "side": "BUY",
@@ -102,7 +102,7 @@ class HttpPositionServiceClientTest : FunSpec({
                 "tradedAt": "2025-03-15T14:30:00Z"
               },
               "position": {
-                "portfolioId": "port-1",
+                "bookId": "port-1",
                 "instrumentId": "AAPL",
                 "assetClass": "EQUITY",
                 "quantity": "150",
@@ -134,7 +134,7 @@ class HttpPositionServiceClientTest : FunSpec({
 
         val command = BookTradeCommand(
             tradeId = TradeId("trade-1"),
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,

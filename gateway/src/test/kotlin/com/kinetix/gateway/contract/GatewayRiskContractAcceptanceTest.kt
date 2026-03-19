@@ -22,10 +22,10 @@ class GatewayRiskContractAcceptanceTest : BehaviorSpec({
 
     given("gateway routing to risk-orchestrator") {
 
-        `when`("POST /api/v1/risk/var/{portfolioId} with valid request") {
+        `when`("POST /api/v1/risk/var/{bookId} with valid request") {
             then("returns 200 with VaR response shape including componentBreakdown") {
                 coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
-                    portfolioId = "port-1",
+                    bookId = "port-1",
                     calculationType = "PARAMETRIC",
                     confidenceLevel = "CL_95",
                     varValue = 50000.0,
@@ -45,7 +45,7 @@ class GatewayRiskContractAcceptanceTest : BehaviorSpec({
                     }
                     response.status shouldBe HttpStatusCode.OK
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-                    body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+                    body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
                     body["calculationType"]?.jsonPrimitive?.content shouldBe "PARAMETRIC"
                     body["confidenceLevel"]?.jsonPrimitive?.content shouldBe "CL_95"
                     body.containsKey("varValue") shouldBe true
@@ -60,7 +60,7 @@ class GatewayRiskContractAcceptanceTest : BehaviorSpec({
             }
         }
 
-        `when`("POST /api/v1/risk/var/{portfolioId} with invalid calculationType") {
+        `when`("POST /api/v1/risk/var/{bookId} with invalid calculationType") {
             then("returns 400 with error shape") {
                 testApplication {
                     application { module(riskClient) }

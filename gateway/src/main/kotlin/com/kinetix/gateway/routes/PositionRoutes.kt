@@ -79,7 +79,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
                     val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
-                    val summary = client.getPortfolioSummary(bookId, baseCurrency)
+                    val summary = client.getBookSummary(bookId, baseCurrency)
                     call.respond(summary.toResponse())
                 }
             }

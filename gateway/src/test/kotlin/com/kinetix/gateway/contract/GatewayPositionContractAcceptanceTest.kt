@@ -58,7 +58,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
                     body.containsKey("position") shouldBe true
                     val tradeObj = body["trade"]?.jsonObject
                     tradeObj?.containsKey("tradeId") shouldBe true
-                    tradeObj?.containsKey("portfolioId") shouldBe true
+                    tradeObj?.containsKey("bookId") shouldBe true
                     tradeObj?.containsKey("instrumentId") shouldBe true
                     tradeObj?.containsKey("assetClass") shouldBe true
                 }
@@ -84,7 +84,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
                     body.size shouldBe 1
                     val pos = body[0].jsonObject
-                    pos.containsKey("portfolioId") shouldBe true
+                    pos.containsKey("bookId") shouldBe true
                     pos.containsKey("instrumentId") shouldBe true
                     pos.containsKey("quantity") shouldBe true
                     pos.containsKey("marketValue") shouldBe true

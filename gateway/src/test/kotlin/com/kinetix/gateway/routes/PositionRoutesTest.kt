@@ -41,8 +41,8 @@ class PositionRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
-            body[0].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
-            body[1].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-2"
+            body[0].jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body[1].jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-2"
         }
     }
 
@@ -100,7 +100,7 @@ class PositionRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.Created
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["trade"]!!.jsonObject["tradeId"]?.jsonPrimitive?.content shouldBe "t-1"
-            body["trade"]!!.jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["trade"]!!.jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["position"]!!.jsonObject["quantity"]?.jsonPrimitive?.content shouldBe "100"
         }
     }
@@ -144,7 +144,7 @@ class PositionRoutesTest : FunSpec({
                     }
                 """.trimIndent())
             }
-            commandSlot.captured.portfolioId shouldBe BookId("my-port")
+            commandSlot.captured.bookId shouldBe BookId("my-port")
         }
     }
 

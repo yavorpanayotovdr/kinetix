@@ -170,7 +170,7 @@ class GatewayCrossBookVaRContractAcceptanceTest : BehaviorSpec({
         `when`("POST /api/v1/risk/var/port-1 (single-book VaR endpoint)") {
             then("still works after cross-book changes — regression test") {
                 coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
-                    portfolioId = "port-1",
+                    bookId = "port-1",
                     calculationType = "PARAMETRIC",
                     confidenceLevel = "CL_95",
                     varValue = 50000.0,
@@ -190,7 +190,7 @@ class GatewayCrossBookVaRContractAcceptanceTest : BehaviorSpec({
                     }
                     response.status shouldBe HttpStatusCode.OK
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-                    body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+                    body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
                     body["calculationType"]?.jsonPrimitive?.content shouldBe "PARAMETRIC"
                     body.containsKey("varValue") shouldBe true
                     body.containsKey("expectedShortfall") shouldBe true

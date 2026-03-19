@@ -106,7 +106,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
         `when`("a COMPLIANCE user requests regulatory reports") {
             then("authorized — COMPLIANCE has GENERATE_REPORTS permission") {
                 coEvery { riskClient.calculateFrtb(any<String>()) } returns FrtbResultSummary(
-                    portfolioId = "port-1",
+                    bookId = "port-1",
                     sbmCharges = emptyList(),
                     totalSbmCharge = 100000.0,
                     grossJtd = 50000.0,

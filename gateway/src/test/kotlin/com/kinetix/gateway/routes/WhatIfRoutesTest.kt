@@ -36,7 +36,7 @@ class WhatIfRoutesTest : FunSpec({
         coEvery { riskClient.getLatestVaR(any()) } returns null
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} proxies 200 with result") {
+    test("POST /api/v1/risk/what-if/{bookId} proxies 200 with result") {
         coEvery { riskClient.runWhatIf(any()) } returns sampleWhatIfResult
 
         testApplication {
@@ -70,7 +70,7 @@ class WhatIfRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} propagates upstream errors") {
+    test("POST /api/v1/risk/what-if/{bookId} propagates upstream errors") {
         coEvery { riskClient.runWhatIf(any()) } throws
             com.kinetix.gateway.client.UpstreamErrorException(502, "risk-orchestrator unavailable")
 
@@ -87,7 +87,7 @@ class WhatIfRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} passes request params correctly") {
+    test("POST /api/v1/risk/what-if/{bookId} passes request params correctly") {
         coEvery { riskClient.runWhatIf(any()) } returns sampleWhatIfResult
 
         testApplication {
@@ -117,7 +117,7 @@ class WhatIfRoutesTest : FunSpec({
             val slot = slot<WhatIfRequestParams>()
             coVerify { riskClient.runWhatIf(capture(slot)) }
 
-            slot.captured.portfolioId shouldBe "my-portfolio"
+            slot.captured.bookId shouldBe "my-portfolio"
             slot.captured.hypotheticalTrades.size shouldBe 1
             slot.captured.hypotheticalTrades[0].instrumentId shouldBe "AAPL"
             slot.captured.hypotheticalTrades[0].assetClass shouldBe "DERIVATIVE"

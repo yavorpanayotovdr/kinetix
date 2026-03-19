@@ -18,7 +18,7 @@ import java.time.Instant
 
 private val JOB = ValuationJobSummaryItem(
     jobId = "job-1",
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = "ON_DEMAND",
     status = "COMPLETED",
     startedAt = Instant.parse("2025-01-15T10:00:00Z"),
@@ -85,7 +85,7 @@ class JobHistoryRoutesTest : FunSpec({
     test("returns job detail with phases for a known job") {
         val detail = ValuationJobDetailItem(
             jobId = "11111111-1111-1111-1111-111111111111",
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = "ON_DEMAND",
             status = "COMPLETED",
             startedAt = Instant.parse("2025-01-15T10:00:00Z"),
@@ -130,7 +130,7 @@ class JobHistoryRoutesTest : FunSpec({
     test("summary response includes confidenceLevel and manifestId") {
         val jobWithManifest = ValuationJobSummaryItem(
             jobId = "job-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = "ON_DEMAND",
             status = "COMPLETED",
             startedAt = Instant.parse("2025-01-15T10:00:00Z"),
@@ -162,7 +162,7 @@ class JobHistoryRoutesTest : FunSpec({
     test("detail response includes manifestId") {
         val detail = ValuationJobDetailItem(
             jobId = "11111111-1111-1111-1111-111111111111",
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = "ON_DEMAND",
             status = "COMPLETED",
             startedAt = Instant.parse("2025-01-15T10:00:00Z"),

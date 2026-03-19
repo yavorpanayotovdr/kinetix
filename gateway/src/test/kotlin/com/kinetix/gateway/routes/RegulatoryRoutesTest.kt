@@ -13,7 +13,7 @@ import kotlinx.serialization.json.*
 import java.time.Instant
 
 private val sampleFrtbResult = FrtbResultSummary(
-    portfolioId = "port-1",
+    bookId = "port-1",
     sbmCharges = listOf(
         RiskClassChargeItem(
             riskClass = "EQUITY",
@@ -42,7 +42,7 @@ private val sampleFrtbResult = FrtbResultSummary(
 )
 
 private val sampleReportResult = ReportResult(
-    portfolioId = "port-1",
+    bookId = "port-1",
     format = "CSV",
     content = "Component,Risk Class,Delta Charge\nSbM,EQUITY,40000.00",
     generatedAt = Instant.parse("2025-01-15T10:00:00Z"),
@@ -61,7 +61,7 @@ class RegulatoryRoutesTest : FunSpec({
         coEvery { riskClient.calculateGreeks(any()) } returns null
     }
 
-    test("POST /api/v1/regulatory/frtb/{portfolioId} returns capital charge") {
+    test("POST /api/v1/regulatory/frtb/{bookId} returns capital charge") {
         coEvery { riskClient.calculateFrtb(any()) } returns sampleFrtbResult
 
         testApplication {
@@ -72,7 +72,7 @@ class RegulatoryRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["totalCapitalCharge"]?.jsonPrimitive?.content shouldBe "87712.50"
             body["totalSbmCharge"]?.jsonPrimitive?.content shouldBe "76612.50"
             val sbmCharges = body["sbmCharges"]?.jsonArray
@@ -81,7 +81,7 @@ class RegulatoryRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/regulatory/report/{portfolioId} CSV returns content") {
+    test("POST /api/v1/regulatory/report/{bookId} CSV returns content") {
         coEvery { riskClient.generateReport(any(), any()) } returns sampleReportResult
 
         testApplication {
@@ -92,16 +92,16 @@ class RegulatoryRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["format"]?.jsonPrimitive?.content shouldBe "CSV"
             body["content"]?.jsonPrimitive?.content?.contains("Component") shouldBe true
         }
     }
 
-    test("POST /api/v1/regulatory/report/{portfolioId} XBRL returns content") {
+    test("POST /api/v1/regulatory/report/{bookId} XBRL returns content") {
         val xbrlResult = sampleReportResult.copy(
             format = "XBRL",
-            content = """<?xml version='1.0' encoding='utf-8'?><FRTBReport portfolioId="port-1"/>""",
+            content = """<?xml version='1.0' encoding='utf-8'?><FRTBReport bookId="port-1"/>""",
         )
         coEvery { riskClient.generateReport(any(), any()) } returns xbrlResult
 
@@ -118,7 +118,7 @@ class RegulatoryRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/regulatory/frtb/{portfolioId} returns 404 when not found") {
+    test("POST /api/v1/regulatory/frtb/{bookId} returns 404 when not found") {
         coEvery { riskClient.calculateFrtb(any()) } returns null
 
         testApplication {

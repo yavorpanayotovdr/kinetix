@@ -16,7 +16,7 @@ import kotlinx.serialization.json.*
 import java.time.Instant
 
 private val sampleResult = ValuationResultSummary(
-    portfolioId = "port-1",
+    bookId = "port-1",
     calculationType = "HISTORICAL",
     confidenceLevel = "CL_95",
     varValue = 1234567.89,
@@ -38,9 +38,9 @@ class VaRRoutesTest : FunSpec({
 
     beforeEach { clearMocks(riskClient) }
 
-    // --- POST /api/v1/risk/var/{portfolioId} ---
+    // --- POST /api/v1/risk/var/{bookId} ---
 
-    test("POST /api/v1/risk/var/{portfolioId} returns 200 with VaR result") {
+    test("POST /api/v1/risk/var/{bookId} returns 200 with VaR result") {
         coEvery { riskClient.calculateVaR(any()) } returns sampleResult
 
         testApplication {
@@ -51,7 +51,7 @@ class VaRRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["calculationType"]?.jsonPrimitive?.content shouldBe "HISTORICAL"
             body["confidenceLevel"]?.jsonPrimitive?.content shouldBe "CL_95"
             body["varValue"]?.jsonPrimitive?.content shouldBe "1234567.89"
@@ -89,7 +89,7 @@ class VaRRoutesTest : FunSpec({
                 contentType(ContentType.Application.Json)
                 setBody("""{"calculationType":"MONTE_CARLO","confidenceLevel":"CL_99","timeHorizonDays":"10","numSimulations":"50000"}""")
             }
-            paramsSlot.captured.portfolioId shouldBe "port-1"
+            paramsSlot.captured.bookId shouldBe "port-1"
             paramsSlot.captured.calculationType shouldBe "MONTE_CARLO"
             paramsSlot.captured.confidenceLevel shouldBe "CL_99"
             paramsSlot.captured.timeHorizonDays shouldBe 10
@@ -107,7 +107,7 @@ class VaRRoutesTest : FunSpec({
                 contentType(ContentType.Application.Json)
                 setBody("{}")
             }
-            paramsSlot.captured.portfolioId shouldBe "port-1"
+            paramsSlot.captured.bookId shouldBe "port-1"
             paramsSlot.captured.calculationType shouldBe "PARAMETRIC"
             paramsSlot.captured.confidenceLevel shouldBe "CL_95"
             paramsSlot.captured.timeHorizonDays shouldBe 1
@@ -129,9 +129,9 @@ class VaRRoutesTest : FunSpec({
         }
     }
 
-    // --- GET /api/v1/risk/var/{portfolioId} ---
+    // --- GET /api/v1/risk/var/{bookId} ---
 
-    test("GET /api/v1/risk/var/{portfolioId} returns 200 with latest VaR result") {
+    test("GET /api/v1/risk/var/{bookId} returns 200 with latest VaR result") {
         coEvery { riskClient.getLatestVaR("port-1") } returns sampleResult
 
         testApplication {
@@ -139,7 +139,7 @@ class VaRRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/var/port-1")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["varValue"]?.jsonPrimitive?.content shouldBe "1234567.89"
         }
     }

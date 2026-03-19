@@ -43,7 +43,7 @@ class PositionRiskRoutesTest : FunSpec({
 
     beforeEach { clearMocks(riskClient) }
 
-    test("GET /api/v1/risk/positions/{portfolioId} returns 200 with position risk array") {
+    test("GET /api/v1/risk/positions/{bookId} returns 200 with position risk array") {
         coEvery { riskClient.getPositionRisk("port-1") } returns samplePositionRisk
 
         testApplication {
@@ -73,7 +73,7 @@ class PositionRiskRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/positions/{portfolioId} returns 404 when no data") {
+    test("GET /api/v1/risk/positions/{bookId} returns 404 when no data") {
         coEvery { riskClient.getPositionRisk("unknown") } returns null
 
         testApplication {

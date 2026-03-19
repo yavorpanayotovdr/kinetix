@@ -21,7 +21,7 @@ class HttpRiskServiceClientErrorTest : FunSpec({
     }
 
     fun defaultVaRParams() = VaRCalculationParams(
-        portfolioId = "port-1",
+        bookId = "port-1",
         calculationType = "HISTORICAL",
         confidenceLevel = "0.99",
         timeHorizonDays = 10,

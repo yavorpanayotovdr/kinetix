@@ -20,7 +20,7 @@ class GatewayPositionRiskContractAcceptanceTest : BehaviorSpec({
 
     given("gateway routing to risk-orchestrator") {
 
-        `when`("GET /api/v1/risk/positions/{portfolioId} with position risk data") {
+        `when`("GET /api/v1/risk/positions/{bookId} with position risk data") {
             then("returns 200 with position risk array containing expected fields") {
                 coEvery { riskClient.getPositionRisk("equity-growth") } returns listOf(
                     PositionRiskSummaryItem(
@@ -65,7 +65,7 @@ class GatewayPositionRiskContractAcceptanceTest : BehaviorSpec({
             }
         }
 
-        `when`("GET /api/v1/risk/positions/{portfolioId} with no position risk data") {
+        `when`("GET /api/v1/risk/positions/{bookId} with no position risk data") {
             then("returns 404") {
                 coEvery { riskClient.getPositionRisk("empty-portfolio") } returns null
 

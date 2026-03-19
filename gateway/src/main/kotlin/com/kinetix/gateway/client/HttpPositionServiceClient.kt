@@ -15,12 +15,12 @@ class HttpPositionServiceClient(
 
     override suspend fun listPortfolios(): List<PortfolioSummary> {
         val response = httpClient.get("$baseUrl/api/v1/books")
-        val dtos: List<PortfolioSummaryDto> = response.body()
+        val dtos: List<BookSummaryDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
     override suspend fun bookTrade(command: BookTradeCommand): BookTradeResult {
-        val response = httpClient.post("$baseUrl/api/v1/books/${command.portfolioId.value}/trades") {
+        val response = httpClient.post("$baseUrl/api/v1/books/${command.bookId.value}/trades") {
             contentType(ContentType.Application.Json)
             setBody(
                 BookTradeRequestDto(
@@ -39,20 +39,20 @@ class HttpPositionServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getPositions(portfolioId: BookId): List<Position> {
-        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/positions")
+    override suspend fun getPositions(bookId: BookId): List<Position> {
+        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/positions")
         val dtos: List<PositionDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getTradeHistory(portfolioId: BookId): List<Trade> {
-        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/trades")
+    override suspend fun getTradeHistory(bookId: BookId): List<Trade> {
+        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/trades")
         val dtos: List<TradeDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getPortfolioSummary(portfolioId: BookId, baseCurrency: String): PortfolioAggregationSummary {
-        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/summary") {
+    override suspend fun getBookSummary(bookId: BookId, baseCurrency: String): PortfolioAggregationSummary {
+        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/summary") {
             parameter("baseCurrency", baseCurrency)
         }
         val dto: PortfolioAggregationDto = response.body()

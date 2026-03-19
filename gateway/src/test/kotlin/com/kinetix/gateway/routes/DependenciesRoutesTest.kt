@@ -12,7 +12,7 @@ import io.mockk.*
 import kotlinx.serialization.json.*
 
 private val sampleDependencies = DataDependenciesSummary(
-    portfolioId = "port-1",
+    bookId = "port-1",
     dependencies = listOf(
         MarketDataDependencyItem(
             dataType = "SPOT_PRICE",
@@ -60,7 +60,7 @@ class DependenciesRoutesTest : FunSpec({
         coEvery { riskClient.getLatestVaR(any()) } returns null
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns 200 with dependencies") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns 200 with dependencies") {
         coEvery { riskClient.discoverDependencies(any()) } returns sampleDependencies
 
         testApplication {
@@ -72,7 +72,7 @@ class DependenciesRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
 
             val deps = body["dependencies"]?.jsonArray
             deps?.size shouldBe 4
@@ -101,9 +101,9 @@ class DependenciesRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} with default parameters") {
+    test("POST /api/v1/risk/dependencies/{bookId} with default parameters") {
         coEvery { riskClient.discoverDependencies(any()) } returns DataDependenciesSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             dependencies = emptyList(),
         )
 
@@ -116,7 +116,7 @@ class DependenciesRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["dependencies"]?.jsonArray?.size shouldBe 0
 
             coVerify {
@@ -129,7 +129,7 @@ class DependenciesRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns 404 when client returns null") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns 404 when client returns null") {
         coEvery { riskClient.discoverDependencies(any()) } returns null
 
         testApplication {
@@ -142,9 +142,9 @@ class DependenciesRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} passes calculation type to client") {
+    test("POST /api/v1/risk/dependencies/{bookId} passes calculation type to client") {
         coEvery { riskClient.discoverDependencies(any()) } returns DataDependenciesSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             dependencies = emptyList(),
         )
 
@@ -159,7 +159,7 @@ class DependenciesRoutesTest : FunSpec({
             coVerify {
                 riskClient.discoverDependencies(
                     match {
-                        it.portfolioId == "port-1" &&
+                        it.bookId == "port-1" &&
                             it.calculationType == "MONTE_CARLO" &&
                             it.confidenceLevel == "CL_99"
                     }
@@ -168,7 +168,7 @@ class DependenciesRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns 400 for invalid calculation type") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns 400 for invalid calculation type") {
         testApplication {
             application { module(riskClient) }
             val response = client.post("/api/v1/risk/dependencies/port-1") {
@@ -179,7 +179,7 @@ class DependenciesRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns 400 for invalid confidence level") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns 400 for invalid confidence level") {
         testApplication {
             application { module(riskClient) }
             val response = client.post("/api/v1/risk/dependencies/port-1") {

@@ -29,7 +29,7 @@ private val sampleStressResult = StressTestResultSummary(
 )
 
 private val sampleGreeksResult = GreeksResultSummary(
-    portfolioId = "port-1",
+    bookId = "port-1",
     assetClassGreeks = listOf(
         GreekValuesItem(
             assetClass = "EQUITY",
@@ -54,7 +54,7 @@ class StressTestRoutesTest : FunSpec({
         coEvery { riskClient.getLatestVaR(any()) } returns null
     }
 
-    test("POST /api/v1/risk/stress/{portfolioId} returns 200 with stress test result") {
+    test("POST /api/v1/risk/stress/{bookId} returns 200 with stress test result") {
         coEvery { riskClient.runStressTest(any()) } returns sampleStressResult
 
         testApplication {
@@ -90,9 +90,9 @@ class StressTestRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/greeks/{portfolioId} returns 200 with Greeks result") {
+    test("POST /api/v1/risk/greeks/{bookId} returns 200 with Greeks result") {
         coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             varValue = 50000.0,
@@ -110,7 +110,7 @@ class StressTestRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             val greeks = body["assetClassGreeks"]?.jsonArray
             greeks?.size shouldBe 1
             greeks!![0].jsonObject["assetClass"]?.jsonPrimitive?.content shouldBe "EQUITY"
@@ -119,7 +119,7 @@ class StressTestRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/stress/{portfolioId} returns 404 when service returns null") {
+    test("POST /api/v1/risk/stress/{bookId} returns 404 when service returns null") {
         coEvery { riskClient.runStressTest(any()) } returns null
 
         testApplication {

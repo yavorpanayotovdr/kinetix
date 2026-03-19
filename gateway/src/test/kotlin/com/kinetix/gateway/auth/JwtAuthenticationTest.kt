@@ -159,7 +159,7 @@ class JwtAuthenticationTest : FunSpec({
 
     test("token with RISK_MANAGER role can calculate VaR") {
         coEvery { riskClient.calculateVaR(any()) } returns ValuationResultSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             varValue = 50000.0,
@@ -184,7 +184,7 @@ class JwtAuthenticationTest : FunSpec({
 
     test("token with COMPLIANCE role can access regulatory endpoints") {
         coEvery { riskClient.calculateFrtb(any<String>()) } returns FrtbResultSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             sbmCharges = emptyList(),
             totalSbmCharge = 100000.0,
             grossJtd = 50000.0,

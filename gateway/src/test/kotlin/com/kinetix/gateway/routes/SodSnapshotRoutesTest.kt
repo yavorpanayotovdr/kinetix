@@ -21,7 +21,7 @@ private val sampleSodStatus = SodBaselineStatusSummary(
 )
 
 private val samplePnlAttribution = PnlAttributionSummary(
-    portfolioId = "port-1",
+    bookId = "port-1",
     date = "2025-01-15",
     totalPnl = "15000.00",
     deltaPnl = "8000.00",
@@ -56,7 +56,7 @@ class SodSnapshotRoutesTest : FunSpec({
         coEvery { riskClient.getLatestVaR(any()) } returns null
     }
 
-    test("GET /api/v1/risk/sod-snapshot/{portfolioId}/status returns 200 with baseline status") {
+    test("GET /api/v1/risk/sod-snapshot/{bookId}/status returns 200 with baseline status") {
         coEvery { riskClient.getSodBaselineStatus("port-1") } returns sampleSodStatus
 
         testApplication {
@@ -73,7 +73,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/sod-snapshot/{portfolioId}/status returns 404 when no baseline exists") {
+    test("GET /api/v1/risk/sod-snapshot/{bookId}/status returns 404 when no baseline exists") {
         coEvery { riskClient.getSodBaselineStatus("port-1") } returns null
 
         testApplication {
@@ -83,7 +83,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/sod-snapshot/{portfolioId} returns 201 with created baseline") {
+    test("POST /api/v1/risk/sod-snapshot/{bookId} returns 201 with created baseline") {
         coEvery { riskClient.createSodSnapshot("port-1", null) } returns sampleSodStatus
 
         testApplication {
@@ -96,7 +96,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/sod-snapshot/{portfolioId} forwards jobId query parameter") {
+    test("POST /api/v1/risk/sod-snapshot/{bookId} forwards jobId query parameter") {
         val jobId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         coEvery { riskClient.createSodSnapshot("port-1", jobId) } returns sampleSodStatus
 
@@ -108,7 +108,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("DELETE /api/v1/risk/sod-snapshot/{portfolioId} returns 204") {
+    test("DELETE /api/v1/risk/sod-snapshot/{bookId} returns 204") {
         coEvery { riskClient.resetSodBaseline("port-1") } just Runs
 
         testApplication {
@@ -119,7 +119,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/pnl-attribution/{portfolioId} returns 200 with attribution data") {
+    test("GET /api/v1/risk/pnl-attribution/{bookId} returns 200 with attribution data") {
         coEvery { riskClient.getPnlAttribution("port-1", null) } returns samplePnlAttribution
 
         testApplication {
@@ -127,7 +127,7 @@ class SodSnapshotRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/pnl-attribution/port-1")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["totalPnl"]?.jsonPrimitive?.content shouldBe "15000.00"
             val positions = body["positionAttributions"]?.jsonArray
             positions?.size shouldBe 1
@@ -135,7 +135,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/pnl-attribution/{portfolioId} returns 404 when no data") {
+    test("GET /api/v1/risk/pnl-attribution/{bookId} returns 404 when no data") {
         coEvery { riskClient.getPnlAttribution("port-1", null) } returns null
 
         testApplication {
@@ -145,7 +145,7 @@ class SodSnapshotRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/pnl-attribution/{portfolioId}/compute returns 200 with computed data") {
+    test("POST /api/v1/risk/pnl-attribution/{bookId}/compute returns 200 with computed data") {
         coEvery { riskClient.computePnlAttribution("port-1") } returns samplePnlAttribution
 
         testApplication {

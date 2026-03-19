@@ -12,7 +12,7 @@ import io.mockk.*
 import kotlinx.serialization.json.*
 
 private val sampleComparisonResult = buildJsonObject {
-    put("portfolioId", "port-1")
+    put("bookId", "port-1")
     put("baseJobId", "job-abc")
     put("targetJobId", "job-xyz")
     put("varDelta", "-1500.00")
@@ -20,14 +20,14 @@ private val sampleComparisonResult = buildJsonObject {
 }
 
 private val sampleDayOverDayResult = buildJsonObject {
-    put("portfolioId", "port-1")
+    put("bookId", "port-1")
     put("targetDate", "2026-03-13")
     put("baseDate", "2026-03-12")
     put("varDelta", "2000.00")
 }
 
 private val sampleAttributionResult = buildJsonObject {
-    put("portfolioId", "port-1")
+    put("bookId", "port-1")
     put("targetDate", "2026-03-13")
     put("baseDate", "2026-03-12")
     put("deltaEffect", "1200.00")
@@ -35,7 +35,7 @@ private val sampleAttributionResult = buildJsonObject {
 }
 
 private val sampleModelComparisonResult = buildJsonObject {
-    put("portfolioId", "port-1")
+    put("bookId", "port-1")
     put("baseModel", "PARAMETRIC")
     put("targetModel", "MONTE_CARLO")
     put("varDelta", "-800.00")
@@ -47,9 +47,9 @@ class RunComparisonRoutesTest : FunSpec({
 
     beforeEach { clearMocks(riskClient) }
 
-    // --- POST /api/v1/risk/compare/{portfolioId} ---
+    // --- POST /api/v1/risk/compare/{bookId} ---
 
-    test("POST /api/v1/risk/compare/{portfolioId} returns comparison result for valid job IDs") {
+    test("POST /api/v1/risk/compare/{bookId} returns comparison result for valid job IDs") {
         coEvery { riskClient.compareRuns("port-1", "job-abc", "job-xyz") } returns sampleComparisonResult
 
         testApplication {
@@ -60,14 +60,14 @@ class RunComparisonRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["baseJobId"]?.jsonPrimitive?.content shouldBe "job-abc"
             body["targetJobId"]?.jsonPrimitive?.content shouldBe "job-xyz"
             body["varDelta"]?.jsonPrimitive?.content shouldBe "-1500.00"
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId} returns 400 when baseJobId is missing") {
+    test("POST /api/v1/risk/compare/{bookId} returns 400 when baseJobId is missing") {
         testApplication {
             application { module(riskClient) }
             val response = client.post("/api/v1/risk/compare/port-1") {
@@ -80,7 +80,7 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId} returns 400 when targetJobId is missing") {
+    test("POST /api/v1/risk/compare/{bookId} returns 400 when targetJobId is missing") {
         testApplication {
             application { module(riskClient) }
             val response = client.post("/api/v1/risk/compare/port-1") {
@@ -93,7 +93,7 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId} forwards portfolioId correctly") {
+    test("POST /api/v1/risk/compare/{bookId} forwards bookId correctly") {
         coEvery { riskClient.compareRuns("my-portfolio", "job-1", "job-2") } returns sampleComparisonResult
 
         testApplication {
@@ -106,9 +106,9 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    // --- GET /api/v1/risk/compare/{portfolioId}/day-over-day ---
+    // --- GET /api/v1/risk/compare/{bookId}/day-over-day ---
 
-    test("GET /api/v1/risk/compare/{portfolioId}/day-over-day returns day-over-day result") {
+    test("GET /api/v1/risk/compare/{bookId}/day-over-day returns day-over-day result") {
         coEvery { riskClient.compareDayOverDay("port-1", "2026-03-13", "2026-03-12") } returns sampleDayOverDayResult
 
         testApplication {
@@ -116,12 +116,12 @@ class RunComparisonRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/compare/port-1/day-over-day?targetDate=2026-03-13&baseDate=2026-03-12")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["varDelta"]?.jsonPrimitive?.content shouldBe "2000.00"
         }
     }
 
-    test("GET /api/v1/risk/compare/{portfolioId}/day-over-day returns 404 when no data found") {
+    test("GET /api/v1/risk/compare/{bookId}/day-over-day returns 404 when no data found") {
         coEvery { riskClient.compareDayOverDay("port-1", null, null) } returns null
 
         testApplication {
@@ -131,7 +131,7 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/compare/{portfolioId}/day-over-day passes null dates when not provided") {
+    test("GET /api/v1/risk/compare/{bookId}/day-over-day passes null dates when not provided") {
         coEvery { riskClient.compareDayOverDay("port-1", null, null) } returns sampleDayOverDayResult
 
         testApplication {
@@ -141,9 +141,9 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    // --- POST /api/v1/risk/compare/{portfolioId}/day-over-day/attribution ---
+    // --- POST /api/v1/risk/compare/{bookId}/day-over-day/attribution ---
 
-    test("POST /api/v1/risk/compare/{portfolioId}/day-over-day/attribution returns attribution result") {
+    test("POST /api/v1/risk/compare/{bookId}/day-over-day/attribution returns attribution result") {
         coEvery {
             riskClient.compareDayOverDayAttribution("port-1", "2026-03-13", "2026-03-12")
         } returns sampleAttributionResult
@@ -158,13 +158,13 @@ class RunComparisonRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["deltaEffect"]?.jsonPrimitive?.content shouldBe "1200.00"
             body["vegaEffect"]?.jsonPrimitive?.content shouldBe "500.00"
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId}/day-over-day/attribution passes null dates when absent") {
+    test("POST /api/v1/risk/compare/{bookId}/day-over-day/attribution passes null dates when absent") {
         coEvery {
             riskClient.compareDayOverDayAttribution("port-1", null, null)
         } returns sampleAttributionResult
@@ -179,9 +179,9 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    // --- POST /api/v1/risk/compare/{portfolioId}/model ---
+    // --- POST /api/v1/risk/compare/{bookId}/model ---
 
-    test("POST /api/v1/risk/compare/{portfolioId}/model returns model comparison result") {
+    test("POST /api/v1/risk/compare/{bookId}/model returns model comparison result") {
         coEvery { riskClient.compareModel("port-1", any()) } returns sampleModelComparisonResult
 
         testApplication {
@@ -192,12 +192,12 @@ class RunComparisonRoutesTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["varDelta"]?.jsonPrimitive?.content shouldBe "-800.00"
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId}/model forwards request body to client") {
+    test("POST /api/v1/risk/compare/{bookId}/model forwards request body to client") {
         val bodySlot = slot<JsonObject>()
         coEvery { riskClient.compareModel("port-1", capture(bodySlot)) } returns sampleModelComparisonResult
 
@@ -213,7 +213,7 @@ class RunComparisonRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/compare/{portfolioId}/model propagates upstream errors") {
+    test("POST /api/v1/risk/compare/{bookId}/model propagates upstream errors") {
         coEvery { riskClient.compareModel(any(), any()) } throws
             com.kinetix.gateway.client.UpstreamErrorException(502, "risk-orchestrator unavailable")
 

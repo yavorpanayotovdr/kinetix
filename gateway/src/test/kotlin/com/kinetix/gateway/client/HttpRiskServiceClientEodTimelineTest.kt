@@ -22,7 +22,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
     test("getEodTimeline deserializes a successful response with all fields") {
         val responseJson = """
             {
-              "portfolioId": "port-1",
+              "bookId": "port-1",
               "from": "2026-01-01",
               "to": "2026-01-31",
               "entries": [
@@ -69,7 +69,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
         val result = sut.getEodTimeline("port-1", "2026-01-01", "2026-01-31")
 
         result shouldBe EodTimelineSummary(
-            portfolioId = "port-1",
+            bookId = "port-1",
             from = "2026-01-01",
             to = "2026-01-31",
             entries = listOf(
@@ -114,7 +114,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
     test("getEodTimeline deserializes entries with null optional fields") {
         val responseJson = """
             {
-              "portfolioId": "port-2",
+              "bookId": "port-2",
               "from": "2026-02-01",
               "to": "2026-02-01",
               "entries": [
@@ -152,7 +152,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
 
         val result = sut.getEodTimeline("port-2", "2026-02-01", "2026-02-01")
 
-        result?.portfolioId shouldBe "port-2"
+        result?.bookId shouldBe "port-2"
         result?.entries?.size shouldBe 1
         val entry = result?.entries?.first()
         entry?.valuationDate shouldBe "2026-02-01"
@@ -165,7 +165,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
     test("getEodTimeline returns empty entries list when no EOD snapshots exist") {
         val responseJson = """
             {
-              "portfolioId": "port-3",
+              "bookId": "port-3",
               "from": "2026-03-01",
               "to": "2026-03-07",
               "entries": []
@@ -183,7 +183,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
 
         val result = sut.getEodTimeline("port-3", "2026-03-01", "2026-03-07")
 
-        result?.portfolioId shouldBe "port-3"
+        result?.bookId shouldBe "port-3"
         result?.entries shouldBe emptyList()
     }
 
@@ -195,7 +195,7 @@ class HttpRiskServiceClientEodTimelineTest : FunSpec({
             capturedFrom = request.url.parameters["from"]
             capturedTo = request.url.parameters["to"]
             respond(
-                content = """{"portfolioId":"port-1","from":"2026-01-01","to":"2026-01-31","entries":[]}""",
+                content = """{"bookId":"port-1","from":"2026-01-01","to":"2026-01-31","entries":[]}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
