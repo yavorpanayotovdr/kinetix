@@ -47,6 +47,8 @@ class RiskResultConsumerTest : FunSpec({
 
         val mockConsumer = mockk<KafkaConsumer<String, String>>()
         every { mockConsumer.subscribe(any<Collection<String>>()) } returns Unit
+        every { mockConsumer.commitSync() } returns Unit
+        every { mockConsumer.close(any<Duration>()) } returns Unit
         var callCount = 0
         every { mockConsumer.poll(any<Duration>()) } answers {
             if (callCount++ == 0) records else emptyRecords
@@ -87,6 +89,8 @@ class RiskResultConsumerTest : FunSpec({
 
         val mockConsumer = mockk<KafkaConsumer<String, String>>()
         every { mockConsumer.subscribe(any<Collection<String>>()) } returns Unit
+        every { mockConsumer.commitSync() } returns Unit
+        every { mockConsumer.close(any<Duration>()) } returns Unit
         var callCount = 0
         every { mockConsumer.poll(any<Duration>()) } answers {
             if (callCount++ == 0) records else emptyRecords
@@ -116,6 +120,8 @@ class RiskResultConsumerTest : FunSpec({
 
         val mockConsumer = mockk<KafkaConsumer<String, String>>()
         every { mockConsumer.subscribe(any<Collection<String>>()) } returns Unit
+        every { mockConsumer.commitSync() } returns Unit
+        every { mockConsumer.close(any<Duration>()) } returns Unit
         var callCount = 0
         every { mockConsumer.poll(any<Duration>()) } answers {
             if (callCount++ == 0) records else emptyRecords
