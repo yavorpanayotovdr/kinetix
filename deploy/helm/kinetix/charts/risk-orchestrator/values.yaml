@@ -38,3 +38,7 @@ autoscaling:
 probes:
   path: /health
   readinessPath: /health/ready
+
+pdb:
+  enabled: false
+  minAvailable: 1
