@@ -66,11 +66,14 @@ class ExposedPriceRepository(private val db: Database? = null) : PriceRepository
         val fromOffset = from.atOffset(ZoneOffset.UTC)
         val toOffset = to.atOffset(ZoneOffset.UTC)
         val sql = """
-            SELECT DISTINCT ON (instrument_id, date(timestamp AT TIME ZONE 'UTC'))
-                   instrument_id, price_amount, price_currency, timestamp, source
-            FROM prices
-            WHERE instrument_id = ? AND timestamp >= ? AND timestamp <= ?
-            ORDER BY instrument_id, date(timestamp AT TIME ZONE 'UTC'), timestamp DESC
+            SELECT instrument_id,
+                   close_price_amount AS price_amount,
+                   close_price_currency AS price_currency,
+                   close_timestamp AS timestamp,
+                   close_source AS source
+            FROM daily_close_prices
+            WHERE instrument_id = ? AND bucket >= ? AND bucket <= ?
+            ORDER BY bucket DESC
         """.trimIndent()
         val conn = this.connection.connection as java.sql.Connection
         conn.prepareStatement(sql).use { stmt ->
@@ -92,8 +95,7 @@ class ExposedPriceRepository(private val db: Database? = null) : PriceRepository
                     )
                 )
             }
-            // The DISTINCT ON query orders by date ASC; reverse for descending
-            results.reversed()
+            results
         }
     }
 

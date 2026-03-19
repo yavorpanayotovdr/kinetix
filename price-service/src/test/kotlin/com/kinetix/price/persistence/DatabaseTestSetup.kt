@@ -27,4 +27,17 @@ object DatabaseTestSetup {
             )
         )
     }
+
+    fun refreshDailyClosePrices() {
+        java.sql.DriverManager.getConnection(
+            postgres.jdbcUrl,
+            postgres.username,
+            postgres.password,
+        ).use { conn ->
+            conn.autoCommit = true
+            conn.createStatement().execute(
+                "CALL refresh_continuous_aggregate('daily_close_prices', NULL, NULL)"
+            )
+        }
+    }
 }

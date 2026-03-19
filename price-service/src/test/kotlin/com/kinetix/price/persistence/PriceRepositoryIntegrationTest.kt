@@ -37,6 +37,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
 
     beforeEach {
         newSuspendedTransaction { PriceTable.deleteAll() }
+        DatabaseTestSetup.refreshDailyClosePrices()
     }
 
     test("save and retrieve latest price point") {
@@ -111,6 +112,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         // Day 2: 2 prices — expect the 15:00 one (latest)
         repository.save(point(timestamp = Instant.parse("2025-01-16T10:00:00Z"), priceAmount = BigDecimal("153.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-16T15:00:00Z"), priceAmount = BigDecimal("155.00")))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),
@@ -130,6 +132,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         repository.save(point(timestamp = Instant.parse("2025-01-13T10:00:00Z"), priceAmount = BigDecimal("140.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-14T10:00:00Z"), priceAmount = BigDecimal("145.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00")))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),
@@ -145,6 +148,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
 
     test("findDailyCloseByInstrumentId returns empty list for no matches") {
         repository.save(point(instrumentId = "AAPL"))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("MSFT"),
@@ -158,6 +162,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         repository.save(point(timestamp = Instant.parse("2025-01-14T10:00:00Z"), priceAmount = BigDecimal("140.00"))) // outside
         repository.save(point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00"))) // inside
         repository.save(point(timestamp = Instant.parse("2025-01-16T10:00:00Z"), priceAmount = BigDecimal("160.00"))) // outside
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),
@@ -173,6 +178,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         repository.save(point(timestamp = Instant.parse("2025-01-15T23:55:00Z"), priceAmount = BigDecimal("151.00")))
         // 00:05 UTC on Jan 16 should belong to Jan 16
         repository.save(point(timestamp = Instant.parse("2025-01-16T00:05:00Z"), priceAmount = BigDecimal("152.00")))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),
@@ -192,6 +198,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         // Exactly midnight belongs to the new day (date('2025-01-16T00:00:00Z' AT TIME ZONE 'UTC') = 2025-01-16)
         repository.save(point(timestamp = Instant.parse("2025-01-15T23:59:59Z"), priceAmount = BigDecimal("150.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-16T00:00:00Z"), priceAmount = BigDecimal("151.00")))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),
@@ -206,6 +213,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
 
     test("findDailyCloseByInstrumentId returns single price when only one exists in range") {
         repository.save(point(timestamp = Instant.parse("2025-01-15T14:30:00Z"), priceAmount = BigDecimal("150.00")))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         val results = repository.findDailyCloseByInstrumentId(
             InstrumentId("AAPL"),

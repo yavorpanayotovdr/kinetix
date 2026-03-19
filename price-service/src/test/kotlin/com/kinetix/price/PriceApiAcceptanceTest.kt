@@ -51,6 +51,7 @@ class PriceApiAcceptanceTest : FunSpec({
         newSuspendedTransaction(db = db) {
             PriceTable.deleteAll()
         }
+        DatabaseTestSetup.refreshDailyClosePrices()
     }
 
     // -------------------------------------------------------------------------
@@ -224,6 +225,7 @@ class PriceApiAcceptanceTest : FunSpec({
         repository.save(pricePoint(instrument, "115.00", "2025-09-02T15:30:00Z"))
         // Day 3: 1 tick
         repository.save(pricePoint(instrument, "120.00", "2025-09-03T11:00:00Z"))
+        DatabaseTestSetup.refreshDailyClosePrices()
 
         testApplication {
             application { module(repository, ingestionService) }
