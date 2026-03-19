@@ -11,15 +11,15 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
-    get("/api/v1/risk/sod-snapshot/{portfolioId}/status", {
+    get("/api/v1/risk/sod-snapshot/{bookId}/status", {
         summary = "Get SOD baseline status"
         tags = listOf("SOD Snapshot")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
-        val status = client.getSodBaselineStatus(portfolioId)
+        val bookId = call.requirePathParam("bookId")
+        val status = client.getSodBaselineStatus(bookId)
         if (status != null) {
             call.respond(status.toResponse())
         } else {
@@ -27,21 +27,21 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         }
     }
 
-    post("/api/v1/risk/sod-snapshot/{portfolioId}", {
+    post("/api/v1/risk/sod-snapshot/{bookId}", {
         summary = "Create manual SOD snapshot"
         tags = listOf("SOD Snapshot")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("jobId") {
                 description = "Optional VaR job ID to use as baseline source"
                 required = false
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val jobId = call.request.queryParameters["jobId"]
         try {
-            val status = client.createSodSnapshot(portfolioId, jobId)
+            val status = client.createSodSnapshot(bookId, jobId)
             call.response.status(HttpStatusCode.Created)
             call.respond(status.toResponse())
         } catch (e: IllegalStateException) {
@@ -52,32 +52,32 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         }
     }
 
-    delete("/api/v1/risk/sod-snapshot/{portfolioId}", {
+    delete("/api/v1/risk/sod-snapshot/{bookId}", {
         summary = "Reset SOD baseline"
         tags = listOf("SOD Snapshot")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
-        client.resetSodBaseline(portfolioId)
+        val bookId = call.requirePathParam("bookId")
+        client.resetSodBaseline(bookId)
         call.respond(HttpStatusCode.NoContent, "")
     }
 
-    get("/api/v1/risk/pnl-attribution/{portfolioId}", {
+    get("/api/v1/risk/pnl-attribution/{bookId}", {
         summary = "Get P&L attribution"
         tags = listOf("P&L Attribution")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("date") {
                 description = "Attribution date (ISO-8601). Defaults to latest."
                 required = false
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val date = call.request.queryParameters["date"]
-        val result = client.getPnlAttribution(portfolioId, date)
+        val result = client.getPnlAttribution(bookId, date)
         if (result != null) {
             call.respond(result.toResponse())
         } else {
@@ -85,16 +85,16 @@ fun Route.sodSnapshotRoutes(client: RiskServiceClient) {
         }
     }
 
-    post("/api/v1/risk/pnl-attribution/{portfolioId}/compute", {
+    post("/api/v1/risk/pnl-attribution/{bookId}/compute", {
         summary = "Compute P&L attribution"
         tags = listOf("P&L Attribution")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         try {
-            val result = client.computePnlAttribution(portfolioId)
+            val result = client.computePnlAttribution(bookId)
             call.respond(result.toResponse())
         } catch (e: IllegalStateException) {
             call.respond(

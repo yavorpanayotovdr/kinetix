@@ -3,7 +3,7 @@ package com.kinetix.gateway.client
 import java.time.Instant
 
 data class VaRCalculationParams(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val timeHorizonDays: Int,
@@ -18,7 +18,7 @@ data class ComponentBreakdownItem(
 )
 
 data class ValuationResultSummary(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val varValue: Double,
@@ -31,7 +31,7 @@ data class ValuationResultSummary(
 )
 
 data class StressTestParams(
-    val portfolioId: String,
+    val bookId: String,
     val scenarioName: String,
     val calculationType: String,
     val confidenceLevel: String,
@@ -78,7 +78,7 @@ data class StressTestResultSummary(
 )
 
 data class StressTestBatchParams(
-    val portfolioId: String,
+    val bookId: String,
     val scenarioNames: List<String>,
     val calculationType: String,
     val confidenceLevel: String,
@@ -93,7 +93,7 @@ data class GreekValuesItem(
 )
 
 data class GreeksResultSummary(
-    val portfolioId: String,
+    val bookId: String,
     val assetClassGreeks: List<GreekValuesItem>,
     val theta: Double,
     val rho: Double,
@@ -109,7 +109,7 @@ data class RiskClassChargeItem(
 )
 
 data class FrtbResultSummary(
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeItem>,
     val totalSbmCharge: Double,
     val grossJtd: Double,
@@ -123,14 +123,14 @@ data class FrtbResultSummary(
 )
 
 data class ReportResult(
-    val portfolioId: String,
+    val bookId: String,
     val format: String,
     val content: String,
     val generatedAt: Instant,
 )
 
 data class DependenciesParams(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
 )
@@ -145,7 +145,7 @@ data class MarketDataDependencyItem(
 )
 
 data class DataDependenciesSummary(
-    val portfolioId: String,
+    val bookId: String,
     val dependencies: List<MarketDataDependencyItem>,
 )
 
@@ -161,7 +161,7 @@ data class JobPhaseItem(
 
 data class ValuationJobSummaryItem(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: Instant,
@@ -187,7 +187,7 @@ data class ValuationJobSummaryItem(
 
 data class ValuationJobDetailItem(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: Instant,
@@ -229,7 +229,7 @@ data class EodTimelineEntryItem(
 )
 
 data class EodTimelineSummary(
-    val portfolioId: String,
+    val bookId: String,
     val from: String,
     val to: String,
     val entries: List<EodTimelineEntryItem>,
@@ -257,7 +257,7 @@ data class PositionPnlAttributionSummary(
 )
 
 data class PnlAttributionSummary(
-    val portfolioId: String,
+    val bookId: String,
     val date: String,
     val totalPnl: String,
     val deltaPnl: String,
@@ -287,7 +287,7 @@ data class HypotheticalTradeParam(
 )
 
 data class WhatIfRequestParams(
-    val portfolioId: String,
+    val bookId: String,
     val hypotheticalTrades: List<HypotheticalTradeParam>,
     val calculationType: String? = null,
     val confidenceLevel: String? = null,
@@ -376,34 +376,34 @@ data class WhatIfResultSummary(
 )
 
 interface RiskServiceClient {
-    suspend fun getMarginEstimate(portfolioId: String, previousMTM: String? = null): MarginEstimateSummary?
+    suspend fun getMarginEstimate(bookId: String, previousMTM: String? = null): MarginEstimateSummary?
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
-    suspend fun getLatestVaR(portfolioId: String, valuationDate: String? = null): ValuationResultSummary?
+    suspend fun getLatestVaR(bookId: String, valuationDate: String? = null): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
     suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary>
     suspend fun listScenarios(): List<String>
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?
-    suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary?
-    suspend fun generateReport(portfolioId: String, format: String): ReportResult?
+    suspend fun calculateFrtb(bookId: String): FrtbResultSummary?
+    suspend fun generateReport(bookId: String, format: String): ReportResult?
     suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary?
-    suspend fun listValuationJobs(portfolioId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null, valuationDate: String? = null): Pair<List<ValuationJobSummaryItem>, Long>
+    suspend fun listValuationJobs(bookId: String, limit: Int = 20, offset: Int = 0, from: Instant? = null, to: Instant? = null, valuationDate: String? = null): Pair<List<ValuationJobSummaryItem>, Long>
     suspend fun getValuationJobDetail(jobId: String): ValuationJobDetailItem?
-    suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary?
-    suspend fun createSodSnapshot(portfolioId: String, jobId: String? = null): SodBaselineStatusSummary
-    suspend fun resetSodBaseline(portfolioId: String)
-    suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary
-    suspend fun getPnlAttribution(portfolioId: String, date: String? = null): PnlAttributionSummary?
+    suspend fun getSodBaselineStatus(bookId: String): SodBaselineStatusSummary?
+    suspend fun createSodSnapshot(bookId: String, jobId: String? = null): SodBaselineStatusSummary
+    suspend fun resetSodBaseline(bookId: String)
+    suspend fun computePnlAttribution(bookId: String): PnlAttributionSummary
+    suspend fun getPnlAttribution(bookId: String, date: String? = null): PnlAttributionSummary?
     suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary
-    suspend fun getPositionRisk(portfolioId: String, valuationDate: String? = null): List<PositionRiskSummaryItem>?
-    suspend fun compareRuns(portfolioId: String, baseJobId: String, targetJobId: String): kotlinx.serialization.json.JsonObject
-    suspend fun compareDayOverDay(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject?
-    suspend fun compareDayOverDayAttribution(portfolioId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject
-    suspend fun compareModel(portfolioId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun getPositionRisk(bookId: String, valuationDate: String? = null): List<PositionRiskSummaryItem>?
+    suspend fun compareRuns(bookId: String, baseJobId: String, targetJobId: String): kotlinx.serialization.json.JsonObject
+    suspend fun compareDayOverDay(bookId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject?
+    suspend fun compareDayOverDayAttribution(bookId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject
+    suspend fun compareModel(bookId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun promoteJobLabel(jobId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
-    suspend fun getOfficialEod(portfolioId: String, date: String): kotlinx.serialization.json.JsonObject?
-    suspend fun getMarketDataQuantDiff(portfolioId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
-    suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary?
-    suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary
+    suspend fun getOfficialEod(bookId: String, date: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getMarketDataQuantDiff(bookId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getEodTimeline(bookId: String, from: String, to: String): EodTimelineSummary?
+    suspend fun getChartData(bookId: String, from: Instant, to: Instant): ChartDataSummary
     suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
     suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
     suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dto.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?

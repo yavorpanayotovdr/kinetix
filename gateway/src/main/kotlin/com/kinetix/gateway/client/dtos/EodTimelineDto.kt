@@ -27,7 +27,7 @@ data class EodTimelineEntryClientDto(
 
 @Serializable
 data class EodTimelineClientDto(
-    val portfolioId: String,
+    val bookId: String,
     val from: String,
     val to: String,
     val entries: List<EodTimelineEntryClientDto>,
@@ -54,7 +54,7 @@ fun EodTimelineEntryClientDto.toDomain() = EodTimelineEntryItem(
 )
 
 fun EodTimelineClientDto.toDomain() = EodTimelineSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     from = from,
     to = to,
     entries = entries.map { it.toDomain() },

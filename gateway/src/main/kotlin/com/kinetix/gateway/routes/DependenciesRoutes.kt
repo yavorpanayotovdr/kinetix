@@ -11,17 +11,17 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.dependenciesRoutes(client: RiskServiceClient) {
-    route("/api/v1/risk/dependencies/{portfolioId}") {
+    route("/api/v1/risk/dependencies/{bookId}") {
         post({
             summary = "Discover market data dependencies"
             tags = listOf("Dependencies")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<DependenciesRequest>()
-            val params = request.toParams(portfolioId)
+            val params = request.toParams(bookId)
             val result = client.discoverDependencies(params)
             if (result != null) {
                 call.respond(result.toResponse())

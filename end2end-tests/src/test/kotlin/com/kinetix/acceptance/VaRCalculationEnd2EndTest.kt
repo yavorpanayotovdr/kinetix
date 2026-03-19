@@ -41,8 +41,8 @@ private val USD = Currency.getInstance("USD")
 private class RepositoryBackedPositionServiceClient(
     private val repository: com.kinetix.position.persistence.PositionRepository,
 ) : PositionServiceClient {
-    override suspend fun getPositions(portfolioId: BookId): ClientResponse<List<Position>> =
-        ClientResponse.Success(repository.findByBookId(portfolioId))
+    override suspend fun getPositions(bookId: BookId): ClientResponse<List<Position>> =
+        ClientResponse.Success(repository.findByBookId(bookId))
 
     override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> =
         ClientResponse.Success(repository.findDistinctBookIds())
@@ -99,7 +99,7 @@ private class StubRiskEngineClient : RiskEngineClient {
     ): VaRResult {
         val (totalVar, breakdown) = compute(request, positions)
         return VaRResult(
-            portfolioId = request.portfolioId,
+            bookId = request.bookId,
             calculationType = request.calculationType,
             confidenceLevel = request.confidenceLevel,
             varValue = totalVar,
@@ -117,7 +117,7 @@ private class StubRiskEngineClient : RiskEngineClient {
     ): ValuationResult {
         val (totalVar, breakdown) = compute(request, positions)
         return ValuationResult(
-            portfolioId = request.portfolioId,
+            bookId = request.bookId,
             calculationType = request.calculationType,
             confidenceLevel = request.confidenceLevel,
             varValue = totalVar,
@@ -209,12 +209,12 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
     }
 
     given("a portfolio with positions across EQUITY, FIXED_INCOME, and FX") {
-        val portfolioId = BookId("port-var-1")
+        val bookId = BookId("port-var-1")
 
         bookingService.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-var-equity"),
-                portfolioId = portfolioId,
+                bookId = bookId,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -227,7 +227,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
         bookingService.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-var-fi"),
-                portfolioId = portfolioId,
+                bookId = bookId,
                 instrumentId = InstrumentId("UST10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -240,7 +240,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
         bookingService.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-var-fx"),
-                portfolioId = portfolioId,
+                bookId = bookId,
                 instrumentId = InstrumentId("EURUSD"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -252,7 +252,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
 
         `when`("VaR calculation is requested for the portfolio") {
             val request = VaRCalculationRequest(
-                portfolioId = portfolioId,
+                bookId = bookId,
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -263,7 +263,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
                 result shouldNotBe null
                 result!!.varValue!! shouldBeGreaterThan 0.0
                 result.expectedShortfall!! shouldBeGreaterThan result.varValue!!
-                result.portfolioId shouldBe portfolioId
+                result.bookId shouldBe bookId
                 result.calculationType shouldBe CalculationType.PARAMETRIC
             }
 
@@ -290,7 +290,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
 
                 val record = records.first()
                 val event = Json.decodeFromString<RiskResultEvent>(record.value())
-                event.portfolioId shouldBe portfolioId.value
+                event.bookId shouldBe bookId.value
                 event.varValue.toDouble() shouldBeGreaterThan 0.0
                 event.componentBreakdown.size shouldBe 3
             }

@@ -16,14 +16,14 @@ fun Route.auditProxyRoutes(httpClient: HttpClient, auditBaseUrl: String) {
             summary = "List audit events"
             tags = listOf("Audit")
             request {
-                queryParameter<String>("portfolioId") { description = "Filter by portfolio ID"; required = false }
+                queryParameter<String>("bookId") { description = "Filter by book ID"; required = false }
                 queryParameter<Long>("afterId") { description = "Cursor for pagination"; required = false }
                 queryParameter<Int>("limit") { description = "Max events to return"; required = false }
             }
         }) {
             val queryString = call.request.queryParameters.let { params ->
                 val parts = mutableListOf<String>()
-                params["portfolioId"]?.let { parts.add("portfolioId=$it") }
+                params["bookId"]?.let { parts.add("bookId=$it") }
                 params["afterId"]?.let { parts.add("afterId=$it") }
                 params["limit"]?.let { parts.add("limit=$it") }
                 if (parts.isNotEmpty()) "?${parts.joinToString("&")}" else ""

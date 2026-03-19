@@ -19,7 +19,7 @@ class SuggestedActionGeneratorTest : FunSpec({
     )
 
     fun riskEvent(varValue: String = "150000.0") = RiskResultEvent(
-        portfolioId = "book-1",
+        bookId = "book-1",
         varValue = varValue,
         expectedShortfall = "180000.0",
         calculationType = "PARAMETRIC",

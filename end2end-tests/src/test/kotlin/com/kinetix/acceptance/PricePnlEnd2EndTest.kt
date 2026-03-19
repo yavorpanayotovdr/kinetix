@@ -94,7 +94,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
     given("a portfolio with 100 AAPL bought at 150 USD") {
         val command = BookTradeCommand(
             tradeId = TradeId("t-mkt-1"),
-            portfolioId = BookId("port-mkt-1"),
+            bookId = BookId("port-mkt-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,

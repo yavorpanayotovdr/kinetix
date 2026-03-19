@@ -48,8 +48,8 @@ class HttpRiskServiceClient(
         }
     }
 
-    override suspend fun getMarginEstimate(portfolioId: String, previousMTM: String?): MarginEstimateSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/books/$portfolioId/margin") {
+    override suspend fun getMarginEstimate(bookId: String, previousMTM: String?): MarginEstimateSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/margin") {
             if (previousMTM != null) {
                 url { parameters.append("previousMTM", previousMTM) }
             }
@@ -60,7 +60,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary? {
-        val response = httpClient.post("$baseUrl/api/v1/risk/var/${params.portfolioId}") {
+        val response = httpClient.post("$baseUrl/api/v1/risk/var/${params.bookId}") {
             contentType(ContentType.Application.Json)
             setBody(
                 VaRCalculationRequestDto(
@@ -78,8 +78,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getLatestVaR(portfolioId: String, valuationDate: String?): ValuationResultSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/var/$portfolioId") {
+    override suspend fun getLatestVaR(bookId: String, valuationDate: String?): ValuationResultSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/var/$bookId") {
             if (!valuationDate.isNullOrBlank()) {
                 url { parameters.append("valuationDate", valuationDate) }
             }
@@ -91,7 +91,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun runStressTest(params: StressTestParams): StressTestResultSummary? {
-        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.portfolioId}") {
+        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}") {
             contentType(ContentType.Application.Json)
             setBody(
                 StressTestRequestDto(
@@ -112,7 +112,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary> {
-        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.portfolioId}/batch") {
+        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}/batch") {
             contentType(ContentType.Application.Json)
             setBody(
                 StressTestBatchRequestDto(
@@ -141,8 +141,8 @@ class HttpRiskServiceClient(
         return result?.greeks
     }
 
-    override suspend fun calculateFrtb(portfolioId: String): FrtbResultSummary? {
-        val response = httpClient.post("$baseUrl/api/v1/regulatory/frtb/$portfolioId") {
+    override suspend fun calculateFrtb(bookId: String): FrtbResultSummary? {
+        val response = httpClient.post("$baseUrl/api/v1/regulatory/frtb/$bookId") {
             contentType(ContentType.Application.Json)
         }
         if (response.status == HttpStatusCode.NotFound) return null
@@ -151,8 +151,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun generateReport(portfolioId: String, format: String): ReportResult? {
-        val response = httpClient.post("$baseUrl/api/v1/regulatory/report/$portfolioId") {
+    override suspend fun generateReport(bookId: String, format: String): ReportResult? {
+        val response = httpClient.post("$baseUrl/api/v1/regulatory/report/$bookId") {
             contentType(ContentType.Application.Json)
             setBody(GenerateReportRequestDto(format = format))
         }
@@ -163,7 +163,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun discoverDependencies(params: DependenciesParams): DataDependenciesSummary? {
-        val response = httpClient.post("$baseUrl/api/v1/risk/dependencies/${params.portfolioId}") {
+        val response = httpClient.post("$baseUrl/api/v1/risk/dependencies/${params.bookId}") {
             contentType(ContentType.Application.Json)
             setBody(
                 DependenciesRequestDto(
@@ -178,8 +178,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun listValuationJobs(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: String?): Pair<List<ValuationJobSummaryItem>, Long> {
-        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId") {
+    override suspend fun listValuationJobs(bookId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: String?): Pair<List<ValuationJobSummaryItem>, Long> {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$bookId") {
             url {
                 parameters.append("limit", limit.toString())
                 parameters.append("offset", offset.toString())
@@ -201,16 +201,16 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getSodBaselineStatus(portfolioId: String): SodBaselineStatusSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId/status")
+    override suspend fun getSodBaselineStatus(bookId: String): SodBaselineStatusSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/sod-snapshot/$bookId/status")
         if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         val dto: SodBaselineStatusClientDto = response.body()
         return dto.toDomain()
     }
 
-    override suspend fun createSodSnapshot(portfolioId: String, jobId: String?): SodBaselineStatusSummary {
-        val response = httpClient.post("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId") {
+    override suspend fun createSodSnapshot(bookId: String, jobId: String?): SodBaselineStatusSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/sod-snapshot/$bookId") {
             contentType(ContentType.Application.Json)
             if (jobId != null) {
                 url.parameters.append("jobId", jobId)
@@ -221,12 +221,12 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun resetSodBaseline(portfolioId: String) {
-        httpClient.delete("$baseUrl/api/v1/risk/sod-snapshot/$portfolioId")
+    override suspend fun resetSodBaseline(bookId: String) {
+        httpClient.delete("$baseUrl/api/v1/risk/sod-snapshot/$bookId")
     }
 
-    override suspend fun computePnlAttribution(portfolioId: String): PnlAttributionSummary {
-        val response = httpClient.post("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId/compute") {
+    override suspend fun computePnlAttribution(bookId: String): PnlAttributionSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/pnl-attribution/$bookId/compute") {
             contentType(ContentType.Application.Json)
         }
         if (!response.status.isSuccess()) handleErrorResponse(response)
@@ -235,7 +235,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary {
-        val response = httpClient.post("$baseUrl/api/v1/risk/what-if/${params.portfolioId}") {
+        val response = httpClient.post("$baseUrl/api/v1/risk/what-if/${params.bookId}") {
             contentType(ContentType.Application.Json)
             setBody(
                 WhatIfRequestClientDto(
@@ -259,8 +259,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getPositionRisk(portfolioId: String, valuationDate: String?): List<PositionRiskSummaryItem>? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/positions/$portfolioId") {
+    override suspend fun getPositionRisk(bookId: String, valuationDate: String?): List<PositionRiskSummaryItem>? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/positions/$bookId") {
             if (!valuationDate.isNullOrBlank()) {
                 url { parameters.append("valuationDate", valuationDate) }
             }
@@ -271,8 +271,8 @@ class HttpRiskServiceClient(
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getPnlAttribution(portfolioId: String, date: String?): PnlAttributionSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/pnl-attribution/$portfolioId") {
+    override suspend fun getPnlAttribution(bookId: String, date: String?): PnlAttributionSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/pnl-attribution/$bookId") {
             if (date != null) {
                 url { parameters.append("date", date) }
             }
@@ -283,8 +283,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun compareRuns(portfolioId: String, baseJobId: String, targetJobId: String): JsonObject {
-        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId") {
+    override suspend fun compareRuns(bookId: String, baseJobId: String, targetJobId: String): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$bookId") {
             contentType(ContentType.Application.Json)
             setBody(buildJsonObject {
                 put("baseJobId", baseJobId)
@@ -295,8 +295,8 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-    override suspend fun compareDayOverDay(portfolioId: String, targetDate: String?, baseDate: String?): JsonObject? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$portfolioId/day-over-day") {
+    override suspend fun compareDayOverDay(bookId: String, targetDate: String?, baseDate: String?): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$bookId/day-over-day") {
             url {
                 if (targetDate != null) parameters.append("targetDate", targetDate)
                 if (baseDate != null) parameters.append("baseDate", baseDate)
@@ -307,8 +307,8 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-    override suspend fun compareDayOverDayAttribution(portfolioId: String, targetDate: String?, baseDate: String?): JsonObject {
-        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId/day-over-day/attribution") {
+    override suspend fun compareDayOverDayAttribution(bookId: String, targetDate: String?, baseDate: String?): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$bookId/day-over-day/attribution") {
             contentType(ContentType.Application.Json)
             url {
                 if (targetDate != null) parameters.append("targetDate", targetDate)
@@ -319,8 +319,8 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-    override suspend fun compareModel(portfolioId: String, request: JsonObject): JsonObject {
-        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$portfolioId/model") {
+    override suspend fun compareModel(bookId: String, request: JsonObject): JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/compare/$bookId/model") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
@@ -337,8 +337,8 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-    override suspend fun getOfficialEod(portfolioId: String, date: String): JsonObject? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId/official-eod") {
+    override suspend fun getOfficialEod(bookId: String, date: String): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$bookId/official-eod") {
             url { parameters.append("date", date) }
         }
         if (response.status == HttpStatusCode.NotFound) return null
@@ -347,13 +347,13 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun getMarketDataQuantDiff(
-        portfolioId: String,
+        bookId: String,
         dataType: String,
         instrumentId: String,
         baseManifestId: String,
         targetManifestId: String,
     ): JsonObject? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$portfolioId/market-data-quant") {
+        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$bookId/market-data-quant") {
             url {
                 parameters.append("dataType", dataType)
                 parameters.append("instrumentId", instrumentId)
@@ -366,8 +366,8 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-    override suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary {
-        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId/chart") {
+    override suspend fun getChartData(bookId: String, from: Instant, to: Instant): ChartDataSummary {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$bookId/chart") {
             url {
                 parameters.append("from", from.toString())
                 parameters.append("to", to.toString())
@@ -378,8 +378,8 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/risk/eod-timeline/$portfolioId") {
+    override suspend fun getEodTimeline(bookId: String, from: String, to: String): EodTimelineSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/eod-timeline/$bookId") {
             url {
                 parameters.append("from", from)
                 parameters.append("to", to)

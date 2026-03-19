@@ -65,7 +65,7 @@ data class MoneyDto(
 @Serializable
 data class TradeResponse(
     val tradeId: String,
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val side: String,
@@ -77,7 +77,7 @@ data class TradeResponse(
 
 @Serializable
 data class PositionResponse(
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val quantity: String,
@@ -97,7 +97,7 @@ data class BookTradeResponse(
 
 @Serializable
 data class PortfolioSummaryResponse(
-    val portfolioId: String,
+    val bookId: String,
 )
 
 @Serializable
@@ -116,7 +116,7 @@ data class CurrencyExposureResponse(
 
 @Serializable
 data class PortfolioAggregationResponse(
-    val portfolioId: String,
+    val bookId: String,
     val baseCurrency: String,
     val totalNav: MoneyDto,
     val totalUnrealizedPnl: MoneyDto,
@@ -132,7 +132,7 @@ fun Money.toDto(): MoneyDto = MoneyDto(
 
 fun Trade.toResponse(): TradeResponse = TradeResponse(
     tradeId = tradeId.value,
-    portfolioId = bookId.value,
+    bookId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     side = side.name,
@@ -143,7 +143,7 @@ fun Trade.toResponse(): TradeResponse = TradeResponse(
 )
 
 fun Position.toResponse(): PositionResponse = PositionResponse(
-    portfolioId = bookId.value,
+    bookId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     quantity = quantity.toPlainString(),
@@ -160,7 +160,7 @@ fun BookTradeResult.toResponse(): BookTradeResponse = BookTradeResponse(
 )
 
 fun PortfolioSummary.toResponse(): PortfolioSummaryResponse = PortfolioSummaryResponse(
-    portfolioId = id.value,
+    bookId = id.value,
 )
 
 fun CurrencyExposureSummary.toResponse(): CurrencyExposureResponse = CurrencyExposureResponse(
@@ -171,7 +171,7 @@ fun CurrencyExposureSummary.toResponse(): CurrencyExposureResponse = CurrencyExp
 )
 
 fun PortfolioAggregationSummary.toResponse(): PortfolioAggregationResponse = PortfolioAggregationResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     baseCurrency = baseCurrency,
     totalNav = totalNav.toDto(),
     totalUnrealizedPnl = totalUnrealizedPnl.toDto(),
@@ -180,14 +180,14 @@ fun PortfolioAggregationSummary.toResponse(): PortfolioAggregationResponse = Por
 
 // --- DTO -> Domain mappers ---
 
-fun BookTradeRequest.toCommand(portfolioId: BookId): BookTradeCommand {
+fun BookTradeRequest.toCommand(bookId: BookId): BookTradeCommand {
     val qty = BigDecimal(quantity)
     require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
     val priceAmt = BigDecimal(priceAmount)
     require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
     return BookTradeCommand(
         tradeId = TradeId(tradeId),
-        portfolioId = portfolioId,
+        bookId = bookId,
         instrumentId = InstrumentId(instrumentId),
         assetClass = AssetClass.valueOf(assetClass),
         side = Side.valueOf(side),
@@ -217,7 +217,7 @@ data class ComponentBreakdownDto(
 
 @Serializable
 data class ValuationResultResponse(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val varValue: String,
@@ -235,7 +235,7 @@ data class ValuationResultResponse(
 private val validCalculationTypes = setOf("HISTORICAL", "PARAMETRIC", "MONTE_CARLO")
 private val validConfidenceLevels = setOf("CL_95", "CL_975", "CL_99")
 
-fun VaRCalculationRequest.toParams(portfolioId: String): VaRCalculationParams {
+fun VaRCalculationRequest.toParams(bookId: String): VaRCalculationParams {
     val calcType = calculationType ?: "PARAMETRIC"
     require(calcType in validCalculationTypes) {
         "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
@@ -245,7 +245,7 @@ fun VaRCalculationRequest.toParams(portfolioId: String): VaRCalculationParams {
         "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
     }
     return VaRCalculationParams(
-        portfolioId = portfolioId,
+        bookId = bookId,
         calculationType = calcType,
         confidenceLevel = confLevel,
         timeHorizonDays = timeHorizonDays?.toInt() ?: 1,
@@ -261,7 +261,7 @@ fun ComponentBreakdownItem.toDto(): ComponentBreakdownDto = ComponentBreakdownDt
 )
 
 fun ValuationResultSummary.toResponse(): ValuationResultResponse = ValuationResultResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
     varValue = "%.2f".format(varValue),
@@ -344,7 +344,7 @@ data class GreekValuesDto(
 
 @Serializable
 data class GreeksResponse(
-    val portfolioId: String,
+    val bookId: String,
     val assetClassGreeks: List<GreekValuesDto>,
     val theta: String,
     val rho: String,
@@ -353,7 +353,7 @@ data class GreeksResponse(
 
 // --- Stress Test mappers ---
 
-fun StressTestRequest.toParams(portfolioId: String): StressTestParams {
+fun StressTestRequest.toParams(bookId: String): StressTestParams {
     val calcType = calculationType ?: "PARAMETRIC"
     require(calcType in validCalculationTypes) {
         "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
@@ -363,7 +363,7 @@ fun StressTestRequest.toParams(portfolioId: String): StressTestParams {
         "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
     }
     return StressTestParams(
-        portfolioId = portfolioId,
+        bookId = bookId,
         scenarioName = scenarioName,
         calculationType = calcType,
         confidenceLevel = confLevel,
@@ -410,7 +410,7 @@ fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestRespons
     limitBreaches = limitBreaches.map { it.toDto() },
 )
 
-fun StressTestBatchRequest.toParams(portfolioId: String): StressTestBatchParams {
+fun StressTestBatchRequest.toParams(bookId: String): StressTestBatchParams {
     val calcType = calculationType ?: "PARAMETRIC"
     require(calcType in validCalculationTypes) {
         "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
@@ -420,7 +420,7 @@ fun StressTestBatchRequest.toParams(portfolioId: String): StressTestBatchParams 
         "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
     }
     return StressTestBatchParams(
-        portfolioId = portfolioId,
+        bookId = bookId,
         scenarioNames = scenarioNames,
         calculationType = calcType,
         confidenceLevel = confLevel,
@@ -436,7 +436,7 @@ fun GreekValuesItem.toDto(): GreekValuesDto = GreekValuesDto(
 )
 
 fun GreeksResultSummary.toResponse(): GreeksResponse = GreeksResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     assetClassGreeks = assetClassGreeks.map { it.toDto() },
     theta = "%.6f".format(theta),
     rho = "%.6f".format(rho),
@@ -456,7 +456,7 @@ data class RiskClassChargeDto(
 
 @Serializable
 data class FrtbResultResponse(
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeDto>,
     val totalSbmCharge: String,
     val grossJtd: String,
@@ -476,7 +476,7 @@ data class GenerateReportRequest(
 
 @Serializable
 data class ReportResponse(
-    val portfolioId: String,
+    val bookId: String,
     val format: String,
     val content: String,
     val generatedAt: String,
@@ -493,7 +493,7 @@ fun RiskClassChargeItem.toDto(): RiskClassChargeDto = RiskClassChargeDto(
 )
 
 fun FrtbResultSummary.toResponse(): FrtbResultResponse = FrtbResultResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     sbmCharges = sbmCharges.map { it.toDto() },
     totalSbmCharge = "%.2f".format(totalSbmCharge),
     grossJtd = "%.2f".format(grossJtd),
@@ -507,7 +507,7 @@ fun FrtbResultSummary.toResponse(): FrtbResultResponse = FrtbResultResponse(
 )
 
 fun ReportResult.toResponse(): ReportResponse = ReportResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     format = format,
     content = content,
     generatedAt = generatedAt.toString(),
@@ -533,13 +533,13 @@ data class MarketDataDependencyResponse(
 
 @Serializable
 data class DataDependenciesResponse(
-    val portfolioId: String,
+    val bookId: String,
     val dependencies: List<MarketDataDependencyResponse>,
 )
 
 // --- Dependencies mappers ---
 
-fun DependenciesRequest.toParams(portfolioId: String): DependenciesParams {
+fun DependenciesRequest.toParams(bookId: String): DependenciesParams {
     val calcType = calculationType ?: "PARAMETRIC"
     require(calcType in validCalculationTypes) {
         "Invalid calculationType: $calcType. Must be one of $validCalculationTypes"
@@ -549,7 +549,7 @@ fun DependenciesRequest.toParams(portfolioId: String): DependenciesParams {
         "Invalid confidenceLevel: $confLevel. Must be one of $validConfidenceLevels"
     }
     return DependenciesParams(
-        portfolioId = portfolioId,
+        bookId = bookId,
         calculationType = calcType,
         confidenceLevel = confLevel,
     )
@@ -565,7 +565,7 @@ fun MarketDataDependencyItem.toDto(): MarketDataDependencyResponse = MarketDataD
 )
 
 fun DataDependenciesSummary.toResponse(): DataDependenciesResponse = DataDependenciesResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     dependencies = dependencies.map { it.toDto() },
 )
 
@@ -698,7 +698,7 @@ data class PositionPnlAttributionResponse(
 
 @Serializable
 data class PnlAttributionResponse(
-    val portfolioId: String,
+    val bookId: String,
     val date: String,
     val totalPnl: String,
     val deltaPnl: String,
@@ -726,7 +726,7 @@ fun PositionPnlAttributionSummary.toResponse(): PositionPnlAttributionResponse =
 )
 
 fun PnlAttributionSummary.toResponse(): PnlAttributionResponse = PnlAttributionResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     date = date,
     totalPnl = totalPnl,
     deltaPnl = deltaPnl,
@@ -788,9 +788,9 @@ data class WhatIfGatewayResponse(
 
 // --- What-If mappers ---
 
-fun WhatIfGatewayRequest.toParams(portfolioId: String): com.kinetix.gateway.client.WhatIfRequestParams =
+fun WhatIfGatewayRequest.toParams(bookId: String): com.kinetix.gateway.client.WhatIfRequestParams =
     com.kinetix.gateway.client.WhatIfRequestParams(
-        portfolioId = portfolioId,
+        bookId = bookId,
         hypotheticalTrades = hypotheticalTrades.map {
             com.kinetix.gateway.client.HypotheticalTradeParam(
                 instrumentId = it.instrumentId,
@@ -868,7 +868,7 @@ data class JobPhaseDto(
 @Serializable
 data class ValuationJobSummaryResponse(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: String,
@@ -895,7 +895,7 @@ data class ValuationJobSummaryResponse(
 @Serializable
 data class ValuationJobDetailResponse(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: String,
@@ -982,7 +982,7 @@ fun JobPhaseItem.toDto(): JobPhaseDto = JobPhaseDto(
 
 fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = ValuationJobSummaryResponse(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = status,
     startedAt = startedAt.toString(),
@@ -1008,7 +1008,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = status,
     startedAt = startedAt.toString(),

@@ -12,7 +12,7 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
 
     test("RiskResultEvent serializes and deserializes all fields correctly") {
         val event = RiskResultEvent(
-            portfolioId = "port-1",
+            bookId = "port-1",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             varValue = "25000.0",
@@ -30,7 +30,7 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
         val serialized = Json.encodeToString(RiskResultEvent.serializer(), event)
 
         val deserialized = json.decodeFromString<RiskResultEvent>(serialized)
-        deserialized.portfolioId shouldBe "port-1"
+        deserialized.bookId shouldBe "port-1"
         deserialized.varValue shouldBe "25000.0"
         deserialized.expectedShortfall shouldBe "31000.0"
         deserialized.calculationType shouldBe "PARAMETRIC"
@@ -41,7 +41,7 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
 
     test("RiskResultEvent with empty component breakdown deserializes correctly") {
         val event = RiskResultEvent(
-            portfolioId = "port-2",
+            bookId = "port-2",
             calculationType = "HISTORICAL",
             confidenceLevel = "CL_99",
             varValue = "0.0",
@@ -52,14 +52,14 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
         val serialized = Json.encodeToString(RiskResultEvent.serializer(), event)
 
         val deserialized = json.decodeFromString<RiskResultEvent>(serialized)
-        deserialized.portfolioId shouldBe "port-2"
+        deserialized.bookId shouldBe "port-2"
         deserialized.varValue shouldBe "0.0"
         deserialized.correlationId shouldBe null
     }
 
-    test("RiskResultEvent bookId defaults to portfolioId when not provided") {
+    test("bookId is the primary identifier field") {
         val event = RiskResultEvent(
-            portfolioId = "book-200",
+            bookId = "book-200",
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             varValue = "5000.0",
@@ -69,10 +69,11 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
         event.bookId shouldBe "book-200"
     }
 
-    test("old JSON without bookId deserializes with bookId defaulting to portfolioId") {
+    test("old JSON with portfolioId instead of bookId is tolerated with ignoreUnknownKeys") {
         val oldJson = """
             {
                 "portfolioId": "port-legacy",
+                "bookId": "port-legacy",
                 "varValue": "1000.0",
                 "expectedShortfall": "1300.0",
                 "calculationType": "PARAMETRIC",
@@ -81,7 +82,6 @@ class RiskResultSchemaCompatibilityTest : FunSpec({
         """.trimIndent()
 
         val event = json.decodeFromString<RiskResultEvent>(oldJson)
-        event.portfolioId shouldBe "port-legacy"
         event.bookId shouldBe "port-legacy"
     }
 })

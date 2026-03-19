@@ -29,7 +29,6 @@ class AuditEventConsumerIntegrationTest : FunSpec({
 
         val event = TradeEventMessage(
             tradeId = "t-1",
-            portfolioId = "port-1",
             bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
@@ -74,9 +73,9 @@ class AuditEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val events = listOf(
-            TradeEventMessage(tradeId = "t-10", portfolioId = "port-2", bookId = "port-2", instrumentId = "MSFT", assetClass = "EQUITY", side = "BUY", quantity = "50", priceAmount = "300.00", priceCurrency = "USD", tradedAt = "2025-01-15T10:00:00Z"),
-            TradeEventMessage(tradeId = "t-11", portfolioId = "port-2", bookId = "port-2", instrumentId = "GOOG", assetClass = "EQUITY", side = "SELL", quantity = "25", priceAmount = "180.00", priceCurrency = "USD", tradedAt = "2025-01-15T11:00:00Z"),
-            TradeEventMessage(tradeId = "t-12", portfolioId = "port-2", bookId = "port-2", instrumentId = "TSLA", assetClass = "EQUITY", side = "BUY", quantity = "10", priceAmount = "250.00", priceCurrency = "USD", tradedAt = "2025-01-15T12:00:00Z"),
+            TradeEventMessage(tradeId = "t-10", bookId = "port-2", instrumentId = "MSFT", assetClass = "EQUITY", side = "BUY", quantity = "50", priceAmount = "300.00", priceCurrency = "USD", tradedAt = "2025-01-15T10:00:00Z"),
+            TradeEventMessage(tradeId = "t-11", bookId = "port-2", instrumentId = "GOOG", assetClass = "EQUITY", side = "SELL", quantity = "25", priceAmount = "180.00", priceCurrency = "USD", tradedAt = "2025-01-15T11:00:00Z"),
+            TradeEventMessage(tradeId = "t-12", bookId = "port-2", instrumentId = "TSLA", assetClass = "EQUITY", side = "BUY", quantity = "10", priceAmount = "250.00", priceCurrency = "USD", tradedAt = "2025-01-15T12:00:00Z"),
         )
 
         for (event in events) {

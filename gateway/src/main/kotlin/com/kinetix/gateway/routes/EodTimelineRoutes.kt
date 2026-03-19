@@ -9,11 +9,11 @@ import io.ktor.server.routing.*
 
 fun Route.eodTimelineRoutes(client: RiskServiceClient) {
 
-    get("/api/v1/risk/eod-timeline/{portfolioId}", {
-        summary = "Get EOD history timeline for a portfolio"
+    get("/api/v1/risk/eod-timeline/{bookId}", {
+        summary = "Get EOD history timeline for a book"
         tags = listOf("EOD History")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("from") {
                 description = "Start date (YYYY-MM-DD)"
                 required = true
@@ -24,7 +24,7 @@ fun Route.eodTimelineRoutes(client: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
 
         val from = call.request.queryParameters["from"]
         if (from.isNullOrBlank()) {
@@ -38,11 +38,11 @@ fun Route.eodTimelineRoutes(client: RiskServiceClient) {
             return@get
         }
 
-        val result = client.getEodTimeline(portfolioId, from, to)
+        val result = client.getEodTimeline(bookId, from, to)
         if (result != null) {
             call.respond(result.toResponse())
         } else {
-            call.respond(HttpStatusCode.NotFound, mapOf("error" to "No EOD timeline found for portfolio $portfolioId"))
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "No EOD timeline found for book $bookId"))
         }
     }
 }

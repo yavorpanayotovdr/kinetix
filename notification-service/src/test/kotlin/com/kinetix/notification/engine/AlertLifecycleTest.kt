@@ -27,7 +27,7 @@ class AlertLifecycleTest : FunSpec({
 
     fun riskEvent(varValue: String = "150000.0", bookId: String = "book-1") =
         RiskResultEvent(
-            portfolioId = bookId,
+            bookId = bookId,
             varValue = varValue,
             expectedShortfall = "180000.0",
             calculationType = "PARAMETRIC",
@@ -111,7 +111,7 @@ class AlertLifecycleTest : FunSpec({
 
         // VaR drops but ES now fires — VaR alert should be auto-resolved
         val event2 = RiskResultEvent(
-            portfolioId = "book-1",
+            bookId = "book-1",
             varValue = "50000.0",
             expectedShortfall = "200000.0",
             calculationType = "PARAMETRIC",
@@ -150,7 +150,7 @@ class AlertLifecycleTest : FunSpec({
         engine.addRule(varBreachRule())
 
         val event = RiskResultEvent(
-            portfolioId = "book-1",
+            bookId = "book-1",
             varValue = "150000.0",
             expectedShortfall = "180000.0",
             calculationType = "PARAMETRIC",

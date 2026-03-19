@@ -12,7 +12,7 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
     test("TradeEventMessage preserves eventType and status when serializing an AMEND event") {
         val event = TradeEventMessage(
             tradeId = "trade-amend-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -29,7 +29,7 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
 
         val deserialized = json.decodeFromString<TradeEventMessage>(serialized)
         deserialized.tradeId shouldBe "trade-amend-1"
-        deserialized.portfolioId shouldBe "port-1"
+        deserialized.bookId shouldBe "port-1"
         deserialized.eventType shouldBe "AMEND"
         deserialized.status shouldBe "LIVE"
         deserialized.originalTradeId shouldBe "orig-1"
@@ -39,7 +39,7 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
     test("TradeEventMessage preserves eventType=CANCEL and status=CANCELLED") {
         val event = TradeEventMessage(
             tradeId = "trade-cancel-1",
-            portfolioId = "port-2",
+            bookId = "port-2",
             instrumentId = "MSFT",
             assetClass = "EQUITY",
             side = "SELL",
@@ -63,7 +63,7 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
     test("TradeEventMessage preserves audit fields (userId, userRole, auditEventType)") {
         val event = TradeEventMessage(
             tradeId = "trade-audit-1",
-            portfolioId = "port-3",
+            bookId = "port-3",
             instrumentId = "GOOG",
             assetClass = "EQUITY",
             side = "BUY",
@@ -92,11 +92,11 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         deserialized.auditEventType shouldBe "TRADE_AMENDED"
     }
 
-    test("backward compatibility: defaults apply when deserializing minimal event without optional fields") {
+    test("backward compatibility: defaults apply when deserializing minimal event") {
         val minimalJson = """
             {
                 "tradeId": "trade-minimal-1",
-                "portfolioId": "port-4",
+                "bookId": "port-4",
                 "instrumentId": "TSLA",
                 "assetClass": "EQUITY",
                 "side": "BUY",
@@ -109,6 +109,7 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
 
         val event = json.decodeFromString<TradeEventMessage>(minimalJson)
         event.tradeId shouldBe "trade-minimal-1"
+        event.bookId shouldBe "port-4"
         event.eventType shouldBe "NEW"
         event.status shouldBe "LIVE"
         event.originalTradeId shouldBe null
@@ -116,13 +117,11 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         event.userId shouldBe null
         event.userRole shouldBe null
         event.auditEventType shouldBe "TRADE_BOOKED"
-        event.bookId shouldBe "port-4"
     }
 
-    test("bookId is serialized alongside portfolioId in new events") {
+    test("bookId is serialized and round-trips correctly") {
         val event = TradeEventMessage(
             tradeId = "trade-new-1",
-            portfolioId = "book-101",
             bookId = "book-101",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
@@ -135,15 +134,15 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         val serialized = Json.encodeToString(TradeEventMessage.serializer(), event)
 
         val deserialized = json.decodeFromString<TradeEventMessage>(serialized)
-        deserialized.portfolioId shouldBe "book-101"
         deserialized.bookId shouldBe "book-101"
     }
 
-    test("old JSON without bookId deserializes with bookId defaulting to portfolioId") {
+    test("old JSON with portfolioId instead of bookId is tolerated with ignoreUnknownKeys") {
         val oldJson = """
             {
                 "tradeId": "trade-old-1",
                 "portfolioId": "port-legacy",
+                "bookId": "port-legacy",
                 "instrumentId": "MSFT",
                 "assetClass": "EQUITY",
                 "side": "SELL",
@@ -155,7 +154,6 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         """.trimIndent()
 
         val event = json.decodeFromString<TradeEventMessage>(oldJson)
-        event.portfolioId shouldBe "port-legacy"
         event.bookId shouldBe "port-legacy"
     }
 })

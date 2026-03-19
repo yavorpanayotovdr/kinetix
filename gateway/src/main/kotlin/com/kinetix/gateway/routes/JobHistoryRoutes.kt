@@ -18,11 +18,11 @@ import java.time.format.DateTimeParseException
 
 fun Route.jobHistoryRoutes(client: RiskServiceClient) {
 
-    get("/api/v1/risk/jobs/{portfolioId}/chart", {
+    get("/api/v1/risk/jobs/{bookId}/chart", {
         summary = "Get aggregated chart data"
         tags = listOf("Job History")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("from") {
                 description = "Start timestamp (ISO-8601)"
                 required = true
@@ -33,7 +33,7 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
 
         val from = try {
             call.request.queryParameters["from"]?.let { Instant.parse(it) }
@@ -54,15 +54,15 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             return@get
         }
 
-        val data = client.getChartData(portfolioId, from, to)
+        val data = client.getChartData(bookId, from, to)
         call.respond(data.toResponse())
     }
 
-    get("/api/v1/risk/jobs/{portfolioId}", {
+    get("/api/v1/risk/jobs/{bookId}", {
         summary = "List valuation jobs"
         tags = listOf("Job History")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<Int>("limit") {
                 description = "Max results, default 20"
                 required = false
@@ -85,7 +85,7 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
         val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
 
@@ -105,7 +105,7 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
 
         val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
 
-        val (jobs, totalCount) = client.listValuationJobs(portfolioId, limit, offset, from, to, valuationDate)
+        val (jobs, totalCount) = client.listValuationJobs(bookId, limit, offset, from, to, valuationDate)
         call.respond(PaginatedJobsResponse(jobs.map { it.toResponse() }, totalCount))
     }
 
@@ -144,24 +144,24 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
         }
     }
 
-    get("/api/v1/risk/jobs/{portfolioId}/official-eod", {
-        summary = "Get the Official EOD designation for a portfolio and date"
+    get("/api/v1/risk/jobs/{bookId}/official-eod", {
+        summary = "Get the Official EOD designation for a book and date"
         tags = listOf("EOD Promotion")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("date") {
                 description = "Valuation date (YYYY-MM-DD)"
                 required = true
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val date = call.request.queryParameters["date"]
         if (date.isNullOrBlank()) {
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date parameter is required"))
             return@get
         }
-        val result = client.getOfficialEod(portfolioId, date)
+        val result = client.getOfficialEod(bookId, date)
         if (result != null) {
             call.respond(result)
         } else {

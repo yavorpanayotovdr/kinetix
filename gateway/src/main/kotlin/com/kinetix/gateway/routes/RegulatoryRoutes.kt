@@ -10,16 +10,16 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.regulatoryRoutes(client: RiskServiceClient) {
-    route("/api/v1/regulatory/frtb/{portfolioId}") {
+    route("/api/v1/regulatory/frtb/{bookId}") {
         post({
             summary = "Calculate FRTB"
             tags = listOf("Regulatory")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
-            val result = client.calculateFrtb(portfolioId)
+            val bookId = call.requirePathParam("bookId")
+            val result = client.calculateFrtb(bookId)
             if (result != null) {
                 call.respond(result.toResponse())
             } else {
@@ -28,18 +28,18 @@ fun Route.regulatoryRoutes(client: RiskServiceClient) {
         }
     }
 
-    route("/api/v1/regulatory/report/{portfolioId}") {
+    route("/api/v1/regulatory/report/{bookId}") {
         post({
             summary = "Generate regulatory report"
             tags = listOf("Regulatory")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<GenerateReportRequest>()
             val format = request.format ?: "CSV"
-            val result = client.generateReport(portfolioId, format)
+            val result = client.generateReport(bookId, format)
             if (result != null) {
                 call.respond(result.toResponse())
             } else {

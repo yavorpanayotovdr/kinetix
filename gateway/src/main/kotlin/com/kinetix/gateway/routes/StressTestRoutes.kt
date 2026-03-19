@@ -14,17 +14,17 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.stressTestRoutes(client: RiskServiceClient) {
-    route("/api/v1/risk/stress/{portfolioId}") {
+    route("/api/v1/risk/stress/{bookId}") {
         post({
             summary = "Run stress test"
             tags = listOf("Stress Tests")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<StressTestRequest>()
-            val params = request.toParams(portfolioId)
+            val params = request.toParams(bookId)
             val result = client.runStressTest(params)
             if (result != null) {
                 call.respond(result.toResponse())
@@ -34,16 +34,16 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
         }
     }
 
-    post("/api/v1/risk/stress/{portfolioId}/batch", {
+    post("/api/v1/risk/stress/{bookId}/batch", {
         summary = "Run all stress tests"
         tags = listOf("Stress Tests")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val request = call.receive<StressTestBatchRequest>()
-        val params = request.toParams(portfolioId)
+        val params = request.toParams(bookId)
         val results = client.runBatchStressTest(params)
         call.respond(results.map { it.toResponse() })
     }
@@ -56,17 +56,17 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
         call.respond(scenarios)
     }
 
-    route("/api/v1/risk/greeks/{portfolioId}") {
+    route("/api/v1/risk/greeks/{bookId}") {
         post({
             summary = "Calculate Greeks"
             tags = listOf("Greeks")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<VaRCalculationRequest>()
-            val params = request.toParams(portfolioId).copy(
+            val params = request.toParams(bookId).copy(
                 requestedOutputs = listOf("VAR", "EXPECTED_SHORTFALL", "GREEKS")
             )
             val result = client.calculateVaR(params)

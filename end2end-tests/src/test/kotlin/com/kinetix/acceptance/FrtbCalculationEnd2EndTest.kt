@@ -38,12 +38,12 @@ class FrtbCalculationEnd2EndTest : BehaviorSpec({
     val riskClient = mockk<RiskOrchestratorClient>()
     val json = Json { ignoreUnknownKeys = true }
 
-    val portfolioId = "port-frtb-e2e"
+    val bookId = "port-frtb-e2e"
     val firstCalculatedAt = Instant.now()
     val secondCalculatedAt = Instant.now().plusSeconds(300)
 
     fun stubFrtbResult(calculatedAt: Instant) = FrtbResultResponse(
-        portfolioId = portfolioId,
+        bookId = bookId,
         sbmCharges = listOf(
             RiskClassChargeDto("EQUITY", "1200.50", "300.25", "150.10", "1650.85"),
             RiskClassChargeDto("GIRR", "800.00", "200.00", "100.00", "1100.00"),
@@ -71,7 +71,7 @@ class FrtbCalculationEnd2EndTest : BehaviorSpec({
         )
         frtbRepo = ExposedFrtbCalculationRepository(db)
 
-        coEvery { riskClient.calculateFrtb(portfolioId) } returnsMany listOf(
+        coEvery { riskClient.calculateFrtb(bookId) } returnsMany listOf(
             stubFrtbResult(firstCalculatedAt),
             stubFrtbResult(secondCalculatedAt),
         )
@@ -90,22 +90,22 @@ class FrtbCalculationEnd2EndTest : BehaviorSpec({
                     }
 
                     // --- Latest returns 404 when no calculations exist ---
-                    val latestEmpty = client.get("/api/v1/regulatory/frtb/$portfolioId/latest")
+                    val latestEmpty = client.get("/api/v1/regulatory/frtb/$bookId/latest")
                     latestEmpty.status shouldBe HttpStatusCode.NotFound
 
                     // --- History is empty initially ---
-                    val historyEmpty = client.get("/api/v1/regulatory/frtb/$portfolioId/history")
+                    val historyEmpty = client.get("/api/v1/regulatory/frtb/$bookId/history")
                     historyEmpty.status shouldBe HttpStatusCode.OK
                     val emptyHistory = json.decodeFromString<FrtbHistoryResponse>(historyEmpty.bodyAsText())
                     emptyHistory.calculations.size shouldBe 0
 
                     // --- Trigger FRTB calculation ---
-                    val calcResponse = client.post("/api/v1/regulatory/frtb/$portfolioId/calculate")
+                    val calcResponse = client.post("/api/v1/regulatory/frtb/$bookId/calculate")
                     calcResponse.status shouldBe HttpStatusCode.Created
                     val calculation = json.decodeFromString<FrtbCalculationResponse>(calcResponse.bodyAsText())
 
                     calculation.id.shouldNotBeEmpty()
-                    calculation.portfolioId shouldBe portfolioId
+                    calculation.bookId shouldBe bookId
                     calculation.totalSbmCharge shouldBe "3200.85"
                     calculation.grossJtd shouldBe "500.00"
                     calculation.hedgeBenefit shouldBe "75.00"
@@ -131,26 +131,26 @@ class FrtbCalculationEnd2EndTest : BehaviorSpec({
                     fx.totalCharge shouldBe "450.00"
 
                     // --- Latest now returns the calculation ---
-                    val latestResponse = client.get("/api/v1/regulatory/frtb/$portfolioId/latest")
+                    val latestResponse = client.get("/api/v1/regulatory/frtb/$bookId/latest")
                     latestResponse.status shouldBe HttpStatusCode.OK
                     val latest = json.decodeFromString<FrtbCalculationResponse>(latestResponse.bodyAsText())
                     latest.id shouldBe calculation.id
                     latest.totalCapitalCharge shouldBe "3640.85"
 
                     // --- Trigger a second calculation ---
-                    val secondCalcResponse = client.post("/api/v1/regulatory/frtb/$portfolioId/calculate")
+                    val secondCalcResponse = client.post("/api/v1/regulatory/frtb/$bookId/calculate")
                     secondCalcResponse.status shouldBe HttpStatusCode.Created
                     val secondCalc = json.decodeFromString<FrtbCalculationResponse>(secondCalcResponse.bodyAsText())
                     secondCalc.id shouldNotBe calculation.id
 
                     // --- Latest returns the second (most recent) calculation ---
-                    val latestAfterSecond = client.get("/api/v1/regulatory/frtb/$portfolioId/latest")
+                    val latestAfterSecond = client.get("/api/v1/regulatory/frtb/$bookId/latest")
                     latestAfterSecond.status shouldBe HttpStatusCode.OK
                     val latestRecord = json.decodeFromString<FrtbCalculationResponse>(latestAfterSecond.bodyAsText())
                     latestRecord.id shouldBe secondCalc.id
 
                     // --- History returns both calculations, most recent first ---
-                    val historyResponse = client.get("/api/v1/regulatory/frtb/$portfolioId/history")
+                    val historyResponse = client.get("/api/v1/regulatory/frtb/$bookId/history")
                     historyResponse.status shouldBe HttpStatusCode.OK
                     val history = json.decodeFromString<FrtbHistoryResponse>(historyResponse.bodyAsText())
                     history.calculations.size shouldBe 2
@@ -160,7 +160,7 @@ class FrtbCalculationEnd2EndTest : BehaviorSpec({
                     history.offset shouldBe 0
 
                     // --- History respects pagination ---
-                    val paginatedResponse = client.get("/api/v1/regulatory/frtb/$portfolioId/history?limit=1&offset=0")
+                    val paginatedResponse = client.get("/api/v1/regulatory/frtb/$bookId/history?limit=1&offset=0")
                     paginatedResponse.status shouldBe HttpStatusCode.OK
                     val paginated = json.decodeFromString<FrtbHistoryResponse>(paginatedResponse.bodyAsText())
                     paginated.calculations.size shouldBe 1

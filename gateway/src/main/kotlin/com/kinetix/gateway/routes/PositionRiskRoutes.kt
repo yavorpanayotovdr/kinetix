@@ -8,20 +8,20 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.positionRiskRoutes(client: RiskServiceClient) {
-    get("/api/v1/risk/positions/{portfolioId}", {
+    get("/api/v1/risk/positions/{bookId}", {
         summary = "Get position-level risk breakdown"
         tags = listOf("Position Risk")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("valuationDate") {
                 description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
                 required = false
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
-        val result = client.getPositionRisk(portfolioId, valuationDate)
+        val result = client.getPositionRisk(bookId, valuationDate)
         if (result != null) {
             call.respond(result.map { it.toPositionRiskResponse() })
         } else {

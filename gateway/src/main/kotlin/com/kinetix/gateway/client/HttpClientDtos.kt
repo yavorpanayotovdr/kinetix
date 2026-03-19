@@ -9,7 +9,7 @@ import java.util.Currency
 // --- Position Service DTOs ---
 
 @Serializable
-data class PortfolioSummaryDto(val portfolioId: String)
+data class BookSummaryDto(val bookId: String)
 
 @Serializable
 data class CurrencyExposureDto(
@@ -21,7 +21,7 @@ data class CurrencyExposureDto(
 
 @Serializable
 data class PortfolioAggregationDto(
-    val portfolioId: String,
+    val bookId: String,
     val baseCurrency: String,
     val totalNav: MoneyDto,
     val totalUnrealizedPnl: MoneyDto,
@@ -33,7 +33,7 @@ data class MoneyDto(val amount: String, val currency: String)
 
 @Serializable
 data class PositionDto(
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val quantity: String,
@@ -47,7 +47,7 @@ data class PositionDto(
 @Serializable
 data class TradeDto(
     val tradeId: String,
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val side: String,
@@ -105,7 +105,7 @@ data class ComponentBreakdownDto(
 
 @Serializable
 data class ValuationResultDto(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val varValue: String,
@@ -187,7 +187,7 @@ data class GreekValuesDto(
 
 @Serializable
 data class GreeksResultDto(
-    val portfolioId: String,
+    val bookId: String,
     val assetClassGreeks: List<GreekValuesDto>,
     val theta: String,
     val rho: String,
@@ -205,7 +205,7 @@ data class RiskClassChargeDto(
 
 @Serializable
 data class FrtbResultDto(
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeDto>,
     val totalSbmCharge: String,
     val grossJtd: String,
@@ -223,7 +223,7 @@ data class GenerateReportRequestDto(val format: String? = null)
 
 @Serializable
 data class ReportResultDto(
-    val portfolioId: String,
+    val bookId: String,
     val format: String,
     val content: String,
     val generatedAt: String,
@@ -249,7 +249,7 @@ data class MarketDataDependencyItemDto(
 
 @Serializable
 data class DataDependenciesDto(
-    val portfolioId: String,
+    val bookId: String,
     val dependencies: List<MarketDataDependencyItemDto>,
 )
 
@@ -318,7 +318,7 @@ data class JobPhaseClientDto(
 @Serializable
 data class ValuationJobSummaryClientDto(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: String,
@@ -345,7 +345,7 @@ data class ValuationJobSummaryClientDto(
 @Serializable
 data class ValuationJobDetailClientDto(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: String,
@@ -401,7 +401,7 @@ data class PositionPnlAttributionClientDto(
 
 @Serializable
 data class PnlAttributionClientDto(
-    val portfolioId: String,
+    val bookId: String,
     val date: String,
     val totalPnl: String,
     val deltaPnl: String,
@@ -473,12 +473,12 @@ data class WhatIfResultClientDto(
 
 // --- Domain mappers ---
 
-fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = BookId(portfolioId))
+fun BookSummaryDto.toDomain() = PortfolioSummary(id = BookId(bookId))
 
 fun MoneyDto.toDomainMoney() = Money(BigDecimal(amount), Currency.getInstance(currency))
 
 fun PositionDto.toDomain() = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     quantity = BigDecimal(quantity),
@@ -489,7 +489,7 @@ fun PositionDto.toDomain() = Position(
 
 fun TradeDto.toDomain() = Trade(
     tradeId = TradeId(tradeId),
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     side = Side.valueOf(side),
@@ -512,7 +512,7 @@ fun PricePointDto.toDomain() = PricePoint(
 )
 
 fun ValuationResultDto.toDomain() = ValuationResultSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = calculationType,
     confidenceLevel = confidenceLevel,
     varValue = varValue.toDouble(),
@@ -567,7 +567,7 @@ fun StressTestResultDto.toDomain() = StressTestResultSummary(
 )
 
 fun GreeksResultDto.toDomain() = GreeksResultSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     assetClassGreeks = assetClassGreeks.map {
         GreekValuesItem(
             assetClass = it.assetClass,
@@ -582,7 +582,7 @@ fun GreeksResultDto.toDomain() = GreeksResultSummary(
 )
 
 fun FrtbResultDto.toDomain() = FrtbResultSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     sbmCharges = sbmCharges.map {
         RiskClassChargeItem(
             riskClass = it.riskClass,
@@ -604,14 +604,14 @@ fun FrtbResultDto.toDomain() = FrtbResultSummary(
 )
 
 fun ReportResultDto.toDomain() = ReportResult(
-    portfolioId = portfolioId,
+    bookId = bookId,
     format = format,
     content = content,
     generatedAt = Instant.parse(generatedAt),
 )
 
 fun DataDependenciesDto.toDomain() = DataDependenciesSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     dependencies = dependencies.map {
         MarketDataDependencyItem(
             dataType = it.dataType,
@@ -665,7 +665,7 @@ fun JobPhaseClientDto.toDomain() = JobPhaseItem(
 
 fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = status,
     startedAt = Instant.parse(startedAt),
@@ -691,7 +691,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = status,
     startedAt = Instant.parse(startedAt),
@@ -734,7 +734,7 @@ fun PositionPnlAttributionClientDto.toDomain() = PositionPnlAttributionSummary(
 )
 
 fun PnlAttributionClientDto.toDomain() = PnlAttributionSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     date = date,
     totalPnl = totalPnl,
     deltaPnl = deltaPnl,
@@ -762,7 +762,7 @@ fun CurrencyExposureDto.toDomain() = CurrencyExposureSummary(
 )
 
 fun PortfolioAggregationDto.toDomain() = PortfolioAggregationSummary(
-    portfolioId = portfolioId,
+    bookId = bookId,
     baseCurrency = baseCurrency,
     totalNav = totalNav.toDomainMoney(),
     totalUnrealizedPnl = totalUnrealizedPnl.toDomainMoney(),

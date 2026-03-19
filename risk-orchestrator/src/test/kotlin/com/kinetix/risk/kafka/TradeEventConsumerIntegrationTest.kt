@@ -35,7 +35,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val job = launch { consumer.start() }
 
-        val event = TradeEventMessage(portfolioId = "port-1",
+        val event = TradeEventMessage(
             tradeId = "trade-1",
             bookId = "port-1",
             instrumentId = "AAPL",
@@ -81,7 +81,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         for (portId in listOf("port-A", "port-B")) {
-            val event = TradeEventMessage(portfolioId = portId,
+            val event = TradeEventMessage(
                 tradeId = "trade-$portId",
                 bookId = portId,
                 instrumentId = "AAPL",

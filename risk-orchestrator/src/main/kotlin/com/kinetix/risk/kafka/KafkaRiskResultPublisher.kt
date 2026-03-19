@@ -21,7 +21,7 @@ class KafkaRiskResultPublisher(
 
     override suspend fun publish(result: ValuationResult, correlationId: String?) {
         val event = RiskResultEvent(
-            portfolioId = result.bookId.value,
+            bookId = result.bookId.value,
             calculationType = result.calculationType.name,
             confidenceLevel = result.confidenceLevel.name,
             varValue = (result.varValue ?: 0.0).toString(),

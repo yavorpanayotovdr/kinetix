@@ -18,10 +18,10 @@ import java.util.Properties
 class OperationalSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededBookId
+    val bookId = SmokeTestConfig.seededBookId
 
     test("FX rates are non-trivial for EUR positions") {
-        val response = client.smokeGet("/api/v1/books/$portfolioId/summary", "fx-rates")
+        val response = client.smokeGet("/api/v1/books/$bookId/summary", "fx-rates")
         response.status shouldBe HttpStatusCode.OK
 
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject

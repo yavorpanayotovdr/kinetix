@@ -115,7 +115,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
         `when`("a BUY trade for 100 AAPL @ 150 USD is booked") {
             val command = BookTradeCommand(
                 tradeId = TradeId("t-accept-1"),
-                portfolioId = BookId("port-accept-1"),
+                bookId = BookId("port-accept-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,

@@ -57,7 +57,7 @@ private data class RraoResult(
 )
 
 private data class FrtbResult(
-    val portfolioId: String,
+    val bookId: String,
     val sbm: SbmResult,
     val drc: DrcResult,
     val rrao: RraoResult,
@@ -120,12 +120,12 @@ private class StubFrtbCalculator {
     private val drc = StubDrcEngine()
     private val rrao = StubRraoEngine()
 
-    fun calculate(portfolioId: String, exposures: Map<AssetClass, Double>): FrtbResult {
+    fun calculate(bookId: String, exposures: Map<AssetClass, Double>): FrtbResult {
         val sbmResult = sbm.calculate(exposures)
         val drcResult = drc.calculate(exposures)
         val rraoResult = rrao.calculate(exposures)
         val total = sbmResult.totalSbmCharge + drcResult.netDrc + rraoResult.totalRrao
-        return FrtbResult(portfolioId, sbmResult, drcResult, rraoResult, total)
+        return FrtbResult(bookId, sbmResult, drcResult, rraoResult, total)
     }
 }
 
@@ -148,7 +148,7 @@ private fun generateCsvReport(result: FrtbResult): String {
 private fun generateXbrlReport(result: FrtbResult): String {
     val sb = StringBuilder()
     sb.appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
-    sb.appendLine("""<FRTBReport portfolioId="${result.portfolioId}">""")
+    sb.appendLine("""<FRTBReport bookId="${result.bookId}">""")
     sb.appendLine("  <SensitivitiesBasedMethod>")
     for (rcc in result.sbm.riskClassCharges) {
         sb.appendLine("""    <RiskClassCharge riskClass="${rcc.riskClass.name}">""")

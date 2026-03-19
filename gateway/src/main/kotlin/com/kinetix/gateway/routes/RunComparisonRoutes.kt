@@ -18,14 +18,14 @@ private data class RunComparisonRequest(
 
 fun Route.runComparisonRoutes(client: RiskServiceClient) {
 
-    post("/api/v1/risk/compare/{portfolioId}", {
+    post("/api/v1/risk/compare/{bookId}", {
         summary = "Compare two valuation runs by job ID"
         tags = listOf("Run Comparison")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val body = call.receive<RunComparisonRequest>()
         if (body.baseJobId == null || body.targetJobId == null) {
             call.respond(
@@ -34,15 +34,15 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
             )
             return@post
         }
-        val result = client.compareRuns(portfolioId, body.baseJobId, body.targetJobId)
+        val result = client.compareRuns(bookId, body.baseJobId, body.targetJobId)
         call.respond(result)
     }
 
-    get("/api/v1/risk/compare/{portfolioId}/day-over-day", {
+    get("/api/v1/risk/compare/{bookId}/day-over-day", {
         summary = "Day-over-day VaR comparison"
         tags = listOf("Run Comparison")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("targetDate") {
                 description = "Target date (YYYY-MM-DD)"
                 required = false
@@ -53,10 +53,10 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val targetDate = call.request.queryParameters["targetDate"]?.takeIf { it.isNotBlank() }
         val baseDate = call.request.queryParameters["baseDate"]?.takeIf { it.isNotBlank() }
-        val result = client.compareDayOverDay(portfolioId, targetDate, baseDate)
+        val result = client.compareDayOverDay(bookId, targetDate, baseDate)
         if (result != null) {
             call.respond(result)
         } else {
@@ -64,11 +64,11 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
         }
     }
 
-    post("/api/v1/risk/compare/{portfolioId}/day-over-day/attribution", {
+    post("/api/v1/risk/compare/{bookId}/day-over-day/attribution", {
         summary = "Day-over-day VaR attribution (computationally expensive)"
         tags = listOf("Run Comparison")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("targetDate") {
                 description = "Target date (YYYY-MM-DD)"
                 required = false
@@ -79,38 +79,38 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val targetDate = call.request.queryParameters["targetDate"]?.takeIf { it.isNotBlank() }
         val baseDate = call.request.queryParameters["baseDate"]?.takeIf { it.isNotBlank() }
-        val result = client.compareDayOverDayAttribution(portfolioId, targetDate, baseDate)
+        val result = client.compareDayOverDayAttribution(bookId, targetDate, baseDate)
         call.respond(result)
     }
 
-    post("/api/v1/risk/compare/{portfolioId}/model", {
+    post("/api/v1/risk/compare/{bookId}/model", {
         summary = "Compare VaR across two model configurations"
         tags = listOf("Run Comparison")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val body = call.receive<JsonObject>()
-        val result = client.compareModel(portfolioId, body)
+        val result = client.compareModel(bookId, body)
         call.respond(result)
     }
 
-    get("/api/v1/risk/compare/{portfolioId}/market-data-quant", {
+    get("/api/v1/risk/compare/{bookId}/market-data-quant", {
         summary = "Quantitative diff for a specific market data item between two manifests"
         tags = listOf("Run Comparison")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("dataType") { description = "Market data type (e.g. SPOT_PRICE)" }
             queryParameter<String>("instrumentId") { description = "Instrument identifier" }
             queryParameter<String>("baseManifestId") { description = "Base manifest UUID" }
             queryParameter<String>("targetManifestId") { description = "Target manifest UUID" }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val dataType = call.request.queryParameters["dataType"]
             ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "dataType is required"))
         val instrumentId = call.request.queryParameters["instrumentId"]
@@ -120,7 +120,7 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
         val targetManifestId = call.request.queryParameters["targetManifestId"]
             ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "targetManifestId is required"))
 
-        val result = client.getMarketDataQuantDiff(portfolioId, dataType, instrumentId, baseManifestId, targetManifestId)
+        val result = client.getMarketDataQuantDiff(bookId, dataType, instrumentId, baseManifestId, targetManifestId)
         if (result != null) {
             call.respond(result)
         } else {

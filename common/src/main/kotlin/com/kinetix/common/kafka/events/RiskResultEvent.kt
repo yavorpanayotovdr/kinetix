@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RiskResultEvent(
-    val portfolioId: String,
+    val bookId: String,
     val varValue: String,
     val expectedShortfall: String,
     val calculationType: String,
@@ -20,7 +20,6 @@ data class RiskResultEvent(
     val confidenceLevel: String = "",
     val componentBreakdown: List<ComponentBreakdownEvent> = emptyList(),
     val correlationId: String? = null,
-    val bookId: String = portfolioId,
     val positionBreakdown: List<PositionBreakdownItem>? = null,
     val aggregateDelta: String? = null,
     val aggregateVega: String? = null,

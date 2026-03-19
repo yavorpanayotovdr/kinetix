@@ -53,7 +53,7 @@ class TradeEventCorrelationIdTest : FunSpec({
     }
 
     test("correlationId defaults to null for backward-compatible deserialization") {
-        val jsonWithoutCorrelation = """{"tradeId":"t-1","portfolioId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}"""
+        val jsonWithoutCorrelation = """{"tradeId":"t-1","bookId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}"""
         val event = Json.decodeFromString<TradeEventMessage>(jsonWithoutCorrelation)
 
         event.correlationId shouldBe null

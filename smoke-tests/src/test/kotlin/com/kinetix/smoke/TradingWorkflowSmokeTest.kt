@@ -76,7 +76,7 @@ class TradingWorkflowSmokeTest : FunSpec({
             description = "audit event for trade $bookedTradeId",
         ) {
             val response = client.smokeGet(
-                "/api/v1/audit/events?portfolioId=$smokeBookId",
+                "/api/v1/audit/events?bookId=$smokeBookId",
                 "audit-check",
             )
             if (response.status != HttpStatusCode.OK) return@pollUntil null

@@ -11,17 +11,17 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.whatIfRoutes(client: RiskServiceClient) {
-    route("/api/v1/risk/what-if/{portfolioId}") {
+    route("/api/v1/risk/what-if/{bookId}") {
         post({
             summary = "Run what-if analysis"
             tags = listOf("What-If")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<WhatIfGatewayRequest>()
-            val params = request.toParams(portfolioId)
+            val params = request.toParams(bookId)
             val result = client.runWhatIf(params)
             call.respond(result.toResponse())
         }

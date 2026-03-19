@@ -55,7 +55,7 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
 
         val event = Json.decodeFromString<TradeEventMessage>(record.value())
         event.tradeId shouldBe "t-1"
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.instrumentId shouldBe "AAPL"
         event.assetClass shouldBe "EQUITY"
         event.side shouldBe "BUY"

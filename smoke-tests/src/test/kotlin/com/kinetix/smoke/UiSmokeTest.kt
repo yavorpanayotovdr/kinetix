@@ -15,10 +15,10 @@ import kotlinx.serialization.json.*
 class UiSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededBookId
+    val bookId = SmokeTestConfig.seededBookId
 
     test("positions API returns non-empty data for seeded portfolio") {
-        val response = client.smokeGet("/api/v1/books/$portfolioId/positions", "positions-api")
+        val response = client.smokeGet("/api/v1/books/$bookId/positions", "positions-api")
         response.status shouldBe HttpStatusCode.OK
 
         val positions = Json.parseToJsonElement(response.bodyAsText()).jsonArray
@@ -29,7 +29,7 @@ class UiSmokeTest : FunSpec({
     }
 
     test("portfolio summary returns non-zero NAV") {
-        val response = client.smokeGet("/api/v1/books/$portfolioId/summary", "portfolio-summary")
+        val response = client.smokeGet("/api/v1/books/$bookId/summary", "portfolio-summary")
         response.status shouldBe HttpStatusCode.OK
 
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject

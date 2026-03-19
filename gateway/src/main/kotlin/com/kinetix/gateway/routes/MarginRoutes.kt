@@ -35,9 +35,9 @@ fun Route.marginRoutes(riskClient: RiskServiceClient) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("bookId")
+        val bookId = call.requirePathParam("bookId")
         val previousMTM = call.request.queryParameters["previousMTM"]
-        val result = riskClient.getMarginEstimate(portfolioId, previousMTM)
+        val result = riskClient.getMarginEstimate(bookId, previousMTM)
         if (result != null) {
             call.respond(result.toDto())
         } else {

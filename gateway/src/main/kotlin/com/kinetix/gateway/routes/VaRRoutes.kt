@@ -12,18 +12,18 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.varRoutes(client: RiskServiceClient) {
-    route("/api/v1/risk/var/{portfolioId}") {
+    route("/api/v1/risk/var/{bookId}") {
 
         post({
             summary = "Calculate VaR"
             tags = listOf("VaR")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val request = call.receive<VaRCalculationRequest>()
-            val params = request.toParams(portfolioId)
+            val params = request.toParams(bookId)
             val result = client.calculateVaR(params)
             if (result != null) {
                 call.respond(result.toResponse())
@@ -36,16 +36,16 @@ fun Route.varRoutes(client: RiskServiceClient) {
             summary = "Get latest VaR result"
             tags = listOf("VaR")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Book identifier" }
                 queryParameter<String>("valuationDate") {
                     description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
                     required = false
                 }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val valuationDate = call.request.queryParameters["valuationDate"]?.takeIf { it.isNotBlank() }
-            val result = client.getLatestVaR(portfolioId, valuationDate)
+            val result = client.getLatestVaR(bookId, valuationDate)
             if (result != null) {
                 call.respond(result.toResponse())
             } else {

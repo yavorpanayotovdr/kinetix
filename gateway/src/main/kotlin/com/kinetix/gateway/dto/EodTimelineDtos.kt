@@ -27,7 +27,7 @@ data class EodTimelineEntryResponse(
 
 @Serializable
 data class EodTimelineResponse(
-    val portfolioId: String,
+    val bookId: String,
     val from: String,
     val to: String,
     val entries: List<EodTimelineEntryResponse>,
@@ -54,7 +54,7 @@ fun EodTimelineEntryItem.toResponse() = EodTimelineEntryResponse(
 )
 
 fun EodTimelineSummary.toResponse() = EodTimelineResponse(
-    portfolioId = portfolioId,
+    bookId = bookId,
     from = from,
     to = to,
     entries = entries.map { it.toResponse() },

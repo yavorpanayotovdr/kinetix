@@ -18,7 +18,7 @@ import java.time.Instant
 class RiskCalculationSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededBookId
+    val bookId = SmokeTestConfig.seededBookId
 
     // Store VaR values across tests for cross-method comparison
     var parametricVaR: Double? = null
@@ -28,7 +28,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("VaR parametric calculates end-to-end") {
         val body = """{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95","timeHorizonDays":"1","requestedOutputs":["VAR","EXPECTED_SHORTFALL","COMPONENT_VAR"]}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/var/$portfolioId", "var-parametric", body)
+        val response = client.smokePost("/api/v1/risk/var/$bookId", "var-parametric", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC var_parametric_ms=$elapsed")
 
@@ -57,7 +57,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("VaR historical calculates end-to-end") {
         val body = """{"calculationType":"HISTORICAL","confidenceLevel":"CL_95","timeHorizonDays":"1","requestedOutputs":["VAR","EXPECTED_SHORTFALL"]}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/var/$portfolioId", "var-historical", body)
+        val response = client.smokePost("/api/v1/risk/var/$bookId", "var-historical", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC var_historical_ms=$elapsed")
 
@@ -80,7 +80,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("VaR Monte Carlo calculates end-to-end with seed determinism") {
         val body = """{"calculationType":"MONTE_CARLO","confidenceLevel":"CL_95","timeHorizonDays":"1","numSimulations":"10000","requestedOutputs":["VAR","EXPECTED_SHORTFALL"]}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/var/$portfolioId", "var-mc", body)
+        val response = client.smokePost("/api/v1/risk/var/$bookId", "var-mc", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC var_monte_carlo_ms=$elapsed")
 
@@ -100,7 +100,7 @@ class RiskCalculationSmokeTest : FunSpec({
         monteCarloVaR = varValue
 
         // Seed determinism: second run with same seed should produce similar results
-        val response2 = client.smokePost("/api/v1/risk/var/$portfolioId", "var-mc-determinism", body)
+        val response2 = client.smokePost("/api/v1/risk/var/$bookId", "var-mc-determinism", body)
         val result2 = Json.parseToJsonElement(response2.bodyAsText()).jsonObject
         val varValue2 = result2["varValue"]?.jsonPrimitive?.content?.toDoubleOrNull()
         varValue2.shouldNotBeNull()
@@ -120,7 +120,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("Greeks are non-NaN with correct signs for long equity portfolio") {
         val body = """{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95","timeHorizonDays":"1","requestedOutputs":["GREEKS"]}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/greeks/$portfolioId", "greeks", body)
+        val response = client.smokePost("/api/v1/risk/greeks/$bookId", "greeks", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC greeks_ms=$elapsed")
 
@@ -143,7 +143,7 @@ class RiskCalculationSmokeTest : FunSpec({
 
     test("component VaR sums to approximately 100 percent for parametric") {
         val body = """{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95","timeHorizonDays":"1","requestedOutputs":["COMPONENT_VAR"]}"""
-        val response = client.smokePost("/api/v1/risk/var/$portfolioId", "component-var", body)
+        val response = client.smokePost("/api/v1/risk/var/$bookId", "component-var", body)
         response.status shouldBe HttpStatusCode.OK
 
         val result = Json.parseToJsonElement(response.bodyAsText()).jsonObject
@@ -160,7 +160,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("P and L attribution returns finite values") {
         val body = """{}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/pnl-attribution/$portfolioId/compute", "pnl-attribution", body)
+        val response = client.smokePost("/api/v1/risk/pnl-attribution/$bookId/compute", "pnl-attribution", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC pnl_attribution_ms=$elapsed")
 
@@ -177,7 +177,7 @@ class RiskCalculationSmokeTest : FunSpec({
     test("stress test returns non-trivial result for crash scenario") {
         val body = """{"scenarioNames":["EQUITY_CRASH"]}"""
         val start = System.currentTimeMillis()
-        val response = client.smokePost("/api/v1/risk/stress/$portfolioId/batch", "stress-test", body)
+        val response = client.smokePost("/api/v1/risk/stress/$bookId/batch", "stress-test", body)
         val elapsed = System.currentTimeMillis() - start
         println("SMOKE_METRIC stress_test_ms=$elapsed")
 

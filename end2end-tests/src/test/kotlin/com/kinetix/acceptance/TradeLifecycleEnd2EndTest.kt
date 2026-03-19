@@ -133,14 +133,14 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a LIVE BUY trade of 100 AAPL @ 150") {
         `when`("the trade is amended to 200 shares @ 160") {
-            val portfolioId = "port-lifecycle-1"
+            val bookId ="port-lifecycle-1"
             val originalTradeId = "t-lifecycle-1-original"
             val amendTradeId = "t-lifecycle-1-amend"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId(originalTradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -154,7 +154,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
                 AmendTradeCommand(
                     originalTradeId = TradeId(originalTradeId),
                     newTradeId = TradeId(amendTradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -172,7 +172,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             }
 
             then("position reflects the amended quantity and price") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 1
                 positions[0].quantity.compareTo(BigDecimal("200")) shouldBe 0
                 positions[0].averageCost.amount.compareTo(BigDecimal("160.00")) shouldBe 0
@@ -180,11 +180,11 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
             then("two audit events are produced with a valid hash chain") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByBookId(portfolioId).size < 2) {
+                    while (auditRepository.findByBookId(bookId).size < 2) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 2
                 val chainResult = AuditHasher.verifyChain(auditEvents)
                 chainResult.valid shouldBe true
@@ -198,13 +198,13 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a LIVE BUY trade of 100 AAPL @ 150 (to be cancelled)") {
         `when`("the trade is cancelled") {
-            val portfolioId = "port-lifecycle-2"
+            val bookId ="port-lifecycle-2"
             val tradeId = "t-lifecycle-2"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -217,7 +217,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             val cancelResult = lifecycleService.handleCancel(
                 CancelTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                 )
             )
 
@@ -226,18 +226,18 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             }
 
             then("the position quantity is zero") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 1
                 positions[0].quantity.compareTo(BigDecimal.ZERO) shouldBe 0
             }
 
             then("two audit events are recorded (book + cancel)") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByBookId(portfolioId).size < 2) {
+                    while (auditRepository.findByBookId(bookId).size < 2) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 2
             }
         }
@@ -247,12 +247,12 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a position of 100 AAPL bought @ 150") {
         `when`("30 shares are sold @ 160") {
-            val portfolioId = "port-lifecycle-3"
+            val bookId ="port-lifecycle-3"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-3-buy"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -265,7 +265,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-3-sell"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.SELL,
@@ -276,24 +276,24 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             )
 
             then("position quantity is reduced to 70") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 1
                 positions[0].quantity.compareTo(BigDecimal("70")) shouldBe 0
             }
 
             then("realized P&L is 300 USD (30 shares × (160 - 150))") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions[0].realizedPnl.amount.compareTo(BigDecimal("300.00")) shouldBe 0
                 positions[0].realizedPnl.currency shouldBe Currency.getInstance("USD")
             }
 
             then("two audit events are recorded") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByBookId(portfolioId).size < 2) {
+                    while (auditRepository.findByBookId(bookId).size < 2) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 2
             }
         }
@@ -303,13 +303,13 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a trade that has been booked and then cancelled") {
         `when`("an amend is attempted on the cancelled trade") {
-            val portfolioId = "port-lifecycle-4"
+            val bookId ="port-lifecycle-4"
             val tradeId = "t-lifecycle-4"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -322,7 +322,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             lifecycleService.handleCancel(
                 CancelTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                 )
             )
 
@@ -332,7 +332,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
                         AmendTradeCommand(
                             originalTradeId = TradeId(tradeId),
                             newTradeId = TradeId("t-lifecycle-4-amend"),
-                            portfolioId = BookId(portfolioId),
+                            bookId = BookId(bookId),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -350,13 +350,13 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a trade that has already been cancelled") {
         `when`("a second cancel is attempted") {
-            val portfolioId = "port-lifecycle-5"
+            val bookId ="port-lifecycle-5"
             val tradeId = "t-lifecycle-5"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -369,7 +369,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             lifecycleService.handleCancel(
                 CancelTradeCommand(
                     tradeId = TradeId(tradeId),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                 )
             )
 
@@ -378,7 +378,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
                     lifecycleService.handleCancel(
                         CancelTradeCommand(
                             tradeId = TradeId(tradeId),
-                            portfolioId = BookId(portfolioId),
+                            bookId = BookId(bookId),
                         )
                     )
                 }
@@ -390,14 +390,14 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a limit check service with a HARD position limit of 1000 shares") {
         `when`("a trade for 1001 shares is submitted") {
-            val portfolioId = "port-lifecycle-6"
+            val bookId ="port-lifecycle-6"
 
             then("LimitBreachException is thrown and no position or audit event is created") {
                 shouldThrow<LimitBreachException> {
                     bookingServiceWithLimits.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-lifecycle-6"),
-                            portfolioId = BookId(portfolioId),
+                            bookId = BookId(bookId),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -408,12 +408,12 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
                     )
                 }
 
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 0
 
                 // Brief delay to allow any spurious Kafka events to propagate before asserting absence
                 delay(500)
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 0
             }
         }
@@ -423,12 +423,12 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a limit check service with a position limit of 1000 and soft threshold at 80% (800)") {
         `when`("800 shares are booked and then 50 more are attempted (total 850 > soft threshold)") {
-            val portfolioId = "port-lifecycle-7"
+            val bookId ="port-lifecycle-7"
 
             bookingServiceWithLimits.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-7-first"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -441,7 +441,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             val softBreachResult = bookingServiceWithLimits.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-7-second"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -457,18 +457,18 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             }
 
             then("the position quantity is 850") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 1
                 positions[0].quantity.compareTo(BigDecimal("850")) shouldBe 0
             }
 
             then("audit events are recorded for both trades") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByBookId(portfolioId).size < 2) {
+                    while (auditRepository.findByBookId(bookId).size < 2) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 2
             }
         }
@@ -478,12 +478,12 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
 
     given("a series of BUY and SELL trades on the same instrument") {
         `when`("100 AAPL @ 150, 50 AAPL @ 160, and SELL 30 AAPL @ 155 are executed") {
-            val portfolioId = "port-lifecycle-8"
+            val bookId ="port-lifecycle-8"
 
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-8-buy1"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -496,7 +496,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-8-buy2"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -509,7 +509,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             bookingService.handle(
                 BookTradeCommand(
                     tradeId = TradeId("t-lifecycle-8-sell"),
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.SELL,
@@ -520,7 +520,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             )
 
             then("the final position quantity is 120") {
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions shouldHaveSize 1
                 positions[0].quantity.compareTo(BigDecimal("120")) shouldBe 0
             }
@@ -528,18 +528,18 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             then("the average cost is the weighted average of the BUY trades (~153.33)") {
                 // (100 × 150 + 50 × 160) / 150 = 23000 / 150 = 153.333...
                 val expectedAvgCost = BigDecimal("23000").divide(BigDecimal("150"), 2, RoundingMode.HALF_UP)
-                val positions = queryService.handle(GetPositionsQuery(BookId(portfolioId)))
+                val positions = queryService.handle(GetPositionsQuery(BookId(bookId)))
                 positions[0].averageCost.amount.setScale(2, RoundingMode.HALF_UP)
                     .compareTo(expectedAvgCost) shouldBe 0
             }
 
             then("three audit events are recorded") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByBookId(portfolioId).size < 3) {
+                    while (auditRepository.findByBookId(bookId).size < 3) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByBookId(portfolioId)
+                val auditEvents = auditRepository.findByBookId(bookId)
                 auditEvents shouldHaveSize 3
             }
         }

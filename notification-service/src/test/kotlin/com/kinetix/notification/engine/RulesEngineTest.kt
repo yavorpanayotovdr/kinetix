@@ -19,7 +19,7 @@ class RulesEngineTest : FunSpec({
                 severity = Severity.CRITICAL, channels = listOf(DeliveryChannel.IN_APP),
             ),
         )
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts shouldHaveSize 1
         alerts[0].type shouldBe AlertType.VAR_BREACH
@@ -38,7 +38,7 @@ class RulesEngineTest : FunSpec({
                 severity = Severity.CRITICAL, channels = listOf(DeliveryChannel.IN_APP),
             ),
         )
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "50000.0", expectedShortfall = "60000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "50000.0", expectedShortfall = "60000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts.shouldBeEmpty()
     }
@@ -52,7 +52,7 @@ class RulesEngineTest : FunSpec({
                 severity = Severity.WARNING, channels = listOf(DeliveryChannel.EMAIL),
             ),
         )
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "100000.0", expectedShortfall = "250000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "100000.0", expectedShortfall = "250000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts shouldHaveSize 1
         alerts[0].type shouldBe AlertType.PNL_THRESHOLD
@@ -69,7 +69,7 @@ class RulesEngineTest : FunSpec({
                 enabled = false,
             ),
         )
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts.shouldBeEmpty()
     }
@@ -90,7 +90,7 @@ class RulesEngineTest : FunSpec({
                 severity = Severity.WARNING, channels = listOf(DeliveryChannel.EMAIL),
             ),
         )
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "150000.0", expectedShortfall = "250000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "150000.0", expectedShortfall = "250000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts shouldHaveSize 2
     }
@@ -131,7 +131,7 @@ class RulesEngineTest : FunSpec({
 
     test("empty rules returns no alerts") {
         val engine = RulesEngine(InMemoryAlertRuleRepository())
-        val event = RiskResultEvent(portfolioId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val event = RiskResultEvent(bookId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
         val alerts = engine.evaluate(event)
         alerts.shouldBeEmpty()
     }
