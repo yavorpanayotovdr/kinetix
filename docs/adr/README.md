@@ -28,3 +28,4 @@
 | [0024](0024-unified-valuation-rpc.md) | Unified valuation RPC | Accepted |
 | [0025](0025-flyway-backward-compatible-migrations.md) | Flyway backward-compatible migration convention | Accepted |
 | [0026](0026-hpa-scaling-metrics.md) | HPA scaling metrics strategy | Proposed |
+| [0027](0027-database-migration-practices.md) | Database migration practices and constraints | Accepted |
