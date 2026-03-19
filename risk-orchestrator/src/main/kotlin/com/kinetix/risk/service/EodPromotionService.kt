@@ -4,7 +4,7 @@ import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
@@ -16,6 +16,7 @@ class EodPromotionService(
     private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
     private val riskAuditPublisher: RiskAuditEventPublisher? = null,
     private val matViewRefresher: (suspend () -> Unit)? = null,
+    private val matViewRefreshRetryDelayMs: Long = 5_000L,
     private val manifestRepository: RunManifestRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
@@ -102,11 +103,7 @@ class EodPromotionService(
             }
 
             if (matViewRefresher != null) {
-                try {
-                    matViewRefresher.invoke()
-                } catch (e: Exception) {
-                    logger.warn("Failed to refresh daily_official_eod_summary materialized view after promoting job {}", promoted.jobId, e)
-                }
+                refreshMatViewWithRetry(promoted.jobId)
             }
 
             sample.stop(meterRegistry.timer("eod.promotion.duration"))
@@ -146,5 +143,29 @@ class EodPromotionService(
 
     suspend fun findOfficialEod(portfolioId: String, valuationDate: LocalDate): ValuationJob? {
         return jobRecorder.findOfficialEodByDate(portfolioId, valuationDate)
+    }
+
+    private suspend fun refreshMatViewWithRetry(jobId: UUID) {
+        val maxAttempts = 2
+        for (attempt in 1..maxAttempts) {
+            try {
+                matViewRefresher!!.invoke()
+                return
+            } catch (e: Exception) {
+                if (attempt < maxAttempts) {
+                    logger.warn(
+                        "Mat view refresh attempt {}/{} failed for job {}, retrying in {}ms",
+                        attempt, maxAttempts, jobId, matViewRefreshRetryDelayMs, e,
+                    )
+                    delay(matViewRefreshRetryDelayMs)
+                } else {
+                    logger.warn(
+                        "Failed to refresh daily_official_eod_summary materialized view after {} attempts for job {}",
+                        maxAttempts, jobId, e,
+                    )
+                    meterRegistry.counter("eod.matview.refresh.failures").increment()
+                }
+            }
+        }
     }
 }
