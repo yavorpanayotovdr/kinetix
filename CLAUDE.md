@@ -58,6 +58,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Test behaviour, not implementation.** Tests should describe *what* the system does, not *how* it does it. Avoid coupling tests to internal details that may change.
 - **Name tests descriptively.** Test names should read as specifications — e.g. `"rejects a trade when the position limit is exceeded"` rather than `"testTradeLimit"`.
 - **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
+- **Every new feature or change needs tests at all applicable levels.** Every new backend feature must have unit tests (Kotest/pytest), acceptance tests (route-level with Ktor testApplication or gateway contract tests), and — where infrastructure boundaries are involved — integration tests. Every UI change needs Vitest unit tests and Playwright E2E tests. Do not consider a feature complete until tests exist at every applicable level.
 - **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 - **Run tests after every change.** After making changes, run the full test suite for every affected module — not just new tests. Do not consider work complete until all tests pass.
