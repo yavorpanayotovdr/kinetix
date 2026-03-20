@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "allium": {
+      "source": "juxt/allium",
+      "sourceType": "github",
+      "computedHash": "1fa572dcd661272c48f194444a7687ab1146e62f14a1fa1323e25f735b532918"
+    }
+  }
+}
