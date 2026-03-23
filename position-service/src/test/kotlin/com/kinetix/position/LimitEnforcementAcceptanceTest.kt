@@ -2,14 +2,19 @@ package com.kinetix.position
 
 import com.kinetix.common.model.*
 import com.kinetix.position.kafka.TradeEventPublisher
-import com.kinetix.position.model.TradeLimits
+import com.kinetix.position.model.LimitDefinition
+import com.kinetix.position.model.LimitLevel
+import com.kinetix.position.model.LimitType
 import com.kinetix.position.persistence.DatabaseTestSetup
+import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedPositionRepository
+import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.ExposedTransactionalRunner
+import com.kinetix.position.service.HierarchyBasedPreTradeCheckService
 import com.kinetix.position.service.LimitBreachException
-import com.kinetix.position.service.LimitCheckService
+import com.kinetix.position.service.LimitHierarchyService
 import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -19,6 +24,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
+import java.util.UUID
 
 private val USD = Currency.getInstance("USD")
 private val TRADED_AT = Instant.parse("2025-01-15T10:00:00Z")
@@ -29,21 +35,36 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
     val tradeRepo = ExposedTradeEventRepository(db)
     val positionRepo = ExposedPositionRepository(db)
     val transactional = ExposedTransactionalRunner(db)
+    val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
+    val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
+    val limitHierarchyService = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
+
+    fun preTradeCheck() = HierarchyBasedPreTradeCheckService(positionRepo, limitHierarchyService)
 
     beforeEach {
         newSuspendedTransaction(db = db) {
-            exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
+            exec("TRUNCATE TABLE trade_events, positions, limit_definitions, limit_temporary_increases RESTART IDENTITY CASCADE")
         }
     }
 
     // Scenario 10: notional limit breach
-    given("a notional limit of \$200,000") {
+    given("a BOOK-level notional limit of \$200,000") {
         `when`("a trade with \$300,000 notional is submitted (3000 shares at \$100)") {
             then("LimitBreachException is thrown with NOTIONAL breach and no trade is persisted") {
                 val publisher = mockk<TradeEventPublisher>(relaxed = true)
-                val limits = TradeLimits(notionalLimit = Money(BigDecimal("200000.00"), USD))
-                val limitCheck = LimitCheckService(positionRepo, limits)
-                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher, limitCheck)
+                limitDefinitionRepo.save(
+                    LimitDefinition(
+                        id = UUID.randomUUID().toString(),
+                        level = LimitLevel.BOOK,
+                        entityId = "port-notional-1",
+                        limitType = LimitType.NOTIONAL,
+                        limitValue = BigDecimal("200000"),
+                        intradayLimit = null,
+                        overnightLimit = null,
+                        active = true,
+                    ),
+                )
+                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher, preTradeCheck())
 
                 var notionalEx: LimitBreachException? = null
                 try {
@@ -71,7 +92,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
     }
 
     // Scenario 11: concentration limit breach
-    given("a concentration limit of 50% with AAPL at 50% of portfolio by market value") {
+    given("a BOOK-level concentration limit of 50% with AAPL at 50% of portfolio by market value") {
         `when`("a trade is submitted that would push AAPL above 50% concentration") {
             // Portfolio: AAPL 4000 shares @ $100 market = $400K; MSFT 4000 shares @ $100 market = $400K
             // Total portfolio market value = $800K; AAPL = 50% (exactly at limit)
@@ -80,9 +101,19 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
             //   concentrationPct ≈ 50.006% > 50% → breach
             then("LimitBreachException is thrown with CONCENTRATION breach and no trade is persisted") {
                 val publisher = mockk<TradeEventPublisher>(relaxed = true)
-                val limits = TradeLimits(concentrationLimitPct = 0.5)
-                val limitCheck = LimitCheckService(positionRepo, limits)
-                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher, limitCheck)
+                limitDefinitionRepo.save(
+                    LimitDefinition(
+                        id = UUID.randomUUID().toString(),
+                        level = LimitLevel.BOOK,
+                        entityId = "port-conc-1",
+                        limitType = LimitType.CONCENTRATION,
+                        limitValue = BigDecimal("0.5"),
+                        intradayLimit = null,
+                        overnightLimit = null,
+                        active = true,
+                    ),
+                )
+                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher, preTradeCheck())
 
                 positionRepo.save(
                     Position(
