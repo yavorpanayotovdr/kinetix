@@ -109,6 +109,9 @@ entity ValuationJob {
     phases: List<JobPhase>
 
     -- Lifecycle
+    -- triggered_by is always populated: "SYSTEM" for scheduled/event-driven jobs,
+    -- "API" for on-demand HTTP requests, or the authenticated user identifier.
+    triggered_by: String
     error: String?
     run_label: core/RunLabel?
     promoted_at: Timestamp?
@@ -376,6 +379,7 @@ rule PromoteToOfficialEod {
     let job = ValuationJob{job_id: job_id}
     requires: job.status = completed
     requires: job.promoted_at = null
+    -- triggered_by is always populated; this is an unconditional four-eyes check.
     requires: promoted_by != job.triggered_by
 
     ensures: job.run_label = official_eod
@@ -417,7 +421,9 @@ rule PromoteToEodRejectedSelfPromotion {
 
     @guidance
         -- Reject with SelfPromotion (HTTP 409).
-        -- Four-eyes principle: promoter must differ from calculator.
+        -- Four-eyes principle: promoter must differ from whoever triggered the job.
+        -- triggered_by is always populated (never null), so this check applies
+        -- unconditionally — including SYSTEM-triggered jobs (a SYSTEM promoter is blocked).
 }
 
 -- Trade audit reconciliation
