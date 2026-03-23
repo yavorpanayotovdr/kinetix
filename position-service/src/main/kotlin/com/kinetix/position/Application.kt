@@ -19,10 +19,12 @@ import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.service.CounterpartyExposureService
 import com.kinetix.position.seed.DevDataSeeder
-import com.kinetix.common.model.Money
-import com.kinetix.position.model.TradeLimits
+import com.kinetix.position.model.LimitDefinition
+import com.kinetix.position.model.LimitLevel
+import com.kinetix.position.model.LimitType
 import com.kinetix.position.service.ExposedTransactionalRunner
-import com.kinetix.position.service.LimitCheckService
+import com.kinetix.position.service.HierarchyBasedPreTradeCheckService
+import com.kinetix.position.service.LimitHierarchyService
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.PriceUpdateService
 import com.kinetix.position.service.TradeBookingService
@@ -122,19 +124,17 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val tradeEventPublisher = KafkaTradeEventPublisher(kafkaProducer)
 
-    val defaultTradeLimits = TradeLimits(
-        positionLimit = BigDecimal("1000000"),
-        notionalLimit = Money(BigDecimal("10000000"), Currency.getInstance("USD")),
-        concentrationLimitPct = 0.25,
-    )
-    val limitCheckService = LimitCheckService(positionRepository, defaultTradeLimits)
+    val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
+    val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
+    val limitHierarchyService = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
+    val preTradeCheckService = HierarchyBasedPreTradeCheckService(positionRepository, limitHierarchyService)
 
     val tradeBookingService = TradeBookingService(
         tradeEventRepository = tradeEventRepository,
         positionRepository = positionRepository,
         transactional = transactionalRunner,
         tradeEventPublisher = tradeEventPublisher,
-        limitCheckService = limitCheckService,
+        limitCheckService = preTradeCheckService,
     )
     val positionQueryService = PositionQueryService(positionRepository)
     val tradeLifecycleService = TradeLifecycleService(
@@ -155,8 +155,6 @@ fun Application.moduleWithRoutes() {
         )
     )
     val liveFxRateProvider = LiveFxRateProvider(delegate = staticFxRateProvider)
-    val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
-    val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
     val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
     val portfolioAggregationService = PortfolioAggregationService(positionRepository, liveFxRateProvider)
 
@@ -251,6 +249,10 @@ fun Application.moduleWithRoutes() {
         reconciliationJob.start()
     }
 
+    launch {
+        seedDefaultFirmLimits(limitDefinitionRepo)
+    }
+
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         val seederBookingService = TradeBookingService(
@@ -267,4 +269,42 @@ fun Application.moduleWithRoutes() {
     } else {
         seedDone.set(true)
     }
+}
+
+private suspend fun seedDefaultFirmLimits(
+    limitDefinitionRepo: com.kinetix.position.persistence.LimitDefinitionRepository,
+) {
+    val defaults = listOf(
+        LimitDefinition(
+            id = "firm-default-position",
+            level = LimitLevel.FIRM,
+            entityId = "FIRM",
+            limitType = LimitType.POSITION,
+            limitValue = BigDecimal("1000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        ),
+        LimitDefinition(
+            id = "firm-default-notional",
+            level = LimitLevel.FIRM,
+            entityId = "FIRM",
+            limitType = LimitType.NOTIONAL,
+            limitValue = BigDecimal("10000000"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        ),
+        LimitDefinition(
+            id = "firm-default-concentration",
+            level = LimitLevel.FIRM,
+            entityId = "FIRM",
+            limitType = LimitType.CONCENTRATION,
+            limitValue = BigDecimal("0.25"),
+            intradayLimit = null,
+            overnightLimit = null,
+            active = true,
+        ),
+    )
+    defaults.forEach { limitDefinitionRepo.save(it) }
 }
