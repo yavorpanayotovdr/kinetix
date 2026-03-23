@@ -69,6 +69,7 @@ private fun completedJob(
     assetClassGreeksSnapshot = listOf(
         GreekValues(AssetClass.EQUITY, 0.85, 0.02, 50.0),
     ),
+    triggeredBy = "user-a",
 )
 
 private fun valuationResult(

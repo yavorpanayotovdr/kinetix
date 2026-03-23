@@ -47,6 +47,7 @@ private fun completedJob(
             details = mapOf("positionCount" to 5),
         ),
     ),
+    triggeredBy = "user-a",
 )
 
 class JobHistoryRoutesIntegrationTest : FunSpec({

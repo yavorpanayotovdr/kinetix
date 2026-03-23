@@ -42,6 +42,7 @@ class VaRCalculationService(
         triggerType: TriggerType = TriggerType.ON_DEMAND,
         correlationId: String? = null,
         runLabel: RunLabel? = null,
+        triggeredBy: String = "SYSTEM",
     ): ValuationResult? {
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
@@ -60,6 +61,7 @@ class VaRCalculationService(
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
                 runLabel = runLabel,
+                triggeredBy = triggeredBy,
             )
         )
 
@@ -368,6 +370,7 @@ class VaRCalculationService(
                 phases = phases,
                 manifestId = manifestId,
                 runLabel = runLabel,
+                triggeredBy = triggeredBy,
             )
             updateJobSafely(job)
 
@@ -389,6 +392,7 @@ class VaRCalculationService(
                 phases = phases,
                 error = jobError,
                 runLabel = runLabel,
+                triggeredBy = triggeredBy,
             )
             updateJobSafely(job)
             throw e

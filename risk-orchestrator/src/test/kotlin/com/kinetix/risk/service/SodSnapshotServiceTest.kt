@@ -242,6 +242,7 @@ class SodSnapshotServiceTest : FunSpec({
             completedAt = Instant.parse("2025-01-15T07:01:00Z"),
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
+            triggeredBy = "user-a",
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
         coEvery { varCalculationService.calculateVaR(any(), any()) } returns valuationResult()
@@ -282,6 +283,7 @@ class SodSnapshotServiceTest : FunSpec({
             status = RunStatus.RUNNING,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
             valuationDate = TODAY,
+            triggeredBy = "user-a",
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 
@@ -304,6 +306,7 @@ class SodSnapshotServiceTest : FunSpec({
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
             valuationDate = TODAY,
+            triggeredBy = "user-a",
         )
         coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
 

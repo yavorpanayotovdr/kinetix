@@ -17,7 +17,7 @@ private val VALUATION_DATE = LocalDate.of(2026, 3, 13)
 private fun completedJob(
     jobId: UUID = JOB_ID,
     bookId: String = "port-1",
-    triggeredBy: String? = "user-a",
+    triggeredBy: String = "user-a",
     runLabel: RunLabel? = null,
     promotedAt: Instant? = null,
     promotedBy: String? = null,
@@ -47,6 +47,7 @@ private fun runningJob(jobId: UUID = JOB_ID) = ValuationJob(
     status = RunStatus.RUNNING,
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
     valuationDate = VALUATION_DATE,
+    triggeredBy = "user-a",
 )
 
 private fun failedJob(jobId: UUID = JOB_ID) = ValuationJob(
@@ -57,6 +58,7 @@ private fun failedJob(jobId: UUID = JOB_ID) = ValuationJob(
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
     valuationDate = VALUATION_DATE,
     error = "Calculation failed",
+    triggeredBy = "user-a",
 )
 
 class EodPromotionServiceTest : FunSpec({
@@ -135,6 +137,35 @@ class EodPromotionServiceTest : FunSpec({
         shouldThrow<EodPromotionException.SelfPromotion> {
             service.promoteToOfficialEod(JOB_ID, "user-a")
         }
+    }
+
+    test("rejects self-promotion for system-triggered job") {
+        // A SYSTEM-triggered job must not be promoted by SYSTEM itself —
+        // the four-eyes rule applies regardless of who (or what) triggered the job.
+        val job = completedJob(triggeredBy = "SYSTEM")
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+
+        shouldThrow<EodPromotionException.SelfPromotion> {
+            service.promoteToOfficialEod(JOB_ID, "SYSTEM")
+        }
+    }
+
+    test("allows promotion of system-triggered job by a different user") {
+        val job = completedJob(triggeredBy = "SYSTEM")
+        val promoted = job.copy(
+            runLabel = RunLabel.OFFICIAL_EOD,
+            promotedAt = Instant.parse("2026-03-13T18:00:00Z"),
+            promotedBy = "user-b",
+        )
+        coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
+        coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) } returns promoted
+        coEvery { eventPublisher.publish(any()) } just Runs
+
+        val result = service.promoteToOfficialEod(JOB_ID, "user-b")
+
+        result.runLabel shouldBe RunLabel.OFFICIAL_EOD
+        result.promotedBy shouldBe "user-b"
     }
 
     test("handles conflicting Official EOD from DB constraint violation") {

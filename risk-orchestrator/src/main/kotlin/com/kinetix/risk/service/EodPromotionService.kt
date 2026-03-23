@@ -35,7 +35,7 @@ class EodPromotionService(
                 throw EodPromotionException.AlreadyPromoted(jobId)
             }
 
-            if (job.triggeredBy != null && job.triggeredBy == promotedBy) {
+            if (job.triggeredBy == promotedBy) {
                 throw EodPromotionException.SelfPromotion(promotedBy)
             }
 

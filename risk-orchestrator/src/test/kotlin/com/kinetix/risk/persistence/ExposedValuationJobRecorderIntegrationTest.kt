@@ -34,6 +34,7 @@ private fun startedJob(
     valuationDate = valuationDate,
     calculationType = "PARAMETRIC",
     confidenceLevel = "CL_95",
+    triggeredBy = "SYSTEM",
 )
 
 private fun completedJob(
@@ -98,6 +99,7 @@ private fun completedJob(
             details = mapOf("topic" to "risk.results"),
         ),
     ),
+    triggeredBy = "user-a",
 )
 
 class ExposedValuationJobRecorderIntegrationTest : FunSpec({

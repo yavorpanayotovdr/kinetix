@@ -66,6 +66,7 @@ private fun job(
     theta = theta,
     calculationType = "PARAMETRIC",
     confidenceLevel = "CL_95",
+    triggeredBy = "user-a",
 )
 
 private fun valuationResult(varValue: Double = 5000.0) = ValuationResult(

@@ -34,6 +34,7 @@ private fun promotedJob() = ValuationJob(
     runLabel = RunLabel.OFFICIAL_EOD,
     promotedAt = Instant.parse("2026-03-13T18:00:00Z"),
     promotedBy = "user-b",
+    triggeredBy = "user-a",
 )
 
 class EodPromotionRoutesTest : FunSpec({

@@ -49,6 +49,7 @@ private fun completedJob(
             details = mapOf("positionCount" to 5),
         ),
     ),
+    triggeredBy = "user-a",
 )
 
 class JobHistoryRoutesTest : FunSpec({
@@ -184,6 +185,7 @@ class JobHistoryRoutesTest : FunSpec({
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             currentPhase = JobPhaseName.FETCH_MARKET_DATA,
+            triggeredBy = "user-a",
         )
         coEvery { jobRecorder.findByBookId("port-1", 20, 0) } returns listOf(runningJob)
         coEvery { jobRecorder.countByBookId("port-1") } returns 1L

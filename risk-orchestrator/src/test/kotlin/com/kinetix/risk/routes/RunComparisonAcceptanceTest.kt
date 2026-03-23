@@ -92,6 +92,7 @@ class RunComparisonAcceptanceTest : FunSpec({
         rho = 25.0,
         positionRiskSnapshot = positionRisk,
         componentBreakdownSnapshot = componentBreakdown,
+        triggeredBy = "user-a",
     )
 
     test("POST /compare returns comparison for two job IDs") {

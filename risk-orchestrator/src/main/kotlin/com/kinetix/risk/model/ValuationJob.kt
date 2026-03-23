@@ -31,7 +31,7 @@ data class ValuationJob(
     val phases: List<JobPhase> = emptyList(),
     val currentPhase: JobPhaseName? = null,
     val error: String? = null,
-    val triggeredBy: String? = null,
+    val triggeredBy: String,
     val runLabel: RunLabel? = null,
     val promotedAt: Instant? = null,
     val promotedBy: String? = null,

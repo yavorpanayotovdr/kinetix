@@ -155,6 +155,7 @@ class ReplayServiceTest : FunSpec({
             valuationDate = LocalDate.now(),
             varValue = 4800.0,
             expectedShortfall = 6000.0,
+            triggeredBy = "user-a",
         )
 
         coEvery { manifestRepo.findByJobId(jobId) } returns manifestNoOutputs

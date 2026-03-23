@@ -81,7 +81,7 @@ fun Route.riskRoutes(
                 numSimulations = body.numSimulations?.toInt() ?: 10_000,
                 requestedOutputs = requestedOutputs,
             )
-            val result = varCalculationService.calculateVaR(request)
+            val result = varCalculationService.calculateVaR(request, triggeredBy = "API")
             if (result != null) {
                 varCache.put(bookId, result)
                 call.respond(result.toResponse())
@@ -455,7 +455,7 @@ fun Route.riskRoutes(
                 numSimulations = body.numSimulations?.toInt() ?: 10_000,
                 requestedOutputs = ValuationOutput.entries.toSet(),
             )
-            val result = varCalculationService.calculateVaR(request)
+            val result = varCalculationService.calculateVaR(request, triggeredBy = "API")
             if (result?.greeks != null) {
                 varCache.put(bookId, result)
                 val greeks = result.greeks

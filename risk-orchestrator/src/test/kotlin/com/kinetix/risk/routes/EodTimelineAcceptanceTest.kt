@@ -52,6 +52,7 @@ private fun eodJob(
     runLabel = RunLabel.OFFICIAL_EOD,
     promotedAt = Instant.parse("2025-01-15T18:00:00Z"),
     promotedBy = "risk-approver",
+    triggeredBy = "SYSTEM",
 )
 
 class EodTimelineAcceptanceTest : FunSpec({

@@ -60,6 +60,7 @@ private fun completedJob(
         ),
     ),
     phases = emptyList(),
+    triggeredBy = "user-a",
 )
 
 private fun cachedResult(bookId: String = "port-1") = ValuationResult(

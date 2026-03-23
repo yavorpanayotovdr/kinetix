@@ -66,6 +66,7 @@ class PriceEventConsumer(
                                         confidenceLevel = ConfidenceLevel.CL_95,
                                     ),
                                     triggerType = TriggerType.PRICE_EVENT,
+                                    triggeredBy = "SYSTEM",
                                 )
                                 if (result != null) {
                                     varCache?.put(bookId.value, result)

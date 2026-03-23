@@ -33,6 +33,7 @@ class ScheduledVaRCalculator(
                                 confidenceLevel = ConfidenceLevel.CL_95,
                             ),
                             triggerType = TriggerType.SCHEDULED,
+                            triggeredBy = "SYSTEM",
                         )
                         if (result != null) {
                             varCache.put(bookId.value, result)

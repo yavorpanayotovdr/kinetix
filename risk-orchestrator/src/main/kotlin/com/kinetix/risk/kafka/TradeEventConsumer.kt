@@ -56,6 +56,7 @@ class TradeEventConsumer(
                                     ),
                                     triggerType = TriggerType.TRADE_EVENT,
                                     correlationId = event.correlationId,
+                                    triggeredBy = "SYSTEM",
                                 )
                                 if (result != null) {
                                     varCache?.put(bookId.value, result)

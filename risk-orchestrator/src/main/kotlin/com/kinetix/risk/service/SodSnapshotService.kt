@@ -113,7 +113,7 @@ class SodSnapshotService(
             confidenceLevel = confLevel,
             requestedOutputs = ValuationOutput.entries.toSet(),
         )
-        val result = varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
+        val result = varCalculationService.calculateVaR(request, TriggerType.SCHEDULED, triggeredBy = "SYSTEM")
             ?: throw IllegalStateException("Re-calculation failed for job $jobId parameters")
 
         createSnapshot(bookId, SnapshotType.MANUAL, result, date)
@@ -133,7 +133,7 @@ class SodSnapshotService(
             confidenceLevel = ConfidenceLevel.CL_95,
             requestedOutputs = ValuationOutput.entries.toSet(),
         )
-        return varCalculationService.calculateVaR(request, TriggerType.SCHEDULED, runLabel = RunLabel.SOD)
+        return varCalculationService.calculateVaR(request, TriggerType.SCHEDULED, runLabel = RunLabel.SOD, triggeredBy = "SYSTEM")
     }
 
     private fun isFreshEnough(result: ValuationResult): Boolean {

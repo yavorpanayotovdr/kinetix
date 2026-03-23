@@ -69,6 +69,7 @@ private fun completedJob(
         ComponentBreakdown(AssetClass.EQUITY, varValue, 100.0),
     ),
     computedOutputsSnapshot = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
+    triggeredBy = "user-a",
 )
 
 class RunComparisonServiceTest : FunSpec({

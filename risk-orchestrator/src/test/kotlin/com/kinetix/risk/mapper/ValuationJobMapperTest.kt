@@ -60,6 +60,7 @@ private fun completedJobWithSnapshots(
     componentBreakdownSnapshot = componentBreakdown,
     computedOutputsSnapshot = computedOutputs,
     assetClassGreeksSnapshot = assetClassGreeks,
+    triggeredBy = "user-a",
 )
 
 class ValuationJobMapperTest : FunSpec({
@@ -107,6 +108,7 @@ class ValuationJobMapperTest : FunSpec({
             valuationDate = LocalDate.of(2025, 6, 15),
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
+            triggeredBy = "user-a",
         )
         job.toValuationResult().shouldBeNull()
     }
@@ -124,6 +126,7 @@ class ValuationJobMapperTest : FunSpec({
             calculationType = "PARAMETRIC",
             confidenceLevel = "CL_95",
             error = "Engine down",
+            triggeredBy = "user-a",
         )
         job.toValuationResult().shouldBeNull()
     }
