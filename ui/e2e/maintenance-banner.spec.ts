@@ -15,11 +15,11 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
         body: JSON.stringify({
           status: 'DEGRADED',
           services: {
-            gateway: { status: 'UP' },
+            gateway: { status: 'READY' },
             'position-service': { status: 'DOWN' },
-            'price-service': { status: 'UP' },
-            'risk-orchestrator': { status: 'UP' },
-            'notification-service': { status: 'UP' },
+            'price-service': { status: 'READY' },
+            'risk-orchestrator': { status: 'READY' },
+            'notification-service': { status: 'READY' },
           },
         }),
       }),
@@ -41,11 +41,11 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
         body: JSON.stringify({
           status: 'DEGRADED',
           services: {
-            gateway: { status: 'UP' },
+            gateway: { status: 'READY' },
             'position-service': { status: 'DOWN' },
-            'price-service': { status: 'UP' },
-            'risk-orchestrator': { status: 'UP' },
-            'notification-service': { status: 'UP' },
+            'price-service': { status: 'READY' },
+            'risk-orchestrator': { status: 'READY' },
+            'notification-service': { status: 'READY' },
           },
         }),
       }),
@@ -66,11 +66,11 @@ test.describe('Maintenance banner — DEGRADED system health', () => {
         body: JSON.stringify({
           status: 'DEGRADED',
           services: {
-            gateway: { status: 'UP' },
+            gateway: { status: 'READY' },
             'position-service': { status: 'DOWN' },
-            'price-service': { status: 'UP' },
-            'risk-orchestrator': { status: 'UP' },
-            'notification-service': { status: 'UP' },
+            'price-service': { status: 'READY' },
+            'risk-orchestrator': { status: 'READY' },
+            'notification-service': { status: 'READY' },
           },
         }),
       }),

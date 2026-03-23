@@ -11,11 +11,11 @@ const mockFetch = vi.mocked(fetchSystemHealth)
 const healthyResponse = {
   status: 'UP' as const,
   services: {
-    gateway: { status: 'UP' as const },
-    'position-service': { status: 'UP' as const },
-    'price-service': { status: 'UP' as const },
-    'risk-orchestrator': { status: 'UP' as const },
-    'notification-service': { status: 'UP' as const },
+    gateway: { status: 'READY' as const },
+    'position-service': { status: 'READY' as const },
+    'price-service': { status: 'READY' as const },
+    'risk-orchestrator': { status: 'READY' as const },
+    'notification-service': { status: 'READY' as const },
   },
 }
 

@@ -1,5 +1,5 @@
 export interface ServiceHealth {
-  status: 'UP' | 'DOWN'
+  status: 'READY' | 'NOT_READY' | 'DOWN'
 }
 
 export interface SystemHealthResponse {

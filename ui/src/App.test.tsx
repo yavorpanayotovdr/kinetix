@@ -82,11 +82,11 @@ function setupDefaults() {
     health: {
       status: 'UP',
       services: {
-        gateway: { status: 'UP' },
-        'position-service': { status: 'UP' },
-        'price-service': { status: 'UP' },
-        'risk-orchestrator': { status: 'UP' },
-        'notification-service': { status: 'UP' },
+        gateway: { status: 'READY' },
+        'position-service': { status: 'READY' },
+        'price-service': { status: 'READY' },
+        'risk-orchestrator': { status: 'READY' },
+        'notification-service': { status: 'READY' },
       },
     },
     loading: false,
@@ -303,11 +303,11 @@ describe('App', () => {
       health: {
         status: 'DEGRADED',
         services: {
-          gateway: { status: 'UP' },
+          gateway: { status: 'READY' },
           'position-service': { status: 'DOWN' },
-          'price-service': { status: 'UP' },
-          'risk-orchestrator': { status: 'UP' },
-          'notification-service': { status: 'UP' },
+          'price-service': { status: 'READY' },
+          'risk-orchestrator': { status: 'READY' },
+          'notification-service': { status: 'READY' },
         },
       },
       loading: false,

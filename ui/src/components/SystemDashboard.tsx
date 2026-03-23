@@ -168,7 +168,7 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
           >
             {Object.entries(services).map(([key, svc]) => {
-              const up = svc.status === 'UP'
+              const up = svc.status === 'READY'
               const Icon = SERVICE_ICONS[key]
               const dashboardPath = SERVICE_DASHBOARD_PATHS[key]
               const dashboardUrl = dashboardPath != null ? `${grafanaBase()}${dashboardPath}` : undefined

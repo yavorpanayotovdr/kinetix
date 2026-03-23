@@ -15,15 +15,15 @@ describe('system API', () => {
   const sampleHealth = {
     status: 'UP',
     services: {
-      gateway: { status: 'UP' },
-      'position-service': { status: 'UP' },
-      'price-service': { status: 'UP' },
-      'risk-orchestrator': { status: 'UP' },
-      'notification-service': { status: 'UP' },
-      'rates-service': { status: 'UP' },
-      'reference-data-service': { status: 'UP' },
-      'volatility-service': { status: 'UP' },
-      'correlation-service': { status: 'UP' },
+      gateway: { status: 'READY' },
+      'position-service': { status: 'READY' },
+      'price-service': { status: 'READY' },
+      'risk-orchestrator': { status: 'READY' },
+      'notification-service': { status: 'READY' },
+      'rates-service': { status: 'READY' },
+      'reference-data-service': { status: 'READY' },
+      'volatility-service': { status: 'READY' },
+      'correlation-service': { status: 'READY' },
     },
   }
 
@@ -57,15 +57,15 @@ describe('system API', () => {
       const degradedHealth = {
         status: 'DEGRADED',
         services: {
-          gateway: { status: 'UP' },
+          gateway: { status: 'READY' },
           'position-service': { status: 'DOWN' },
-          'price-service': { status: 'UP' },
-          'risk-orchestrator': { status: 'UP' },
-          'notification-service': { status: 'UP' },
-          'rates-service': { status: 'UP' },
-          'reference-data-service': { status: 'UP' },
-          'volatility-service': { status: 'UP' },
-          'correlation-service': { status: 'UP' },
+          'price-service': { status: 'READY' },
+          'risk-orchestrator': { status: 'READY' },
+          'notification-service': { status: 'READY' },
+          'rates-service': { status: 'READY' },
+          'reference-data-service': { status: 'READY' },
+          'volatility-service': { status: 'READY' },
+          'correlation-service': { status: 'READY' },
         },
       }
 

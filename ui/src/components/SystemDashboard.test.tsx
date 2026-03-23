@@ -6,30 +6,30 @@ import type { SystemHealthResponse } from '../api/system'
 const allUpHealth: SystemHealthResponse = {
   status: 'UP',
   services: {
-    gateway: { status: 'UP' },
-    'position-service': { status: 'UP' },
-    'price-service': { status: 'UP' },
-    'risk-orchestrator': { status: 'UP' },
-    'notification-service': { status: 'UP' },
-    'rates-service': { status: 'UP' },
-    'reference-data-service': { status: 'UP' },
-    'volatility-service': { status: 'UP' },
-    'correlation-service': { status: 'UP' },
+    gateway: { status: 'READY' },
+    'position-service': { status: 'READY' },
+    'price-service': { status: 'READY' },
+    'risk-orchestrator': { status: 'READY' },
+    'notification-service': { status: 'READY' },
+    'rates-service': { status: 'READY' },
+    'reference-data-service': { status: 'READY' },
+    'volatility-service': { status: 'READY' },
+    'correlation-service': { status: 'READY' },
   },
 }
 
 const degradedHealth: SystemHealthResponse = {
   status: 'DEGRADED',
   services: {
-    gateway: { status: 'UP' },
-    'position-service': { status: 'UP' },
-    'price-service': { status: 'UP' },
+    gateway: { status: 'READY' },
+    'position-service': { status: 'READY' },
+    'price-service': { status: 'READY' },
     'risk-orchestrator': { status: 'DOWN' },
-    'notification-service': { status: 'UP' },
-    'rates-service': { status: 'UP' },
-    'reference-data-service': { status: 'UP' },
-    'volatility-service': { status: 'UP' },
-    'correlation-service': { status: 'UP' },
+    'notification-service': { status: 'READY' },
+    'rates-service': { status: 'READY' },
+    'reference-data-service': { status: 'READY' },
+    'volatility-service': { status: 'READY' },
+    'correlation-service': { status: 'READY' },
   },
 }
 
@@ -96,7 +96,7 @@ describe('SystemDashboard', () => {
 
     const dot = screen.getByTestId('service-status-dot-gateway')
     expect(dot.className).toContain('bg-green-500')
-    expect(screen.getByTestId('service-status-text-gateway')).toHaveTextContent('UP')
+    expect(screen.getByTestId('service-status-text-gateway')).toHaveTextContent('READY')
   })
 
   it('shows red dot and DOWN text for unhealthy service', () => {
