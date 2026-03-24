@@ -289,6 +289,53 @@ class HierarchyRiskServiceTest : FunSpec({
         result.limitUtilisation shouldBe null
     }
 
+    // ── Marginal and incremental VaR ─────────────────────────────────────────
+
+    test("populates marginalVar as the sum of book marginal VaR contributions") {
+        val divA = Division(DivisionId("div-a"), "Rates")
+        val desk = Desk(DeskId("d1"), "D1", DivisionId("div-a"))
+        val bookMappings = listOf(
+            BookHierarchyEntry("book-r1", "d1", null, null),
+            BookHierarchyEntry("book-r2", "d1", null, null),
+        )
+
+        coEvery { hierarchyDataClient.getAllDivisions() } returns listOf(divA)
+        coEvery { hierarchyDataClient.getAllDesks() } returns listOf(desk)
+        coEvery { hierarchyDataClient.getAllBookMappings() } returns bookMappings
+        every { varCache.get("book-r1") } returns stubResult(BookId("book-r1"), 500_000.0)
+        every { varCache.get("book-r2") } returns stubResult(BookId("book-r2"), 500_000.0)
+
+        val contributions = listOf(
+            BookVaRContribution(BookId("book-r1"), 400_000.0, 50.0, 500_000.0, 100_000.0, marginalVar = 350_000.0, incrementalVar = 380_000.0),
+            BookVaRContribution(BookId("book-r2"), 400_000.0, 50.0, 500_000.0, 100_000.0, marginalVar = 300_000.0, incrementalVar = 340_000.0),
+        )
+        coEvery { crossBookVaRService.calculate(any(), any()) } returns
+            stubCrossBookResult(listOf(BookId("book-r1"), BookId("book-r2")), 800_000.0, contributions)
+
+        val result = service.aggregateHierarchy(HierarchyLevel.DESK, "d1")!!
+
+        result.marginalVar shouldBe 650_000.0   // 350k + 300k
+        result.incrementalVar shouldBe 720_000.0 // 380k + 340k
+    }
+
+    test("marginalVar is null when cross-book result is null") {
+        val divA = Division(DivisionId("div-a"), "Rates")
+        val desk = Desk(DeskId("d1"), "D1", DivisionId("div-a"))
+        val bookMappings = listOf(BookHierarchyEntry("book-r1", "d1", null, null))
+
+        coEvery { hierarchyDataClient.getAllDivisions() } returns listOf(divA)
+        coEvery { hierarchyDataClient.getAllDesks() } returns listOf(desk)
+        coEvery { hierarchyDataClient.getAllBookMappings() } returns bookMappings
+        every { varCache.get("book-r1") } returns stubResult(BookId("book-r1"), 500_000.0)
+
+        coEvery { crossBookVaRService.calculate(any(), any()) } throws RuntimeException("gRPC failure")
+
+        val result = service.aggregateHierarchy(HierarchyLevel.DESK, "d1")!!
+
+        result.marginalVar shouldBe null
+        result.incrementalVar shouldBe null
+    }
+
     // ── Snapshot persistence ──────────────────────────────────────────────────
 
     test("persists a HierarchyRiskSnapshot after successful aggregation") {

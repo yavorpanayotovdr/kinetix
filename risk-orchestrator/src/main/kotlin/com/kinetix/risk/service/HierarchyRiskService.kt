@@ -163,6 +163,16 @@ class HierarchyRiskService(
             HierarchyLevel.DESK, HierarchyLevel.BOOK -> effectiveBooks.size
         }
 
+        // Marginal VaR for this hierarchy node = sum of all book marginal VaRs under it.
+        // marginalVar is additive: it measures the aggregate marginal contribution of
+        // this entity's books to the portfolio VaR.
+        val aggregateMarginalVar = crossBookResult?.bookContributions
+            ?.sumOf { it.marginalVar }
+            ?.takeIf { crossBookResult.bookContributions.isNotEmpty() }
+        val aggregateIncrementalVar = crossBookResult?.bookContributions
+            ?.sumOf { it.incrementalVar }
+            ?.takeIf { crossBookResult.bookContributions.isNotEmpty() }
+
         val node = HierarchyNodeRisk(
             level = level,
             entityId = entityId,
@@ -172,8 +182,8 @@ class HierarchyRiskService(
             expectedShortfall = aggregateEs,
             pnlToday = null,
             limitUtilisation = limitUtilisation,
-            marginalVar = null,
-            incrementalVar = null,
+            marginalVar = aggregateMarginalVar,
+            incrementalVar = aggregateIncrementalVar,
             topContributors = contributors,
             childCount = childCount,
             isPartial = isPartial,

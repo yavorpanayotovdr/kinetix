@@ -100,4 +100,38 @@ describe('HierarchyContributionTable', () => {
 
     expect(container.firstChild).toBeNull()
   })
+
+  it('shows node-level marginalVar summary when populated', () => {
+    const nodeWithMarginal: HierarchyNodeRiskDto = {
+      ...firmNode,
+      marginalVar: '12500.50',
+    }
+    render(<HierarchyContributionTable node={nodeWithMarginal} />)
+
+    expect(screen.getByTestId('marginal-var-summary')).toBeInTheDocument()
+    expect(screen.getByText(/Marginal VaR/)).toBeInTheDocument()
+  })
+
+  it('shows node-level incrementalVar summary when populated', () => {
+    const nodeWithIncremental: HierarchyNodeRiskDto = {
+      ...firmNode,
+      incrementalVar: '8750.00',
+    }
+    render(<HierarchyContributionTable node={nodeWithIncremental} />)
+
+    expect(screen.getByTestId('incremental-var-summary')).toBeInTheDocument()
+    expect(screen.getByText(/Incremental VaR/)).toBeInTheDocument()
+  })
+
+  it('does not show marginalVar summary when marginalVar is null', () => {
+    render(<HierarchyContributionTable node={firmNode} />)
+
+    expect(screen.queryByTestId('marginal-var-summary')).not.toBeInTheDocument()
+  })
+
+  it('does not show incrementalVar summary when incrementalVar is null', () => {
+    render(<HierarchyContributionTable node={firmNode} />)
+
+    expect(screen.queryByTestId('incremental-var-summary')).not.toBeInTheDocument()
+  })
 })

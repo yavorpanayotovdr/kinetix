@@ -94,6 +94,27 @@ export function HierarchyContributionTable({
           Missing VaR for: {missingBooks.join(', ')}
         </p>
       )}
+
+      {(node.marginalVar !== null || node.incrementalVar !== null) && (
+        <div className="mt-3 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+          {node.marginalVar !== null && (
+            <span data-testid="marginal-var-summary">
+              Marginal VaR:{' '}
+              <span className="font-medium text-slate-700 dark:text-slate-300 tabular-nums">
+                {formatMoney(node.marginalVar, 'USD')}
+              </span>
+            </span>
+          )}
+          {node.incrementalVar !== null && (
+            <span data-testid="incremental-var-summary">
+              Incremental VaR:{' '}
+              <span className="font-medium text-slate-700 dark:text-slate-300 tabular-nums">
+                {formatMoney(node.incrementalVar, 'USD')}
+              </span>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
