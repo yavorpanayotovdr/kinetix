@@ -292,12 +292,6 @@ fun Application.moduleWithRoutes() {
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
     val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
     val factorDecompositionRepository = com.kinetix.risk.persistence.ExposedFactorDecompositionRepository(riskDb)
-    val factorRiskService = com.kinetix.risk.service.FactorRiskService(
-        riskEngineClient = effectiveRiskEngineClient,
-        repository = factorDecompositionRepository,
-        positionProvider = effectivePositionProvider,
-        priceServiceClient = effectivePriceServiceClient,
-    )
     val hierarchySnapshotRepository = ExposedRiskHierarchySnapshotRepository(riskDb)
     val riskBudgetAllocationRepository = com.kinetix.risk.persistence.ExposedRiskBudgetAllocationRepository(riskDb)
 
@@ -347,6 +341,15 @@ fun Application.moduleWithRoutes() {
             }
         },
         manifestRepository = manifestRepo,
+    )
+
+    val factorConcentrationAlertPublisher = com.kinetix.risk.kafka.KafkaFactorConcentrationAlertPublisher(kafkaProducer)
+    val factorRiskService = com.kinetix.risk.service.FactorRiskService(
+        riskEngineClient = effectiveRiskEngineClient,
+        repository = factorDecompositionRepository,
+        positionProvider = effectivePositionProvider,
+        priceServiceClient = effectivePriceServiceClient,
+        concentrationAlertPublisher = factorConcentrationAlertPublisher,
     )
 
     val varCalculationService = VaRCalculationService(

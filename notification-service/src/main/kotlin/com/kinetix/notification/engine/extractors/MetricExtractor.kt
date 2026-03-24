@@ -72,6 +72,32 @@ class LiquidityConcentrationExtractor : MetricExtractor {
     }
 }
 
+/**
+ * Extracts factor concentration risk as a numeric severity.
+ *
+ * The risk-orchestrator publishes a [RiskResultEvent] with a sentinel
+ * [ConcentrationItem] (instrumentId = "FACTOR_MODEL", percentage = 100.0)
+ * when the factor decomposition engine reports a concentrationWarning.
+ * This extractor returns 1.0 when that sentinel is present, null otherwise.
+ *
+ * A rule with type=FACTOR_CONCENTRATION, threshold=0.5, operator=GREATER_THAN
+ * fires whenever the factor model detects concentration risk.
+ */
+class FactorConcentrationExtractor : MetricExtractor {
+    override val type = AlertType.FACTOR_CONCENTRATION
+
+    override fun extract(event: RiskResultEvent): Double? {
+        val hasFactorConcentration = event.concentrationByInstrument
+            ?.any { it.instrumentId == FACTOR_CONCENTRATION_SENTINEL_ID }
+            ?: false
+        return if (hasFactorConcentration) 1.0 else null
+    }
+
+    companion object {
+        const val FACTOR_CONCENTRATION_SENTINEL_ID = "FACTOR_MODEL"
+    }
+}
+
 val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     VarBreachExtractor(),
     PnlThresholdExtractor(),
@@ -82,4 +108,5 @@ val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     MarginBreachExtractor(),
     DataStalenessExtractor(),
     LiquidityConcentrationExtractor(),
+    FactorConcentrationExtractor(),
 )

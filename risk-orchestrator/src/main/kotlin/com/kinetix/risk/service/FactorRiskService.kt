@@ -8,6 +8,7 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RiskEngineClient
+import com.kinetix.risk.kafka.FactorConcentrationAlertPublisher
 import com.kinetix.risk.model.FactorDecompositionSnapshot
 import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.TimeSeriesPoint
@@ -27,6 +28,7 @@ class FactorRiskService(
     private val repository: FactorDecompositionRepository,
     private val positionProvider: PositionProvider? = null,
     private val priceServiceClient: PriceServiceClient? = null,
+    private val concentrationAlertPublisher: FactorConcentrationAlertPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(FactorRiskService::class.java)
 
@@ -87,6 +89,17 @@ class FactorRiskService(
         }
 
         repository.save(snapshot)
+
+        if (snapshot.concentrationWarning) {
+            try {
+                concentrationAlertPublisher?.publishConcentrationWarning(snapshot)
+            } catch (e: Exception) {
+                logger.warn(
+                    "Failed to publish factor concentration alert for book {}: {}",
+                    bookId.value, e.message,
+                )
+            }
+        }
 
         logger.info(
             "Factor decomposition complete for book {}: totalVar={}, systematicVar={}, " +

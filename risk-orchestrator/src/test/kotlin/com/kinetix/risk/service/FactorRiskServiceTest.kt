@@ -19,6 +19,7 @@ import com.kinetix.common.model.PriceSource
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.PriceServiceClient
+import com.kinetix.risk.kafka.FactorConcentrationAlertPublisher
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -206,6 +207,52 @@ class FactorRiskServiceTest : FunSpec({
             val result = serviceWithoutDeps.decomposeForBook(bookId, totalVar = 50_000.0)
 
             result.shouldBeNull()
+        }
+    }
+
+    context("concentration alert publishing") {
+        val concentrationAlertPublisher = mockk<FactorConcentrationAlertPublisher>()
+
+        val serviceWithPublisher = FactorRiskService(
+            riskEngineClient = riskEngineClient,
+            repository = repository,
+            concentrationAlertPublisher = concentrationAlertPublisher,
+        )
+
+        beforeEach {
+            clearMocks(concentrationAlertPublisher)
+        }
+
+        test("publishes concentration alert when concentrationWarning is true") {
+            val marketData = mapOf("AAPL" to timeSeriesData("AAPL"))
+            val snapshot = sampleDecompositionSnapshot().copy(concentrationWarning = true)
+            coEvery { riskEngineClient.decomposeFactorRisk(any(), any(), any(), any()) } returns snapshot
+            coEvery { concentrationAlertPublisher.publishConcentrationWarning(any()) } returns Unit
+
+            serviceWithPublisher.decompose(bookId, positions, marketData, totalVar = 50_000.0)
+
+            coVerify(exactly = 1) { concentrationAlertPublisher.publishConcentrationWarning(snapshot) }
+        }
+
+        test("does not publish alert when concentrationWarning is false") {
+            val marketData = mapOf("AAPL" to timeSeriesData("AAPL"))
+            val snapshot = sampleDecompositionSnapshot().copy(concentrationWarning = false)
+            coEvery { riskEngineClient.decomposeFactorRisk(any(), any(), any(), any()) } returns snapshot
+
+            serviceWithPublisher.decompose(bookId, positions, marketData, totalVar = 50_000.0)
+
+            coVerify(exactly = 0) { concentrationAlertPublisher.publishConcentrationWarning(any()) }
+        }
+
+        test("saves decomposition even when publisher is not configured") {
+            val marketData = mapOf("AAPL" to timeSeriesData("AAPL"))
+            val snapshot = sampleDecompositionSnapshot().copy(concentrationWarning = true)
+            coEvery { riskEngineClient.decomposeFactorRisk(any(), any(), any(), any()) } returns snapshot
+
+            // service without concentrationAlertPublisher
+            service.decompose(bookId, positions, marketData, totalVar = 50_000.0)
+
+            coVerify(exactly = 1) { repository.save(snapshot) }
         }
     }
 })
