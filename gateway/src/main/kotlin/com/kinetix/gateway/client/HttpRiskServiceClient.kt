@@ -443,4 +443,29 @@ class HttpRiskServiceClient(
         val dto: com.kinetix.gateway.client.dtos.StressedCrossBookVaRResultClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun calculateLiquidityRisk(bookId: String, baseVar: Double): JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/books/$bookId/liquidity-risk") {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("baseVar", baseVar) })
+        }
+        if (response.status == HttpStatusCode.NoContent) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getLatestLiquidityRisk(bookId: String): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/liquidity-risk/latest")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getLiquidityRiskHistory(bookId: String, limit: Int): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/liquidity-risk") {
+            url { parameters.append("limit", limit.toString()) }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
