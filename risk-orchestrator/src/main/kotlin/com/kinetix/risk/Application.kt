@@ -43,6 +43,7 @@ import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
+import com.kinetix.risk.routes.intradayPnlRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -505,6 +506,7 @@ fun Application.moduleWithRoutes() {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
+        intradayPnlRoutes(intradayPnlRepository)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)
