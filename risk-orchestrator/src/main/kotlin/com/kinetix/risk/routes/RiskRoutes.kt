@@ -24,11 +24,16 @@ import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.BookId as ProtoBookId
 import com.kinetix.proto.risk.FrtbRequest
 import com.kinetix.proto.risk.GenerateReportRequest
+import com.kinetix.proto.risk.HistoricalReplayRequest as ProtoHistoricalReplayRequest
+import com.kinetix.proto.risk.InstrumentDailyReturns
 import com.kinetix.proto.risk.ListScenariosRequest
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.ReportFormat
+import com.kinetix.proto.risk.ReverseStressRequest as ProtoReverseStressRequest
 import com.kinetix.proto.risk.StressTestRequest
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
+import com.kinetix.risk.routes.dtos.HistoricalReplayRequestBody
+import com.kinetix.risk.routes.dtos.ReverseStressRequestBody
 import com.kinetix.risk.model.SnapshotType
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
@@ -433,6 +438,62 @@ fun Route.riskRoutes(
     }) {
         val response = stressTestStub.listScenarios(ListScenariosRequest.getDefaultInstance())
         call.respond(response.scenarioNamesList)
+    }
+
+    // Historical replay route
+    post("/api/v1/risk/stress/{bookId}/historical-replay", {
+        summary = "Run a historical scenario replay against current positions"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
+            body<HistoricalReplayRequestBody>()
+        }
+    }) {
+        val bookId = call.requirePathParam("bookId")
+        val body = call.receive<HistoricalReplayRequestBody>()
+        val positions = positionProvider.getPositions(BookId(bookId))
+
+        val protoRequest = ProtoHistoricalReplayRequest.newBuilder()
+            .also { builder ->
+                builder.addAllPositions(positions.map { it.toProto() })
+                body.instrumentReturns.forEach { ir ->
+                    builder.addInstrumentReturns(
+                        InstrumentDailyReturns.newBuilder()
+                            .setInstrumentId(ir.instrumentId)
+                            .addAllDailyReturns(ir.dailyReturns)
+                            .build()
+                    )
+                }
+                body.windowStart?.let { builder.windowStart = it }
+                body.windowEnd?.let { builder.windowEnd = it }
+            }
+            .build()
+
+        val response = stressTestStub.runHistoricalReplay(protoRequest)
+        call.respond(response.toHistoricalReplayResponse())
+    }
+
+    // Reverse stress route
+    post("/api/v1/risk/stress/{bookId}/reverse", {
+        summary = "Find minimum-norm shock vector that causes the target portfolio loss"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
+            body<ReverseStressRequestBody>()
+        }
+    }) {
+        val bookId = call.requirePathParam("bookId")
+        val body = call.receive<ReverseStressRequestBody>()
+        val positions = positionProvider.getPositions(BookId(bookId))
+
+        val protoRequest = ProtoReverseStressRequest.newBuilder()
+            .addAllPositions(positions.map { it.toProto() })
+            .setTargetLoss(body.targetLoss)
+            .setMaxShock(body.maxShock)
+            .build()
+
+        val response = stressTestStub.runReverseStress(protoRequest)
+        call.respond(response.toReverseStressResponse())
     }
 
     // Greeks routes — convenience wrapper that goes through the full valuation pipeline

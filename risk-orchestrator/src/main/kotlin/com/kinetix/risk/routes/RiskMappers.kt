@@ -231,3 +231,36 @@ internal fun com.kinetix.proto.risk.StressTestResponse.toStressTestResponse() =
             )
         },
     )
+
+internal fun com.kinetix.proto.risk.HistoricalReplayResponse.toHistoricalReplayResponse() =
+    com.kinetix.risk.routes.dtos.HistoricalReplayResponse(
+        scenarioName = scenarioName,
+        totalPnlImpact = "%.2f".format(totalPnlImpact),
+        positionImpacts = positionImpactsList.map {
+            com.kinetix.risk.routes.dtos.PositionReplayImpactDto(
+                instrumentId = it.instrumentId,
+                assetClass = (PROTO_ASSET_CLASS_TO_DOMAIN[it.assetClass] ?: AssetClass.EQUITY).name,
+                marketValue = "%.2f".format(it.marketValue),
+                pnlImpact = "%.2f".format(it.pnlImpact),
+                dailyPnl = it.dailyPnlList.map { d -> "%.2f".format(d) },
+                proxyUsed = it.proxyUsed,
+            )
+        },
+        windowStart = windowStart.takeIf { it.isNotBlank() },
+        windowEnd = windowEnd.takeIf { it.isNotBlank() },
+        calculatedAt = java.time.Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()).toString(),
+    )
+
+internal fun com.kinetix.proto.risk.ReverseStressResponse.toReverseStressResponse() =
+    com.kinetix.risk.routes.dtos.ReverseStressResponse(
+        shocks = shocksList.map {
+            com.kinetix.risk.routes.dtos.InstrumentShockDto(
+                instrumentId = it.instrumentId,
+                shock = "%.6f".format(it.shock),
+            )
+        },
+        achievedLoss = "%.2f".format(achievedLoss),
+        targetLoss = "%.2f".format(targetLoss),
+        converged = converged,
+        calculatedAt = java.time.Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()).toString(),
+    )
