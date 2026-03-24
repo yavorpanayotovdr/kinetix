@@ -6,6 +6,26 @@ import {
   TEST_FACTOR_RISK_CONCENTRATION_WARNING,
 } from './fixtures'
 
+function makeHistoryEntry(date: string, totalVarOffset = 0) {
+  return {
+    ...TEST_FACTOR_RISK_RESULT,
+    calculatedAt: date,
+    totalVar: TEST_FACTOR_RISK_RESULT.totalVar + totalVarOffset,
+    factors: TEST_FACTOR_RISK_RESULT.factors.map((f) => ({
+      ...f,
+      varContribution: f.varContribution + totalVarOffset * 0.4,
+    })),
+  }
+}
+
+const SAMPLE_HISTORY = [
+  makeHistoryEntry('2026-03-20T10:00:00Z', -2000),
+  makeHistoryEntry('2026-03-21T10:00:00Z', -1000),
+  makeHistoryEntry('2026-03-22T10:00:00Z', 0),
+  makeHistoryEntry('2026-03-23T10:00:00Z', 1000),
+  makeHistoryEntry('2026-03-24T10:00:00Z', 2000),
+]
+
 async function goToRiskTab(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.getByTestId('tab-risk').click()
@@ -100,5 +120,50 @@ test.describe('Factor Decomposition Panel — concentration warning', () => {
 
     await expect(page.getByTestId('concentration-warning')).toBeVisible()
     await expect(page.getByTestId('concentration-warning')).toContainText('Concentration Warning')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Factor Attribution History Chart — empty state
+// ---------------------------------------------------------------------------
+
+test.describe('Factor Attribution History Chart — empty state', () => {
+  test('shows empty state when no history exists', async ({ page }) => {
+    await mockAllApiRoutes(page)
+    await mockFactorRiskRoutes(page, { latest: null, history: [] })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="factor-history-empty"]')
+
+    await expect(page.getByTestId('factor-history-empty')).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Factor Attribution History Chart — data rendering
+// ---------------------------------------------------------------------------
+
+test.describe('Factor Attribution History Chart — data rendering', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+    await mockFactorRiskRoutes(page, {
+      latest: TEST_FACTOR_RISK_RESULT,
+      history: SAMPLE_HISTORY,
+    })
+  })
+
+  test('renders the chart SVG when history is available', async ({ page }) => {
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="factor-history-chart"]')
+
+    await expect(page.getByTestId('factor-history-chart')).toBeVisible()
+  })
+
+  test('renders a line series for each factor type', async ({ page }) => {
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="factor-history-line-EQUITY_BETA"]')
+
+    await expect(page.getByTestId('factor-history-line-EQUITY_BETA')).toBeVisible()
+    await expect(page.getByTestId('factor-history-line-RATES_DURATION')).toBeVisible()
   })
 })

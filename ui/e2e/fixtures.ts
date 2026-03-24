@@ -270,10 +270,14 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 204 })
   })
 
-  // Default factor risk endpoint — return 404 so the panel shows its empty state.
+  // Default factor risk endpoints — return 404/empty so panels show empty states.
   // Tests that need factor risk data must call mockFactorRiskRoutes() afterward.
   await page.route('**/api/v1/books/*/factor-risk/latest', (route: Route) => {
     route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+
+  await page.route('**/api/v1/books/*/factor-risk*', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
   })
 
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
@@ -1617,12 +1621,13 @@ export const TEST_FACTOR_RISK_CONCENTRATION_WARNING = {
 }
 
 /**
- * Mocks the factor risk API endpoint for a book.
- * The `latest` parameter controls what GET /factor-risk/latest returns (null → 404).
+ * Mocks the factor risk API endpoints for a book.
+ * - `latest`: controls GET /factor-risk/latest (null → 404)
+ * - `history`: controls GET /factor-risk?limit=... (defaults to empty array)
  */
 export async function mockFactorRiskRoutes(
   page: Page,
-  opts: { latest?: object | null } = {},
+  opts: { latest?: object | null; history?: object[] } = {},
 ): Promise<void> {
   await page.route('**/api/v1/books/*/factor-risk/latest', (route: Route) => {
     if (opts.latest) {
@@ -1634,5 +1639,13 @@ export async function mockFactorRiskRoutes(
     } else {
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
     }
+  })
+
+  await page.route('**/api/v1/books/*/factor-risk*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(opts.history ?? []),
+    })
   })
 }

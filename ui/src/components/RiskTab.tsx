@@ -8,6 +8,7 @@ import { useSodBaseline } from '../hooks/useSodBaseline'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import { useLiquidityRisk } from '../hooks/useLiquidityRisk'
 import { useFactorRisk } from '../hooks/useFactorRisk'
+import { useFactorRiskHistory } from '../hooks/useFactorRiskHistory'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
@@ -18,6 +19,7 @@ import { StressSummaryCard } from './StressSummaryCard'
 import { PnlSummaryCard } from './PnlSummaryCard'
 import { LiquidityRiskPanel } from './LiquidityRiskPanel'
 import { FactorDecompositionPanel } from './FactorDecompositionPanel'
+import { FactorAttributionHistoryChart } from './FactorAttributionHistoryChart'
 import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 import { ValuationDatePicker } from './ValuationDatePicker'
 import { RunComparisonContainer } from './RunComparisonContainer'
@@ -115,6 +117,12 @@ export function RiskTab({
     loading: factorRiskLoading,
     error: factorRiskError,
   } = useFactorRisk(bookId)
+
+  const {
+    history: factorRiskHistory,
+    loading: factorRiskHistoryLoading,
+    error: factorRiskHistoryError,
+  } = useFactorRiskHistory(bookId)
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
@@ -252,6 +260,13 @@ export function RiskTab({
               result={factorRiskResult}
               loading={factorRiskLoading}
               error={factorRiskError}
+            />
+          </div>
+          <div className="mt-4">
+            <FactorAttributionHistoryChart
+              history={factorRiskHistory}
+              loading={factorRiskHistoryLoading}
+              error={factorRiskHistoryError}
             />
           </div>
           <div className="mt-4">

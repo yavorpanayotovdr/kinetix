@@ -16,3 +16,18 @@ export async function fetchLatestFactorRisk(
   }
   return response.json()
 }
+
+export async function fetchFactorRiskHistory(
+  bookId: string,
+  limit: number = 30,
+): Promise<FactorRiskDto[]> {
+  const response = await fetch(
+    `/api/v1/books/${encodeURIComponent(bookId)}/factor-risk?limit=${limit}`,
+  )
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch factor risk history: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}
