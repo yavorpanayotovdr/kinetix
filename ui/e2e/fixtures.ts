@@ -228,6 +228,15 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
+  // Intraday P&L series endpoint — return empty snapshots by default
+  await page.route('**/api/v1/risk/pnl/intraday/**', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ bookId: 'port-1', snapshots: [] }),
+    })
+  })
+
   // Catch-all for remaining risk endpoints
   await page.route('**/api/v1/risk/**', (route: Route) => {
     route.fulfill({
@@ -1363,5 +1372,73 @@ export async function mockAlertRuleCrud(
     } else {
       route.fallback()
     }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Intraday P&L fixtures
+// ---------------------------------------------------------------------------
+
+export interface IntradayPnlSnapshotFixture {
+  snapshotAt: string
+  baseCurrency: string
+  trigger: string
+  totalPnl: string
+  realisedPnl: string
+  unrealisedPnl: string
+  deltaPnl: string
+  gammaPnl: string
+  vegaPnl: string
+  thetaPnl: string
+  rhoPnl: string
+  unexplainedPnl: string
+  highWaterMark: string
+}
+
+export const TEST_INTRADAY_PNL_SNAPSHOTS: IntradayPnlSnapshotFixture[] = [
+  {
+    snapshotAt: '2026-03-24T09:30:00Z',
+    baseCurrency: 'USD',
+    trigger: 'position_change',
+    totalPnl: '1000.00',
+    realisedPnl: '200.00',
+    unrealisedPnl: '800.00',
+    deltaPnl: '800.00',
+    gammaPnl: '50.00',
+    vegaPnl: '30.00',
+    thetaPnl: '-10.00',
+    rhoPnl: '5.00',
+    unexplainedPnl: '125.00',
+    highWaterMark: '1200.00',
+  },
+  {
+    snapshotAt: '2026-03-24T09:31:00Z',
+    baseCurrency: 'USD',
+    trigger: 'price_update',
+    totalPnl: '1500.00',
+    realisedPnl: '500.00',
+    unrealisedPnl: '1000.00',
+    deltaPnl: '1200.00',
+    gammaPnl: '80.00',
+    vegaPnl: '40.00',
+    thetaPnl: '-15.00',
+    rhoPnl: '7.00',
+    unexplainedPnl: '188.00',
+    highWaterMark: '1800.00',
+  },
+]
+
+export async function mockIntradayPnlRoutes(
+  page: Page,
+  bookId: string,
+  snapshots: IntradayPnlSnapshotFixture[],
+): Promise<void> {
+  await page.unroute(`**/api/v1/risk/pnl/intraday/${bookId}*`)
+  await page.route(`**/api/v1/risk/pnl/intraday/${bookId}*`, (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ bookId, snapshots }),
+    })
   })
 }
