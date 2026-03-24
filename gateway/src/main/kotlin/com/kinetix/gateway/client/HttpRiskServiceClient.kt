@@ -540,6 +540,8 @@ class HttpRiskServiceClient(
     override suspend fun getHierarchyRisk(level: String, entityId: String): kotlinx.serialization.json.JsonObject? {
         val response = httpClient.get("$baseUrl/api/v1/risk/hierarchy/$level/$entityId")
         if (response.status == io.ktor.http.HttpStatusCode.NotFound) return null
+    override suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.get("$baseUrl/api/v1/risk/regime/current")
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
@@ -550,6 +552,9 @@ class HttpRiskServiceClient(
                 if (level != null) parameters.append("level", level)
                 if (entityId != null) parameters.append("entityId", entityId)
             }
+    override suspend fun getRegimeHistory(limit: Int): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.get("$baseUrl/api/v1/risk/regime/history") {
+            url { parameters.append("limit", limit.toString()) }
         }
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()

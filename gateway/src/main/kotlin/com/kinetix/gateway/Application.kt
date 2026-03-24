@@ -41,6 +41,7 @@ import com.kinetix.gateway.routes.croReportRoutes
 import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.riskBudgetRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
+import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
 import com.kinetix.gateway.websocket.PnlBroadcaster
@@ -208,6 +209,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         eodTimelineRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
+        marketRegimeRoutes(riskClient)
     }
 }
 
@@ -251,6 +253,7 @@ fun Application.module(
         eodTimelineRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
+        marketRegimeRoutes(riskClient)
     }
 }
 
@@ -318,6 +321,7 @@ fun Application.devModule() {
     routing {
         pnlWebSocket(pnlBroadcaster)
         intradayPnlProxyRoutes(riskClient)
+        marketRegimeRoutes(riskClient)
         notificationRoutes(notificationClient)
         stressScenarioRoutes(regulatoryClient)
         backtestProxyRoutes(regulatoryClient)
@@ -425,6 +429,7 @@ fun Application.module(
                 requirePermission(Permission.READ_RISK) {
                     stressTestRoutes(riskClient)
                     jobHistoryRoutes(riskClient)
+                    marketRegimeRoutes(riskClient)
                 }
                 requirePermission(Permission.READ_REGULATORY) {
                     regulatoryRoutes(riskClient)

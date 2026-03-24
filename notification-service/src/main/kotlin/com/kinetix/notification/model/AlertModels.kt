@@ -12,6 +12,7 @@ enum class AlertType {
     MARGIN_BREACH,
     DATA_STALENESS,
     LIQUIDITY_CONCENTRATION,
+    REGIME_CHANGE,
 }
 enum class AlertStatus { TRIGGERED, ACKNOWLEDGED, RESOLVED }
 enum class Severity { INFO, WARNING, CRITICAL }

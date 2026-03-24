@@ -6,6 +6,12 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from kinetix.risk import ml_prediction_pb2, ml_prediction_pb2_grpc
 from kinetix_risk.ml.model_store import ModelStore
+from kinetix_risk.regime_detector import (
+    MarketRegime,
+    RegimeDetector,
+    RegimeSignals,
+    RegimeThresholds,
+)
 
 # Proto AssetClass enum value → string key mapping
 _ASSET_CLASS_NAMES = {
@@ -127,4 +133,109 @@ class MLPredictionServicer(ml_prediction_pb2_grpc.MLPredictionServiceServicer):
         return ml_prediction_pb2.AnomalyDetectionResponse(
             metric_name=request.metric_name,
             results=proto_results,
+        )
+
+    def DetectRegime(self, request, context):
+        """Stateless regime classification with debounce evaluation.
+
+        The orchestrator owns persistent debounce state and passes it in every
+        request. This method classifies the current signals, applies the debounce
+        rules against the passed-in state, and returns the result.
+
+        Debounce state passed in:
+          current_regime: the confirmed regime active in the orchestrator.
+          consecutive_observations: how many consecutive observations of the
+            candidate (non-current) regime have already been seen, including
+            the one that is happening now.
+
+        This is a pure, side-effect-free evaluation. The orchestrator updates
+        its own state based on the returned is_confirmed / consecutive_observations.
+        """
+        from kinetix_risk.regime_detector import (
+            classify_regime as _classify,
+            _classify_confidence,
+            detect_early_warnings,
+            severity_of,
+        )
+
+        signals_proto = request.signals
+        thresholds_proto = request.thresholds
+
+        signals = RegimeSignals(
+            realised_vol_20d=signals_proto.realised_vol_20d,
+            cross_asset_correlation=signals_proto.cross_asset_correlation,
+            credit_spread_bps=(
+                signals_proto.credit_spread_bps if signals_proto.credit_spread_present else None
+            ),
+            pnl_volatility=(
+                signals_proto.pnl_volatility if signals_proto.pnl_volatility_present else None
+            ),
+        )
+
+        thresholds = RegimeThresholds(
+            normal_vol_ceiling=thresholds_proto.normal_vol_ceiling,
+            elevated_vol_ceiling=thresholds_proto.elevated_vol_ceiling,
+            crisis_correlation_floor=thresholds_proto.crisis_correlation_floor,
+        )
+
+        escalation_debounce = request.escalation_debounce or 3
+        de_escalation_debounce = request.de_escalation_debounce or 1
+        consecutive_in = request.consecutive_observations
+
+        try:
+            current_confirmed = MarketRegime(request.current_regime) if request.current_regime else MarketRegime.NORMAL
+        except ValueError:
+            current_confirmed = MarketRegime.NORMAL
+
+        classified = _classify(signals, thresholds)
+        degraded = signals.credit_spread_bps is None or signals.pnl_volatility is None
+        early_warnings = detect_early_warnings(signals, thresholds)
+
+        if classified == current_confirmed:
+            # Same as current confirmed regime — no transition, reset counter
+            confidence = _classify_confidence(current_confirmed, signals, thresholds)
+            result_regime = current_confirmed
+            is_confirmed = True
+            out_consecutive = 0
+        else:
+            # Candidate differs from confirmed — apply debounce
+            is_escalation = severity_of(classified) > severity_of(current_confirmed)
+            required = escalation_debounce if is_escalation else de_escalation_debounce
+
+            if consecutive_in >= required:
+                # Debounce met — transition is confirmed
+                result_regime = classified
+                is_confirmed = True
+                out_consecutive = consecutive_in
+            else:
+                # Still pending
+                result_regime = current_confirmed
+                is_confirmed = False
+                out_consecutive = consecutive_in
+
+            confidence = _classify_confidence(result_regime, signals, thresholds)
+
+        now = Timestamp()
+        now.GetCurrentTime()
+
+        proto_warnings = [
+            ml_prediction_pb2.EarlyWarningProto(
+                signal_name=w.signal_name,
+                current_value=w.current_value,
+                threshold=w.threshold,
+                proximity_pct=w.proximity_pct,
+                message=w.message,
+            )
+            for w in early_warnings
+        ]
+
+        return ml_prediction_pb2.RegimeDetectionResponse(
+            regime=result_regime.value,
+            confidence=confidence,
+            is_confirmed=is_confirmed,
+            consecutive_observations=out_consecutive,
+            degraded_inputs=degraded,
+            early_warnings=proto_warnings,
+            detected_at=now,
+            correlation_anomaly_score=0.0,  # populated by orchestrator when matrix is available
         )

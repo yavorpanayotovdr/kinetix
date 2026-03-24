@@ -110,6 +110,64 @@ export const DATA_QUALITY_STATUS = {
   ],
 }
 
+export const TEST_REGIME_NORMAL = {
+  regime: 'NORMAL',
+  isConfirmed: true,
+  confidence: 0.92,
+  consecutiveObservations: 0,
+  detectedAt: '2026-03-24T10:00:00Z',
+  degradedInputs: false,
+  signals: {
+    realisedVol20d: 0.10,
+    crossAssetCorrelation: 0.40,
+    creditSpreadBps: null,
+    pnlVolatility: null,
+  },
+  varParameters: {
+    calculationType: 'PARAMETRIC',
+    confidenceLevel: 'CL_95',
+    timeHorizonDays: 1,
+    correlationMethod: 'standard',
+    numSimulations: null,
+  },
+}
+
+export const TEST_REGIME_CRISIS = {
+  regime: 'CRISIS',
+  isConfirmed: true,
+  confidence: 0.87,
+  consecutiveObservations: 3,
+  detectedAt: '2026-03-24T14:30:00Z',
+  degradedInputs: false,
+  signals: {
+    realisedVol20d: 0.28,
+    crossAssetCorrelation: 0.80,
+    creditSpreadBps: 220.0,
+    pnlVolatility: 0.07,
+  },
+  varParameters: {
+    calculationType: 'MONTE_CARLO',
+    confidenceLevel: 'CL_99',
+    timeHorizonDays: 5,
+    correlationMethod: 'stressed',
+    numSimulations: 50000,
+  },
+}
+
+export async function mockRegimeRoutes(
+  page: Page,
+  regime: object = TEST_REGIME_NORMAL,
+): Promise<void> {
+  await page.unroute('**/api/v1/risk/regime/current')
+  await page.route('**/api/v1/risk/regime/current', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(regime),
+    })
+  })
+}
+
 /**
  * Sets up route handlers to mock all API endpoints the app calls on startup.
  * This allows Playwright tests to run without a real backend.
@@ -234,6 +292,24 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ bookId: 'port-1', snapshots: [] }),
+    })
+  })
+
+  // Regime current — return NORMAL by default
+  await page.route('**/api/v1/risk/regime/current', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_REGIME_NORMAL),
+    })
+  })
+
+  // Regime history — return empty list by default
+  await page.route('**/api/v1/risk/regime/history*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], total: 0 }),
     })
   })
 

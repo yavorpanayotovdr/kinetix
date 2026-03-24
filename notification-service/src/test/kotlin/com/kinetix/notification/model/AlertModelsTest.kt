@@ -8,11 +8,12 @@ import java.time.Instant
 
 class AlertModelsTest : FunSpec({
 
-    test("AlertType has nine values including LIQUIDITY_CONCENTRATION") {
+    test("AlertType has ten values including LIQUIDITY_CONCENTRATION and REGIME_CHANGE") {
         AlertType.entries.map { it.name } shouldContainExactly listOf(
             "VAR_BREACH", "PNL_THRESHOLD", "RISK_LIMIT",
             "DELTA_BREACH", "VEGA_BREACH", "CONCENTRATION",
             "MARGIN_BREACH", "DATA_STALENESS", "LIQUIDITY_CONCENTRATION",
+            "REGIME_CHANGE",
         )
     }
 

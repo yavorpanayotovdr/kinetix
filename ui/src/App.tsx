@@ -26,6 +26,8 @@ import { useHierarchySummary } from './hooks/useHierarchySummary'
 import { useTheme } from './hooks/useTheme'
 import { useDataQuality } from './hooks/useDataQuality'
 import { DataQualityIndicator } from './components/DataQualityIndicator'
+import { useMarketRegime } from './hooks/useMarketRegime'
+import { RegimeIndicator } from './components/RegimeIndicator'
 import { useWorkspace } from './hooks/useWorkspace'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
@@ -114,6 +116,7 @@ function App() {
   const hierarchySummary = useHierarchySummary(hierarchy.selection)
   const { isDark, toggle: toggleTheme } = useTheme()
   const dataQuality = useDataQuality()
+  const marketRegime = useMarketRegime()
 
   const [disconnectElapsed, setDisconnectElapsed] = useState(0)
   useEffect(() => {
@@ -136,6 +139,7 @@ function App() {
         </div>
         <div className="flex items-center gap-3">
           <HierarchySelector hierarchy={hierarchy} />
+          <RegimeIndicator regime={marketRegime.regime} loading={marketRegime.loading} />
           <DataQualityIndicator
             status={reconnecting && dataQuality.status
               ? {

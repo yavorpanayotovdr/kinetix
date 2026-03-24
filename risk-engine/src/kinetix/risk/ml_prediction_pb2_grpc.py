@@ -56,6 +56,11 @@ class MLPredictionServiceStub(object):
                 request_serializer=kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionRequest.SerializeToString,
                 response_deserializer=kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionResponse.FromString,
                 _registered_method=True)
+        self.DetectRegime = channel.unary_unary(
+                '/kinetix.risk.MLPredictionService/DetectRegime',
+                request_serializer=kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionResponse.FromString,
+                _registered_method=True)
 
 
 class MLPredictionServiceServicer(object):
@@ -87,6 +92,12 @@ class MLPredictionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DetectRegime(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MLPredictionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -109,6 +120,11 @@ def add_MLPredictionServiceServicer_to_server(servicer, server):
                     servicer.DetectAnomaly,
                     request_deserializer=kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionRequest.FromString,
                     response_serializer=kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionResponse.SerializeToString,
+            ),
+            'DetectRegime': grpc.unary_unary_rpc_method_handler(
+                    servicer.DetectRegime,
+                    request_deserializer=kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -221,6 +237,33 @@ class MLPredictionService(object):
             '/kinetix.risk.MLPredictionService/DetectAnomaly',
             kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionRequest.SerializeToString,
             kinetix_dot_risk_dot_ml__prediction__pb2.AnomalyDetectionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DetectRegime(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.MLPredictionService/DetectRegime',
+            kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionRequest.SerializeToString,
+            kinetix_dot_risk_dot_ml__prediction__pb2.RegimeDetectionResponse.FromString,
             options,
             channel_credentials,
             insecure,

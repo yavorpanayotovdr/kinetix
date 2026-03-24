@@ -471,4 +471,6 @@ interface RiskServiceClient {
     suspend fun createRiskBudget(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun deleteRiskBudget(id: String): Boolean
     suspend fun triggerCroReport(): kotlinx.serialization.json.JsonObject?
+    suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject
+    suspend fun getRegimeHistory(limit: Int = 50): kotlinx.serialization.json.JsonObject
 }
