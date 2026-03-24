@@ -15,6 +15,7 @@ import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.service.BacktestComparisonService
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
+import com.kinetix.regulatory.seed.StressScenarioSeeder
 import com.kinetix.regulatory.stress.StressScenarioRepository
 import com.kinetix.regulatory.stress.StressScenarioService
 import com.kinetix.regulatory.stress.StressTestResultRepository
@@ -161,6 +162,7 @@ fun Application.moduleWithRoutes() {
     if (seedEnabled) {
         launch {
             DevDataSeeder(repository).seed()
+            StressScenarioSeeder(stressScenarioRepository).seed()
             seedDone.set(true)
         }
     } else {
