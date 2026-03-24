@@ -34,6 +34,7 @@ class VaRCalculationService(
     private val positionDependencyGrouper: PositionDependencyGrouper = PositionDependencyGrouper(),
     private val runManifestCapture: RunManifestCapture? = null,
     private val instrumentServiceClient: InstrumentServiceClient? = null,
+    private val activeRegimeProvider: (() -> RegimeState?)? = null,
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -228,11 +229,14 @@ class VaRCalculationService(
                 )
             )
 
-            // Step 3b: Generate MC seed if needed and capture run manifest inputs
-            val effectiveRequest = if (request.calculationType == CalculationType.MONTE_CARLO && request.monteCarloSeed == 0L) {
-                request.copy(monteCarloSeed = System.nanoTime())
+            // Step 3b: Apply regime parameter overrides (non-ON_DEMAND triggers only, confirmed regimes only)
+            val regimeOverriddenRequest = applyRegimeOverride(request, triggerType)
+
+            // Step 3c: Generate MC seed if needed and capture run manifest inputs
+            val effectiveRequest = if (regimeOverriddenRequest.calculationType == CalculationType.MONTE_CARLO && regimeOverriddenRequest.monteCarloSeed == 0L) {
+                regimeOverriddenRequest.copy(monteCarloSeed = System.nanoTime())
             } else {
-                request
+                regimeOverriddenRequest
             }
 
             var manifestId: UUID? = null
@@ -397,6 +401,20 @@ class VaRCalculationService(
             updateJobSafely(job)
             throw e
         }
+    }
+
+    private fun applyRegimeOverride(request: VaRCalculationRequest, triggerType: TriggerType): VaRCalculationRequest {
+        if (triggerType == TriggerType.ON_DEMAND) return request
+        val regime = activeRegimeProvider?.invoke() ?: return request
+        if (!regime.isConfirmed) return request
+        if (regime.regime == MarketRegime.NORMAL) return request
+        val params = regime.varParameters
+        return request.copy(
+            calculationType = params.calculationType,
+            confidenceLevel = params.confidenceLevel,
+            timeHorizonDays = params.timeHorizonDays,
+            numSimulations = params.numSimulations ?: request.numSimulations,
+        )
     }
 
     internal fun computePositionRisk(
