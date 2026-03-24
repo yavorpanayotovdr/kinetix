@@ -6,10 +6,12 @@ import com.kinetix.common.model.Division
 import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.ReferenceDataSource
+import com.kinetix.referencedata.model.InstrumentLiquidity
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DeskRepository
 import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.InstrumentLiquidityRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
@@ -121,5 +123,64 @@ class DevDataSeederTest : FunSpec({
 
         val jpm = savedSpreads.first { it.instrumentId.value == "JPM" }
         jpm.rating shouldBe "A+"
+    }
+
+    test("seeds ADV and bid-ask spread data for all 11 instrument types when liquidity repository is provided") {
+        val liquidityRepository = mockk<InstrumentLiquidityRepository>()
+        val seederWithLiquidity = DevDataSeeder(
+            dividendYieldRepository, creditSpreadRepository,
+            divisionRepository = divisionRepository, deskRepository = deskRepository,
+            liquidityRepository = liquidityRepository,
+        )
+        coEvery { dividendYieldRepository.findLatest(InstrumentId("AAPL")) } returns null
+        coEvery { dividendYieldRepository.save(any()) } just runs
+        coEvery { creditSpreadRepository.save(any()) } just runs
+        coEvery { divisionRepository.save(any()) } just runs
+        coEvery { deskRepository.save(any()) } just runs
+        val savedLiquidity = mutableListOf<InstrumentLiquidity>()
+        coEvery { liquidityRepository.upsert(capture(savedLiquidity)) } just runs
+
+        seederWithLiquidity.seed()
+
+        coVerify(exactly = 11) { liquidityRepository.upsert(any()) }
+        val instrumentIds = savedLiquidity.map { it.instrumentId }.toSet()
+        instrumentIds.contains("AAPL") shouldBe true
+        instrumentIds.contains("US10Y") shouldBe true
+        instrumentIds.contains("EURUSD") shouldBe true
+        instrumentIds.contains("WTI-AUG26") shouldBe true
+    }
+
+    test("liquidity data is not seeded when liquidity repository is not provided") {
+        coEvery { dividendYieldRepository.findLatest(InstrumentId("AAPL")) } returns null
+        coEvery { dividendYieldRepository.save(any()) } just runs
+        coEvery { creditSpreadRepository.save(any()) } just runs
+        coEvery { divisionRepository.save(any()) } just runs
+        coEvery { deskRepository.save(any()) } just runs
+
+        seeder.seed() // no liquidityRepository configured
+
+        // No interaction expected with any liquidity repo
+    }
+
+    test("AAPL liquidity has HIGH_LIQUID tier ADV well above 10 million") {
+        val liquidityRepository = mockk<InstrumentLiquidityRepository>()
+        val seederWithLiquidity = DevDataSeeder(
+            dividendYieldRepository, creditSpreadRepository,
+            divisionRepository = divisionRepository, deskRepository = deskRepository,
+            liquidityRepository = liquidityRepository,
+        )
+        coEvery { dividendYieldRepository.findLatest(InstrumentId("AAPL")) } returns null
+        coEvery { dividendYieldRepository.save(any()) } just runs
+        coEvery { creditSpreadRepository.save(any()) } just runs
+        coEvery { divisionRepository.save(any()) } just runs
+        coEvery { deskRepository.save(any()) } just runs
+        val savedLiquidity = mutableListOf<InstrumentLiquidity>()
+        coEvery { liquidityRepository.upsert(capture(savedLiquidity)) } just runs
+
+        seederWithLiquidity.seed()
+
+        val aapl = savedLiquidity.first { it.instrumentId == "AAPL" }
+        (aapl.adv > 10_000_000.0) shouldBe true
+        aapl.assetClass shouldBe "EQUITY"
     }
 })
