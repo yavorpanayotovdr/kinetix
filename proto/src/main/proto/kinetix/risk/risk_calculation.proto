@@ -187,10 +187,83 @@ message CrossBookVaRResponse {
   int64 monte_carlo_seed = 13;
 }
 
+// -----------------------------------------------------------------------
+// Factor-based risk decomposition
+// -----------------------------------------------------------------------
+
+enum FactorType {
+  FACTOR_TYPE_UNSPECIFIED = 0;
+  FACTOR_EQUITY_BETA = 1;
+  FACTOR_RATES_DURATION = 2;
+  FACTOR_CREDIT_SPREAD = 3;
+  FACTOR_FX_DELTA = 4;
+  FACTOR_VOL_EXPOSURE = 5;
+}
+
+enum LoadingMethod {
+  LOADING_METHOD_UNSPECIFIED = 0;
+  LOADING_OLS_REGRESSION = 1;
+  LOADING_ANALYTICAL = 2;
+  LOADING_MANUAL = 3;
+}
+
+message PositionLoadingInput {
+  string instrument_id = 1;
+  string asset_class = 2;
+  double market_value = 3;
+  // Optional pre-computed instrument returns (row-major, chronological).
+  // When provided and length >= 63, OLS regression is used.
+  repeated double instrument_returns = 4;
+}
+
+message FactorReturnSeries {
+  FactorType factor = 1;
+  repeated double returns = 2;  // chronological daily returns
+}
+
+message FactorDecompositionRequest {
+  string book_id = 1;
+  repeated PositionLoadingInput positions = 2;
+  repeated FactorReturnSeries factor_returns = 3;
+  double total_var = 4;
+  string decomposition_date = 5;
+  string job_id = 6;
+}
+
+message FactorContribution {
+  FactorType factor = 1;
+  double factor_exposure = 2;
+  double factor_var = 3;
+  double pnl_attribution = 4;
+  double pct_of_total_var = 5;
+}
+
+message InstrumentLoadingResult {
+  string instrument_id = 1;
+  FactorType factor = 2;
+  double loading = 3;
+  double r_squared = 4;
+  bool has_r_squared = 5;
+  LoadingMethod method = 6;
+}
+
+message FactorDecompositionResponse {
+  string book_id = 1;
+  string decomposition_date = 2;
+  double total_var = 3;
+  double systematic_var = 4;
+  double idiosyncratic_var = 5;
+  double r_squared = 6;
+  repeated FactorContribution factor_contributions = 7;
+  repeated InstrumentLoadingResult loadings = 8;
+  string job_id = 9;
+}
+
 service RiskCalculationService {
   // Deprecated: use Valuate instead
   rpc CalculateVaR(VaRRequest) returns (VaRResponse);
   rpc CalculateVaRStream(stream VaRRequest) returns (stream VaRResponse);
   rpc Valuate(ValuationRequest) returns (ValuationResponse);
   rpc CalculateCrossBookVaR(CrossBookVaRRequest) returns (CrossBookVaRResponse);
+  rpc DecomposeFactorRisk(FactorDecompositionRequest) returns (FactorDecompositionResponse);
 }
