@@ -5,6 +5,7 @@ import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
 import kotlinx.coroutines.delay
 
 class DelayingReferenceDataServiceClient(
@@ -20,5 +21,15 @@ class DelayingReferenceDataServiceClient(
     override suspend fun getLatestCreditSpread(instrumentId: InstrumentId): ClientResponse<CreditSpread> {
         delay(delayMs.random())
         return delegate.getLatestCreditSpread(instrumentId)
+    }
+
+    override suspend fun getLiquidityData(instrumentId: String): ClientResponse<InstrumentLiquidityDto> {
+        delay(delayMs.random())
+        return delegate.getLiquidityData(instrumentId)
+    }
+
+    override suspend fun getLiquidityDataBatch(instrumentIds: List<String>): Map<String, InstrumentLiquidityDto> {
+        delay(delayMs.random())
+        return delegate.getLiquidityDataBatch(instrumentIds)
     }
 }
