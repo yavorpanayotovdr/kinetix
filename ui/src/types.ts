@@ -711,3 +711,28 @@ export interface CrossBookVaRResultDto {
   diversificationBenefit: string
   calculatedAt: string
 }
+
+export type LiquidityTier = 'HIGH_LIQUID' | 'LIQUID' | 'SEMI_LIQUID' | 'ILLIQUID'
+
+export interface PositionLiquidityRiskDto {
+  instrumentId: string
+  assetClass: string
+  marketValue: number
+  tier: LiquidityTier
+  horizonDays: number
+  adv: number | null
+  advMissing: boolean
+  advStale: boolean
+  lvarContribution: number
+  stressedLiquidationValue: number
+  concentrationStatus: string
+}
+
+export interface LiquidityRiskResultDto {
+  bookId: string
+  portfolioLvar: number
+  dataCompleteness: number
+  portfolioConcentrationStatus: string
+  calculatedAt: string
+  positionRisks: PositionLiquidityRiskDto[]
+}

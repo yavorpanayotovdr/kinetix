@@ -120,7 +120,7 @@ export function RiskTab({
   }, [refresh, refreshPositionRisk, crossBookRefresh, aggregatedView])
 
   const handleLiquidityRefresh = useCallback(() => {
-    const baseVar = varResult ? Number(varResult.varValue) : undefined
+    const baseVar = varResult ? Number(varResult.varValue) : 0
     refreshLiquidity(baseVar)
   }, [varResult, refreshLiquidity])
 
