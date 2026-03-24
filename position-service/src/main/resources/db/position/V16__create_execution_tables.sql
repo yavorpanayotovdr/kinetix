@@ -96,7 +96,7 @@ CREATE TABLE prime_broker_reconciliation (
     total_positions      INTEGER        NOT NULL,
     matched_count        INTEGER        NOT NULL,
     break_count          INTEGER        NOT NULL,
-    breaks               JSONB          NOT NULL DEFAULT '[]',
+    breaks               TEXT           NOT NULL DEFAULT '[]',
     reconciled_at        TIMESTAMPTZ    NOT NULL,
     created_at           TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
 
