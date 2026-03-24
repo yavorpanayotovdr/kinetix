@@ -21,8 +21,19 @@ class ExecutionRepositoryIntegrationTest : FunSpec({
     val sessionRepo = ExposedFIXSessionRepository(db)
 
     beforeEach {
-        newSuspendedTransaction(db = db) {
-            exec("TRUNCATE TABLE execution_fills, execution_cost_analysis, prime_broker_reconciliation, fix_sessions, execution_orders RESTART IDENTITY CASCADE")
+        // Use a try/catch to recover from aborted transaction state
+        // (the dedup test intentionally triggers a constraint violation
+        // which can leave the connection pool in a bad state).
+        try {
+            newSuspendedTransaction(db = db) {
+                exec("TRUNCATE TABLE execution_fills, execution_cost_analysis, prime_broker_reconciliation, fix_sessions, execution_orders RESTART IDENTITY CASCADE")
+            }
+        } catch (_: Exception) {
+            // If the first attempt fails (e.g. "current transaction is aborted"),
+            // retry once with a fresh transaction.
+            newSuspendedTransaction(db = db) {
+                exec("TRUNCATE TABLE execution_fills, execution_cost_analysis, prime_broker_reconciliation, fix_sessions, execution_orders RESTART IDENTITY CASCADE")
+            }
         }
     }
 
@@ -82,12 +93,22 @@ class ExecutionRepositoryIntegrationTest : FunSpec({
         fillRepo.existsByFixExecId("exec-does-not-exist") shouldBe false
     }
 
-    test("fill deduplication: second insert of same fix_exec_id throws (unique constraint)") {
+    test("fill deduplication: second insert of same fix_exec_id is rejected by unique constraint") {
         orderRepo.save(makeOrder("ord-6", "book-1", OrderStatus.PARTIAL))
         fillRepo.save(makeFill("fill-3", "ord-6", BigDecimal("40"), BigDecimal("150.00"), "exec-003"))
-        io.kotest.assertions.throwables.shouldThrow<org.jetbrains.exposed.exceptions.ExposedSQLException> {
+        // Verify deduplication: attempt a second insert with the same fix_exec_id.
+        // Exposed + newSuspendedTransaction exceptions cannot be caught by shouldThrow
+        // (known gotcha — see CLAUDE.md). Instead, verify that after the failed insert
+        // attempt, only the original fill exists.
+        try {
             fillRepo.save(makeFill("fill-4", "ord-6", BigDecimal("40"), BigDecimal("150.00"), "exec-003"))
+        } catch (_: Exception) {
+            // Expected: unique constraint violation
         }
+        // Verify only one fill exists (the original) — deduplication works
+        val fills = fillRepo.findByOrderId("ord-6")
+        fills shouldHaveSize 1
+        fills[0].fillId shouldBe "fill-3"
     }
 
     // ------- Execution cost repository -------
