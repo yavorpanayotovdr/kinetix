@@ -61,14 +61,16 @@ class DependenciesDiscovererTest : FunSpec({
 
         val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
 
-        result shouldHaveSize 2
+        // 2 from engine + 1 IDX-SPX HISTORICAL_PRICES injected for equity positions
+        result shouldHaveSize 3
         result shouldContainExactlyInAnyOrder listOf(
             DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY", mapOf("key" to "val")),
             DiscoveredDependency("HISTORICAL_PRICES", "AAPL", "EQUITY", mapOf("lookbackDays" to "252")),
+            DiscoveredDependency("HISTORICAL_PRICES", "IDX-SPX", "EQUITY", mapOf("lookbackDays" to "300")),
         )
     }
 
-    test("returns empty list when no dependencies discovered") {
+    test("returns only IDX-SPX dependency when no other dependencies discovered for equity positions") {
         val positions = listOf(position())
         val depsResponse = DataDependenciesResponse.newBuilder().build()
 
@@ -76,7 +78,13 @@ class DependenciesDiscovererTest : FunSpec({
 
         val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
 
-        result.shouldBeEmpty()
+        result shouldHaveSize 1
+        result.single() shouldBe DiscoveredDependency(
+            dataType = "HISTORICAL_PRICES",
+            instrumentId = "IDX-SPX",
+            assetClass = "EQUITY",
+            parameters = mapOf("lookbackDays" to "300"),
+        )
     }
 
     test("returns empty list when discovery fails") {
@@ -100,12 +108,59 @@ class DependenciesDiscovererTest : FunSpec({
 
         val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
 
-        result shouldHaveSize 2
-        result.map { it.instrumentId } shouldContainExactlyInAnyOrder listOf("AAPL", "MSFT")
+        // 2 deduplicated SPOT_PRICE + 1 IDX-SPX injected for equity positions
+        result shouldHaveSize 3
+        result.map { it.instrumentId } shouldContainExactlyInAnyOrder listOf("AAPL", "MSFT", "IDX-SPX")
+    }
+
+    test("emits HISTORICAL_PRICES for IDX-SPX when equity positions are present") {
+        val positions = listOf(position(instrumentId = "AAPL", assetClass = AssetClass.EQUITY))
+        val depsResponse = DataDependenciesResponse.newBuilder().build()
+
+        coEvery { riskEngineClient.discoverDependencies(positions, "PARAMETRIC", "CL_95") } returns depsResponse
+
+        val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
+
+        val spxDep = result.find {
+            it.instrumentId == "IDX-SPX" && it.dataType == "HISTORICAL_PRICES"
+        }
+        spxDep shouldBe DiscoveredDependency(
+            dataType = "HISTORICAL_PRICES",
+            instrumentId = "IDX-SPX",
+            assetClass = "EQUITY",
+            parameters = mapOf("lookbackDays" to "300"),
+        )
+    }
+
+    test("does not emit IDX-SPX HISTORICAL_PRICES when no equity positions") {
+        val positions = listOf(position(instrumentId = "US10Y", assetClass = AssetClass.FIXED_INCOME))
+        val depsResponse = DataDependenciesResponse.newBuilder().build()
+
+        coEvery { riskEngineClient.discoverDependencies(positions, "PARAMETRIC", "CL_95") } returns depsResponse
+
+        val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
+
+        result.none { it.instrumentId == "IDX-SPX" } shouldBe true
+    }
+
+    test("does not duplicate IDX-SPX dependency if risk engine already emits it") {
+        val positions = listOf(position(instrumentId = "AAPL", assetClass = AssetClass.EQUITY))
+        val depsResponse = DataDependenciesResponse.newBuilder()
+            .addDependencies(
+                dependency(MarketDataType.HISTORICAL_PRICES, instrumentId = "IDX-SPX", assetClass = "EQUITY",
+                    parameters = mapOf("lookbackDays" to "300"))
+            )
+            .build()
+
+        coEvery { riskEngineClient.discoverDependencies(positions, "PARAMETRIC", "CL_95") } returns depsResponse
+
+        val result = discoverer.discover(positions, "PARAMETRIC", "CL_95")
+
+        result.count { it.instrumentId == "IDX-SPX" } shouldBe 1
     }
 
     test("preserves dependencies with same data type but different parameters") {
-        val positions = listOf(position())
+        val positions = listOf(position(assetClass = AssetClass.FIXED_INCOME))
         val depsResponse = DataDependenciesResponse.newBuilder()
             .addDependencies(dependency(MarketDataType.YIELD_CURVE, instrumentId = "", parameters = mapOf("curveId" to "USD")))
             .addDependencies(dependency(MarketDataType.YIELD_CURVE, instrumentId = "", parameters = mapOf("curveId" to "EUR")))
