@@ -14,10 +14,13 @@ import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.reconciliation.ExposedReconciliationRepository
 import com.kinetix.position.reconciliation.PositionReconciliationJob
 import com.kinetix.position.routes.bookHierarchyRoutes
+import com.kinetix.position.routes.collateralRoutes
 import com.kinetix.position.routes.counterpartyRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
+import com.kinetix.position.persistence.ExposedCollateralBalanceRepository
+import com.kinetix.position.service.CollateralTrackingService
 import com.kinetix.position.service.CounterpartyExposureService
 import com.kinetix.position.seed.DevDataSeeder
 import com.kinetix.position.model.LimitDefinition
@@ -158,6 +161,8 @@ fun Application.moduleWithRoutes() {
     )
     val liveFxRateProvider = LiveFxRateProvider(delegate = staticFxRateProvider)
     val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
+    val collateralBalanceRepository = ExposedCollateralBalanceRepository(db)
+    val collateralTrackingService = CollateralTrackingService(collateralBalanceRepository)
     val portfolioAggregationService = PortfolioAggregationService(positionRepository, liveFxRateProvider)
 
     val reconciliationRepository = ExposedReconciliationRepository(db)
@@ -240,6 +245,7 @@ fun Application.moduleWithRoutes() {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
         limitRoutes(limitDefinitionRepo, temporaryLimitIncreaseRepo)
         counterpartyRoutes(counterpartyExposureService)
+        collateralRoutes(collateralTrackingService)
         internalRoutes(tradeEventRepository)
         bookHierarchyRoutes(bookHierarchyRepository)
     }
