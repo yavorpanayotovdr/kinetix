@@ -1,0 +1,416 @@
+-- allium: 2
+-- Market regime detection: classify market conditions, adapt VaR parameters,
+-- surface early warnings, and dynamically select risk models.
+--
+-- Scope: Regime classification, adaptive parameter switching, early warnings,
+--         debounced state transitions, dynamic VaR model selection
+-- Excludes:
+--   - ML model training and retraining pipelines
+--   - UI layout and presentation
+-- Dependencies: core.allium, risk.allium, risk-models.allium, alerts.allium
+
+use "./core.allium" as core
+use "./risk-models.allium" as risk_models
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum MarketRegime { normal | elevated_vol | crisis | recovery }
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value RegimeSignals {
+    realised_vol_20d: Decimal
+    vol_of_vol: Decimal?
+    cross_asset_correlation: Decimal
+    credit_spread_bps: Decimal?
+    pnl_volatility: Decimal?
+
+    @guidance
+        -- Raw input signals to the regime classifier.
+        -- realised_vol_20d: 20-day EWMA annualised vol (from price history).
+        -- cross_asset_correlation: average off-diagonal in Ledoit-Wolf matrix.
+        -- credit_spread_bps: CDX IG or equivalent (null if unavailable).
+        -- pnl_volatility: 20-day rolling vol of book P&L (from intraday snapshots).
+}
+
+value RegimeThresholds {
+    normal_vol_ceiling: Decimal
+    elevated_vol_ceiling: Decimal
+    crisis_correlation_floor: Decimal
+
+    @guidance
+        -- Calibrated from historical data (10-year lookback).
+        -- normal_vol_ceiling: ~80th percentile of historical 21-day vol.
+        -- elevated_vol_ceiling: ~95th percentile.
+        -- crisis_correlation_floor: average off-diagonal > 0.75.
+}
+
+value AdaptiveVaRParameters {
+    calculation_type: core/CalculationType
+    confidence_level: core/ConfidenceLevel
+    time_horizon_days: Integer
+    correlation_method: String
+    num_simulations: Integer?
+
+    @guidance
+        -- The VaR parameters currently in effect, determined by the active regime.
+}
+
+value EarlyWarning {
+    signal_name: String
+    current_value: Decimal
+    threshold: Decimal
+    proximity_pct: Decimal
+    message: String
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity RegimeState {
+    detected_at: Timestamp
+    regime: MarketRegime
+    confidence: Decimal
+    signals: RegimeSignals
+    var_parameters: AdaptiveVaRParameters
+    early_warnings: List<EarlyWarning>
+    consecutive_observations: Integer
+    is_confirmed: Boolean
+
+    @guidance
+        -- One active RegimeState at any time.
+        -- consecutive_observations tracks how many detection cycles
+        -- have returned the same regime classification.
+        -- is_confirmed = true once debounce threshold is met.
+        -- A regime transition only takes effect when confirmed.
+}
+
+entity RegimeHistory {
+    regime: MarketRegime
+    started_at: Timestamp
+    ended_at: Timestamp?
+    duration: Duration?
+    signals_at_transition: RegimeSignals
+    var_parameters: AdaptiveVaRParameters
+}
+
+entity RegimeModelConfig {
+    effective_from: Timestamp
+    thresholds: RegimeThresholds
+    normal_params: AdaptiveVaRParameters
+    elevated_params: AdaptiveVaRParameters
+    crisis_params: AdaptiveVaRParameters
+    escalation_debounce: Integer
+    de_escalation_debounce: Integer
+    approved_by: String?
+    approved_at: Timestamp?
+
+    @guidance
+        -- Governs how the regime classifier behaves.
+        -- Changes to thresholds or parameter mappings require approval
+        -- (same governance model as regulatory-service model versions).
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    detection_interval: Duration = 15.minutes
+    escalation_debounce: Integer = 3
+    de_escalation_debounce: Integer = 1
+    regime_history_retention: Duration = 1825.days
+    model_staleness_threshold: Duration = 90.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Scheduled regime detection
+
+rule DetectRegime {
+    when: ScheduledRegimeDetectionTick()
+
+    let signals = gather_signals()
+    let config = active_regime_config()
+    let current = current_regime_state()
+
+    let classified = classify_regime(signals, config.thresholds)
+
+    @guidance
+        -- Runs every 15 minutes during market hours, hourly overnight.
+        -- gather_signals():
+        --   realised_vol_20d: EWMA vol from price-service history
+        --   cross_asset_correlation: average off-diagonal from latest Ledoit-Wolf matrix
+        --   credit_spread_bps: latest CDX IG from reference-data-service (null if unavailable)
+        --   pnl_volatility: rolling vol from intraday_pnl_snapshots (null pre-Direction 1)
+        --
+        -- classify_regime(signals, thresholds):
+        --   Rule-based classifier (not ML — explainable for governance):
+        --   CRISIS: realised_vol > elevated_vol_ceiling
+        --       AND cross_asset_correlation > crisis_correlation_floor
+        --   ELEVATED_VOL: realised_vol > normal_vol_ceiling
+        --   NORMAL: otherwise
+        --
+        -- If classified regime differs from current:
+        --   Increment consecutive_observations for the new regime.
+        --   Check debounce: escalation needs 3 consecutive, de-escalation needs 1.
+        --   If debounce met: confirm transition.
+        -- If same as current: reset consecutive_observations counter.
+}
+
+-- Regime transition (debounced)
+
+rule ConfirmRegimeTransition {
+    when: RegimeClassified(new_regime, signals, consecutive_count)
+    let current = current_regime_state()
+    let config = active_regime_config()
+
+    -- Escalation: normal→elevated or elevated→crisis
+    let is_escalation = severity(new_regime) > severity(current.regime)
+    let required = if is_escalation: config.escalation_debounce else: config.de_escalation_debounce
+
+    requires: consecutive_count >= required
+    requires: new_regime != current.regime
+
+    let new_params = params_for_regime(new_regime, config)
+
+    ensures: current.regime = new_regime
+    ensures: current.confidence = classify_confidence(signals, config.thresholds)
+    ensures: current.signals = signals
+    ensures: current.var_parameters = new_params
+    ensures: current.consecutive_observations = consecutive_count
+    ensures: current.is_confirmed = true
+    ensures: current.detected_at = now
+
+    ensures: RegimeHistory.created(
+        regime: current.regime,
+        started_at: current.detected_at,
+        ended_at: now,
+        signals_at_transition: signals,
+        var_parameters: current.var_parameters
+    )
+
+    ensures: RegimeTransitioned(
+        from: current.regime,
+        to: new_regime,
+        signals: signals,
+        new_params: new_params
+    )
+
+    @guidance
+        -- severity ordering: normal=0, recovery=1, elevated_vol=2, crisis=3.
+        -- Escalation (higher severity) requires 3 consecutive observations.
+        -- De-escalation (lower severity) requires 1 observation.
+        -- This prevents false crisis alerts from transient vol spikes
+        -- while allowing fast return to normal.
+}
+
+rule RegimeNotYetConfirmed {
+    when: RegimeClassified(new_regime, signals, consecutive_count)
+    let current = current_regime_state()
+    let config = active_regime_config()
+    let is_escalation = severity(new_regime) > severity(current.regime)
+    let required = if is_escalation: config.escalation_debounce else: config.de_escalation_debounce
+
+    requires: consecutive_count < required
+    requires: new_regime != current.regime
+
+    ensures: current.consecutive_observations = consecutive_count
+    ensures: current.is_confirmed = false
+
+    @guidance
+        -- New regime detected but debounce not yet met.
+        -- Update observation counter; do not transition.
+        -- Early warnings may still fire (see EarlyWarningCheck).
+}
+
+-- Adaptive VaR parameter application
+
+rule ApplyRegimeParameters {
+    when: RegimeTransitioned(from, to, signals, new_params)
+
+    @guidance
+        -- Updates the VaR parameter override in Redis (regime:current).
+        -- The next VaR calculation picks up the new parameters.
+        -- Parameter mapping:
+        --   NORMAL:       PARAMETRIC, CL_95, 1-day, standard correlations
+        --   ELEVATED_VOL: HISTORICAL, CL_99, 1-day, EWMA volatility
+        --   CRISIS:       MONTE_CARLO, CL_99, 5-day, stressed correlations, 50K sims
+        --   RECOVERY:     HISTORICAL, CL_975, 1-day, standard correlations
+        --
+        -- Does NOT re-run VaR immediately. The parameter override is picked up
+        -- by the next scheduled or event-driven VaR calculation.
+        -- This avoids cascading recalculations.
+}
+
+-- Early warning detection
+
+rule EarlyWarningCheck {
+    when: RegimeClassified(new_regime, signals, consecutive_count)
+    let config = active_regime_config()
+    let thresholds = config.thresholds
+
+    let warnings = detect_warnings(signals, thresholds)
+
+    @guidance
+        -- detect_warnings checks proximity to regime thresholds:
+        --
+        -- If realised_vol > 0.8 * normal_vol_ceiling (within 20% of threshold):
+        --   "Realised volatility approaching elevated regime threshold"
+        --
+        -- If cross_asset_correlation > 0.8 * crisis_correlation_floor:
+        --   "Cross-asset correlation structure shifting toward crisis pattern"
+        --
+        -- If credit_spread_bps increased by >30% over 5-day lookback:
+        --   "Credit spreads widening rapidly"
+        --
+        -- Warnings are published as REGIME_SHIFT_WARNING alerts through
+        -- the existing notification-service alert framework.
+        -- Distinct from regime transition alerts (which fire on confirmed transitions).
+}
+
+-- Correlation anomaly detection
+
+rule CorrelationAnomalyCheck {
+    when: RegimeClassified(new_regime, signals, consecutive_count)
+    let current_corr = latest_correlation_matrix()
+    let historical_avg = historical_average_correlation(252)
+
+    let anomaly_score = l2_norm(current_corr - historical_avg)
+
+    @guidance
+        -- Uses the existing IsolationForest anomaly detector from ml_server.
+        -- If anomaly_score exceeds threshold (calibrated from history):
+        --   Fire CORRELATION_ANOMALY alert with:
+        --     - The specific asset class pair that changed most
+        --     - Magnitude of change
+        --     - Historical precedent comparison
+        --
+        -- This is the early warning that fires 5-10 days before
+        -- VaR catches up during a structural market shift.
+}
+
+-- Regime alert
+
+rule AlertOnRegimeTransition {
+    when: RegimeTransitioned(from, to, signals, new_params)
+
+    @guidance
+        -- Fires through the existing notification-service.
+        -- New AlertType: REGIME_CHANGE.
+        -- Severity:
+        --   NORMAL → ELEVATED_VOL: WARNING
+        --   any → CRISIS: CRITICAL
+        --   CRISIS → any: INFO (de-escalation)
+        -- Message includes: old regime, new regime, key signal values,
+        --   and what VaR parameters changed.
+}
+
+-- Model staleness check
+
+rule CheckModelStaleness {
+    when: ScheduledRegimeDetectionTick()
+
+    @guidance
+        -- If the LSTM vol predictor or IsolationForest anomaly detector
+        -- has not been retrained in > config.model_staleness_threshold (90 days),
+        -- emit a MODEL_STALENESS warning.
+        -- The warning does not prevent regime detection (rule-based classifier
+        -- runs independently of ML models), but signals that ML-enhanced
+        -- signals may be degraded.
+}
+
+-- Regime-aware VaR override
+
+rule OverrideVaRParameters {
+    when: CalculateVaRRequested(book_id, calculation_type, confidence_level, time_horizon_days, num_simulations, requested_outputs, correlation_id, trigger_type)
+    let regime = current_regime_state()
+    requires: regime.is_confirmed
+    requires: regime.regime != normal
+
+    @guidance
+        -- When regime is ELEVATED_VOL or CRISIS and the VaR request
+        -- uses default parameters, override with regime-adapted parameters.
+        --
+        -- The job record captures BOTH:
+        --   - requested parameters (what was asked for)
+        --   - effective parameters (what was actually used)
+        -- This audit trail is critical for governance.
+        --
+        -- If the request explicitly specifies non-default parameters
+        -- (e.g., a user-initiated calculation with specific settings),
+        -- do NOT override. Regime adaptation only applies to
+        -- scheduled and event-driven calculations.
+}
+
+-- Signal degradation handling
+
+rule HandleDegradedSignals {
+    when: RegimeClassified(new_regime, signals, consecutive_count)
+    requires: signals.credit_spread_bps = null or signals.pnl_volatility = null
+
+    @guidance
+        -- When VIX proxy or credit spread data is unavailable,
+        -- the classifier falls back to a two-factor model:
+        --   (realised_vol, cross_asset_correlation) only.
+        --
+        -- The regime state is marked with degraded_inputs = true.
+        -- The UI shows a staleness indicator on the regime badge.
+        -- The classifier does NOT change regime on degraded inputs
+        -- (stays in last known state) unless both available signals
+        -- independently indicate a transition.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant RegimeSeverityOrdering {
+    @guidance
+        -- Severity: normal=0, recovery=1, elevated_vol=2, crisis=3.
+        -- Escalation (severity increase) requires config.escalation_debounce
+        -- consecutive observations.
+        -- De-escalation (severity decrease) requires config.de_escalation_debounce.
+}
+
+invariant SingleActiveRegime {
+    @guidance
+        -- Exactly one RegimeState is active at any time.
+        -- Transitions create a RegimeHistory record for the prior state.
+}
+
+invariant RegimeParameterConsistency {
+    @guidance
+        -- The active VaR parameters must match the confirmed regime.
+        -- NORMAL → PARAMETRIC, CL_95
+        -- ELEVATED_VOL → HISTORICAL, CL_99
+        -- CRISIS → MONTE_CARLO, CL_99
+        -- No state where regime says CRISIS but parameters say PARAMETRIC.
+}
+
+invariant EscalationDebounce {
+    @guidance
+        -- A regime transition to higher severity never fires
+        -- on fewer than config.escalation_debounce consecutive observations.
+}
+
+invariant RegimeConfigRequiresApproval {
+    @guidance
+        -- Changes to RegimeModelConfig (thresholds, parameter mappings)
+        -- must be approved before taking effect.
+        -- Uses the same governance model as regulatory-service ModelVersion.
+}
+
+invariant AuditBothParameters {
+    @guidance
+        -- Every VaR job affected by regime override records both
+        -- the requested parameters and the effective parameters.
+        -- This enables after-the-fact analysis of regime impact on VaR.
+}

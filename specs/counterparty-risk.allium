@@ -1,0 +1,371 @@
+-- allium: 2
+-- Counterparty and credit risk: PFE, CVA, netting sets, wrong-way risk,
+-- and collateral tracking.
+--
+-- Scope: Counterparty master data, netting agreements, PFE simulation,
+--         CVA calculation, wrong-way risk detection, collateral management
+-- Excludes:
+--   - Stochastic credit spread models (uses deterministic PD for v1)
+--   - Full collateral management system (manual entry for v1)
+--   - Bilateral margin call automation
+--   - UI layout and presentation
+-- Dependencies: core.allium, positions.allium, trading.allium, reference-data.allium
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value ExposureProfile {
+    tenor: String
+    expected_exposure: Decimal
+    pfe_95: Decimal
+    pfe_99: Decimal
+
+    @guidance
+        -- PFE at time horizon tenors (1M, 3M, 6M, 1Y, 2Y, 5Y).
+        -- expected_exposure = mean of positive exposure across MC paths.
+        -- pfe_95/99 = 95th/99th percentile of max positive exposure at that tenor.
+}
+
+value NettingSetExposure {
+    netting_set_id: String
+    agreement_type: String
+    gross_exposure: Decimal
+    net_exposure: Decimal
+    netting_benefit: Decimal
+    netting_benefit_pct: Decimal
+    position_count: Integer
+}
+
+value WrongWayRiskFlag {
+    instrument_id: String
+    counterparty_sector: String
+    position_sector: String
+    exposure: Decimal
+    message: String
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity Counterparty {
+    counterparty_id: String
+    legal_name: String
+    short_name: String
+    lei: String?
+    rating_sp: String?
+    rating_moodys: String?
+    rating_fitch: String?
+    sector: String
+    country: String?
+    is_financial: Boolean
+    pd_1y: Decimal?
+    lgd: Decimal
+    cds_spread_bps: Decimal?
+
+    -- Derived
+    has_credit_data: pd_1y != null or cds_spread_bps != null
+    effective_pd: if pd_1y != null: pd_1y else: rating_implied_pd(rating_sp)
+
+    @guidance
+        -- pd_1y: 1-year probability of default (from ML credit model or rating tables).
+        -- lgd: Loss Given Default (default 0.40 = 40%).
+        -- cds_spread_bps: most recent CDS spread (null for counterparties without CDS market).
+        -- If no PD available: use Basel II standard mapping from S&P rating
+        --   (AAA→0.01%, BBB→0.20%, BB→1.0%, etc.).
+        -- Stale ratings (>30 days without update) are flagged.
+}
+
+entity NettingAgreement {
+    netting_set_id: String
+    counterparty: Counterparty
+    agreement_type: String
+    close_out_netting: Boolean
+    csa_threshold: Decimal?
+    currency: String?
+
+    @guidance
+        -- agreement_type: ISDA_2002, ISDA_1992, GMRA, OTHER.
+        -- close_out_netting: if true, positions can be netted on default.
+        -- csa_threshold: minimum transfer amount for margin calls.
+        -- Trades are linked to netting sets via NettingSetTrade.
+}
+
+entity NettingSetTrade {
+    trade_id: String
+    netting_set: NettingAgreement
+}
+
+entity CollateralBalance {
+    counterparty: Counterparty
+    netting_set: NettingAgreement?
+    collateral_type: String
+    amount: Decimal
+    currency: String
+    direction: String
+    as_of_date: String
+    value_after_haircut: Decimal
+
+    @guidance
+        -- direction: POSTED (we gave them) or RECEIVED (they gave us).
+        -- Haircuts by collateral_type:
+        --   CASH: 0%
+        --   GOVERNMENT_BOND: 2-5%
+        --   CORPORATE_BOND: 5-15%
+        --   EQUITY: 15-25%
+        -- value_after_haircut = amount * (1 - haircut).
+        -- For v1: updated manually via API. Future: automated margin calls.
+}
+
+entity CounterpartyExposureSnapshot {
+    counterparty_id: String
+    book_id: String?
+    calculated_at: Timestamp
+    gross_exposure: Decimal
+    net_exposure: Decimal
+    collateral_held: Decimal
+    collateral_posted: Decimal
+    net_net_exposure: Decimal
+    pfe_95_1y: Decimal?
+    cva: Decimal?
+    wrong_way_risk_flags: List<WrongWayRiskFlag>
+    netting_sets: List<NettingSetExposure>
+    exposure_profile: List<ExposureProfile>?
+
+    -- Derived
+    has_pfe: pfe_95_1y != null
+    has_wrong_way_risk: wrong_way_risk_flags.count > 0
+
+    @guidance
+        -- net_net_exposure = net_exposure - collateral_received + collateral_posted.
+        -- This is the residual exposure after netting and collateral.
+        -- exposure_profile is populated by the PFE Monte Carlo (nightly batch).
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    default_lgd: Decimal = 0.40
+    pfe_num_simulations: Integer = 10000
+    pfe_tenors: List<String> = ["1M", "3M", "6M", "1Y", "2Y", "5Y"]
+    pfe_confidence: Decimal = 0.95
+    cds_stale_threshold: Duration = 30.days
+    rating_stale_threshold: Duration = 30.days
+    exposure_history_retention: Duration = 1095.days
+    cash_haircut: Decimal = 0.00
+    govvie_haircut: Decimal = 0.03
+    corporate_bond_haircut: Decimal = 0.10
+    equity_haircut: Decimal = 0.20
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Current exposure (mark-to-market)
+
+rule CalculateCounterpartyExposure {
+    when: CalculateCounterpartyExposureRequested(counterparty_id, book_id)
+
+    let trades = trades_for_counterparty(counterparty_id, book_id)
+    let netting_agreements = NettingAgreements where counterparty.counterparty_id = counterparty_id
+    let collateral = CollateralBalances where counterparty.counterparty_id = counterparty_id
+
+    -- Gross exposure: sum of |MtM| for all trades
+    let gross = sum(trades, t => abs(mtm(t)))
+
+    -- Net exposure per netting set
+    let netting_exposures = for agreement in netting_agreements:
+        let set_trades = trades where netting_set = agreement
+        let set_mtm = sum(set_trades, t => mtm(t))
+        let net = max(0, set_mtm)
+        NettingSetExposure{
+            netting_set_id: agreement.netting_set_id,
+            gross_exposure: sum(set_trades, t => abs(mtm(t))),
+            net_exposure: net,
+            netting_benefit: gross - net
+        }
+
+    -- Trades without netting agreements: use gross
+    let unnested_gross = sum(unnested_trades, t => abs(mtm(t)))
+    let total_net = sum(netting_exposures, n => n.net_exposure) + unnested_gross
+
+    -- Collateral offset
+    let received = sum(collateral where direction = "RECEIVED", c => c.value_after_haircut)
+    let posted = sum(collateral where direction = "POSTED", c => c.value_after_haircut)
+    let net_net = total_net - received + posted
+
+    ensures: CounterpartyExposureSnapshot.created(
+        counterparty_id: counterparty_id,
+        book_id: book_id,
+        calculated_at: now,
+        gross_exposure: gross,
+        net_exposure: total_net,
+        collateral_held: received,
+        collateral_posted: posted,
+        net_net_exposure: net_net,
+        netting_sets: netting_exposures,
+        wrong_way_risk_flags: detect_wrong_way_risk(counterparty_id, trades)
+    )
+}
+
+-- Potential Future Exposure (PFE)
+
+rule CalculatePFE {
+    when: CalculatePFERequested(counterparty_id)
+
+    let trades = all_trades_for_counterparty(counterparty_id)
+    let netting_agreements = NettingAgreements where counterparty.counterparty_id = counterparty_id
+
+    @guidance
+        -- Monte Carlo simulation of future exposure paths.
+        -- For each netting set:
+        --   1. Take current positions marked to market.
+        --   2. Simulate correlated market factor paths for each tenor
+        --      (reuses var_monte_carlo.py infrastructure).
+        --   3. At each tenor, compute MtM of the netting set.
+        --   4. Exposure at each tenor = max(0, netting_set_MtM).
+        --   5. PFE = percentile of exposure across all simulations.
+        --   6. Expected exposure = mean of positive exposures.
+        --
+        -- Produces an ExposureProfile per tenor in config.pfe_tenors.
+        -- This is a nightly batch job (too expensive for on-demand intraday).
+        -- For on-demand after a trade: compute only the affected counterparty.
+}
+
+-- Credit Valuation Adjustment (CVA)
+
+rule CalculateCVA {
+    when: CalculateCVARequested(counterparty_id)
+
+    let counterparty = Counterparty{counterparty_id: counterparty_id}
+    requires: counterparty.has_credit_data
+    let exposure_profile = latest_exposure_profile(counterparty_id)
+    requires: exposure_profile != null
+
+    @guidance
+        -- CVA = sum over tenors of: PD(t) * LGD * EPE(t) * DF(t)
+        --
+        -- Where:
+        --   PD(t): probability of default in period t (from hazard rate).
+        --     hazard_rate ≈ cds_spread / (1 - recovery_rate).
+        --     PD(t) = 1 - exp(-hazard_rate * t).
+        --   LGD: 1 - recovery_rate (= 1 - (1 - lgd) = lgd in our convention).
+        --   EPE(t): Expected Positive Exposure at tenor t (from PFE calculation).
+        --   DF(t): discount factor from yield curve.
+        --
+        -- For v1: deterministic PD (fixed from rating or CDS spread).
+        -- Future: stochastic credit spread models.
+        --
+        -- If no CDS spread and no PD: fall back to sector-average spread
+        -- with a prominent "ESTIMATED" flag. CVA = 0 only if risk-free counterparty.
+
+-- Wrong-way risk detection
+
+rule DetectWrongWayRisk {
+    when: CalculateCounterpartyExposureRequested(counterparty_id, book_id)
+
+    let counterparty = Counterparty{counterparty_id: counterparty_id}
+    let trades = trades_for_counterparty(counterparty_id, book_id)
+
+    @guidance
+        -- Heuristic check per trade:
+        --   If counterparty.sector matches the instrument's sector
+        --   (e.g., counterparty is a bank AND position is in financial sector equity),
+        --   flag as potential wrong-way risk.
+        --
+        -- More rigorous (v2):
+        --   Correlate counterparty CDS spread changes with position P&L
+        --   over 90-day lookback. If correlation > 0.3, flag.
+        --
+        -- The flag includes: which instrument, which sectors matched,
+        --   and the exposure amount in that position.
+}
+
+-- Collateral management
+
+rule PostCollateral {
+    when: PostCollateralRequested(counterparty_id, netting_set_id, collateral_type, amount, currency, direction)
+    let counterparty = Counterparty{counterparty_id: counterparty_id}
+    let haircut = haircut_for_type(collateral_type)
+
+    ensures: CollateralBalance.created(
+        counterparty: counterparty,
+        netting_set: if netting_set_id != null: NettingAgreement{netting_set_id: netting_set_id} else: null,
+        collateral_type: collateral_type,
+        amount: amount,
+        currency: currency,
+        direction: direction,
+        as_of_date: today,
+        value_after_haircut: amount * (1 - haircut)
+    )
+}
+
+-- Daily batch
+
+rule ScheduledCounterpartyRisk {
+    when: ScheduledCounterpartyRiskTick()
+    for counterparty_id in all_counterparty_ids:
+        ensures: CalculateCounterpartyExposureRequested(counterparty_id: counterparty_id, book_id: null)
+        ensures: CalculatePFERequested(counterparty_id: counterparty_id)
+        ensures: CalculateCVARequested(counterparty_id: counterparty_id)
+
+    @guidance
+        -- Runs post-EOD after all VaR calculations complete.
+        -- PFE is compute-intensive: 10K paths × tenors × counterparties.
+        -- Target: < 30 seconds for 50 counterparties.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant NettingReducesExposure {
+    for snapshot in CounterpartyExposureSnapshots:
+        snapshot.net_exposure <= snapshot.gross_exposure
+
+    @guidance
+        -- Netting can only reduce or maintain exposure, never increase it.
+}
+
+invariant NetNetExposureFormula {
+    for snapshot in CounterpartyExposureSnapshots:
+        snapshot.net_net_exposure = snapshot.net_exposure - snapshot.collateral_held + snapshot.collateral_posted
+}
+
+invariant PFEExceedsCurrentExposure {
+    @guidance
+        -- PFE at the 95th percentile should always be >= current net exposure
+        -- for risky counterparties. A PFE < current exposure indicates a model
+        -- error (the current state should be within the simulated distribution).
+}
+
+invariant CVAPositiveForRiskyCounterparties {
+    @guidance
+        -- CVA > 0 for any counterparty with PD > 0 and positive exposure.
+        -- CVA = 0 only for riskless counterparties (PD = 0).
+}
+
+invariant CollateralHaircutApplied {
+    for c in CollateralBalances:
+        c.value_after_haircut <= c.amount
+}
+
+invariant WrongWayRiskSectorMatch {
+    @guidance
+        -- Wrong-way risk flags only fire when the counterparty's sector
+        -- matches the position's sector. Cross-sector positions are not flagged.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should DVA (Debit Valuation Adjustment) be computed alongside CVA? DVA = our own credit risk from the counterparty's perspective."
+
+open question "For FX collateral: should the FX conversion rate for haircut calculation use the same rate as position valuation, or a more conservative rate?"

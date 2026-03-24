@@ -1,0 +1,386 @@
+-- allium: 2
+-- Streaming intraday P&L: real-time position-level and book-level P&L
+-- with Greek attribution against frozen SOD state.
+--
+-- Scope: Intraday P&L computation, streaming, high-water mark tracking
+-- Includes: P&L snapshots, Greek attribution, debounced streaming, HWM
+-- Excludes:
+--   - SOD baseline creation (see risk.allium: CreateSodSnapshot)
+--   - Mark-to-market updates (see positions.allium: MarkToMarket)
+--   - Trade application (see positions.allium: ApplyTradeToPosition)
+--   - EOD P&L reporting (see risk.allium: ComputePnlAttribution)
+--   - UI layout and presentation
+-- Dependencies: core.allium, positions.allium, risk.allium
+
+use "./core.allium" as core
+use "./positions.allium" as positions
+use "./risk.allium" as risk
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity Position {
+    book_id: String,
+    instrument_id: String,
+    quantity: Decimal,
+    market_price: core/Money,
+    average_cost: core/Money,
+    realized_pnl: core/Money,
+    unrealized_pnl: Decimal,
+    market_value: Decimal
+}
+
+external entity DailyRiskSnapshot {
+    book_id: String,
+    snapshot_date: Timestamp,
+    instrument_id: String,
+    asset_class: core/AssetClass,
+    quantity: Decimal,
+    market_price: Decimal,
+    delta: Decimal?,
+    gamma: Decimal?,
+    vega: Decimal?,
+    theta: Decimal?,
+    rho: Decimal?
+}
+
+external entity SodBaseline {
+    book_id: String,
+    baseline_date: String,
+    source_job_id: String
+}
+
+external entity FxRate {
+    from_currency: String,
+    to_currency: String,
+    rate: Decimal
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value GreekAttribution {
+    delta_pnl: Decimal
+    gamma_pnl: Decimal
+    vega_pnl: Decimal
+    theta_pnl: Decimal
+    rho_pnl: Decimal
+    unexplained_pnl: Decimal
+}
+
+value InstrumentPnl {
+    instrument_id: String
+    asset_class: core/AssetClass
+    total_pnl: Decimal
+    attribution: GreekAttribution
+}
+
+value MarketState {
+    instrument_id: String
+    current_price: Decimal
+    current_vol: Decimal?
+    current_rate: Decimal?
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum PnlTrigger { position_change | trade_booked }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity IntradayPnlSnapshot {
+    book_id: String
+    snapshot_at: Timestamp
+    base_currency: String
+    trigger: PnlTrigger
+
+    -- Total P&L (the truth — computed from position state)
+    total_pnl: Decimal
+    realised_pnl: Decimal
+    unrealised_pnl: Decimal
+
+    -- Greek attribution (analytical overlay against SOD Greeks)
+    attribution: GreekAttribution
+
+    -- Tracking
+    high_water_mark: Decimal
+    correlation_id: String?
+
+    -- Per-instrument breakdown
+    instrument_pnl: List<InstrumentPnl>
+
+    -- Derived
+    pnl_vs_sod: total_pnl - sod_total_pnl
+    unexplained_pct: attribution.unexplained_pnl / total_pnl
+
+    @guidance
+        -- high_water_mark is the maximum total_pnl observed since
+        -- the SOD baseline was created for this book on this date.
+        -- It is monotonically non-decreasing within a trading day.
+}
+
+entity IntradayPnlState {
+    book_id: String
+    sod_baseline: SodBaseline
+    sod_snapshots: List<DailyRiskSnapshot>
+    sod_total_pnl: Decimal
+    high_water_mark: Decimal
+    last_snapshot_at: Timestamp?
+    base_currency: String
+
+    @guidance
+        -- In-memory state per book, initialised when SOD baseline exists.
+        -- Holds frozen SOD Greeks and prices for attribution.
+        -- high_water_mark and last_snapshot_at are mutable running state.
+        -- Cleared when a new SOD baseline is created for the same book.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    debounce_interval: Duration = 1.second
+    snapshot_retention: Duration = 30.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Initialisation: load SOD state when baseline exists
+
+rule InitialiseIntradayState {
+    when: baseline: SodBaseline.created
+    let sod_snapshots = DailyRiskSnapshots
+        where book_id = baseline.book_id
+        and snapshot_date = baseline.baseline_date
+    requires: sod_snapshots.count > 0
+
+    let sod_total_pnl = compute_total_pnl(baseline.book_id)
+
+    ensures: IntradayPnlState.created(
+        book_id: baseline.book_id,
+        sod_baseline: baseline,
+        sod_snapshots: sod_snapshots,
+        sod_total_pnl: sod_total_pnl,
+        high_water_mark: sod_total_pnl,
+        last_snapshot_at: null,
+        base_currency: book_base_currency(baseline.book_id)
+    )
+
+    @guidance
+        -- Triggered once per book per day when SOD baseline is created.
+        -- If state already exists for this book, replace it (new day).
+        -- sod_total_pnl is the book's total P&L at the moment of SOD snapshot.
+        -- Frozen SOD Greeks from DailyRiskSnapshots are held in memory
+        -- for the duration of the trading day.
+}
+
+-- Core computation: recompute P&L on position change
+
+rule RecomputeIntradayPnl {
+    when: PositionChanged(book_id, instrument_id, trigger)
+    let state = IntradayPnlState{book_id: book_id}
+    requires: state != null
+    requires: state.last_snapshot_at = null
+        or (now - state.last_snapshot_at) >= config.debounce_interval
+
+    -- Compute total P&L independently from positions (the truth)
+    let positions = Positions where book_id = book_id
+    let total_realised = sum(positions, p => convert(p.realized_pnl, state.base_currency))
+    let total_unrealised = sum(positions, p => convert(p.unrealized_pnl, state.base_currency))
+    let total_pnl = total_realised + total_unrealised
+
+    -- Compute Greek attribution against frozen SOD state
+    let attribution = attribute_pnl(positions, state.sod_snapshots, total_pnl)
+
+    -- Update high-water mark
+    let new_hwm = max(state.high_water_mark, total_pnl)
+
+    ensures: IntradayPnlSnapshot.created(
+        book_id: book_id,
+        snapshot_at: now,
+        base_currency: state.base_currency,
+        trigger: trigger,
+        total_pnl: total_pnl,
+        realised_pnl: total_realised,
+        unrealised_pnl: total_unrealised,
+        attribution: attribution,
+        high_water_mark: new_hwm,
+        correlation_id: current_correlation_id,
+        instrument_pnl: per_instrument_attribution(positions, state.sod_snapshots)
+    )
+    ensures: state.high_water_mark = new_hwm
+    ensures: state.last_snapshot_at = now
+    ensures: IntradayPnlPublished(book_id: book_id, snapshot: snapshot)
+}
+
+rule SkipRecomputeWithinDebounce {
+    when: PositionChanged(book_id, instrument_id, trigger)
+    let state = IntradayPnlState{book_id: book_id}
+    requires: state != null
+    requires: state.last_snapshot_at != null
+    requires: (now - state.last_snapshot_at) < config.debounce_interval
+
+    @guidance
+        -- Position changed but last snapshot was less than debounce_interval ago.
+        -- Skip persistence and publishing. The next position change after
+        -- the debounce window expires will capture the accumulated state.
+}
+
+rule SkipRecomputeNoBaseline {
+    when: PositionChanged(book_id, instrument_id, trigger)
+    let state = IntradayPnlState{book_id: book_id}
+    requires: state = null
+
+    @guidance
+        -- No SOD baseline exists for this book today.
+        -- Intraday P&L is undefined. No snapshot created.
+        -- Log warning; the UI shows "Awaiting SOD baseline".
+}
+
+-- Greek attribution logic (black box)
+
+deferred attribute_pnl
+    -- Decomposes total P&L into Greek components using frozen SOD state.
+    --
+    -- For each instrument with a SOD snapshot:
+    --   price_change = current_price - sod_price
+    --   vol_change = current_vol - sod_vol (from latest vol surface)
+    --   rate_change = current_rate - sod_rate (from latest yield curve)
+    --   fractional_day = (now - market_open) / trading_day_duration
+    --
+    --   delta_pnl = sod_delta * price_change
+    --   gamma_pnl = 0.5 * sod_gamma * price_change^2
+    --   vega_pnl = sod_vega * vol_change
+    --   theta_pnl = sod_theta * fractional_day
+    --   rho_pnl = sod_rho * rate_change
+    --
+    -- Aggregate across instruments to book level.
+    -- unexplained = total_pnl - (delta + gamma + vega + theta + rho)
+    --
+    -- All amounts converted to base_currency via current FX rates.
+
+deferred per_instrument_attribution
+    -- Same decomposition as attribute_pnl but returned per instrument.
+    -- Instruments without a SOD snapshot contribute to total_pnl
+    -- but have null attribution (new position opened intraday).
+
+-- Trigger chaining: position changes originate from existing rules
+
+rule PriceChangeTriggersPositionChanged {
+    when: positions/MarkToMarket(instrument_id, price_amount, price_currency)
+    for position in Positions where instrument_id = instrument_id:
+        ensures: PositionChanged(
+            book_id: position.book_id,
+            instrument_id: instrument_id,
+            trigger: position_change
+        )
+
+    @guidance
+        -- After MarkToMarket updates position market_price,
+        -- emit PositionChanged for each affected book.
+}
+
+rule TradeTriggersPositionChanged {
+    when: positions/TradeBooked(trade, book_id, correlation_id)
+    ensures: PositionChanged(
+        book_id: book_id,
+        instrument_id: trade.instrument_id,
+        trigger: trade_booked
+    )
+
+    @guidance
+        -- After ApplyTradeToPosition updates position state,
+        -- emit PositionChanged for the affected book.
+}
+
+-- Streaming delivery
+
+rule PublishIntradayPnl {
+    when: IntradayPnlPublished(book_id, snapshot)
+
+    @guidance
+        -- 1. Persist snapshot to intraday_pnl_snapshots hypertable.
+        -- 2. Publish IntradayPnlEvent to Kafka topic risk.pnl.intraday.
+        -- 3. Update Redis cache pnl:latest:{book_id} (TTL 5 seconds).
+        -- 4. Gateway PnlBroadcaster pushes to subscribed WebSocket sessions.
+}
+
+-- Query: historical intraday series
+
+rule QueryIntradaySeries {
+    when: IntradaySeriesRequested(book_id, from, to)
+    requires: from < to
+
+    @guidance
+        -- Return IntradayPnlSnapshots for book_id within [from, to].
+        -- Read from intraday_pnl_snapshots hypertable.
+        -- Used by UI to render the intraday chart on initial load.
+        -- WebSocket provides live updates from the current moment forward.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant TotalPnlIsIndependent {
+    @guidance
+        -- total_pnl is always computed from position state:
+        --   total_pnl = sum(realised) + sum(unrealised)
+        -- It is never derived from Greek attribution components.
+        -- attribution.unexplained_pnl absorbs the residual.
+}
+
+invariant AttributionSumsToTotal {
+    for s in IntradayPnlSnapshots:
+        s.total_pnl = s.attribution.delta_pnl
+            + s.attribution.gamma_pnl
+            + s.attribution.vega_pnl
+            + s.attribution.theta_pnl
+            + s.attribution.rho_pnl
+            + s.attribution.unexplained_pnl
+}
+
+invariant HighWaterMarkMonotonic {
+    @guidance
+        -- Within a single trading day (same SOD baseline),
+        -- high_water_mark is monotonically non-decreasing.
+        -- For any two snapshots s1, s2 with the same book_id
+        -- and s1.snapshot_at < s2.snapshot_at:
+        --   s2.high_water_mark >= s1.high_water_mark
+}
+
+invariant HighWaterMarkBoundsTotal {
+    for s in IntradayPnlSnapshots:
+        s.high_water_mark >= s.total_pnl
+}
+
+invariant SnapshotRequiresBaseline {
+    @guidance
+        -- An IntradayPnlSnapshot can only exist for a book_id
+        -- that has a SodBaseline for the current date.
+        -- No baseline = no intraday P&L.
+}
+
+invariant DebounceRespected {
+    @guidance
+        -- For any two consecutive snapshots for the same book_id,
+        -- the time between them is >= config.debounce_interval.
+        -- This is a loose bound: the actual interval may be longer
+        -- if no position changes occur.
+}
+
+invariant CurrencyConsistency {
+    @guidance
+        -- All monetary amounts within a single IntradayPnlSnapshot
+        -- are denominated in the snapshot's base_currency.
+        -- Conversion happens at computation time using current FX rates.
+}

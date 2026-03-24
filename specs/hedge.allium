@@ -1,0 +1,299 @@
+-- allium: 2
+-- Hedge recommendation engine: constrained optimisation to suggest trades
+-- that minimise a target Greek or VaR, with cost estimation and
+-- what-if validation handoff.
+--
+-- Scope: Hedge suggestion, ranking, cost estimation, what-if integration
+-- Excludes:
+--   - VaR-minimising optimisation (Phase 2 — requires gRPC extension)
+--   - Execution of suggested hedges (separate concern)
+--   - UI layout and presentation
+-- Dependencies: core.allium, risk.allium, liquidity.allium, limits.allium
+
+use "./core.allium" as core
+use "./liquidity.allium" as liquidity
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum HedgeTarget { delta | gamma | vega | var }
+
+enum HedgeStatus { pending | accepted | rejected | expired }
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value HedgeSuggestion {
+    instrument_id: String
+    instrument_type: String
+    side: core/Side
+    quantity: Decimal
+    estimated_cost: Decimal
+    crossing_cost: Decimal
+    carry_cost_per_day: Decimal?
+    target_reduction: Decimal
+    target_reduction_pct: Decimal
+    residual_metric: Decimal
+    greek_impact: GreekImpact
+    liquidity_tier: liquidity/LiquidityTier
+    data_quality: String
+
+    @guidance
+        -- estimated_cost: total cost including premium + crossing cost.
+        -- crossing_cost: quantity * 0.5 * bid_ask_spread.
+        -- carry_cost_per_day: theta cost for option hedges (daily bleed).
+        -- data_quality: FRESH if price < 15min old, STALE otherwise.
+}
+
+value GreekImpact {
+    delta_before: Decimal
+    delta_after: Decimal
+    gamma_before: Decimal
+    gamma_after: Decimal
+    vega_before: Decimal
+    vega_after: Decimal
+    theta_before: Decimal
+    theta_after: Decimal
+    rho_before: Decimal
+    rho_after: Decimal
+}
+
+value HedgeConstraints {
+    max_notional: Decimal?
+    max_suggestions: Integer
+    respect_position_limits: Boolean
+    instrument_universe: String?
+    allowed_sides: List<core/Side>?
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity HedgeRecommendation {
+    book_id: String
+    target_metric: HedgeTarget
+    target_reduction_pct: Decimal
+    requested_at: Timestamp
+    status: HedgeStatus
+    constraints: HedgeConstraints
+    suggestions: List<HedgeSuggestion>
+    pre_hedge_greeks: GreekImpact
+    source_job_id: String?
+    accepted_by: String?
+    accepted_at: Timestamp?
+    expires_at: Timestamp
+
+    -- Derived
+    is_expired: expires_at <= now
+    best_suggestion: suggestions.first
+    total_estimated_cost: sum(suggestions, s => s.estimated_cost)
+
+    @guidance
+        -- Recommendations expire after 30 minutes (market conditions change).
+        -- source_job_id links to the ValuationJob whose Greeks were used.
+        -- If source_job_id's job is older than 2 hours, warn the user.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    recommendation_ttl: Duration = 30.minutes
+    max_greek_staleness: Duration = 2.hours
+    max_candidate_instruments: Integer = 50
+    candidate_price_staleness: Duration = 15.minutes
+    recommendation_retention: Duration = 90.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Suggest hedges
+
+rule SuggestHedge {
+    when: SuggestHedgeRequested(book_id, target_metric, target_reduction_pct, constraints)
+    requires: target_reduction_pct > 0 and target_reduction_pct <= 1.0
+
+    -- Fetch current Greeks from the latest VaR result
+    let current_greeks = latest_greeks(book_id)
+    requires: current_greeks != null
+
+    -- Validate staleness
+    let source_job = latest_valuation_job(book_id)
+    requires: (now - source_job.completed_at) < config.max_greek_staleness
+
+    -- Fetch candidate instruments
+    let candidates = eligible_instruments(target_metric, constraints)
+    requires: candidates.count > 0
+
+    -- Run optimisation
+    let suggestions = optimise_hedge(
+        current_greeks: current_greeks,
+        target_metric: target_metric,
+        target_reduction_pct: target_reduction_pct,
+        candidates: candidates,
+        constraints: constraints
+    )
+
+    ensures: HedgeRecommendation.created(
+        book_id: book_id,
+        target_metric: target_metric,
+        target_reduction_pct: target_reduction_pct,
+        requested_at: now,
+        status: pending,
+        constraints: constraints,
+        suggestions: suggestions,
+        pre_hedge_greeks: current_greeks,
+        source_job_id: source_job.job_id,
+        expires_at: now + config.recommendation_ttl
+    )
+
+    @guidance
+        -- Staleness warning: if source_job is older than 30 minutes,
+        -- include a warning in the response (not a block).
+}
+
+-- Candidate instrument filtering
+
+deferred eligible_instruments
+    -- Filters the instrument universe to hedging candidates.
+    --
+    -- Criteria:
+    --   1. Instrument is marked hedging_eligible in reference-data.
+    --   2. Liquidity tier is TIER_1 or TIER_2 (excludes illiquid).
+    --   3. Price data is fresher than config.candidate_price_staleness.
+    --   4. For vega hedges: vol surface available.
+    --   5. Filtered to at most config.max_candidate_instruments (ranked by liquidity).
+    --
+    -- If constraints.instrument_universe is specified, filter to that set.
+
+-- Analytical hedge optimisation
+
+deferred optimise_hedge
+    -- Phase 1 (analytical): For delta/gamma/vega targets,
+    -- compute per-instrument Greek sensitivity and rank by
+    -- cost-adjusted effectiveness.
+    --
+    -- For each candidate:
+    --   sensitivity = greek_per_unit(candidate, target_metric)
+    --   units_needed = target_reduction / sensitivity
+    --   cost = units_needed * price + crossing_cost
+    --   effectiveness = target_reduction / cost
+    --
+    -- Constraints applied:
+    --   - units_needed * price <= constraints.max_notional (if specified)
+    --   - position limit check at all hierarchy levels (if respect_position_limits)
+    --   - allowed_sides filter
+    --
+    -- Return top N suggestions sorted by effectiveness descending.
+    --
+    -- IMPORTANT: each suggestion shows the FULL Greek impact
+    -- (all Greeks change, not just the target). This surfaces
+    -- the Lyapunov problem: reducing vega may increase gamma.
+
+-- Accept recommendation (send to what-if)
+
+rule AcceptHedgeRecommendation {
+    when: AcceptHedgeRequested(recommendation_id, accepted_by, suggestion_indices)
+    let rec = HedgeRecommendation{id: recommendation_id}
+    requires: rec.status = pending
+    requires: not rec.is_expired
+
+    ensures: rec.status = accepted
+    ensures: rec.accepted_by = accepted_by
+    ensures: rec.accepted_at = now
+    ensures: HedgeAccepted(
+        recommendation_id: recommendation_id,
+        suggestions: selected_suggestions(rec, suggestion_indices)
+    )
+
+    @guidance
+        -- The HedgeAccepted trigger pre-populates the WhatIfPanel
+        -- with the selected suggestions as hypothetical trades.
+        -- The user validates via what-if before actual execution.
+        -- Accepting does NOT execute the hedge — it moves it to
+        -- the what-if validation stage.
+}
+
+rule AcceptHedgeRejectedExpired {
+    when: AcceptHedgeRequested(recommendation_id, accepted_by, suggestion_indices)
+    let rec = HedgeRecommendation{id: recommendation_id}
+    requires: rec.is_expired
+
+    @guidance
+        -- Reject with HTTP 409. Market conditions may have changed.
+        -- User should request a fresh recommendation.
+}
+
+rule RejectHedgeRecommendation {
+    when: RejectHedgeRequested(recommendation_id)
+    let rec = HedgeRecommendation{id: recommendation_id}
+    requires: rec.status = pending
+
+    ensures: rec.status = rejected
+}
+
+-- Expire stale recommendations
+
+rule ExpireHedgeRecommendations {
+    when: rec: HedgeRecommendation.expires_at <= now
+    requires: rec.status = pending
+
+    ensures: rec.status = expired
+}
+
+-- No candidates found
+
+rule SuggestHedgeNoCandidates {
+    when: SuggestHedgeRequested(book_id, target_metric, target_reduction_pct, constraints)
+    let candidates = eligible_instruments(target_metric, constraints)
+    requires: candidates.count = 0
+
+    @guidance
+        -- Return empty recommendation with a message:
+        -- "No liquid instruments found to hedge {target_metric}.
+        --  Try widening the instrument universe or adjusting constraints."
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant SuggestionsRankedByCostEffectiveness {
+    @guidance
+        -- Within a HedgeRecommendation, suggestions are sorted
+        -- by cost-adjusted effectiveness descending (best first).
+}
+
+invariant HedgeRespectsLimits {
+    @guidance
+        -- When constraints.respect_position_limits = true,
+        -- no suggestion would breach a limit at any hierarchy level
+        -- (BOOK through FIRM) if executed.
+}
+
+invariant ExpiredRecommendationsNotAcceptable {
+    for rec in HedgeRecommendations:
+        rec.is_expired implies rec.status != pending
+}
+
+invariant FullGreekImpactShown {
+    @guidance
+        -- Every HedgeSuggestion includes the full GreekImpact
+        -- (delta, gamma, vega, theta, rho before and after).
+        -- The UI must never show only the target Greek change.
+        -- This prevents the Lyapunov problem from being hidden.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should the hedge engine suggest multi-leg strategies (e.g., a collar: buy put + sell call) or only single-instrument hedges?"
+
+open question "When Direction 4 (factor model) ships, should the target metric include factor exposures (e.g., 'minimise equity beta') in addition to raw Greeks?"

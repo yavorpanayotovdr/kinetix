@@ -1,0 +1,352 @@
+-- allium: 2
+-- Multi-desk risk aggregation: hierarchy drill-down, VaR budgeting,
+-- marginal contribution analysis, and CRO report generation.
+--
+-- Scope: Hierarchy-level VaR aggregation, risk budgeting, marginal/incremental
+--         contribution, drill-down navigation, CRO report trigger
+-- Excludes:
+--   - CRO report PDF generation (delegated to regulatory-service)
+--   - Cross-book VaR computation mechanics (see risk.allium)
+--   - Limit enforcement mechanics (see limits.allium)
+--   - UI layout and presentation
+-- Dependencies: core.allium, risk.allium, limits.allium, reference-data.allium
+
+use "./core.allium" as core
+use "./reference-data.allium" as ref
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum HierarchyLevel { firm | division | desk | book }
+
+enum BudgetPeriod { daily | monthly | quarterly }
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value HierarchyNodeRisk {
+    level: HierarchyLevel
+    entity_id: String
+    entity_name: String
+    parent_id: String?
+    var_value: Decimal
+    expected_shortfall: Decimal?
+    pnl_today: Decimal?
+    limit_utilisation: Decimal?
+    marginal_var: Decimal?
+    incremental_var: Decimal?
+    top_contributors: List<RiskContributor>
+    child_count: Integer
+}
+
+value RiskContributor {
+    entity_id: String
+    entity_name: String
+    var_contribution: Decimal
+    pct_of_total: Decimal
+}
+
+value BudgetUtilisation {
+    entity_id: String
+    level: HierarchyLevel
+    budget_amount: Decimal
+    current_var: Decimal
+    utilisation_pct: Decimal
+    budget_period: BudgetPeriod
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity BookHierarchyMapping {
+    book_id: String
+    desk_id: String
+    book_name: String
+    book_type: String?
+
+    @guidance
+        -- Maps each book to its desk.
+        -- Desk → Division mapping comes from reference-data-service.
+        -- This closes the gap: books in position-service are not
+        -- currently linked to the desks in reference-data-service.
+}
+
+entity RiskBudgetAllocation {
+    entity_level: HierarchyLevel
+    entity_id: String
+    budget_type: String
+    budget_period: BudgetPeriod
+    budget_amount: Decimal
+    effective_from: String
+    effective_to: String?
+    allocated_by: String
+    allocation_note: String?
+
+    @guidance
+        -- Risk budgets are distinct from hard limits (limits.allium).
+        -- Hard limits block trades. Budgets are soft targets for
+        -- strategic risk allocation — exceeding triggers a risk
+        -- committee review, not a trade rejection.
+        -- budget_type: VAR, NOTIONAL, ES.
+}
+
+entity HierarchyRiskSnapshot {
+    snapshot_at: Timestamp
+    level: HierarchyLevel
+    entity_id: String
+    parent_id: String?
+    var_value: Decimal
+    expected_shortfall: Decimal?
+    pnl_today: Decimal?
+    limit_utilisation: Decimal?
+    marginal_var: Decimal?
+    top_contributors: List<RiskContributor>
+
+    @guidance
+        -- Persisted per hierarchy node per computation.
+        -- top_contributors: top 5 child entities by |var_contribution|.
+        -- limit_utilisation: current_var / effective_limit (from limits.allium).
+        -- Stored as a TimescaleDB hypertable for historical trending.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    budget_warning_pct: Decimal = 0.80
+    budget_breach_pct: Decimal = 1.00
+    snapshot_retention: Duration = 365.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Hierarchy resolution
+
+rule ResolveHierarchy {
+    when: HierarchyRiskRequested(level, entity_id)
+
+    @guidance
+        -- Resolves the full hierarchy tree from the requested level down.
+        --
+        -- FIRM: all divisions → all desks → all books
+        -- DIVISION: all desks in division → all books in those desks
+        -- DESK: all books in desk
+        -- BOOK: single book (terminal node)
+        --
+        -- Resolution:
+        --   1. Fetch divisions from reference-data-service.
+        --   2. Fetch desks per division from reference-data-service.
+        --   3. Map books to desks via BookHierarchyMapping.
+        --   4. Collect all book_ids under the requested entity.
+}
+
+-- Hierarchy VaR aggregation
+
+rule AggregateHierarchyVaR {
+    when: HierarchyRiskRequested(level, entity_id)
+    requires: level in {firm, division, desk}
+
+    let book_ids = resolve_books_under(level, entity_id)
+    requires: book_ids.count > 0
+
+    @guidance
+        -- 1. Fetch cached per-book VaR from RedisVaRCache.
+        --      If any book is not cached, trigger recalculation.
+        -- 2. Run cross-book VaR aggregation (reuses CalculateCrossBookVaR
+        --      from risk.allium) with all books under the entity.
+        -- 3. The cross-book result gives:
+        --      - Aggregate VaR (diversified)
+        --      - Per-book contributions (standalone, marginal, incremental)
+        --      - Diversification benefit
+        -- 4. For each child entity (desk within division, book within desk):
+        --      Compute sub-aggregate VaR from its books.
+        -- 5. Top 5 contributors = child entities sorted by |var_contribution| desc.
+        -- 6. Persist HierarchyRiskSnapshot.
+        -- 7. Return HierarchyNodeRisk with drill-down children.
+}
+
+-- Drill-down navigation
+
+rule DrillDownHierarchy {
+    when: HierarchyDrillDownRequested(entity_id, target_level)
+
+    @guidance
+        -- Returns child nodes at the target level with their risk metrics.
+        -- E.g., drilling from a division to its desks:
+        --   Returns one HierarchyNodeRisk per desk, each showing
+        --   VaR, P&L, limit utilisation, marginal contribution.
+        --
+        -- The drill-down path: FIRM → Divisions → Desks → Books → Positions.
+        -- At the book level, the existing PositionRisk data is used
+        -- (no further aggregation needed).
+}
+
+-- Marginal contribution
+
+rule ComputeMarginalContribution {
+    when: MarginalContributionRequested(entity_id, level)
+
+    @guidance
+        -- "If I remove this entity, how does the parent's VaR change?"
+        --
+        -- For a desk within a division:
+        --   marginal_var = division_var - var_without_this_desk
+        --   where var_without_this_desk = cross-book VaR of all books
+        --   in the division EXCEPT this desk's books.
+        --
+        -- This reuses the incremental_var already computed in
+        -- CrossBookValuationResult.BookVaRContribution.
+        -- At higher levels: aggregate the incremental VaRs of child entities.
+}
+
+-- Risk budget tracking
+
+rule TrackBudgetUtilisation {
+    when: HierarchyRiskCompleted(snapshot)
+    let budget = RiskBudgetAllocation{
+        entity_id: snapshot.entity_id,
+        entity_level: snapshot.level,
+        budget_type: "VAR"
+    }
+    requires: budget != null
+    requires: budget.effective_from <= today
+    requires: budget.effective_to = null or budget.effective_to >= today
+
+    let utilisation = snapshot.var_value / budget.budget_amount
+
+    @guidance
+        -- Budget utilisation tracking:
+        --   utilisation < 80% → OK (green)
+        --   80% <= utilisation < 100% → WARNING (amber)
+        --   utilisation >= 100% → BUDGET_EXCEEDED (red)
+        --
+        -- Budget exceeded fires an alert through notification-service
+        -- (not a trade block — budgets are soft targets).
+        -- Alert type: RISK_BUDGET_EXCEEDED.
+}
+
+rule AlertOnBudgetBreach {
+    when: HierarchyRiskCompleted(snapshot)
+    let budget = RiskBudgetAllocation{
+        entity_id: snapshot.entity_id,
+        entity_level: snapshot.level,
+        budget_type: "VAR"
+    }
+    requires: budget != null
+    requires: snapshot.var_value > budget.budget_amount * config.budget_breach_pct
+
+    @guidance
+        -- Fire RISK_BUDGET_EXCEEDED alert through notification-service.
+        -- Severity: WARNING at 100%, CRITICAL at 120%.
+        -- This triggers a risk committee review, not a trade block.
+}
+
+-- Risk budget CRUD
+
+rule CreateRiskBudget {
+    when: CreateRiskBudgetRequested(entity_level, entity_id, budget_type, budget_period, budget_amount, effective_from, allocated_by, note)
+    ensures: RiskBudgetAllocation.created(
+        entity_level: entity_level,
+        entity_id: entity_id,
+        budget_type: budget_type,
+        budget_period: budget_period,
+        budget_amount: budget_amount,
+        effective_from: effective_from,
+        allocated_by: allocated_by,
+        allocation_note: note
+    )
+}
+
+rule UpdateRiskBudget {
+    when: UpdateRiskBudgetRequested(budget_id, budget_amount, effective_to, note)
+    let budget = RiskBudgetAllocation{id: budget_id}
+    ensures: budget.budget_amount = budget_amount
+    ensures: budget.effective_to = effective_to
+    ensures: budget.allocation_note = note
+}
+
+-- CRO report trigger
+
+rule TriggerCROReport {
+    when: CROReportRequested(report_date, format)
+
+    @guidance
+        -- Triggers the regulatory-service to generate the CRO report.
+        -- The report content and format (PDF/CSV) is delegated to
+        -- regulatory-service (out of scope for this spec).
+        --
+        -- Inputs provided to the report generator:
+        --   - Firm-level VaR and ES
+        --   - Division/desk breakdown with contributions
+        --   - Top 10 risk contributors firm-wide
+        --   - Limit and budget utilisation summary
+        --   - Any breaches in the last 24 hours
+        --   - Standard stress scenario results
+        --   - Current market regime (from regime.allium)
+        --
+        -- The report is triggered daily post-EOD (automated)
+        -- and on-demand by the CRO.
+}
+
+-- Scheduled aggregation
+
+rule ScheduledHierarchyAggregation {
+    when: ScheduledHierarchyTick()
+
+    ensures: HierarchyRiskRequested(level: firm, entity_id: "FIRM")
+
+    @guidance
+        -- Runs after per-book VaR calculations complete (EOD batch).
+        -- A single firm-level request cascades: computes division-level,
+        -- desk-level, and persists snapshots at each level.
+        -- Also triggered when a significant book-level VaR change is detected
+        -- (>10% change from cached value).
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant FirmVaRDiversified {
+    @guidance
+        -- Firm VaR (diversified) <= sum of standalone desk VaRs.
+        -- The difference is the diversification benefit.
+        -- If firm VaR > sum of desks, the correlation model is broken.
+}
+
+invariant EulerDecompositionSums {
+    @guidance
+        -- Marginal VaR contributions of all children at any hierarchy
+        -- level sum to the parent's VaR (Euler allocation property).
+        -- This is a mathematical property of the decomposition method.
+}
+
+invariant BudgetsSoftNotHard {
+    @guidance
+        -- Risk budget breaches fire alerts and trigger reviews.
+        -- They do NOT block trades. Trade blocking is the domain
+        -- of limits.allium (hard limits).
+        -- A budget is a strategic target; a limit is an operational control.
+}
+
+invariant HierarchyConsistency {
+    @guidance
+        -- Every book must map to exactly one desk.
+        -- Every desk must map to exactly one division.
+        -- There is exactly one firm.
+        -- No cycles in the hierarchy.
+}
+
+invariant PartialAggregationOnFailure {
+    @guidance
+        -- If one book's VaR is unavailable during hierarchy aggregation,
+        -- the aggregation proceeds with remaining books and the result
+        -- is marked as partial (with the failed book listed).
+        -- The firm-level VaR is never null — it may be partial.
+}

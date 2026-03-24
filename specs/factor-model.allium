@@ -1,0 +1,324 @@
+-- allium: 2
+-- Factor-based risk decomposition: systematic risk factors, factor loadings,
+-- VaR attribution by factor, and P&L attribution by factor.
+--
+-- Scope: Factor definitions, loading estimation, factor VaR decomposition,
+--         factor P&L attribution, concentration warnings
+-- Excludes:
+--   - Factor return data sourcing (implementation detail)
+--   - ML-based factor selection
+--   - UI layout and presentation
+-- Dependencies: core.allium, risk.allium, risk-models.allium, positions.allium
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum FactorType { equity_beta | rates_duration | credit_spread | fx_delta | vol_exposure }
+
+enum LoadingMethod { ols_regression | analytical | manual }
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value FactorContribution {
+    factor: FactorType
+    factor_exposure: Decimal
+    factor_var: Decimal
+    pnl_attribution: Decimal
+    pct_of_total_var: Decimal
+}
+
+value InstrumentLoading {
+    instrument_id: String
+    factor: FactorType
+    loading: Decimal
+    r_squared: Decimal?
+    method: LoadingMethod
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity FactorDefinition {
+    factor: FactorType
+    proxy_instrument_id: String
+    description: String
+
+    @guidance
+        -- Each factor has a proxy instrument whose returns represent
+        -- the factor return. Proxy instruments must have historical
+        -- prices in price-service.
+        --
+        -- Standard factors:
+        --   EQUITY_BETA:    proxy = IDX-SPX (S&P 500 index)
+        --   RATES_DURATION: proxy = US10Y (10-year UST yield)
+        --   CREDIT_SPREAD:  proxy = CDX-IG (investment grade credit index)
+        --   FX_DELTA:       proxy = DXY (dollar index) or EURUSD
+        --   VOL_EXPOSURE:   proxy = VIX (CBOE volatility index)
+}
+
+entity FactorReturn {
+    factor: FactorType
+    as_of_date: String
+    return_value: Decimal
+    source: String
+
+    @guidance
+        -- Daily factor return (log return for equity/FX, yield change for rates).
+        -- Primary key: (factor, as_of_date).
+        -- Minimum 252 trading days required for OLS loading estimation.
+        -- 10 years retained for stress testing and regime analysis.
+}
+
+entity InstrumentFactorLoading {
+    instrument_id: String
+    factor: FactorType
+    loading: Decimal
+    r_squared: Decimal?
+    estimation_date: String
+    estimation_window: Integer
+    method: LoadingMethod
+
+    @guidance
+        -- Loading = sensitivity of instrument to factor.
+        -- For equities: beta from OLS regression of instrument returns
+        --   on factor returns over estimation_window days.
+        -- For bonds: DV01 computed analytically from maturity/coupon.
+        -- For options: vega from Black-Scholes.
+        -- For FX: position itself is the FX exposure.
+        -- For new instruments (< 63 days history): use analytical method.
+        -- Re-estimated weekly. Stale after 5 business days.
+}
+
+entity FactorDecomposition {
+    book_id: String
+    decomposition_date: String
+    job_id: String?
+    total_var: Decimal
+    systematic_var: Decimal
+    idiosyncratic_var: Decimal
+    r_squared: Decimal
+    factor_contributions: List<FactorContribution>
+
+    -- Derived
+    systematic_pct: systematic_var / total_var
+    idiosyncratic_pct: idiosyncratic_var / total_var
+
+    @guidance
+        -- r_squared: fraction of portfolio variance explained by factors.
+        -- Values below 0.30 indicate the factor model is a poor fit.
+        -- systematic_var + idiosyncratic_var = total_var (by construction).
+}
+
+entity FactorPnlAttribution {
+    book_id: String
+    attribution_date: String
+    total_pnl: Decimal
+    factor_pnl: List<FactorContribution>
+    idiosyncratic_pnl: Decimal
+
+    @guidance
+        -- factor_pnl[f] = sum_i(position_mv[i] * loading[i,f] * factor_return[f])
+        -- idiosyncratic_pnl = total_pnl - sum(factor_pnl)
+        -- Uses the same independent-total-plus-residual model as
+        -- intraday P&L attribution (total is truth, decomposition is overlay).
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    ols_window: Integer = 252
+    loading_staleness: Duration = 5.days
+    min_history_for_ols: Integer = 63
+    concentration_warning_pct: Decimal = 0.60
+    factor_return_retention: Duration = 3650.days
+    loading_retention: Duration = 1095.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Factor return ingestion
+
+rule IngestFactorReturn {
+    when: FactorReturnReceived(factor, as_of_date, return_value, source)
+    ensures: FactorReturn.created(
+        factor: factor,
+        as_of_date: as_of_date,
+        return_value: return_value,
+        source: source
+    )
+
+    @guidance
+        -- Ingested daily after market close.
+        -- Sources: price-service for equity/FX indices,
+        --   rates-service for yield changes,
+        --   external feed for VIX and CDX.
+}
+
+-- Loading estimation
+
+rule EstimateFactorLoadings {
+    when: EstimateLoadingsRequested(instrument_id)
+
+    for factor in FactorDefinitions:
+        let instrument_returns = historical_returns(instrument_id, config.ols_window)
+        let factor_returns = historical_factor_returns(factor, config.ols_window)
+
+        @guidance
+            -- If instrument has >= min_history_for_ols days of returns:
+            --   Use OLS regression: loading = beta from regress(instrument, factor).
+            --   r_squared = goodness of fit.
+            --   method = ols_regression.
+            --
+            -- Else use analytical loading:
+            --   EQUITY_BETA: 1.0 for equities (assume market beta pending data)
+            --   RATES_DURATION: DV01 from bond_pricing.py for bonds/swaps
+            --   VOL_EXPOSURE: vega from Black-Scholes for options
+            --   FX_DELTA: 1.0 for FX positions in that currency
+            --   CREDIT_SPREAD: spread_duration for credit instruments
+            --   method = analytical. r_squared = null.
+            --
+            -- Creates/updates InstrumentFactorLoading.
+}
+
+rule ScheduledLoadingReestimation {
+    when: ScheduledLoadingTick()
+    for instrument_id in all_instrument_ids:
+        ensures: EstimateLoadingsRequested(instrument_id: instrument_id)
+
+    @guidance
+        -- Runs weekly. Re-estimates all loadings.
+        -- Loading change > 0.3 (in beta terms) between estimations
+        -- triggers a data quality warning for manual review.
+}
+
+-- Factor VaR decomposition
+
+rule DecomposeFactorRisk {
+    when: FactorDecompositionRequested(book_id)
+
+    let positions = all_positions(book_id)
+    let loadings = all_loadings(positions)
+    let factor_cov = factor_covariance_matrix()
+
+    @guidance
+        -- 1. Build exposure vector: for each factor,
+        --      exposure_f = sum_i(position_mv[i] * loading[i,f])
+        -- 2. Systematic variance = exposure^T @ factor_cov @ exposure
+        -- 3. Idiosyncratic variance = total_variance - systematic_variance
+        --      where total_variance comes from the standard VaR calculation.
+        -- 4. Factor VaR contribution per factor via Euler allocation:
+        --      contribution_f = (factor_cov @ exposure)_f * exposure_f / systematic_variance
+        -- 5. r_squared = systematic_variance / total_variance
+        --
+        -- factor_covariance_matrix: estimated from factor_returns using
+        --   Ledoit-Wolf shrinkage (reuses existing correlation.py).
+        --
+        -- Persists FactorDecomposition.
+
+-- Factor P&L attribution
+
+rule ComputeFactorPnlAttribution {
+    when: FactorPnlAttributionRequested(book_id, date)
+
+    let positions = all_positions(book_id)
+    let loadings = all_loadings(positions)
+    let factor_returns_today = todays_factor_returns(date)
+    let total_pnl = total_book_pnl(book_id)
+
+    for factor in FactorDefinitions:
+        let factor_pnl = sum_i(position_mv[i] * loading[i, factor] * factor_returns_today[factor])
+
+    let idiosyncratic = total_pnl - sum(factor_pnls)
+
+    ensures: FactorPnlAttribution.created(
+        book_id: book_id,
+        attribution_date: date,
+        total_pnl: total_pnl,
+        factor_pnl: factor_contributions,
+        idiosyncratic_pnl: idiosyncratic
+    )
+
+    @guidance
+        -- Same philosophy as intraday P&L attribution:
+        --   total_pnl is independently computed (the truth).
+        --   Factor attributions are an analytical overlay.
+        --   idiosyncratic absorbs the residual.
+}
+
+-- Factor concentration warning
+
+rule WarnOnFactorConcentration {
+    when: FactorDecompositionCompleted(decomposition)
+    for contribution in decomposition.factor_contributions:
+        requires: contribution.pct_of_total_var > config.concentration_warning_pct
+
+        @guidance
+            -- Fire a factor concentration warning alert through
+            -- the existing notification-service.
+            -- Message: "{factor_name} accounts for {pct}% of portfolio VaR.
+            --   Consider reducing {factor_name} directional exposure."
+            -- This catches the case Marcus described: "80% of risk is
+            --   just long S&P beta."
+}
+
+-- Scheduled daily computation
+
+rule ScheduledFactorDecomposition {
+    when: ScheduledFactorTick()
+    for book_id in all_book_ids:
+        ensures: FactorDecompositionRequested(book_id: book_id)
+        ensures: FactorPnlAttributionRequested(book_id: book_id, date: today)
+
+    @guidance
+        -- Runs as part of the EOD batch, after per-book VaR completes.
+        -- Factor decomposition requires the latest VaR result.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant DecompositionSumsToTotal {
+    for d in FactorDecompositions:
+        d.systematic_var + d.idiosyncratic_var = d.total_var
+
+    @guidance
+        -- By construction: idiosyncratic = total - systematic.
+}
+
+invariant FactorPnlResidualIsReal {
+    @guidance
+        -- idiosyncratic_pnl is a real, meaningful number (not noise).
+        -- It captures higher-order effects, cross-factor interactions,
+        -- and model error. It should be displayed, never hidden.
+}
+
+invariant RSquaredRange {
+    for d in FactorDecompositions:
+        d.r_squared >= 0.0 and d.r_squared <= 1.0
+}
+
+invariant LoadingStalenessFlag {
+    @guidance
+        -- Loadings older than config.loading_staleness (5 business days)
+        -- are flagged as stale. The decomposition result carries a
+        -- staleness warning if any position uses stale loadings.
+}
+
+invariant AnalyticalFallback {
+    @guidance
+        -- Instruments with fewer than config.min_history_for_ols days
+        -- of return history use analytical loadings.
+        -- These loadings have r_squared = null and method = analytical.
+        -- The decomposition is valid but less precise for these positions.
+}

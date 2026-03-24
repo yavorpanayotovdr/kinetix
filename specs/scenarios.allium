@@ -1,0 +1,348 @@
+-- allium: 2
+-- Historical scenario replay, reverse stress testing, and scenario library
+-- management with versioning and governance.
+--
+-- Scope: Historical return replay, reverse stress testing, custom multi-factor
+--         scenarios, scenario persistence and versioning
+-- Excludes:
+--   - The existing stress engine mechanics (see risk-models.allium)
+--   - Scenario governance workflow (see regulatory.allium)
+--   - UI layout and presentation
+-- Dependencies: core.allium, risk-models.allium, regulatory.allium
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum ScenarioType { historical_replay | custom_parametric | reverse_stress }
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value DailyReplayPnl {
+    date: String
+    daily_pnl: Decimal
+    cumulative_pnl: Decimal
+}
+
+value ReplayResult {
+    start_date: String
+    end_date: String
+    daily_pnl: List<DailyReplayPnl>
+    worst_day_pnl: Decimal
+    worst_day_date: String
+    total_period_pnl: Decimal
+    max_drawdown: Decimal
+    var_breach_count: Integer
+    instruments_with_data: Integer
+    instruments_without_data: Integer
+    proxy_used: Boolean
+}
+
+value ReverseStressResult {
+    target_loss: Decimal
+    resulting_loss: Decimal
+    converged: Boolean
+    iterations: Integer
+    asset_class_shocks: List<AssetClassShock>
+    tolerance_met: Boolean
+
+    @guidance
+        -- converged = true if the solver found a scenario within 10%
+        -- of the target loss.
+        -- tolerance_met = abs(resulting_loss - target_loss) / target_loss < 0.10.
+}
+
+value AssetClassShock {
+    asset_class: core/AssetClass
+    price_shock: Decimal
+    vol_shock: Decimal
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity HistoricalScenarioPeriod {
+    period_id: String
+    name: String
+    description: String?
+    start_date: String
+    end_date: String
+    asset_class_focus: String?
+    severity_label: String?
+
+    @guidance
+        -- Pre-defined crisis periods:
+        --   GFC_OCT_2008: 2008-09-15 to 2009-03-15 (6 months)
+        --   COVID_MAR_2020: 2020-02-19 to 2020-04-30 (10 weeks)
+        --   TAPER_TANTRUM_2013: 2013-05-01 to 2013-09-30 (5 months)
+        --   EURO_CRISIS_2011: 2011-07-01 to 2011-12-31 (6 months)
+        -- Custom date ranges can be added.
+}
+
+entity HistoricalScenarioReturn {
+    period: HistoricalScenarioPeriod
+    instrument_id: String
+    return_date: String
+    daily_return: Decimal
+    source: String
+
+    @guidance
+        -- Pre-computed daily log returns for instruments during crisis periods.
+        -- Primary key: (period_id, instrument_id, return_date).
+        -- Populated once from historical price data (static dataset).
+        -- For instruments not traded during the period: no entries
+        --   (handled at replay time via proxy returns).
+}
+
+entity SavedScenario {
+    name: String
+    description: String?
+    scenario_type: ScenarioType
+    version: Integer
+    parent_scenario_id: String?
+    shocks: String?
+    correlation_override: List<Decimal>?
+    liquidity_stress_factors: String?
+    historical_period_id: String?
+    target_loss: Decimal?
+    created_by: String
+    created_at: Timestamp
+
+    -- Derived
+    is_historical: scenario_type = historical_replay
+    is_reverse: scenario_type = reverse_stress
+
+    @guidance
+        -- Extends the existing GovernedStressScenario concept from
+        -- regulatory.allium with scenario_type and versioning.
+        -- version increments on each update; previous versions retained.
+        -- parent_scenario_id links variants ("GFC with extra credit stress").
+        -- Governance (approval workflow) is handled by regulatory.allium.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    reverse_stress_max_iterations: Integer = 100
+    reverse_stress_tolerance: Decimal = 0.10
+    max_replay_period_days: Integer = 252
+    scenario_retention: Duration = 3650.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Historical scenario replay
+
+rule ReplayHistoricalScenario {
+    when: ReplayHistoricalScenarioRequested(book_id, period_id)
+
+    let period = HistoricalScenarioPeriod{period_id: period_id}
+    let positions = all_positions(book_id)
+    let returns = HistoricalScenarioReturns where period = period
+
+    @guidance
+        -- 1. For each instrument in the portfolio:
+        --      Look up daily returns from HistoricalScenarioReturn for the period.
+        --      If instrument not in historical data:
+        --        Use asset class index proxy return (e.g., SPX for equities).
+        --        Flag the instrument as proxy-covered.
+        -- 2. For each trading day in the period:
+        --      daily_pnl = sum_i(position_mv[i] * return[i, date])
+        --      cumulative_pnl = running sum of daily_pnl
+        -- 3. Compute summary metrics:
+        --      worst_day: min(daily_pnl)
+        --      max_drawdown: max peak-to-trough decline in cumulative series
+        --      var_breach_count: days where |daily_pnl| > current 1-day VaR
+        -- 4. Return ReplayResult.
+        --
+        -- This applies ACTUAL historical returns to CURRENT positions.
+        -- It answers: "what would my current book have lost?"
+        -- NOT: "what did my historical book lose?" (that is a different question).
+}
+
+rule ReplayCustomDateRange {
+    when: ReplayCustomDateRangeRequested(book_id, start_date, end_date)
+    requires: start_date < end_date
+    let days = trading_days_between(start_date, end_date)
+    requires: days <= config.max_replay_period_days
+
+    @guidance
+        -- Same as ReplayHistoricalScenario but fetches returns from
+        -- price-service historical data (not pre-computed periods).
+        -- Requires price history to cover the date range.
+        -- If price history is insufficient (2-year retention),
+        -- reject with "Historical data not available for this period."
+}
+
+-- Reverse stress testing
+
+rule ReverseStressTest {
+    when: ReverseStressTestRequested(book_id, target_loss, constraints)
+    requires: target_loss > 0
+
+    let positions = all_positions(book_id)
+
+    @guidance
+        -- Find the minimum-norm shock vector that produces the target loss.
+        --
+        -- Algorithm (bisection/gradient descent):
+        --   Variables: per-asset-class price_shock and vol_shock.
+        --   Objective: minimize |stress_pnl(shocks) - target_loss|.
+        --   Constraints: shocks bounded by user-specified ranges
+        --     (e.g., max equity shock = -50%, max vol shock = 5×).
+        --   Method: scipy.optimize.minimize with SLSQP.
+        --
+        -- The "minimum-norm" solution finds the SMALLEST market move
+        -- that produces the target loss. This is a principled choice.
+        -- Alternative: "most likely shock given historical correlations"
+        -- (more complex, deferred).
+        --
+        -- If solver does not converge within config.reverse_stress_max_iterations:
+        --   Return ReverseStressResult with converged=false.
+        --   Message: "No feasible scenario found within constraints."
+        --
+        -- If converged:
+        --   Return the shock vector and the actual resulting loss.
+        --   tolerance_met = abs(resulting - target) / target < 0.10.
+}
+
+-- Custom multi-factor scenarios
+
+rule CreateCustomScenario {
+    when: CreateCustomScenarioRequested(name, description, price_shocks, vol_shocks, correlation_override, liquidity_stress_factors, created_by)
+
+    ensures: SavedScenario.created(
+        name: name,
+        description: description,
+        scenario_type: custom_parametric,
+        version: 1,
+        shocks: serialize_shocks(price_shocks, vol_shocks),
+        correlation_override: correlation_override,
+        liquidity_stress_factors: liquidity_stress_factors,
+        created_by: created_by,
+        created_at: now
+    )
+
+    @guidance
+        -- Multi-factor scenarios apply simultaneous shocks:
+        --   price_shocks: per-asset-class price multipliers
+        --   vol_shocks: per-asset-class vol multipliers
+        --   correlation_override: custom correlation matrix (optional)
+        --   liquidity_stress_factors: per-asset-class ADV stress (from liquidity.allium)
+        --
+        -- If correlation_override is not positive definite:
+        --   Apply nearest_positive_definite repair and warn the user.
+        --
+        -- Saved scenarios enter the governance workflow via regulatory.allium
+        -- (draft → pending_approval → approved).
+}
+
+-- Scenario versioning
+
+rule UpdateScenario {
+    when: UpdateScenarioRequested(scenario_id, shocks, correlation_override, liquidity_stress_factors)
+    let scenario = SavedScenario{id: scenario_id}
+
+    ensures: scenario.version = scenario.version + 1
+    ensures: scenario.shocks = shocks
+    ensures: scenario.correlation_override = correlation_override
+    ensures: scenario.liquidity_stress_factors = liquidity_stress_factors
+
+    @guidance
+        -- Incrementing version preserves previous parameters
+        -- (the database retains the full history).
+        -- Updating an APPROVED scenario resets status to DRAFT
+        -- (requires re-approval via regulatory.allium governance).
+}
+
+-- Save reverse stress result as scenario
+
+rule SaveReverseStressAsScenario {
+    when: SaveReverseStressAsScenarioRequested(name, reverse_result, created_by)
+    requires: reverse_result.converged
+
+    ensures: SavedScenario.created(
+        name: name,
+        scenario_type: reverse_stress,
+        version: 1,
+        shocks: serialize_shocks(reverse_result.asset_class_shocks),
+        target_loss: reverse_result.target_loss,
+        created_by: created_by,
+        created_at: now
+    )
+}
+
+-- Run saved scenario
+
+rule RunSavedScenario {
+    when: RunSavedScenarioRequested(scenario_id, book_id)
+    let scenario = SavedScenario{id: scenario_id}
+
+    @guidance
+        -- Dispatches to the appropriate execution path:
+        --   HISTORICAL_REPLAY: calls ReplayHistoricalScenario with period_id.
+        --   CUSTOM_PARAMETRIC: calls RunStressTest from risk-models.allium.
+        --   REVERSE_STRESS: calls ReverseStressTest with target_loss.
+        --
+        -- Only APPROVED scenarios can be run (enforced by regulatory.allium).
+        -- Ad-hoc (unsaved) scenarios can be run directly without approval.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant ReplayUsesCurrentPositions {
+    @guidance
+        -- Historical replay always applies returns to the CURRENT portfolio.
+        -- It never reconstructs historical positions.
+        -- The output is hypothetical: "if I had held today's book during that period."
+}
+
+invariant ReverseStressMinimumNorm {
+    @guidance
+        -- The reverse stress solver seeks the minimum-norm shock vector
+        -- (smallest market move) that achieves the target loss.
+        -- It does not return the maximum possible shock.
+}
+
+invariant ScenarioVersionsRetained {
+    @guidance
+        -- Updating a scenario increments the version counter.
+        -- Previous versions are retained and accessible by version number.
+        -- This enables auditing: which scenario was used in which risk report.
+}
+
+invariant NonPDCorrelationRepaired {
+    @guidance
+        -- If a custom scenario specifies a correlation override that is
+        -- not positive definite, it is repaired using nearest_positive_definite
+        -- (same as risk-models.allium CorrelationMatrixPositiveDefinite).
+        -- The user is warned that the matrix was adjusted.
+}
+
+invariant ProxyReturnsFlagged {
+    @guidance
+        -- When historical replay uses a proxy return for an instrument
+        -- (because the instrument did not exist or has no data for the period),
+        -- the ReplayResult.proxy_used flag is true and the
+        -- instruments_without_data count is > 0.
+        -- The UI must surface this as a data coverage warning.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should reverse stress test support the 'most likely shock' method (shock weighted by historical correlation/frequency) in addition to 'minimum norm'?"
+
+open question "Should historical replay periods be extendable beyond the price-service 2-year retention window by loading data from cold storage?"

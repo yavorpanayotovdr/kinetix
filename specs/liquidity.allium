@@ -1,0 +1,491 @@
+-- allium: 2
+-- Liquidity risk: instrument liquidity metadata, position-level liquidity
+-- metrics, liquidity-adjusted VaR, concentration monitoring, and stressed
+-- liquidity analysis.
+--
+-- Scope: Liquidity scoring, LVaR, concentration flags, liquidation horizon,
+--         pre-trade ADV checks, stressed liquidity under scenarios
+-- Includes: Instrument liquidity reference data, position liquidity metrics,
+--           LVaR calculation, concentration alerts, stressed liquidation
+-- Excludes:
+--   - Market impact modelling (Almgren-Chriss) — deferred enhancement
+--   - Level 2 order book depth ingestion
+--   - ADV data sourcing from external providers (implementation detail)
+--   - UI layout and presentation
+-- Dependencies: core.allium, positions.allium, risk-models.allium, limits.allium
+
+use "./core.allium" as core
+use "./positions.allium" as positions
+use "./risk-models.allium" as risk_models
+use "./limits.allium" as limits
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value LiquidityStressFactors {
+    equity: Decimal
+    fixed_income: Decimal
+    fx: Decimal
+    commodity: Decimal
+    derivative: Decimal
+    fallback: Decimal
+
+    @guidance
+        -- Per-asset-class ADV stress multipliers applied during
+        -- stressed liquidity analysis. E.g., equity=0.25 means
+        -- assume only 25% of normal ADV is available.
+        -- Fallback is used when an asset class is not specified.
+}
+
+value PositionLiquidityResult {
+    instrument_id: String
+    asset_class: core/AssetClass
+    position_notional: Decimal
+    adv_pct: Decimal?
+    liquidation_days: Decimal
+    lvar: Decimal
+    concentration_flagged: Boolean
+    stressed_liquidation_days: Decimal?
+    liquidity_tier: LiquidityTier
+    data_available: Boolean
+
+    @guidance
+        -- adv_pct is null when no ADV data exists for the instrument.
+        -- In that case, liquidation_days defaults to config.default_no_adv_horizon.
+        -- data_available = false indicates the tier and horizon are conservative defaults.
+}
+
+value LiquidityRiskSummary {
+    book_id: String
+    var_1day: Decimal
+    lvar: Decimal
+    lvar_ratio: Decimal
+    weighted_avg_horizon: Decimal
+    max_horizon: Decimal
+    concentration_count: Integer
+    data_completeness: Decimal
+    adv_data_as_of: Timestamp
+    position_liquidity: List<PositionLiquidityResult>
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum LiquidityTier { tier_1 | tier_2 | tier_3 | illiquid }
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity Position {
+    book_id: String,
+    instrument_id: String,
+    asset_class: core/AssetClass,
+    quantity: Decimal,
+    market_value: Decimal
+}
+
+external entity StressScenario {
+    name: String,
+    vol_shocks: List<Decimal>,
+    price_shocks: List<Decimal>,
+    correlation_override: List<Decimal>?
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity InstrumentLiquidity {
+    instrument_id: String
+    as_of_date: String
+    adv_shares: Decimal?
+    adv_notional: Decimal?
+    bid_ask_spread_bps: Decimal?
+    market_depth_score: Decimal?
+    liquidity_tier: LiquidityTier
+    source: String
+
+    -- Derived
+    has_adv: adv_notional != null and adv_notional > 0
+
+    @guidance
+        -- Reference data, updated daily from market data providers.
+        -- Primary key: (instrument_id, as_of_date).
+        -- ADV is typically computed over a 20-day trailing window.
+        -- liquidity_tier classification:
+        --   TIER_1: adv_notional > $50M and spread < 5bps
+        --   TIER_2: adv_notional > $10M and spread < 20bps
+        --   TIER_3: adv_notional > $1M
+        --   ILLIQUID: everything else, or no ADV data
+        -- Instruments with no ADV data default to ILLIQUID.
+}
+
+entity PositionLiquidityMetrics {
+    book_id: String
+    instrument_id: String
+    as_of_date: String
+    asset_class: core/AssetClass
+    position_notional: Decimal
+    adv_pct: Decimal?
+    liquidation_days: Decimal
+    lvar: Decimal
+    concentration_flagged: Boolean
+    stressed_liquidation_days: Decimal?
+
+    -- Derived
+    is_concentrated: adv_pct != null and adv_pct > config.concentration_threshold
+
+    @guidance
+        -- Computed risk metric, recalculated daily and on significant
+        -- position changes (trade events).
+        -- Primary key: (book_id, instrument_id, as_of_date).
+}
+
+entity LiquidityRiskSnapshot {
+    book_id: String
+    calculated_at: Timestamp
+    var_1day: Decimal
+    lvar: Decimal
+    lvar_ratio: Decimal
+    weighted_avg_horizon: Decimal
+    max_horizon: Decimal
+    concentration_count: Integer
+    data_completeness: Decimal
+    adv_data_as_of: Timestamp
+    position_breakdown: List<PositionLiquidityResult>
+
+    -- Derived
+    is_partial: data_completeness < 1.0
+
+    @guidance
+        -- Portfolio-level LVaR result, persisted after each calculation.
+        -- data_completeness: fraction of portfolio (by notional) with ADV data.
+        --   1.0 = full coverage, 0.7 = 70% of notional has ADV data.
+        -- adv_data_as_of: timestamp of the most recent ADV data used.
+        -- lvar_ratio = lvar / var_1day. A ratio > 2.0 signals serious
+        --   liquidity profile concerns.
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    -- Participation rate: fraction of ADV assumed tradeable per day
+    default_participation_rate: Decimal = 0.20
+
+    -- Concentration thresholds
+    concentration_threshold: Decimal = 0.05
+    concentration_hard_block: Decimal = 0.10
+
+    -- Default horizon when no ADV data is available
+    default_no_adv_horizon: Decimal = 10.0
+
+    -- Tier classification thresholds
+    tier_1_adv_floor: Decimal = 50000000
+    tier_1_spread_cap: Decimal = 5.0
+    tier_2_adv_floor: Decimal = 10000000
+    tier_2_spread_cap: Decimal = 20.0
+    tier_3_adv_floor: Decimal = 1000000
+
+    -- LVaR base holding period (for scaling formula)
+    base_holding_period: Decimal = 1.0
+
+    -- ADV staleness
+    adv_staleness_threshold: Duration = 2.days
+
+    -- Snapshot retention
+    liquidity_snapshot_retention: Duration = 90.days
+    instrument_liquidity_retention: Duration = 1825.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Instrument liquidity ingestion
+
+rule IngestInstrumentLiquidity {
+    when: InstrumentLiquidityReceived(instrument_id, adv_shares, adv_notional, bid_ask_spread_bps, market_depth_score, source)
+
+    let tier = classify_tier(adv_notional, bid_ask_spread_bps)
+
+    ensures: InstrumentLiquidity.created(
+        instrument_id: instrument_id,
+        as_of_date: today,
+        adv_shares: adv_shares,
+        adv_notional: adv_notional,
+        bid_ask_spread_bps: bid_ask_spread_bps,
+        market_depth_score: market_depth_score,
+        liquidity_tier: tier,
+        source: source
+    )
+
+    @guidance
+        -- Triggered by daily batch ingestion job.
+        -- Upserts: if (instrument_id, as_of_date) already exists, replace.
+        -- classify_tier uses the config thresholds:
+        --   adv_notional >= tier_1_adv_floor AND spread <= tier_1_spread_cap → TIER_1
+        --   adv_notional >= tier_2_adv_floor AND spread <= tier_2_spread_cap → TIER_2
+        --   adv_notional >= tier_3_adv_floor → TIER_3
+        --   else → ILLIQUID
+        -- No ADV data → ILLIQUID.
+}
+
+-- Position liquidity computation
+
+rule ComputePositionLiquidity {
+    when: ComputePositionLiquidityRequested(book_id)
+    for position in Positions where book_id = book_id:
+        let instrument_liq = InstrumentLiquidity{instrument_id: position.instrument_id, as_of_date: today}
+        let has_adv = instrument_liq != null and instrument_liq.has_adv
+
+        let adv_pct = if has_adv:
+            abs(position.market_value) / instrument_liq.adv_notional
+        else: null
+
+        let liquidation_days = if has_adv:
+            abs(position.market_value) / (config.default_participation_rate * instrument_liq.adv_notional)
+        else: config.default_no_adv_horizon
+
+        let concentration_flagged = adv_pct != null and adv_pct > config.concentration_threshold
+
+        ensures: PositionLiquidityMetrics.created(
+            book_id: book_id,
+            instrument_id: position.instrument_id,
+            as_of_date: today,
+            asset_class: position.asset_class,
+            position_notional: abs(position.market_value),
+            adv_pct: adv_pct,
+            liquidation_days: liquidation_days,
+            lvar: compute_position_lvar(position, liquidation_days),
+            concentration_flagged: concentration_flagged,
+            stressed_liquidation_days: null
+        )
+
+    @guidance
+        -- Triggered daily after ADV ingestion, and on significant
+        -- position changes (trade events).
+        -- For positions with no ADV data: uses conservative default
+        -- horizon (10 days). The UI must indicate "no ADV data"
+        -- rather than showing the default as if it were measured.
+}
+
+-- Portfolio-level LVaR
+
+rule CalculateLiquidityAdjustedVaR {
+    when: LVaRRequested(book_id)
+    let position_metrics = PositionLiquidityMetrics where book_id = book_id and as_of_date = today
+    requires: position_metrics.count > 0
+
+    -- Fetch standard 1-day VaR for the book
+    let var_1day = latest_var(book_id)
+
+    -- LVaR scaling: sqrt(liquidation_days / base_holding_period) per position
+    -- Portfolio LVaR = weighted combination of per-position LVaRs
+    let lvar = compute_portfolio_lvar(position_metrics, var_1day)
+
+    -- Data completeness
+    let total_notional = sum(position_metrics, m => m.position_notional)
+    let covered_notional = sum(position_metrics where adv_pct != null, m => m.position_notional)
+    let completeness = covered_notional / total_notional
+
+    ensures: LiquidityRiskSnapshot.created(
+        book_id: book_id,
+        calculated_at: now,
+        var_1day: var_1day,
+        lvar: lvar,
+        lvar_ratio: lvar / var_1day,
+        weighted_avg_horizon: weighted_avg(position_metrics, m => m.liquidation_days, m => m.position_notional),
+        max_horizon: max(position_metrics, m => m.liquidation_days),
+        concentration_count: count(position_metrics where concentration_flagged),
+        data_completeness: completeness,
+        adv_data_as_of: latest_adv_timestamp(position_metrics),
+        position_breakdown: to_results(position_metrics)
+    )
+    ensures: LVaRCalculated(book_id: book_id, snapshot: snapshot)
+}
+
+-- LVaR computation (black box)
+
+deferred compute_position_lvar
+    -- Per-position LVaR using Basel-consistent holding period scaling.
+    --
+    -- lvar_i = var_contribution_i * sqrt(liquidation_days_i / base_holding_period)
+    --
+    -- Where var_contribution_i is the position's contribution to portfolio VaR.
+    -- This is the Bangia et al. (1999) approach.
+    --
+    -- Additionally, the bid-ask spread cost is added:
+    --   spread_cost_i = 0.5 * bid_ask_spread * position_notional
+    --
+    -- Total: lvar_i = scaled_var_i + spread_cost_i
+    --
+    -- Known limitation: this is a linear model that assumes constant
+    -- participation rate and zero market impact. The true liquidation
+    -- cost is non-linear (Almgren-Chriss). This underestimates the
+    -- cost for large positions in illiquid names.
+
+deferred compute_portfolio_lvar
+    -- Aggregates per-position LVaR to portfolio level.
+    -- Uses the same correlation structure as the standard VaR
+    -- (positions are not independent).
+
+-- Stressed liquidity
+
+rule ComputeStressedLiquidity {
+    when: StressedLiquidityRequested(book_id, scenario)
+    let position_metrics = PositionLiquidityMetrics where book_id = book_id and as_of_date = today
+    requires: position_metrics.count > 0
+
+    let stress_factors = scenario_stress_factors(scenario)
+
+    for metric in position_metrics:
+        let stressed_adv = adv_for(metric.instrument_id) * stress_factor_for(metric.asset_class, stress_factors)
+        let stressed_days = if stressed_adv > 0:
+            metric.position_notional / (config.default_participation_rate * stressed_adv)
+        else: config.default_no_adv_horizon * 3
+
+        ensures: metric.stressed_liquidation_days = stressed_days
+
+    @guidance
+        -- Each StressScenario carries per-asset-class stress factors
+        -- via a LiquidityStressFactors block:
+        --   GFC_2008:            equity=0.25, fixed_income=0.15, fx=0.50, commodity=0.30
+        --   COVID_2020:          equity=0.60, fixed_income=0.20, fx=0.40, commodity=0.25
+        --   TAPER_TANTRUM_2013:  equity=0.80, fixed_income=0.30, fx=0.60, commodity=0.50
+        --   EURO_CRISIS_2011:    equity=0.40, fixed_income=0.25, fx=0.35, commodity=0.40
+        --
+        -- Factors represent the fraction of normal ADV assumed tradeable.
+        -- These values should be calibrated from historical volume data
+        -- for the crisis periods. Document the source for model review.
+}
+
+-- Pre-trade ADV concentration check
+
+rule CheckADVConcentration {
+    when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
+    requires: limit_type = adv_concentration
+
+    let instrument_liq = InstrumentLiquidity{instrument_id: instrument_id, as_of_date: today}
+    let position = Position{book_id: book_id, instrument_id: instrument_id}
+    let new_notional = abs(new_quantity * current_price(instrument_id))
+    let new_adv_pct = if instrument_liq != null and instrument_liq.has_adv:
+        new_notional / instrument_liq.adv_notional
+    else: null
+
+    @guidance
+        -- Integrated into the existing limit hierarchy framework.
+        -- adv_concentration is a new LimitType value.
+        --
+        -- If no ADV data available: fail safe.
+        --   If ADV data is stale (> adv_staleness_threshold): WARNING.
+        --   If ADV data is missing entirely: BREACHED (block the trade).
+        --
+        -- If ADV data available:
+        --   new_adv_pct > concentration_hard_block (10%): BREACHED
+        --   new_adv_pct > concentration_threshold (5%): WARNING
+        --   else: OK
+        --
+        -- Checked at BOOK level and propagated up the hierarchy
+        -- (DESK, DIVISION, FIRM) if limits are defined at those levels.
+        -- Configurable thresholds per hierarchy level.
+}
+
+-- Alerts on concentration breach
+
+rule AlertOnConcentration {
+    when: LVaRCalculated(book_id, snapshot)
+    requires: snapshot.concentration_count > 0
+
+    @guidance
+        -- Fires LIQUIDITY_CONCENTRATION alert through the existing
+        -- notification-service alert rules framework.
+        -- New AlertType: LIQUIDITY_CONCENTRATION.
+        -- Includes top positions by adv_pct in the alert contributors.
+}
+
+-- Daily scheduled computation
+
+rule ScheduledLiquidityComputation {
+    when: ScheduledLiquidityTick()
+    for book_id in all_book_ids:
+        ensures: ComputePositionLiquidityRequested(book_id: book_id)
+        ensures: LVaRRequested(book_id: book_id)
+
+    @guidance
+        -- Runs daily after ADV data ingestion completes.
+        -- Also triggered on significant position changes (trade events
+        -- that change position notional by more than 10%).
+}
+
+-- Recompute on trade events
+
+rule RecomputeLiquidityOnTrade {
+    when: positions/TradeBooked(trade, book_id, correlation_id)
+
+    @guidance
+        -- After a trade is applied, check whether the affected position's
+        -- notional has changed by more than 10%. If so, trigger
+        -- ComputePositionLiquidityRequested for the book.
+        -- This catches new large positions that could breach concentration.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant NoADVDefaultsToIlliquid {
+    for il in InstrumentLiquiditys:
+        not il.has_adv implies il.liquidity_tier = illiquid
+}
+
+invariant ConcentrationFlagConsistency {
+    for m in PositionLiquidityMetrics:
+        m.concentration_flagged implies (m.adv_pct != null and m.adv_pct > config.concentration_threshold)
+}
+
+invariant LVaRExceedsVaR {
+    for s in LiquidityRiskSnapshots:
+        s.lvar >= s.var_1day
+
+    @guidance
+        -- LVaR is VaR scaled up by holding period and spread cost.
+        -- It can never be less than VaR (base_holding_period = 1 day
+        -- is the minimum, and spread cost >= 0).
+}
+
+invariant DataCompletenessRange {
+    for s in LiquidityRiskSnapshots:
+        s.data_completeness >= 0.0 and s.data_completeness <= 1.0
+}
+
+invariant StressedHorizonExceedsNormal {
+    for m in PositionLiquidityMetrics:
+        m.stressed_liquidation_days != null implies
+            m.stressed_liquidation_days >= m.liquidation_days
+
+    @guidance
+        -- Stressed ADV is always <= normal ADV (stress factor <= 1.0).
+        -- Therefore stressed liquidation horizon is always >= normal.
+}
+
+invariant FailSafeOnMissingADV {
+    @guidance
+        -- Pre-trade ADV concentration checks with missing or stale
+        -- ADV data must fail safe:
+        --   Missing ADV → BREACHED (block the trade)
+        --   Stale ADV (> 2 business days) → WARNING
+        -- This prevents silent pass-through when data is unavailable.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should the participation rate be configurable per instrument tier (e.g., 25% for TIER_1, 15% for TIER_3) or a single global rate?"
+
+open question "When Direction 5 (FIX integration) ships, should the pre-trade ADV check run on FIX-originated orders with the same latency budget (<100ms)?"
