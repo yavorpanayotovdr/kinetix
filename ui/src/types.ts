@@ -830,3 +830,49 @@ export interface LiquidityRiskResultDto {
   calculatedAt: string
   positionRisks: PositionLiquidityRiskDto[]
 }
+
+export type MarketRegime = 'NORMAL' | 'ELEVATED_VOL' | 'CRISIS' | 'RECOVERY'
+
+export interface RegimeSignalsDto {
+  realisedVol20d: number
+  crossAssetCorrelation: number
+  creditSpreadBps: number | null
+  pnlVolatility: number | null
+}
+
+export interface AdaptiveVaRParametersDto {
+  calculationType: string
+  confidenceLevel: string
+  timeHorizonDays: number
+  correlationMethod: string
+  numSimulations: number | null
+}
+
+export interface MarketRegimeDto {
+  regime: MarketRegime
+  isConfirmed: boolean
+  confidence: number
+  consecutiveObservations: number
+  detectedAt: string
+  degradedInputs: boolean
+  signals: RegimeSignalsDto
+  varParameters: AdaptiveVaRParametersDto
+}
+
+export interface MarketRegimeHistoryItemDto {
+  id: string
+  regime: MarketRegime
+  startedAt: string
+  endedAt: string | null
+  durationMs: number | null
+  confidence: number
+  consecutiveObservations: number
+  degradedInputs: boolean
+  signals: RegimeSignalsDto
+  varParameters: AdaptiveVaRParametersDto
+}
+
+export interface MarketRegimeHistoryDto {
+  items: MarketRegimeHistoryItemDto[]
+  total: number
+}
