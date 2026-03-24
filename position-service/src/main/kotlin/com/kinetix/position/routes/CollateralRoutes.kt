@@ -156,8 +156,8 @@ fun Route.collateralRoutes(collateralTrackingService: CollateralTrackingService)
             call.respond(
                 NetCollateralResponse(
                     counterpartyId = counterpartyId,
-                    collateralReceived = received.toPlainString(),
-                    collateralPosted = posted.toPlainString(),
+                    collateralReceived = received.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                    collateralPosted = posted.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
                 ),
             )
         }
