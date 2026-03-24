@@ -485,6 +485,21 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
+    override suspend fun getLatestFactorRisk(bookId: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/factor-risk/latest")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getFactorRiskHistory(bookId: String, limit: Int): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/factor-risk") {
+            url { parameters.append("limit", limit.toString()) }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
     override suspend fun runHistoricalReplay(params: HistoricalReplayParams): HistoricalReplayResultSummary {
         val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}/historical-replay") {
             contentType(ContentType.Application.Json)

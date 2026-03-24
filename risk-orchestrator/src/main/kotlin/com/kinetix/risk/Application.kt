@@ -47,6 +47,7 @@ import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
+import com.kinetix.risk.routes.factorRiskRoutes
 import com.kinetix.risk.routes.liquidityRiskRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
@@ -275,6 +276,11 @@ fun Application.moduleWithRoutes() {
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
     val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
+    val factorDecompositionRepository = com.kinetix.risk.persistence.ExposedFactorDecompositionRepository(riskDb)
+    val factorRiskService = com.kinetix.risk.service.FactorRiskService(
+        riskEngineClient = effectiveRiskEngineClient,
+        repository = factorDecompositionRepository,
+    )
 
     val liquidityRiskServiceCoroutineStub = LiquidityRiskServiceGrpcKt.LiquidityRiskServiceCoroutineStub(channel)
     val grpcLiquidityClient = GrpcLiquidityClient(liquidityRiskServiceCoroutineStub)
@@ -523,6 +529,7 @@ fun Application.moduleWithRoutes() {
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         intradayPnlRoutes(intradayPnlRepository)
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
+        factorRiskRoutes(factorDecompositionRepository)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)
