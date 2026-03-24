@@ -356,6 +356,12 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
   })
 
+  // Default counterparty risk endpoint — return empty list so the tab shows its empty state.
+  // Tests that need real counterparty data must call mockCounterpartyRiskRoutes() afterward.
+  await page.route('**/api/v1/counterparty-risk*', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
   // To mock WebSocket behaviour, tests must use page.addInitScript() to replace
   // the browser's WebSocket constructor before the page loads.
@@ -1803,6 +1809,105 @@ export async function mockHedgeSuggest(
         contentType: 'application/json',
         body: JSON.stringify([response]),
       })
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Counterparty risk fixture data
+// ---------------------------------------------------------------------------
+
+export const TEST_COUNTERPARTY_EXPOSURES = [
+  {
+    counterpartyId: 'CP-GS',
+    calculatedAt: '2026-03-24T10:00:00Z',
+    currentNetExposure: 2_000_000,
+    peakPfe: 1_800_000,
+    cva: 12_500,
+    cvaEstimated: false,
+    currency: 'USD',
+    pfeProfile: [
+      { tenor: '1Y', tenorYears: 1, expectedExposure: 1_500_000, pfe95: 1_800_000, pfe99: 2_000_000 },
+      { tenor: '2Y', tenorYears: 2, expectedExposure: 1_200_000, pfe95: 1_500_000, pfe99: 1_700_000 },
+      { tenor: '3Y', tenorYears: 3, expectedExposure: 900_000, pfe95: 1_200_000, pfe99: 1_400_000 },
+    ],
+  },
+  {
+    counterpartyId: 'CP-JPM',
+    calculatedAt: '2026-03-24T10:00:00Z',
+    currentNetExposure: 6_500_000,
+    peakPfe: 7_200_000,
+    cva: null,
+    cvaEstimated: false,
+    currency: 'USD',
+    pfeProfile: [],
+  },
+]
+
+export const TEST_COUNTERPARTY_CVA_RESULT = {
+  ...TEST_COUNTERPARTY_EXPOSURES[0],
+  cva: 18_750,
+  cvaEstimated: false,
+}
+
+/**
+ * Registers mock handlers for all counterparty risk endpoints.
+ * Call this AFTER mockAllApiRoutes.
+ */
+export async function mockCounterpartyRiskRoutes(
+  page: Page,
+  exposures: object[] = TEST_COUNTERPARTY_EXPOSURES,
+): Promise<void> {
+  await page.route('**/api/v1/counterparty-risk', (route: Route) => {
+    if (route.request().method() === 'GET') {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(exposures),
+      })
+    } else {
+      route.continue()
+    }
+  })
+
+  await page.route('**/api/v1/counterparty-risk/*/history*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(exposures.slice(0, 1)),
+    })
+  })
+
+  await page.route('**/api/v1/counterparty-risk/*/pfe', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(exposures[0]),
+    })
+  })
+
+  await page.route('**/api/v1/counterparty-risk/*/cva', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_COUNTERPARTY_CVA_RESULT),
+    })
+  })
+
+  await page.route('**/api/v1/counterparty-risk/*', (route: Route) => {
+    const url = route.request().url()
+    const counterpartyId = url.split('/api/v1/counterparty-risk/')[1]?.split('?')[0]
+    const found = (exposures as Array<{ counterpartyId: string }>).find(
+      (e) => e.counterpartyId === counterpartyId,
+    )
+    if (found) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(found),
+      })
+    } else {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
     }
   })
 }

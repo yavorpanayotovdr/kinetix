@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { NotificationCenter } from './components/NotificationCenter'
@@ -9,6 +9,7 @@ import { ScenariosTab } from './components/ScenariosTab'
 import { RegulatoryTab } from './components/RegulatoryTab'
 import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
+import { CounterpartyRiskDashboard } from './components/CounterpartyRiskDashboard'
 import { EodTimelineTab } from './components/EodTimelineTab'
 import { BookSummaryCard } from './components/BookSummaryCard'
 import { usePositions } from './hooks/usePositions'
@@ -30,7 +31,7 @@ import { useMarketRegime } from './hooks/useMarketRegime'
 import { RegimeIndicator } from './components/RegimeIndicator'
 import { useWorkspace } from './hooks/useWorkspace'
 
-type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'alerts' | 'system'
+type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'counterparty-risk' | 'alerts' | 'system'
 
 const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'positions', label: 'Positions', icon: BarChart3 },
@@ -40,6 +41,7 @@ const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
   { key: 'eod', label: 'EOD History', icon: CalendarDays },
   { key: 'scenarios', label: 'Scenarios', icon: FlaskConical },
   { key: 'regulatory', label: 'Regulatory', icon: Scale },
+  { key: 'counterparty-risk', label: 'Counterparty Risk', icon: Users },
   { key: 'alerts', label: 'Alerts', icon: Bell },
   { key: 'system', label: 'System', icon: Server },
 ]
@@ -381,6 +383,10 @@ function App() {
 
                 {activeTab === 'regulatory' && (
                   <RegulatoryTab bookId={bookId} />
+                )}
+
+                {activeTab === 'counterparty-risk' && (
+                  <CounterpartyRiskDashboard />
                 )}
 
                 {activeTab === 'alerts' && (
