@@ -17,6 +17,7 @@ class PrimeBrokerReconciliationService {
 
     companion object {
         private val AUTO_RESOLVE_THRESHOLD = BigDecimal("1.0")
+        private val CRITICAL_NOTIONAL_THRESHOLD = BigDecimal("10000")
     }
 
     fun reconcile(
@@ -43,10 +44,14 @@ class PrimeBrokerReconciliationService {
 
             val price = pbEntry?.price ?: BigDecimal.ZERO
             val breakNotional = breakQty * price
+            val severity = if (breakNotional >= CRITICAL_NOTIONAL_THRESHOLD)
+                ReconciliationBreakSeverity.CRITICAL
+            else
+                ReconciliationBreakSeverity.NORMAL
 
             logger.warn(
-                "Reconciliation break: book={}, instrument={}, internal={}, pb={}, break={}, notional={}",
-                bookId, instrumentId, internalQty, pbQty, breakQty, breakNotional,
+                "Reconciliation break: book={}, instrument={}, internal={}, pb={}, break={}, notional={}, severity={}",
+                bookId, instrumentId, internalQty, pbQty, breakQty, breakNotional, severity,
             )
 
             materialBreaks.add(
@@ -56,6 +61,7 @@ class PrimeBrokerReconciliationService {
                     primeBrokerQty = pbQty,
                     breakQty = internalQty - pbQty,
                     breakNotional = breakNotional,
+                    severity = severity,
                 )
             )
         }

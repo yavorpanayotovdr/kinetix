@@ -148,6 +148,7 @@ class ExecutionRepositoryIntegrationTest : FunSpec({
                     primeBrokerQty = BigDecimal("100"),
                     breakQty = BigDecimal("5"),
                     breakNotional = BigDecimal("750.00"),
+                    severity = ReconciliationBreakSeverity.NORMAL,
                 )
             ),
             reconciledAt = Instant.parse("2026-03-24T18:00:00Z"),

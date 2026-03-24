@@ -7,6 +7,9 @@ import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
 import java.time.Instant
 
+private fun pbPos(instrumentId: String, qty: String, price: String) =
+    PrimeBrokerPosition(instrumentId, BigDecimal(qty), BigDecimal(price))
+
 class PrimeBrokerReconciliationServiceTest : FunSpec({
 
     val service = PrimeBrokerReconciliationService()
@@ -100,6 +103,46 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
         val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
         result.breakCount shouldBe 2
         result.breaks shouldHaveSize 2
+    }
+
+    test("break with notional above 10000 is assigned CRITICAL severity") {
+        // 100 units at $200/unit = $20,000 notional > $10,000 threshold
+        val internal = mapOf("AAPL" to BigDecimal("200"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "200.00"))
+        val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
+        result.breaks[0].severity shouldBe ReconciliationBreakSeverity.CRITICAL
+    }
+
+    test("break with notional exactly at 10000 is assigned CRITICAL severity") {
+        // 100 units at $100/unit = $10,000 = threshold → CRITICAL
+        val internal = mapOf("AAPL" to BigDecimal("200"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "100.00"))
+        val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
+        result.breaks[0].severity shouldBe ReconciliationBreakSeverity.CRITICAL
+    }
+
+    test("break with notional below 10000 is assigned NORMAL severity") {
+        // 5 units at $100/unit = $500 notional < $10,000
+        val internal = mapOf("AAPL" to BigDecimal("105"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "100.00"))
+        val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
+        result.breaks[0].severity shouldBe ReconciliationBreakSeverity.NORMAL
+    }
+
+    test("multiple breaks have independent severity based on their own notional") {
+        val internal = mapOf(
+            "AAPL" to BigDecimal("200"),  // break=100 units @ $200 = $20,000 -> CRITICAL
+            "MSFT" to BigDecimal("105"),  // break=5 units @ $10 = $50 -> NORMAL
+        )
+        val pbPositions = mapOf(
+            "AAPL" to pbPos("AAPL", "100", "200.00"),
+            "MSFT" to pbPos("MSFT", "100", "10.00"),
+        )
+        val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
+        result.breaks shouldHaveSize 2
+        val byId = result.breaks.associateBy { it.instrumentId }
+        byId["AAPL"]!!.severity shouldBe ReconciliationBreakSeverity.CRITICAL
+        byId["MSFT"]!!.severity shouldBe ReconciliationBreakSeverity.NORMAL
     }
 
     test("reconciliation metadata is correct") {

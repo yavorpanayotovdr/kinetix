@@ -77,6 +77,7 @@ private data class ReconciliationBreakDto(
     val primeBrokerQty: String,
     val breakQty: String,
     val breakNotional: String,
+    val severity: String? = null,
 )
 
 private fun ReconciliationBreak.toDto() = ReconciliationBreakDto(
@@ -85,6 +86,7 @@ private fun ReconciliationBreak.toDto() = ReconciliationBreakDto(
     primeBrokerQty = primeBrokerQty.toPlainString(),
     breakQty = breakQty.toPlainString(),
     breakNotional = breakNotional.toPlainString(),
+    severity = severity.name,
 )
 
 private fun ReconciliationBreakDto.toDomain() = ReconciliationBreak(
@@ -93,4 +95,6 @@ private fun ReconciliationBreakDto.toDomain() = ReconciliationBreak(
     primeBrokerQty = BigDecimal(primeBrokerQty),
     breakQty = BigDecimal(breakQty),
     breakNotional = BigDecimal(breakNotional),
+    severity = severity?.let { ReconciliationBreakSeverity.valueOf(it) }
+        ?: ReconciliationBreakSeverity.NORMAL,
 )

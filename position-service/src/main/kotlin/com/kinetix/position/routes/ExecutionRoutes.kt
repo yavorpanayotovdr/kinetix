@@ -139,6 +139,7 @@ private fun PrimeBrokerReconciliation.toResponse() = ReconciliationResponse(
             primeBrokerQty = it.primeBrokerQty.toPlainString(),
             breakQty = it.breakQty.toPlainString(),
             breakNotional = it.breakNotional.toPlainString(),
+            severity = it.severity.name,
         )
     },
     reconciledAt = reconciledAt.toString(),

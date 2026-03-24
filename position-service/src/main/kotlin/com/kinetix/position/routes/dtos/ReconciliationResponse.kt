@@ -9,6 +9,7 @@ data class ReconciliationBreakDto(
     val primeBrokerQty: String,
     val breakQty: String,
     val breakNotional: String,
+    val severity: String,
 )
 
 @Serializable
