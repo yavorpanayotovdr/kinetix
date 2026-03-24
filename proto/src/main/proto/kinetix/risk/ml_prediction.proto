@@ -72,6 +72,56 @@ message AnomalyResult {
   double metric_value = 3;
 }
 
+// --- Regime Detection ---
+
+message RegimeSignalsProto {
+  double realised_vol_20d = 1;
+  double cross_asset_correlation = 2;
+  // Optional fields — absent means unavailable (degraded-signal path).
+  double credit_spread_bps = 3;
+  double pnl_volatility = 4;
+  double vol_of_vol = 5;
+  bool credit_spread_present = 6;
+  bool pnl_volatility_present = 7;
+}
+
+message RegimeThresholdsProto {
+  double normal_vol_ceiling = 1;
+  double elevated_vol_ceiling = 2;
+  double crisis_correlation_floor = 3;
+}
+
+message EarlyWarningProto {
+  string signal_name = 1;
+  double current_value = 2;
+  double threshold = 3;
+  double proximity_pct = 4;
+  string message = 5;
+}
+
+message RegimeDetectionRequest {
+  RegimeSignalsProto signals = 1;
+  RegimeThresholdsProto thresholds = 2;
+  // Current confirmed regime (from orchestrator state) — used to drive debounce.
+  string current_regime = 3;
+  int32 consecutive_observations = 4;
+  int32 escalation_debounce = 5;
+  int32 de_escalation_debounce = 6;
+}
+
+message RegimeDetectionResponse {
+  // The regime label after debounce evaluation.
+  string regime = 1;
+  double confidence = 2;
+  bool is_confirmed = 3;
+  int32 consecutive_observations = 4;
+  bool degraded_inputs = 5;
+  repeated EarlyWarningProto early_warnings = 6;
+  google.protobuf.Timestamp detected_at = 7;
+  // Correlation anomaly score (Frobenius norm vs historical average).
+  double correlation_anomaly_score = 8;
+}
+
 // --- Service ---
 
 service MLPredictionService {
@@ -79,4 +129,5 @@ service MLPredictionService {
   rpc PredictVolatilityBatch(BatchVolatilityRequest) returns (BatchVolatilityResponse);
   rpc ScoreCredit(CreditScoreRequest) returns (CreditScoreResponse);
   rpc DetectAnomaly(AnomalyDetectionRequest) returns (AnomalyDetectionResponse);
+  rpc DetectRegime(RegimeDetectionRequest) returns (RegimeDetectionResponse);
 }

@@ -107,3 +107,81 @@ class AnomalyResult(_message.Message):
     anomaly_score: float
     metric_value: float
     def __init__(self, is_anomaly: bool = ..., anomaly_score: _Optional[float] = ..., metric_value: _Optional[float] = ...) -> None: ...
+
+class RegimeSignalsProto(_message.Message):
+    __slots__ = ("realised_vol_20d", "cross_asset_correlation", "credit_spread_bps", "pnl_volatility", "vol_of_vol", "credit_spread_present", "pnl_volatility_present")
+    REALISED_VOL_20D_FIELD_NUMBER: _ClassVar[int]
+    CROSS_ASSET_CORRELATION_FIELD_NUMBER: _ClassVar[int]
+    CREDIT_SPREAD_BPS_FIELD_NUMBER: _ClassVar[int]
+    PNL_VOLATILITY_FIELD_NUMBER: _ClassVar[int]
+    VOL_OF_VOL_FIELD_NUMBER: _ClassVar[int]
+    CREDIT_SPREAD_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    PNL_VOLATILITY_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    realised_vol_20d: float
+    cross_asset_correlation: float
+    credit_spread_bps: float
+    pnl_volatility: float
+    vol_of_vol: float
+    credit_spread_present: bool
+    pnl_volatility_present: bool
+    def __init__(self, realised_vol_20d: _Optional[float] = ..., cross_asset_correlation: _Optional[float] = ..., credit_spread_bps: _Optional[float] = ..., pnl_volatility: _Optional[float] = ..., vol_of_vol: _Optional[float] = ..., credit_spread_present: bool = ..., pnl_volatility_present: bool = ...) -> None: ...
+
+class RegimeThresholdsProto(_message.Message):
+    __slots__ = ("normal_vol_ceiling", "elevated_vol_ceiling", "crisis_correlation_floor")
+    NORMAL_VOL_CEILING_FIELD_NUMBER: _ClassVar[int]
+    ELEVATED_VOL_CEILING_FIELD_NUMBER: _ClassVar[int]
+    CRISIS_CORRELATION_FLOOR_FIELD_NUMBER: _ClassVar[int]
+    normal_vol_ceiling: float
+    elevated_vol_ceiling: float
+    crisis_correlation_floor: float
+    def __init__(self, normal_vol_ceiling: _Optional[float] = ..., elevated_vol_ceiling: _Optional[float] = ..., crisis_correlation_floor: _Optional[float] = ...) -> None: ...
+
+class EarlyWarningProto(_message.Message):
+    __slots__ = ("signal_name", "current_value", "threshold", "proximity_pct", "message")
+    SIGNAL_NAME_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_VALUE_FIELD_NUMBER: _ClassVar[int]
+    THRESHOLD_FIELD_NUMBER: _ClassVar[int]
+    PROXIMITY_PCT_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    signal_name: str
+    current_value: float
+    threshold: float
+    proximity_pct: float
+    message: str
+    def __init__(self, signal_name: _Optional[str] = ..., current_value: _Optional[float] = ..., threshold: _Optional[float] = ..., proximity_pct: _Optional[float] = ..., message: _Optional[str] = ...) -> None: ...
+
+class RegimeDetectionRequest(_message.Message):
+    __slots__ = ("signals", "thresholds", "current_regime", "consecutive_observations", "escalation_debounce", "de_escalation_debounce")
+    SIGNALS_FIELD_NUMBER: _ClassVar[int]
+    THRESHOLDS_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_REGIME_FIELD_NUMBER: _ClassVar[int]
+    CONSECUTIVE_OBSERVATIONS_FIELD_NUMBER: _ClassVar[int]
+    ESCALATION_DEBOUNCE_FIELD_NUMBER: _ClassVar[int]
+    DE_ESCALATION_DEBOUNCE_FIELD_NUMBER: _ClassVar[int]
+    signals: RegimeSignalsProto
+    thresholds: RegimeThresholdsProto
+    current_regime: str
+    consecutive_observations: int
+    escalation_debounce: int
+    de_escalation_debounce: int
+    def __init__(self, signals: _Optional[_Union[RegimeSignalsProto, _Mapping]] = ..., thresholds: _Optional[_Union[RegimeThresholdsProto, _Mapping]] = ..., current_regime: _Optional[str] = ..., consecutive_observations: _Optional[int] = ..., escalation_debounce: _Optional[int] = ..., de_escalation_debounce: _Optional[int] = ...) -> None: ...
+
+class RegimeDetectionResponse(_message.Message):
+    __slots__ = ("regime", "confidence", "is_confirmed", "consecutive_observations", "degraded_inputs", "early_warnings", "detected_at", "correlation_anomaly_score")
+    REGIME_FIELD_NUMBER: _ClassVar[int]
+    CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
+    IS_CONFIRMED_FIELD_NUMBER: _ClassVar[int]
+    CONSECUTIVE_OBSERVATIONS_FIELD_NUMBER: _ClassVar[int]
+    DEGRADED_INPUTS_FIELD_NUMBER: _ClassVar[int]
+    EARLY_WARNINGS_FIELD_NUMBER: _ClassVar[int]
+    DETECTED_AT_FIELD_NUMBER: _ClassVar[int]
+    CORRELATION_ANOMALY_SCORE_FIELD_NUMBER: _ClassVar[int]
+    regime: str
+    confidence: float
+    is_confirmed: bool
+    consecutive_observations: int
+    degraded_inputs: bool
+    early_warnings: _containers.RepeatedCompositeFieldContainer[EarlyWarningProto]
+    detected_at: _timestamp_pb2.Timestamp
+    correlation_anomaly_score: float
+    def __init__(self, regime: _Optional[str] = ..., confidence: _Optional[float] = ..., is_confirmed: bool = ..., consecutive_observations: _Optional[int] = ..., degraded_inputs: bool = ..., early_warnings: _Optional[_Iterable[_Union[EarlyWarningProto, _Mapping]]] = ..., detected_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., correlation_anomaly_score: _Optional[float] = ...) -> None: ...
