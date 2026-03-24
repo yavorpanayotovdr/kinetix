@@ -1725,3 +1725,84 @@ export async function mockFactorRiskRoutes(
     })
   })
 }
+
+export const TEST_HEDGE_RECOMMENDATION = {
+  id: '00000000-0000-0000-0000-000000000001',
+  bookId: 'port-1',
+  targetMetric: 'DELTA',
+  targetReductionPct: 0.80,
+  requestedAt: '2026-03-24T10:00:00Z',
+  status: 'PENDING',
+  expiresAt: '2026-03-24T10:30:00Z',
+  acceptedBy: null,
+  acceptedAt: null,
+  sourceJobId: 'job-123',
+  suggestions: [
+    {
+      instrumentId: 'AAPL-P-2026',
+      instrumentType: 'OPTION',
+      side: 'BUY',
+      quantity: 1000,
+      estimatedCost: 5250,
+      crossingCost: 250,
+      carrycostPerDay: -5,
+      targetReduction: 950,
+      targetReductionPct: 0.95,
+      residualMetric: 50,
+      greekImpact: {
+        deltaBefore: 1000,
+        deltaAfter: 50,
+        gammaBefore: 200,
+        gammaAfter: 210,
+        vegaBefore: 500,
+        vegaAfter: 480,
+        thetaBefore: -30,
+        thetaAfter: -31.5,
+        rhoBefore: 10,
+        rhoAfter: 9.8,
+      },
+      liquidityTier: 'TIER_1',
+      dataQuality: 'FRESH',
+    },
+  ],
+  preHedgeGreeks: {
+    deltaBefore: 1000,
+    deltaAfter: 50,
+    gammaBefore: 200,
+    gammaAfter: 210,
+    vegaBefore: 500,
+    vegaAfter: 480,
+    thetaBefore: -30,
+    thetaAfter: -31.5,
+    rhoBefore: 10,
+    rhoAfter: 9.8,
+  },
+  totalEstimatedCost: 5250,
+  isExpired: false,
+}
+
+/**
+ * Registers a mock for the hedge suggest POST endpoint.
+ * Call this AFTER mockAllApiRoutes — it must come before the catch-all risk/** handler.
+ */
+export async function mockHedgeSuggest(
+  page: Page,
+  response: object = TEST_HEDGE_RECOMMENDATION,
+  statusCode = 201,
+): Promise<void> {
+  await page.route('**/api/v1/risk/hedge-suggest/*', (route: Route) => {
+    if (route.request().method() === 'POST') {
+      route.fulfill({
+        status: statusCode,
+        contentType: 'application/json',
+        body: JSON.stringify(response),
+      })
+    } else {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([response]),
+      })
+    }
+  })
+}

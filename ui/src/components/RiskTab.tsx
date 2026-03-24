@@ -27,6 +27,8 @@ import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 import { ValuationDatePicker } from './ValuationDatePicker'
 import { RunComparisonContainer } from './RunComparisonContainer'
 import { CorrelationHeatmap } from './CorrelationHeatmap'
+import { HedgeRecommendationPanel } from './HedgeRecommendationPanel'
+import { useHedgeRecommendation } from '../hooks/useHedgeRecommendation'
 
 type RiskSubTab = 'dashboard' | 'run-compare'
 
@@ -62,6 +64,8 @@ export function RiskTab({
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
   const [valuationDate, setValuationDate] = useState<string | null>(null)
   const [pendingJobCompare, setPendingJobCompare] = useState<{ baseJobId: string; targetJobId: string } | null>(null)
+  const [hedgePanelOpen, setHedgePanelOpen] = useState(false)
+  const { recommendation: hedgeRec, loading: hedgeLoading, error: hedgeError, suggest: suggestHedge } = useHedgeRecommendation(bookId)
 
   const handleCompareJobs = useCallback((baseJobId: string, targetJobId: string) => {
     setPendingJobCompare({ baseJobId, targetJobId })
@@ -135,6 +139,16 @@ export function RiskTab({
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.shiftKey && e.key === 'H' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        setHedgePanelOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const handleRefresh = useCallback(async () => {
     if (aggregatedView) {
       await crossBookRefresh()
@@ -199,7 +213,19 @@ export function RiskTab({
           )}
           <div className="flex items-center justify-between mb-2">
             <ValuationDatePicker value={valuationDate} onChange={setValuationDate} />
-            <LastUpdatedIndicator timestamp={lastUpdated} />
+            <div className="flex items-center gap-2">
+              <LastUpdatedIndicator timestamp={lastUpdated} />
+              {!aggregatedView && (
+                <button
+                  onClick={() => setHedgePanelOpen(true)}
+                  className="text-xs px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                  title="Suggest Hedge (Shift+H)"
+                  data-testid="suggest-hedge-open-button"
+                >
+                  Suggest Hedge
+                </button>
+              )}
+            </div>
           </div>
           <VaRDashboard
             varResult={varResult}
@@ -296,6 +322,17 @@ export function RiskTab({
       {subTab === 'run-compare' && (
         <RunComparisonContainer bookId={bookId} initialJobIds={pendingJobCompare} />
       )}
+
+      <HedgeRecommendationPanel
+        open={hedgePanelOpen}
+        onClose={() => setHedgePanelOpen(false)}
+        bookId={bookId}
+        recommendation={hedgeRec}
+        loading={hedgeLoading}
+        error={hedgeError}
+        onSuggest={suggestHedge}
+        onSendToWhatIf={onWhatIf ? () => onWhatIf() : undefined}
+      />
     </div>
   )
 }

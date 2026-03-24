@@ -848,6 +848,8 @@ export interface FactorRiskDto {
   rSquared: number
   concentrationWarning: boolean
   factors: FactorContributionDto[]
+}
+
 export interface RiskContributorDto {
   entityId: string
   entityName: string
@@ -870,6 +872,8 @@ export interface HierarchyNodeRiskDto {
   childCount: number
   isPartial: boolean
   missingBooks: string[]
+}
+
 export type MarketRegime = 'NORMAL' | 'ELEVATED_VOL' | 'CRISIS' | 'RECOVERY'
 
 export interface RegimeSignalsDto {
@@ -914,4 +918,70 @@ export interface MarketRegimeHistoryItemDto {
 export interface MarketRegimeHistoryDto {
   items: MarketRegimeHistoryItemDto[]
   total: number
+}
+
+export type HedgeTarget = 'DELTA' | 'GAMMA' | 'VEGA' | 'VAR'
+export type HedgeStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+
+export interface GreekImpactDto {
+  deltaBefore: number
+  deltaAfter: number
+  gammaBefore: number
+  gammaAfter: number
+  vegaBefore: number
+  vegaAfter: number
+  thetaBefore: number
+  thetaAfter: number
+  rhoBefore: number
+  rhoAfter: number
+}
+
+export interface HedgeSuggestionDto {
+  instrumentId: string
+  instrumentType: string
+  side: string
+  quantity: number
+  estimatedCost: number
+  crossingCost: number
+  carrycostPerDay: number | null
+  targetReduction: number
+  targetReductionPct: number
+  residualMetric: number
+  greekImpact: GreekImpactDto
+  liquidityTier: string
+  dataQuality: string
+}
+
+export interface HedgeConstraintsDto {
+  maxNotional: number | null
+  maxSuggestions: number
+  respectPositionLimits: boolean
+  instrumentUniverse: string | null
+  allowedSides: string[] | null
+}
+
+export interface HedgeRecommendationDto {
+  id: string
+  bookId: string
+  targetMetric: HedgeTarget
+  targetReductionPct: number
+  requestedAt: string
+  status: HedgeStatus
+  expiresAt: string
+  acceptedBy: string | null
+  acceptedAt: string | null
+  sourceJobId: string | null
+  suggestions: HedgeSuggestionDto[]
+  preHedgeGreeks: GreekImpactDto
+  totalEstimatedCost: number
+  isExpired: boolean
+}
+
+export interface HedgeSuggestRequestDto {
+  targetMetric: HedgeTarget
+  targetReductionPct: number
+  maxSuggestions?: number
+  maxNotional?: number | null
+  respectPositionLimits?: boolean
+  allowedSides?: string[] | null
 }
