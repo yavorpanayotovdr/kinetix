@@ -984,6 +984,8 @@ export interface HedgeSuggestRequestDto {
   maxNotional?: number | null
   respectPositionLimits?: boolean
   allowedSides?: string[] | null
+}
+
 // --- Execution Cost Types ---
 
 export interface ExecutionCostDto {

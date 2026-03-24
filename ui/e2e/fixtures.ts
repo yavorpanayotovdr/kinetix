@@ -359,6 +359,9 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
   // Default counterparty risk endpoint — return empty list so the tab shows its empty state.
   // Tests that need real counterparty data must call mockCounterpartyRiskRoutes() afterward.
   await page.route('**/api/v1/counterparty-risk*', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
   // Execution cost analysis — return empty list by default
   await page.route('**/api/v1/execution/cost/**', (route: Route) => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
