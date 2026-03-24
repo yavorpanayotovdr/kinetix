@@ -59,6 +59,7 @@ import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
 import com.kinetix.risk.routes.eodTimelineRoutes
+import com.kinetix.risk.routes.hedgeRecommendationRoutes
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.MarketDataQuantDiffer
@@ -85,6 +86,9 @@ import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.LiquidityRiskService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.WhatIfAnalysisService
+import com.kinetix.risk.service.AnalyticalHedgeCalculator
+import com.kinetix.risk.service.HedgeRecommendationService
+import com.kinetix.risk.persistence.ExposedHedgeRecommendationRepository
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
@@ -563,6 +567,14 @@ fun Application.moduleWithRoutes() {
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
+        val hedgeRecommendationService = HedgeRecommendationService(
+            varCache = varCache,
+            instrumentServiceClient = instrumentServiceClient,
+            referenceDataClient = effectiveReferenceDataServiceClient,
+            calculator = AnalyticalHedgeCalculator(),
+            repository = ExposedHedgeRecommendationRepository(riskDb),
+        )
+        hedgeRecommendationRoutes(hedgeRecommendationService)
     }
 
     launch {
