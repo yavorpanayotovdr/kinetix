@@ -806,6 +806,7 @@ data class InstrumentDailyReturnsClientDto(
 @Serializable
 data class HistoricalReplayRequestClientDto(
     val instrumentReturns: List<InstrumentDailyReturnsClientDto> = emptyList(),
+    val scenarioName: String? = null,
     val windowStart: String? = null,
     val windowEnd: String? = null,
 )

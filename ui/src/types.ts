@@ -475,6 +475,7 @@ export interface InstrumentDailyReturnsDto {
 
 export interface HistoricalReplayRequestDto {
   instrumentReturns: InstrumentDailyReturnsDto[]
+  scenarioName?: string
   windowStart?: string
   windowEnd?: string
 }

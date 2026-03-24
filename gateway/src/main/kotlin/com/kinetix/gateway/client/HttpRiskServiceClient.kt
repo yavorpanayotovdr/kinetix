@@ -455,6 +455,7 @@ class HttpRiskServiceClient(
                             dailyReturns = it.dailyReturns,
                         )
                     },
+                    scenarioName = params.scenarioName,
                     windowStart = params.windowStart,
                     windowEnd = params.windowEnd,
                 )

@@ -355,6 +355,7 @@ data class InstrumentDailyReturnsParam(
 data class HistoricalReplayParams(
     val bookId: String,
     val instrumentReturns: List<InstrumentDailyReturnsParam> = emptyList(),
+    val scenarioName: String? = null,
     val windowStart: String? = null,
     val windowEnd: String? = null,
 )

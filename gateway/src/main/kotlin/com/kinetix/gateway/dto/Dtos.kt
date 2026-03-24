@@ -1091,6 +1091,7 @@ data class InstrumentDailyReturnsRequest(
 @Serializable
 data class HistoricalReplayRequest(
     val instrumentReturns: List<InstrumentDailyReturnsRequest> = emptyList(),
+    val scenarioName: String? = null,
     val windowStart: String? = null,
     val windowEnd: String? = null,
 )
@@ -1145,6 +1146,7 @@ fun HistoricalReplayRequest.toParams(bookId: String): HistoricalReplayParams = H
     instrumentReturns = instrumentReturns.map {
         InstrumentDailyReturnsParam(instrumentId = it.instrumentId, dailyReturns = it.dailyReturns)
     },
+    scenarioName = scenarioName,
     windowStart = windowStart,
     windowEnd = windowEnd,
 )
