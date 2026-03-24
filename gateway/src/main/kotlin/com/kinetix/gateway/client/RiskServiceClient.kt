@@ -476,4 +476,9 @@ interface RiskServiceClient {
     suspend fun suggestHedge(bookId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun getLatestHedgeRecommendations(bookId: String, limit: Int = 10): kotlinx.serialization.json.JsonArray
     suspend fun getHedgeRecommendation(bookId: String, id: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getAllCounterpartyExposures(): kotlinx.serialization.json.JsonArray
+    suspend fun getCounterpartyExposure(counterpartyId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getCounterpartyExposureHistory(counterpartyId: String, limit: Int = 90): kotlinx.serialization.json.JsonArray
+    suspend fun computeCounterpartyPFE(counterpartyId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject?
+    suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject?
 }

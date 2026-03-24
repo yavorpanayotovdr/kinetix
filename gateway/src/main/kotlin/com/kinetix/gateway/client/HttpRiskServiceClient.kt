@@ -621,4 +621,41 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getAllCounterpartyExposures(): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/counterparty-risk/")
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getCounterpartyExposure(counterpartyId: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/counterparty-risk/$counterpartyId")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getCounterpartyExposureHistory(counterpartyId: String, limit: Int): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/counterparty-risk/$counterpartyId/history") {
+            url { parameters.append("limit", limit.toString()) }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun computeCounterpartyPFE(counterpartyId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/counterparty-risk/$counterpartyId/pfe") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/counterparty-risk/$counterpartyId/cva")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
