@@ -1,14 +1,38 @@
 package com.kinetix.referencedata.service
 
 import com.kinetix.referencedata.model.InstrumentLiquidity
+import com.kinetix.referencedata.model.InstrumentLiquidityTier
 import com.kinetix.referencedata.persistence.InstrumentLiquidityRepository
 import java.time.Instant
 
 private const val ADV_MAX_STALENESS_DAYS = 2L
 
+private const val TIER_1_ADV_FLOOR = 50_000_000.0
+private const val TIER_1_SPREAD_CAP = 5.0
+private const val TIER_2_ADV_FLOOR = 10_000_000.0
+private const val TIER_2_SPREAD_CAP = 20.0
+private const val TIER_3_ADV_FLOOR = 1_000_000.0
+
 class InstrumentLiquidityService(
     private val repository: InstrumentLiquidityRepository,
 ) {
+
+    companion object {
+        /**
+         * Classifies an instrument into a liquidity tier based on ADV and bid-ask spread.
+         *
+         * TIER_1: adv >= 50M and spread <= 5bps
+         * TIER_2: adv >= 10M and spread <= 20bps
+         * TIER_3: adv >= 1M
+         * ILLIQUID: everything else
+         */
+        fun classifyTier(adv: Double, bidAskSpreadBps: Double): InstrumentLiquidityTier = when {
+            adv >= TIER_1_ADV_FLOOR && bidAskSpreadBps <= TIER_1_SPREAD_CAP -> InstrumentLiquidityTier.TIER_1
+            adv >= TIER_2_ADV_FLOOR && bidAskSpreadBps <= TIER_2_SPREAD_CAP -> InstrumentLiquidityTier.TIER_2
+            adv >= TIER_3_ADV_FLOOR -> InstrumentLiquidityTier.TIER_3
+            else -> InstrumentLiquidityTier.ILLIQUID
+        }
+    }
 
     suspend fun findById(instrumentId: String): InstrumentLiquidity? =
         repository.findById(instrumentId)

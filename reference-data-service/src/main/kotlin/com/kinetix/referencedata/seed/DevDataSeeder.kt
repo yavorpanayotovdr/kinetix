@@ -13,6 +13,7 @@ import com.kinetix.referencedata.model.Counterparty
 import com.kinetix.referencedata.model.Instrument
 import com.kinetix.referencedata.model.InstrumentLiquidity
 import com.kinetix.referencedata.model.NettingAgreement
+import com.kinetix.referencedata.service.InstrumentLiquidityService
 import com.kinetix.referencedata.persistence.CounterpartyRepository
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DeskRepository
@@ -127,6 +128,7 @@ class DevDataSeeder(
                     adv = config.adv,
                     bidAskSpreadBps = config.bidAskSpreadBps,
                     assetClass = config.assetClass,
+                    liquidityTier = InstrumentLiquidityService.classifyTier(config.adv, config.bidAskSpreadBps),
                     advUpdatedAt = AS_OF,
                     createdAt = AS_OF,
                     updatedAt = AS_OF,

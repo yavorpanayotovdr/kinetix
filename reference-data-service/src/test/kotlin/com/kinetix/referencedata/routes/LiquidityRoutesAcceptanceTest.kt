@@ -1,6 +1,7 @@
 package com.kinetix.referencedata.routes
 
 import com.kinetix.referencedata.model.InstrumentLiquidity
+import com.kinetix.referencedata.model.InstrumentLiquidityTier
 import com.kinetix.referencedata.module
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
@@ -46,6 +47,7 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
         adv = adv,
         bidAskSpreadBps = 5.0,
         assetClass = "EQUITY",
+        liquidityTier = InstrumentLiquidityTier.TIER_2,
         advUpdatedAt = NOW,
         createdAt = NOW,
         updatedAt = NOW,
@@ -125,6 +127,77 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             coVerify { liquidityRepo.upsert(any()) }
             saved.captured.instrumentId shouldBe "MSFT"
             saved.captured.adv shouldBe 25_000_000.0
+        }
+    }
+
+    test("GET /api/v1/liquidity/{id} includes liquidityTier in response") {
+        val tier2Sample = sampleLiquidity().copy(adv = 25_000_000.0) // adv=25M, spread=5bps → TIER_2
+        coEvery { liquidityRepo.findById("AAPL") } returns tier2Sample
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.get("/api/v1/liquidity/AAPL")
+            response.status shouldBe HttpStatusCode.OK
+
+            val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "TIER_2"
+        }
+    }
+
+    test("POST /api/v1/liquidity classifies TIER_1 for high ADV and tight spread") {
+        val saved = slot<InstrumentLiquidity>()
+        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.post("/api/v1/liquidity") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                        "instrumentId": "SPY",
+                        "adv": 80000000.0,
+                        "bidAskSpreadBps": 1.0,
+                        "assetClass": "EQUITY"
+                    }
+                    """.trimIndent()
+                )
+            }
+            response.status shouldBe HttpStatusCode.Created
+
+            val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "TIER_1"
+            saved.captured.liquidityTier.name shouldBe "TIER_1"
+        }
+    }
+
+    test("POST /api/v1/liquidity classifies ILLIQUID for low ADV") {
+        val saved = slot<InstrumentLiquidity>()
+        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.post("/api/v1/liquidity") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                        "instrumentId": "ILLIQ-1",
+                        "adv": 100000.0,
+                        "bidAskSpreadBps": 200.0,
+                        "assetClass": "FIXED_INCOME"
+                    }
+                    """.trimIndent()
+                )
+            }
+            response.status shouldBe HttpStatusCode.Created
+
+            val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "ILLIQUID"
+            saved.captured.liquidityTier.name shouldBe "ILLIQUID"
         }
     }
 

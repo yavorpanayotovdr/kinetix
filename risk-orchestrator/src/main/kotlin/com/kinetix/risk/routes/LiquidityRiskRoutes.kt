@@ -65,6 +65,7 @@ private fun LiquidityRiskResult.toResponse() = LiquidityRiskResponse(
             tier = pos.tier.name,
             horizonDays = pos.horizonDays,
             adv = pos.adv,
+            advPct = pos.advPct,
             advMissing = pos.advMissing,
             advStale = pos.advStale,
             lvarContribution = pos.lvarContribution,

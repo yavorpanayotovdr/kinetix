@@ -115,6 +115,7 @@ class ExposedLiquidityRiskSnapshotRepository(
                 tier = LiquidityTier.valueOf(obj["tier"]?.jsonPrimitive?.content ?: "ILLIQUID"),
                 horizonDays = obj["horizonDays"]?.jsonPrimitive?.int ?: 10,
                 adv = obj["adv"]?.jsonPrimitive?.double,
+                advPct = obj["advPct"]?.jsonPrimitive?.double,
                 advMissing = obj["advMissing"]?.jsonPrimitive?.boolean ?: true,
                 advStale = obj["advStale"]?.jsonPrimitive?.boolean ?: false,
                 lvarContribution = obj["lvarContribution"]?.jsonPrimitive?.double ?: 0.0,

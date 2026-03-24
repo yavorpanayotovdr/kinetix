@@ -23,6 +23,7 @@ data class PositionLiquidityRisk(
     val tier: LiquidityTier,
     val horizonDays: Int,
     val adv: Double?,
+    val advPct: Double? = null,
     val advMissing: Boolean,
     val advStale: Boolean,
     val lvarContribution: Double,

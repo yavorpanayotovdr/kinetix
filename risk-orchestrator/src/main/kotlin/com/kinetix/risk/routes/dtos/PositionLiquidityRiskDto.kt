@@ -10,6 +10,7 @@ data class PositionLiquidityRiskDto(
     val tier: String,
     val horizonDays: Int,
     val adv: Double?,
+    val advPct: Double?,
     val advMissing: Boolean,
     val advStale: Boolean,
     val lvarContribution: Double,

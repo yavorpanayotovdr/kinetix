@@ -8,6 +8,7 @@ data class InstrumentLiquidityResponse(
     val adv: Double,
     val bidAskSpreadBps: Double,
     val assetClass: String,
+    val liquidityTier: String,
     val advUpdatedAt: String,
     val advStale: Boolean,
     val advStalenessDays: Int,
