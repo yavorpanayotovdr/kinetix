@@ -1,6 +1,8 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.dto.HistoricalReplayRequest
+import com.kinetix.gateway.dto.ReverseStressRequest
 import com.kinetix.gateway.dto.StressTestBatchRequest
 import com.kinetix.gateway.dto.StressTestRequest
 import com.kinetix.gateway.dto.VaRCalculationRequest
@@ -54,6 +56,34 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
     }) {
         val scenarios = client.listScenarios()
         call.respond(scenarios)
+    }
+
+    post("/api/v1/risk/stress/{bookId}/historical-replay", {
+        summary = "Run historical scenario replay"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("bookId") { description = "Book identifier" }
+        }
+    }) {
+        val bookId = call.requirePathParam("bookId")
+        val request = call.receive<HistoricalReplayRequest>()
+        val params = request.toParams(bookId)
+        val result = client.runHistoricalReplay(params)
+        call.respond(result.toResponse())
+    }
+
+    post("/api/v1/risk/stress/{bookId}/reverse", {
+        summary = "Run reverse stress test"
+        tags = listOf("Stress Tests")
+        request {
+            pathParameter<String>("bookId") { description = "Book identifier" }
+        }
+    }) {
+        val bookId = call.requirePathParam("bookId")
+        val request = call.receive<ReverseStressRequest>()
+        val params = request.toParams(bookId)
+        val result = client.runReverseStress(params)
+        call.respond(result.toResponse())
     }
 
     route("/api/v1/risk/greeks/{bookId}") {

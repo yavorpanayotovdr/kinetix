@@ -347,6 +347,55 @@ data class StressedCrossBookVaRResultSummary(
     val stressCorrelation: String,
 )
 
+data class InstrumentDailyReturnsParam(
+    val instrumentId: String,
+    val dailyReturns: List<Double>,
+)
+
+data class HistoricalReplayParams(
+    val bookId: String,
+    val instrumentReturns: List<InstrumentDailyReturnsParam> = emptyList(),
+    val windowStart: String? = null,
+    val windowEnd: String? = null,
+)
+
+data class PositionReplayImpactSummary(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val pnlImpact: String,
+    val dailyPnl: List<String>,
+    val proxyUsed: Boolean,
+)
+
+data class HistoricalReplayResultSummary(
+    val scenarioName: String,
+    val totalPnlImpact: String,
+    val positionImpacts: List<PositionReplayImpactSummary>,
+    val windowStart: String?,
+    val windowEnd: String?,
+    val calculatedAt: String,
+)
+
+data class ReverseStressParams(
+    val bookId: String,
+    val targetLoss: Double,
+    val maxShock: Double = -1.0,
+)
+
+data class InstrumentShockSummary(
+    val instrumentId: String,
+    val shock: String,
+)
+
+data class ReverseStressResultSummary(
+    val shocks: List<InstrumentShockSummary>,
+    val achievedLoss: String,
+    val targetLoss: String,
+    val converged: Boolean,
+    val calculatedAt: String,
+)
+
 data class CrossBookVaRResultSummary(
     val portfolioGroupId: String,
     val bookIds: List<String>,
@@ -407,4 +456,6 @@ interface RiskServiceClient {
     suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
     suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
     suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dto.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?
+    suspend fun runHistoricalReplay(params: HistoricalReplayParams): HistoricalReplayResultSummary
+    suspend fun runReverseStress(params: ReverseStressParams): ReverseStressResultSummary
 }

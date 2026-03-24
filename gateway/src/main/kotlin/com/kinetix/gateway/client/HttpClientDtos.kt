@@ -794,3 +794,92 @@ fun WhatIfResultClientDto.toDomain() = WhatIfResultSummary(
     esChange = esChange,
     calculatedAt = calculatedAt,
 )
+
+// --- Historical Replay DTOs ---
+
+@Serializable
+data class InstrumentDailyReturnsClientDto(
+    val instrumentId: String,
+    val dailyReturns: List<Double>,
+)
+
+@Serializable
+data class HistoricalReplayRequestClientDto(
+    val instrumentReturns: List<InstrumentDailyReturnsClientDto> = emptyList(),
+    val windowStart: String? = null,
+    val windowEnd: String? = null,
+)
+
+@Serializable
+data class PositionReplayImpactClientDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val pnlImpact: String,
+    val dailyPnl: List<String>,
+    val proxyUsed: Boolean,
+)
+
+@Serializable
+data class HistoricalReplayResultClientDto(
+    val scenarioName: String,
+    val totalPnlImpact: String,
+    val positionImpacts: List<PositionReplayImpactClientDto>,
+    val windowStart: String? = null,
+    val windowEnd: String? = null,
+    val calculatedAt: String,
+)
+
+// --- Reverse Stress DTOs ---
+
+@Serializable
+data class ReverseStressRequestClientDto(
+    val targetLoss: Double,
+    val maxShock: Double = -1.0,
+)
+
+@Serializable
+data class InstrumentShockClientDto(
+    val instrumentId: String,
+    val shock: String,
+)
+
+@Serializable
+data class ReverseStressResultClientDto(
+    val shocks: List<InstrumentShockClientDto>,
+    val achievedLoss: String,
+    val targetLoss: String,
+    val converged: Boolean,
+    val calculatedAt: String,
+)
+
+fun PositionReplayImpactClientDto.toDomain() = PositionReplayImpactSummary(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    marketValue = marketValue,
+    pnlImpact = pnlImpact,
+    dailyPnl = dailyPnl,
+    proxyUsed = proxyUsed,
+)
+
+fun HistoricalReplayResultClientDto.toDomain() = HistoricalReplayResultSummary(
+    scenarioName = scenarioName,
+    totalPnlImpact = totalPnlImpact,
+    positionImpacts = positionImpacts.map { it.toDomain() },
+    windowStart = windowStart,
+    windowEnd = windowEnd,
+    calculatedAt = calculatedAt,
+)
+
+fun InstrumentShockClientDto.toDomain() = InstrumentShockSummary(
+    instrumentId = instrumentId,
+    shock = shock,
+)
+
+fun ReverseStressResultClientDto.toDomain() = ReverseStressResultSummary(
+    shocks = shocks.map { it.toDomain() },
+    achievedLoss = achievedLoss,
+    targetLoss = targetLoss,
+    converged = converged,
+    calculatedAt = calculatedAt,
+)

@@ -31,6 +31,13 @@ import com.kinetix.gateway.client.ReportResult
 import com.kinetix.gateway.client.RiskClassChargeItem
 import com.kinetix.gateway.client.SodBaselineStatusSummary
 import com.kinetix.gateway.client.StressScenarioItem
+import com.kinetix.gateway.client.HistoricalReplayParams
+import com.kinetix.gateway.client.HistoricalReplayResultSummary
+import com.kinetix.gateway.client.InstrumentDailyReturnsParam
+import com.kinetix.gateway.client.InstrumentShockSummary
+import com.kinetix.gateway.client.PositionReplayImpactSummary
+import com.kinetix.gateway.client.ReverseStressParams
+import com.kinetix.gateway.client.ReverseStressResultSummary
 import com.kinetix.gateway.client.StressTestParams
 import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
@@ -1069,4 +1076,112 @@ fun StressScenarioItem.toResponse(): StressScenarioResponse = StressScenarioResp
     approvedBy = approvedBy,
     approvedAt = approvedAt,
     createdAt = createdAt,
+)
+
+// --- Historical Replay DTOs ---
+
+@Serializable
+data class InstrumentDailyReturnsRequest(
+    val instrumentId: String,
+    val dailyReturns: List<Double>,
+)
+
+@Serializable
+data class HistoricalReplayRequest(
+    val instrumentReturns: List<InstrumentDailyReturnsRequest> = emptyList(),
+    val windowStart: String? = null,
+    val windowEnd: String? = null,
+)
+
+@Serializable
+data class PositionReplayImpactDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val marketValue: String,
+    val pnlImpact: String,
+    val dailyPnl: List<String>,
+    val proxyUsed: Boolean,
+)
+
+@Serializable
+data class HistoricalReplayResponse(
+    val scenarioName: String,
+    val totalPnlImpact: String,
+    val positionImpacts: List<PositionReplayImpactDto>,
+    val windowStart: String?,
+    val windowEnd: String?,
+    val calculatedAt: String,
+)
+
+// --- Reverse Stress DTOs ---
+
+@Serializable
+data class ReverseStressRequest(
+    val targetLoss: Double,
+    val maxShock: Double = -1.0,
+)
+
+@Serializable
+data class InstrumentShockDto(
+    val instrumentId: String,
+    val shock: String,
+)
+
+@Serializable
+data class ReverseStressResponse(
+    val shocks: List<InstrumentShockDto>,
+    val achievedLoss: String,
+    val targetLoss: String,
+    val converged: Boolean,
+    val calculatedAt: String,
+)
+
+// --- Historical Replay mappers ---
+
+fun HistoricalReplayRequest.toParams(bookId: String): HistoricalReplayParams = HistoricalReplayParams(
+    bookId = bookId,
+    instrumentReturns = instrumentReturns.map {
+        InstrumentDailyReturnsParam(instrumentId = it.instrumentId, dailyReturns = it.dailyReturns)
+    },
+    windowStart = windowStart,
+    windowEnd = windowEnd,
+)
+
+fun PositionReplayImpactSummary.toDto(): PositionReplayImpactDto = PositionReplayImpactDto(
+    instrumentId = instrumentId,
+    assetClass = assetClass,
+    marketValue = marketValue,
+    pnlImpact = pnlImpact,
+    dailyPnl = dailyPnl,
+    proxyUsed = proxyUsed,
+)
+
+fun HistoricalReplayResultSummary.toResponse(): HistoricalReplayResponse = HistoricalReplayResponse(
+    scenarioName = scenarioName,
+    totalPnlImpact = totalPnlImpact,
+    positionImpacts = positionImpacts.map { it.toDto() },
+    windowStart = windowStart,
+    windowEnd = windowEnd,
+    calculatedAt = calculatedAt,
+)
+
+// --- Reverse Stress mappers ---
+
+fun ReverseStressRequest.toParams(bookId: String): ReverseStressParams = ReverseStressParams(
+    bookId = bookId,
+    targetLoss = targetLoss,
+    maxShock = maxShock,
+)
+
+fun InstrumentShockSummary.toDto(): InstrumentShockDto = InstrumentShockDto(
+    instrumentId = instrumentId,
+    shock = shock,
+)
+
+fun ReverseStressResultSummary.toResponse(): ReverseStressResponse = ReverseStressResponse(
+    shocks = shocks.map { it.toDto() },
+    achievedLoss = achievedLoss,
+    targetLoss = targetLoss,
+    converged = converged,
+    calculatedAt = calculatedAt,
 )
