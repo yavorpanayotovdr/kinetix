@@ -54,6 +54,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[promotedBy] = job.promotedBy
             it[marketDataSnapshotId] = job.marketDataSnapshotId
             it[manifestId] = job.manifestId
+            it[timeHorizonDays] = job.timeHorizonDays
+            it[requestedCalculationType] = job.requestedCalculationType
+            it[requestedConfidenceLevel] = job.requestedConfidenceLevel
+            it[requestedTimeHorizonDays] = job.requestedTimeHorizonDays
         }
     }
 
@@ -88,6 +92,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[error] = job.error
             it[runLabel] = job.runLabel?.name
             it[manifestId] = job.manifestId
+            it[timeHorizonDays] = job.timeHorizonDays
+            it[requestedCalculationType] = job.requestedCalculationType
+            it[requestedConfidenceLevel] = job.requestedConfidenceLevel
+            it[requestedTimeHorizonDays] = job.requestedTimeHorizonDays
         }
     }
 
@@ -518,6 +526,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         promotedBy = this[ValuationJobsTable.promotedBy],
         marketDataSnapshotId = this[ValuationJobsTable.marketDataSnapshotId],
         manifestId = this[ValuationJobsTable.manifestId],
+        timeHorizonDays = this[ValuationJobsTable.timeHorizonDays],
+        requestedCalculationType = this[ValuationJobsTable.requestedCalculationType],
+        requestedConfidenceLevel = this[ValuationJobsTable.requestedConfidenceLevel],
+        requestedTimeHorizonDays = this[ValuationJobsTable.requestedTimeHorizonDays],
     )
 
     override suspend fun findChartData(

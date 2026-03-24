@@ -61,6 +61,7 @@ class VaRCalculationService(
                 valuationDate = valuationDate,
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
+                timeHorizonDays = request.timeHorizonDays,
                 runLabel = runLabel,
                 triggeredBy = triggeredBy,
             )
@@ -231,6 +232,7 @@ class VaRCalculationService(
 
             // Step 3b: Apply regime parameter overrides (non-ON_DEMAND triggers only, confirmed regimes only)
             val regimeOverriddenRequest = applyRegimeOverride(request, triggerType)
+            val regimeOverrideApplied = regimeOverriddenRequest !== request
 
             // Step 3c: Generate MC seed if needed and capture run manifest inputs
             val effectiveRequest = if (regimeOverriddenRequest.calculationType == CalculationType.MONTE_CARLO && regimeOverriddenRequest.monteCarloSeed == 0L) {
@@ -357,8 +359,9 @@ class VaRCalculationService(
                 valuationDate = valuationDate,
                 completedAt = jobCompletedAt,
                 durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
-                calculationType = request.calculationType.name,
-                confidenceLevel = request.confidenceLevel.name,
+                calculationType = effectiveRequest.calculationType.name,
+                confidenceLevel = effectiveRequest.confidenceLevel.name,
+                timeHorizonDays = effectiveRequest.timeHorizonDays,
                 varValue = result.varValue,
                 expectedShortfall = result.expectedShortfall,
                 pvValue = result.pvValue,
@@ -375,6 +378,9 @@ class VaRCalculationService(
                 manifestId = manifestId,
                 runLabel = runLabel,
                 triggeredBy = triggeredBy,
+                requestedCalculationType = if (regimeOverrideApplied) request.calculationType.name else null,
+                requestedConfidenceLevel = if (regimeOverrideApplied) request.confidenceLevel.name else null,
+                requestedTimeHorizonDays = if (regimeOverrideApplied) request.timeHorizonDays else null,
             )
             updateJobSafely(job)
 
@@ -393,6 +399,7 @@ class VaRCalculationService(
                 durationMs = java.time.Duration.between(jobStartedAt, jobCompletedAt).toMillis(),
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
+                timeHorizonDays = request.timeHorizonDays,
                 phases = phases,
                 error = jobError,
                 runLabel = runLabel,

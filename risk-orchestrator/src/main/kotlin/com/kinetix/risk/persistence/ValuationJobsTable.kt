@@ -38,6 +38,10 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val promotedBy = varchar("promoted_by", 255).nullable()
     val marketDataSnapshotId = varchar("market_data_snapshot_id", 255).nullable()
     val manifestId = uuid("manifest_id").nullable()
+    val timeHorizonDays = integer("time_horizon_days").nullable()
+    val requestedCalculationType = varchar("requested_calculation_type", 50).nullable()
+    val requestedConfidenceLevel = varchar("requested_confidence_level", 10).nullable()
+    val requestedTimeHorizonDays = integer("requested_time_horizon_days").nullable()
 
     override val primaryKey = PrimaryKey(jobId)
 }

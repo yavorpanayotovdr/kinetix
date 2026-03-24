@@ -16,6 +16,7 @@ data class ValuationJob(
     val durationMs: Long? = null,
     val calculationType: String? = null,
     val confidenceLevel: String? = null,
+    val timeHorizonDays: Int? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
@@ -38,4 +39,14 @@ data class ValuationJob(
     /** Opaque identifier for the market data snapshot used in this calculation, enabling reproducibility. */
     val marketDataSnapshotId: String? = null,
     val manifestId: UUID? = null,
+    /**
+     * The calculation type as originally requested, before any regime override was applied.
+     * Null when no regime override was active — in that case [calculationType] is the requested value.
+     * Together with [calculationType] (the effective value) this satisfies the AuditBothParameters invariant.
+     */
+    val requestedCalculationType: String? = null,
+    /** The confidence level as originally requested, before any regime override. */
+    val requestedConfidenceLevel: String? = null,
+    /** The time horizon (in days) as originally requested, before any regime override. */
+    val requestedTimeHorizonDays: Int? = null,
 )
