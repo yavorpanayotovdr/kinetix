@@ -1,8 +1,10 @@
 package com.kinetix.schema
 
+import com.kinetix.common.kafka.events.InstrumentPnlItem
 import com.kinetix.common.kafka.events.IntradayPnlEvent
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.collections.shouldHaveSize
 import kotlinx.serialization.json.Json
 
 class IntradayPnlEventSchemaCompatibilityTest : FunSpec({
@@ -117,5 +119,69 @@ class IntradayPnlEventSchemaCompatibilityTest : FunSpec({
             highWaterMark = "600.00",
         )
         event.bookId shouldBe "desk-fx-1"
+    }
+
+    test("IntradayPnlEvent with instrumentPnl serializes and deserializes per-instrument breakdown") {
+        val item = InstrumentPnlItem(
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            totalPnl = "2000.00",
+            deltaPnl = "1800.00",
+            gammaPnl = "100.00",
+            vegaPnl = "0.00",
+            thetaPnl = "-50.00",
+            rhoPnl = "10.00",
+            unexplainedPnl = "140.00",
+        )
+        val event = IntradayPnlEvent(
+            bookId = "book-1",
+            snapshotAt = "2026-03-24T10:19:00Z",
+            baseCurrency = "USD",
+            trigger = "position_change",
+            totalPnl = "2000.00",
+            realisedPnl = "0.00",
+            unrealisedPnl = "2000.00",
+            deltaPnl = "1800.00",
+            gammaPnl = "100.00",
+            vegaPnl = "0.00",
+            thetaPnl = "-50.00",
+            rhoPnl = "10.00",
+            unexplainedPnl = "140.00",
+            highWaterMark = "2000.00",
+            instrumentPnl = listOf(item),
+        )
+
+        val serialized = Json.encodeToString(IntradayPnlEvent.serializer(), event)
+        val deserialized = json.decodeFromString<IntradayPnlEvent>(serialized)
+
+        val items = deserialized.instrumentPnl!!
+        items shouldHaveSize 1
+        items[0].instrumentId shouldBe "AAPL"
+        items[0].totalPnl shouldBe "2000.00"
+        items[0].assetClass shouldBe "EQUITY"
+    }
+
+    test("consumer with ignoreUnknownKeys deserializes event without instrumentPnl as null") {
+        val jsonWithoutInstrumentPnl = """
+            {
+                "bookId": "book-5",
+                "snapshotAt": "2026-03-24T10:20:00Z",
+                "baseCurrency": "USD",
+                "trigger": "position_change",
+                "totalPnl": "100.00",
+                "realisedPnl": "50.00",
+                "unrealisedPnl": "50.00",
+                "deltaPnl": "80.00",
+                "gammaPnl": "10.00",
+                "vegaPnl": "5.00",
+                "thetaPnl": "-2.00",
+                "rhoPnl": "1.00",
+                "unexplainedPnl": "6.00",
+                "highWaterMark": "100.00"
+            }
+        """.trimIndent()
+
+        val deserialized = json.decodeFromString<IntradayPnlEvent>(jsonWithoutInstrumentPnl)
+        deserialized.instrumentPnl shouldBe null
     }
 })

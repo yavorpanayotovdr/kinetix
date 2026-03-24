@@ -3,6 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.persistence.IntradayPnlRepository
+import com.kinetix.risk.routes.dtos.InstrumentPnlBreakdownDto
 import com.kinetix.risk.routes.dtos.IntradayPnlSeriesResponse
 import com.kinetix.risk.routes.dtos.IntradayPnlSnapshotDto
 import io.github.smiley4.ktoropenapi.get
@@ -78,5 +79,18 @@ private fun IntradayPnlSnapshot.toDto(): IntradayPnlSnapshotDto = IntradayPnlSna
     rhoPnl = rhoPnl.toPlainString(),
     unexplainedPnl = unexplainedPnl.toPlainString(),
     highWaterMark = highWaterMark.toPlainString(),
+    instrumentPnl = instrumentPnl.map { pos ->
+        InstrumentPnlBreakdownDto(
+            instrumentId = pos.instrumentId,
+            assetClass = pos.assetClass,
+            totalPnl = pos.totalPnl,
+            deltaPnl = pos.deltaPnl,
+            gammaPnl = pos.gammaPnl,
+            vegaPnl = pos.vegaPnl,
+            thetaPnl = pos.thetaPnl,
+            rhoPnl = pos.rhoPnl,
+            unexplainedPnl = pos.unexplainedPnl,
+        )
+    },
     correlationId = correlationId,
 )

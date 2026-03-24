@@ -309,6 +309,73 @@ class IntradayPnlServiceTest : FunSpec({
         captured.captured.correlationId shouldBe "corr-xyz"
     }
 
+    test("snapshot contains per-instrument breakdown for each position with a SOD snapshot") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00", delta = 0.9),
+            sodSnapshot("MSFT", quantity = "50", marketPrice = "200.00", delta = 0.8),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+            position("MSFT", quantity = "50", avgCost = "190.00", marketPrice = "210.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        snapshot.instrumentPnl.size shouldBe 2
+        val byId = snapshot.instrumentPnl.associateBy { it.instrumentId }
+        byId["AAPL"].shouldNotBeNull()
+        byId["MSFT"].shouldNotBeNull()
+        // AAPL: unrealised = (110-90)*100 = 2000
+        byId["AAPL"]!!.totalPnl.toBigDecimal().compareTo(bd("2000")) shouldBe 0
+        // MSFT: unrealised = (210-190)*50 = 1000
+        byId["MSFT"]!!.totalPnl.toBigDecimal().compareTo(bd("1000")) shouldBe 0
+    }
+
+    test("per-instrument breakdown sums to portfolio total") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00", delta = 0.8, gamma = 0.05),
+            sodSnapshot("MSFT", quantity = "50", marketPrice = "200.00", delta = 0.7),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+            position("MSFT", quantity = "50", avgCost = "190.00", marketPrice = "210.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        val sumOfInstrumentTotals = snapshot.instrumentPnl
+            .sumOf { it.totalPnl.toBigDecimal() }
+        sumOfInstrumentTotals.compareTo(snapshot.totalPnl) shouldBe 0
+    }
+
+    test("position with no SOD snapshot is excluded from per-instrument breakdown") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        // Only AAPL has a SOD snapshot; MSFT does not
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00"),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+            position("MSFT", quantity = "50", avgCost = "190.00", marketPrice = "210.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        snapshot.instrumentPnl.size shouldBe 1
+        snapshot.instrumentPnl[0].instrumentId shouldBe "AAPL"
+    }
+
     test("aggregates P&L across multiple positions in the book") {
         val f = TestFixtures()
         coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()

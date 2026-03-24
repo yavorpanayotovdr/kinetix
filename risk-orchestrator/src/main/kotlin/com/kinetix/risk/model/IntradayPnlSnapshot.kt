@@ -27,5 +27,8 @@ data class IntradayPnlSnapshot(
     // High-water mark: monotonically non-decreasing within a trading day
     val highWaterMark: BigDecimal,
 
+    // Per-instrument attribution breakdown
+    val instrumentPnl: List<InstrumentPnlBreakdown> = emptyList(),
+
     val correlationId: String? = null,
 )

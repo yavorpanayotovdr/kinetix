@@ -17,5 +17,6 @@ data class IntradayPnlSnapshotDto(
     val rhoPnl: String,
     val unexplainedPnl: String,
     val highWaterMark: String,
+    val instrumentPnl: List<InstrumentPnlBreakdownDto> = emptyList(),
     val correlationId: String? = null,
 )

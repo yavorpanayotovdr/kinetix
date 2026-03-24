@@ -4,6 +4,7 @@ import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Money
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.DailyRiskSnapshot
+import com.kinetix.risk.model.InstrumentPnlBreakdown
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.model.PnlTrigger
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
@@ -85,6 +86,20 @@ class IntradayPnlService(
         val previousHwm = lastSnapshot?.highWaterMark ?: totalPnl
         val newHwm = previousHwm.max(totalPnl)
 
+        val instrumentPnl = attribution.positionAttributions.map { pos ->
+            InstrumentPnlBreakdown(
+                instrumentId = pos.instrumentId.value,
+                assetClass = pos.assetClass.name,
+                totalPnl = pos.totalPnl.toPlainString(),
+                deltaPnl = pos.deltaPnl.toPlainString(),
+                gammaPnl = pos.gammaPnl.toPlainString(),
+                vegaPnl = pos.vegaPnl.toPlainString(),
+                thetaPnl = pos.thetaPnl.toPlainString(),
+                rhoPnl = pos.rhoPnl.toPlainString(),
+                unexplainedPnl = pos.unexplainedPnl.toPlainString(),
+            )
+        }
+
         val snapshot = IntradayPnlSnapshot(
             bookId = bookId,
             snapshotAt = Instant.now(),
@@ -101,6 +116,7 @@ class IntradayPnlService(
             unexplainedPnl = totalPnl - (attribution.deltaPnl + attribution.gammaPnl +
                 attribution.vegaPnl + attribution.thetaPnl + attribution.rhoPnl),
             highWaterMark = newHwm,
+            instrumentPnl = instrumentPnl,
             correlationId = correlationId,
         )
 

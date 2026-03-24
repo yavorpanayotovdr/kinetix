@@ -19,6 +19,7 @@ object IntradayPnlSnapshotsTable : Table("intraday_pnl_snapshots") {
     val rhoPnl = decimal("rho_pnl", 20, 8)
     val unexplainedPnl = decimal("unexplained_pnl", 20, 8)
     val highWaterMark = decimal("high_water_mark", 20, 8)
+    val instrumentPnlJson = text("instrument_pnl_json").default("[]")
     val correlationId = varchar("correlation_id", 128).nullable()
 
     override val primaryKey = PrimaryKey(id, snapshotAt)

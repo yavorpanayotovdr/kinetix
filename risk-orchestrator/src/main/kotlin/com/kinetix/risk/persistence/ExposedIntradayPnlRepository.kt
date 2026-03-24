@@ -1,8 +1,12 @@
 package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.BookId
+import com.kinetix.risk.model.InstrumentPnlBreakdown
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.model.PnlTrigger
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -13,6 +17,51 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
+@Serializable
+private data class InstrumentPnlRecord(
+    val instrumentId: String,
+    val assetClass: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
+)
+
+private val pnlJson = Json { ignoreUnknownKeys = true }
+
+private fun List<InstrumentPnlBreakdown>.toJson(): String =
+    pnlJson.encodeToString(map {
+        InstrumentPnlRecord(
+            instrumentId = it.instrumentId,
+            assetClass = it.assetClass,
+            totalPnl = it.totalPnl,
+            deltaPnl = it.deltaPnl,
+            gammaPnl = it.gammaPnl,
+            vegaPnl = it.vegaPnl,
+            thetaPnl = it.thetaPnl,
+            rhoPnl = it.rhoPnl,
+            unexplainedPnl = it.unexplainedPnl,
+        )
+    })
+
+private fun String.toInstrumentPnlBreakdowns(): List<InstrumentPnlBreakdown> =
+    pnlJson.decodeFromString<List<InstrumentPnlRecord>>(this).map {
+        InstrumentPnlBreakdown(
+            instrumentId = it.instrumentId,
+            assetClass = it.assetClass,
+            totalPnl = it.totalPnl,
+            deltaPnl = it.deltaPnl,
+            gammaPnl = it.gammaPnl,
+            vegaPnl = it.vegaPnl,
+            thetaPnl = it.thetaPnl,
+            rhoPnl = it.rhoPnl,
+            unexplainedPnl = it.unexplainedPnl,
+        )
+    }
 
 class ExposedIntradayPnlRepository(private val db: Database? = null) : IntradayPnlRepository {
 
@@ -32,6 +81,7 @@ class ExposedIntradayPnlRepository(private val db: Database? = null) : IntradayP
             it[rhoPnl] = snapshot.rhoPnl
             it[unexplainedPnl] = snapshot.unexplainedPnl
             it[highWaterMark] = snapshot.highWaterMark
+            it[instrumentPnlJson] = snapshot.instrumentPnl.toJson()
             it[correlationId] = snapshot.correlationId
         }
     }
@@ -80,6 +130,7 @@ class ExposedIntradayPnlRepository(private val db: Database? = null) : IntradayP
         rhoPnl = this[IntradayPnlSnapshotsTable.rhoPnl],
         unexplainedPnl = this[IntradayPnlSnapshotsTable.unexplainedPnl],
         highWaterMark = this[IntradayPnlSnapshotsTable.highWaterMark],
+        instrumentPnl = this[IntradayPnlSnapshotsTable.instrumentPnlJson].toInstrumentPnlBreakdowns(),
         correlationId = this[IntradayPnlSnapshotsTable.correlationId],
     )
 }

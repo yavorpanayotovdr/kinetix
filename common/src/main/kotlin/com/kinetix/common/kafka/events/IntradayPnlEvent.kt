@@ -37,5 +37,21 @@ data class IntradayPnlEvent(
     // High-water mark: monotonically non-decreasing within a trading day
     val highWaterMark: String,
 
+    // Per-instrument breakdown; null for events published before this field was added
+    val instrumentPnl: List<InstrumentPnlItem>? = null,
+
     val correlationId: String? = null,
+)
+
+@Serializable
+data class InstrumentPnlItem(
+    val instrumentId: String,
+    val assetClass: String,
+    val totalPnl: String,
+    val deltaPnl: String,
+    val gammaPnl: String,
+    val vegaPnl: String,
+    val thetaPnl: String,
+    val rhoPnl: String,
+    val unexplainedPnl: String,
 )

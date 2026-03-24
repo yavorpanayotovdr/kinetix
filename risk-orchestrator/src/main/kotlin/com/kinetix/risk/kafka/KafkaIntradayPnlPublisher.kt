@@ -1,5 +1,6 @@
 package com.kinetix.risk.kafka
 
+import com.kinetix.common.kafka.events.InstrumentPnlItem
 import com.kinetix.common.kafka.events.IntradayPnlEvent
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.service.IntradayPnlPublisher
@@ -34,6 +35,19 @@ class KafkaIntradayPnlPublisher(
             rhoPnl = snapshot.rhoPnl.toPlainString(),
             unexplainedPnl = snapshot.unexplainedPnl.toPlainString(),
             highWaterMark = snapshot.highWaterMark.toPlainString(),
+            instrumentPnl = snapshot.instrumentPnl.map { pos ->
+                InstrumentPnlItem(
+                    instrumentId = pos.instrumentId,
+                    assetClass = pos.assetClass,
+                    totalPnl = pos.totalPnl,
+                    deltaPnl = pos.deltaPnl,
+                    gammaPnl = pos.gammaPnl,
+                    vegaPnl = pos.vegaPnl,
+                    thetaPnl = pos.thetaPnl,
+                    rhoPnl = pos.rhoPnl,
+                    unexplainedPnl = pos.unexplainedPnl,
+                )
+            }.ifEmpty { null },
             correlationId = snapshot.correlationId,
         )
         val json = Json.encodeToString(event)
