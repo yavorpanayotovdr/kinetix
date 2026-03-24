@@ -28,6 +28,7 @@ import com.kinetix.risk.client.HttpInstrumentServiceClient
 import com.kinetix.risk.client.HttpVolatilityServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.ResilientRiskEngineClient
+import com.kinetix.risk.kafka.KafkaIntradayPnlPublisher
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
@@ -63,6 +64,7 @@ import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
 import com.kinetix.risk.service.DependenciesDiscoverer
+import com.kinetix.risk.service.IntradayPnlService
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
@@ -354,6 +356,17 @@ fun Application.moduleWithRoutes() {
         positionProvider = effectivePositionProvider,
     )
 
+    val intradayPnlRepository = com.kinetix.risk.persistence.ExposedIntradayPnlRepository(riskDb)
+    val intradayPnlPublisher = KafkaIntradayPnlPublisher(kafkaProducer)
+    val intradayPnlService = IntradayPnlService(
+        sodBaselineRepository = sodBaselineRepository,
+        dailyRiskSnapshotRepository = dailyRiskSnapshotRepository,
+        intradayPnlRepository = intradayPnlRepository,
+        positionProvider = effectivePositionProvider,
+        pnlAttributionService = pnlAttributionService,
+        publisher = intradayPnlPublisher,
+    )
+
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)
     val regulatoryStub = RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub(channel)
 
@@ -462,6 +475,7 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
         varCache = varCache,
+        intradayPnlService = intradayPnlService,
         retryableConsumer = priceRetryableConsumer,
     )
 

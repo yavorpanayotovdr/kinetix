@@ -6,8 +6,10 @@ import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.PnlTrigger
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.service.IntradayPnlService
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -25,6 +27,7 @@ class PriceEventConsumer(
     private val varCalculationService: VaRCalculationService,
     private val affectedPortfolios: suspend () -> List<BookId>,
     private val varCache: VaRCache? = null,
+    private val intradayPnlService: IntradayPnlService? = null,
     private val topic: String = "price.updates",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
@@ -71,6 +74,11 @@ class PriceEventConsumer(
                                 if (result != null) {
                                     varCache?.put(bookId.value, result)
                                 }
+                                intradayPnlService?.recompute(
+                                    bookId = bookId,
+                                    trigger = PnlTrigger.POSITION_CHANGE,
+                                    correlationId = priceCorrelationId,
+                                )
                             } finally {
                                 MDC.remove("correlationId")
                             }
