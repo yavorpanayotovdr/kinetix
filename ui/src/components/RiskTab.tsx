@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { useCrossBookVaR } from '../hooks/useCrossBookVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
@@ -6,6 +6,7 @@ import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
 import { useSodBaseline } from '../hooks/useSodBaseline'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
+import { useLiquidityRisk } from '../hooks/useLiquidityRisk'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
@@ -14,6 +15,7 @@ import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
 import { PnlSummaryCard } from './PnlSummaryCard'
+import { LiquidityRiskPanel } from './LiquidityRiskPanel'
 import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 import { ValuationDatePicker } from './ValuationDatePicker'
 import { RunComparisonContainer } from './RunComparisonContainer'
@@ -100,6 +102,12 @@ export function RiskTab({
   const sod = useSodBaseline(bookId)
   const { data: pnlData } = usePnlAttribution(bookId)
 
+  const {
+    result: liquidityResult,
+    loading: liquidityLoading,
+    refresh: refreshLiquidity,
+  } = useLiquidityRisk(bookId)
+
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
   const handleRefresh = useCallback(async () => {
@@ -110,6 +118,17 @@ export function RiskTab({
     await refreshPositionRisk()
     setJobRefreshSignal((prev) => prev + 1)
   }, [refresh, refreshPositionRisk, crossBookRefresh, aggregatedView])
+
+  const handleLiquidityRefresh = useCallback(() => {
+    const baseVar = varResult ? Number(varResult.varValue) : 0
+    refreshLiquidity(baseVar)
+  }, [varResult, refreshLiquidity])
+
+  useEffect(() => {
+    if (bookId) {
+      refreshLiquidity()
+    }
+  }, [bookId, refreshLiquidity])
 
   const lastUpdated = varResult?.calculatedAt ?? null
 
@@ -211,6 +230,13 @@ export function RiskTab({
               loading={stressLoading}
               onRun={onRunStress}
               onViewDetails={onViewStressDetails}
+            />
+          </div>
+          <div className="mt-4">
+            <LiquidityRiskPanel
+              result={liquidityResult}
+              loading={liquidityLoading}
+              onRefresh={handleLiquidityRefresh}
             />
           </div>
           <div className="mt-4">

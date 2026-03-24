@@ -10,10 +10,12 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.ReferenceDataSource
 import com.kinetix.common.model.instrument.*
 import com.kinetix.referencedata.model.Instrument
+import com.kinetix.referencedata.model.InstrumentLiquidity
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DeskRepository
 import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.InstrumentLiquidityRepository
 import com.kinetix.referencedata.persistence.InstrumentRepository
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -24,6 +26,7 @@ class DevDataSeeder(
     private val instrumentRepository: InstrumentRepository? = null,
     private val divisionRepository: DivisionRepository? = null,
     private val deskRepository: DeskRepository? = null,
+    private val liquidityRepository: InstrumentLiquidityRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
@@ -41,6 +44,7 @@ class DevDataSeeder(
         seedInstruments()
         seedDivisions()
         seedDesks()
+        seedLiquidityData()
 
         log.info("Reference data seeding complete")
     }
@@ -105,6 +109,24 @@ class DevDataSeeder(
         log.info("Seeded {} desks", DESKS.size)
     }
 
+    private suspend fun seedLiquidityData() {
+        val repo = liquidityRepository ?: return
+        for ((instrumentId, config) in LIQUIDITY_DATA) {
+            repo.upsert(
+                InstrumentLiquidity(
+                    instrumentId = instrumentId,
+                    adv = config.adv,
+                    bidAskSpreadBps = config.bidAskSpreadBps,
+                    assetClass = config.assetClass,
+                    advUpdatedAt = AS_OF,
+                    createdAt = AS_OF,
+                    updatedAt = AS_OF,
+                )
+            )
+        }
+        log.info("Seeded {} instrument liquidity records", LIQUIDITY_DATA.size)
+    }
+
     private data class InstrumentConfig(
         val type: InstrumentType,
         val displayName: String,
@@ -125,6 +147,12 @@ class DevDataSeeder(
         val name: String,
         val divisionId: String,
         val deskHead: String? = null,
+    )
+
+    private data class LiquidityConfig(
+        val adv: Double,
+        val bidAskSpreadBps: Double,
+        val assetClass: String,
     )
 
     companion object {
@@ -202,6 +230,35 @@ class DevDataSeeder(
             "equities" to DivisionConfig(name = "Equities"),
             "fixed-income-rates" to DivisionConfig(name = "Fixed Income & Rates"),
             "multi-asset" to DivisionConfig(name = "Multi-Asset"),
+        )
+
+        // ADV and bid-ask spread data for all 11 instrument types.
+        // ADV is approximate daily traded notional in USD.
+        // Tier guidance: <10% ADV = HIGH_LIQUID (1d), 10-25% = LIQUID (3d),
+        //                25-50% = SEMI_LIQUID (5d), >50% or no ADV = ILLIQUID (10d).
+        private val LIQUIDITY_DATA: Map<String, LiquidityConfig> = mapOf(
+            // Large-cap equities — highly liquid
+            "AAPL"                  to LiquidityConfig(adv = 80_000_000.0,  bidAskSpreadBps = 1.0,   assetClass = "EQUITY"),
+            // Equity option on AAPL — liquid via underlying, wider spread
+            "AAPL-C-200-20260620"   to LiquidityConfig(adv = 5_000_000.0,   bidAskSpreadBps = 20.0,  assetClass = "EQUITY"),
+            // Index future — highly liquid
+            "SPX-SEP26"             to LiquidityConfig(adv = 120_000_000.0, bidAskSpreadBps = 0.5,   assetClass = "EQUITY"),
+            // On-the-run US Treasury — highly liquid
+            "US10Y"                 to LiquidityConfig(adv = 500_000_000.0, bidAskSpreadBps = 0.25,  assetClass = "FIXED_INCOME"),
+            // Investment-grade corporate bond — liquid but wider spread
+            "JPM-BOND-2031"         to LiquidityConfig(adv = 15_000_000.0,  bidAskSpreadBps = 10.0,  assetClass = "FIXED_INCOME"),
+            // Vanilla IRS — semi-liquid OTC instrument
+            "USD-SOFR-5Y"           to LiquidityConfig(adv = 8_000_000.0,   bidAskSpreadBps = 5.0,   assetClass = "FIXED_INCOME"),
+            // Spot FX — most liquid market
+            "EURUSD"                to LiquidityConfig(adv = 1_000_000_000.0, bidAskSpreadBps = 0.1, assetClass = "FX"),
+            // FX forward — liquid but less than spot
+            "GBPUSD-3M"             to LiquidityConfig(adv = 200_000_000.0, bidAskSpreadBps = 1.0,   assetClass = "FX"),
+            // FX option — semi-liquid OTC
+            "EURUSD-P-1.08-SEP26"   to LiquidityConfig(adv = 20_000_000.0,  bidAskSpreadBps = 15.0,  assetClass = "FX"),
+            // WTI crude futures — highly liquid exchange-traded
+            "WTI-AUG26"             to LiquidityConfig(adv = 350_000_000.0, bidAskSpreadBps = 2.0,   assetClass = "COMMODITY"),
+            // Gold option — semi-liquid
+            "GC-C-2200-DEC26"       to LiquidityConfig(adv = 10_000_000.0,  bidAskSpreadBps = 25.0,  assetClass = "COMMODITY"),
         )
 
         private val DESKS: Map<String, DeskConfig> = mapOf(

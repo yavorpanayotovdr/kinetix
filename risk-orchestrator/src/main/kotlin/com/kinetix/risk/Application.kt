@@ -4,6 +4,7 @@ import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.resilience.CircuitBreaker
 import com.kinetix.common.resilience.CircuitBreakerConfig
 import com.kinetix.common.resilience.CircuitBreakerOpenException
+import com.kinetix.proto.risk.LiquidityRiskServiceGrpcKt
 import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
@@ -15,6 +16,7 @@ import com.kinetix.risk.cache.RedisQuantDiffCache
 import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.mapper.toValuationResult
+import com.kinetix.risk.client.GrpcLiquidityClient
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpAuditServiceClient
 import com.kinetix.risk.client.HttpLimitServiceClient
@@ -33,6 +35,7 @@ import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
 import com.kinetix.risk.persistence.ExposedDailyRiskSnapshotRepository
+import com.kinetix.risk.persistence.ExposedLiquidityRiskSnapshotRepository
 import com.kinetix.risk.persistence.ExposedRunManifestRepository
 import com.kinetix.risk.persistence.ExposedSodBaselineRepository
 import com.kinetix.risk.persistence.ExposedValuationJobRecorder
@@ -44,6 +47,7 @@ import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
+import com.kinetix.risk.routes.liquidityRiskRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -71,6 +75,7 @@ import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.LiquidityRiskService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.simulation.*
@@ -269,6 +274,16 @@ fun Application.moduleWithRoutes() {
     val pnlAttributionRepository = com.kinetix.risk.persistence.ExposedPnlAttributionRepository(riskDb)
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
+    val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
+
+    val liquidityRiskServiceCoroutineStub = LiquidityRiskServiceGrpcKt.LiquidityRiskServiceCoroutineStub(channel)
+    val grpcLiquidityClient = GrpcLiquidityClient(liquidityRiskServiceCoroutineStub)
+    val liquidityRiskService = LiquidityRiskService(
+        positionProvider = effectivePositionProvider,
+        referenceDataClient = effectiveReferenceDataServiceClient,
+        grpcLiquidityClient = grpcLiquidityClient,
+        repository = liquidityRiskSnapshotRepository,
+    )
 
     launch {
         val resetCount = jobRecorder.resetOrphanedRunningJobs()
@@ -507,6 +522,7 @@ fun Application.moduleWithRoutes() {
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         intradayPnlRoutes(intradayPnlRepository)
+        liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)

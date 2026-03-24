@@ -260,6 +260,16 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
+  // Default liquidity risk endpoints — return 404 so the panel shows its empty state.
+  // Tests that need real liquidity data must call mockLiquidityRiskRoutes() afterward.
+  await page.route('**/api/v1/books/*/liquidity-risk/latest', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+
+  await page.route('**/api/v1/books/*/liquidity-risk', (route: Route) => {
+    route.fulfill({ status: 204 })
+  })
+
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
   // To mock WebSocket behaviour, tests must use page.addInitScript() to replace
   // the browser's WebSocket constructor before the page loads.
@@ -369,6 +379,100 @@ export async function mockManyTrades(page: Page, count: number): Promise<TradeFi
     })
   })
   return trades
+}
+
+// ---------------------------------------------------------------------------
+// Liquidity risk fixture data
+// ---------------------------------------------------------------------------
+
+export const TEST_LIQUIDITY_RISK_RESULT = {
+  bookId: 'port-1',
+  portfolioLvar: 316227.76,
+  dataCompleteness: 0.85,
+  portfolioConcentrationStatus: 'OK',
+  calculatedAt: '2026-03-24T10:00:00Z',
+  positionRisks: [
+    {
+      instrumentId: 'AAPL',
+      assetClass: 'EQUITY',
+      marketValue: 15500,
+      tier: 'HIGH_LIQUID',
+      horizonDays: 1,
+      adv: 80000000,
+      advMissing: false,
+      advStale: false,
+      lvarContribution: 280000,
+      stressedLiquidationValue: 15000,
+      concentrationStatus: 'OK',
+    },
+    {
+      instrumentId: 'GOOGL',
+      assetClass: 'EQUITY',
+      marketValue: 142500,
+      tier: 'LIQUID',
+      horizonDays: 2,
+      adv: 50000000,
+      advMissing: false,
+      advStale: false,
+      lvarContribution: 36227.76,
+      stressedLiquidationValue: 140000,
+      concentrationStatus: 'OK',
+    },
+  ],
+}
+
+export const TEST_LIQUIDITY_RISK_RESULT_ADV_MISSING = {
+  ...TEST_LIQUIDITY_RISK_RESULT,
+  dataCompleteness: 0.5,
+  positionRisks: [
+    {
+      ...TEST_LIQUIDITY_RISK_RESULT.positionRisks[0],
+      instrumentId: 'UNKNOWN-BOND',
+      tier: 'ILLIQUID',
+      advMissing: true,
+      adv: null,
+    },
+  ],
+}
+
+/**
+ * Mocks the liquidity risk API endpoints for a book.
+ * The `latest` parameter controls what GET /liquidity-risk/latest returns (null → 404).
+ * The `calculated` parameter controls what POST /liquidity-risk returns (null → 204).
+ */
+export async function mockLiquidityRiskRoutes(
+  page: Page,
+  opts: { latest?: object | null; calculated?: object | null } = {},
+): Promise<void> {
+  // POST /api/v1/books/:bookId/liquidity-risk  (trigger calculation)
+  await page.route('**/api/v1/books/*/liquidity-risk', (route: Route) => {
+    if (route.request().method() === 'POST') {
+      if (opts.calculated) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(opts.calculated),
+        })
+      } else {
+        route.fulfill({ status: 204 })
+      }
+    } else {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+    }
+  })
+
+  // GET /api/v1/books/:bookId/liquidity-risk/latest
+  await page.route('**/api/v1/books/*/liquidity-risk/latest', (route: Route) => {
+    if (opts.latest) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.latest),
+      })
+    } else {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------

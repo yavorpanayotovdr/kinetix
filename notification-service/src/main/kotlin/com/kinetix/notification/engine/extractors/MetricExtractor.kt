@@ -51,6 +51,27 @@ class DataStalenessExtractor : MetricExtractor {
     override fun extract(event: RiskResultEvent): Double? = null
 }
 
+/**
+ * Extracts liquidity concentration risk as a numeric severity level:
+ *   BREACHED → 2.0
+ *   WARNING  → 1.0
+ *   OK       → 0.0
+ *   absent   → null (rule will not fire)
+ *
+ * A rule with threshold=1.5 and operator=GREATER_THAN fires only on BREACHED.
+ * A rule with threshold=0.5 and operator=GREATER_THAN fires on WARNING and BREACHED.
+ */
+class LiquidityConcentrationExtractor : MetricExtractor {
+    override val type = AlertType.LIQUIDITY_CONCENTRATION
+
+    override fun extract(event: RiskResultEvent): Double? = when (event.liquidityConcentrationStatus) {
+        "BREACHED" -> 2.0
+        "WARNING" -> 1.0
+        "OK" -> 0.0
+        else -> null
+    }
+}
+
 val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     VarBreachExtractor(),
     PnlThresholdExtractor(),
@@ -60,4 +81,5 @@ val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     ConcentrationExtractor(),
     MarginBreachExtractor(),
     DataStalenessExtractor(),
+    LiquidityConcentrationExtractor(),
 )

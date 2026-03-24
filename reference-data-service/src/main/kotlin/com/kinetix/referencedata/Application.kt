@@ -15,12 +15,15 @@ import com.kinetix.referencedata.persistence.ExposedDeskRepository
 import com.kinetix.referencedata.persistence.ExposedDivisionRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
+import com.kinetix.referencedata.persistence.ExposedInstrumentLiquidityRepository
 import com.kinetix.referencedata.routes.deskRoutes
 import com.kinetix.referencedata.routes.divisionRoutes
 import com.kinetix.referencedata.routes.instrumentRoutes
+import com.kinetix.referencedata.routes.liquidityRoutes
 import com.kinetix.referencedata.routes.referenceDataRoutes
 import com.kinetix.referencedata.service.DeskService
 import com.kinetix.referencedata.service.DivisionService
+import com.kinetix.referencedata.service.InstrumentLiquidityService
 import com.kinetix.referencedata.service.InstrumentService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -98,6 +101,7 @@ fun Application.module(
     instrumentService: InstrumentService? = null,
     divisionService: DivisionService? = null,
     deskService: DeskService? = null,
+    liquidityService: InstrumentLiquidityService? = null,
 ) {
     module()
     install(StatusPages) {
@@ -123,6 +127,9 @@ fun Application.module(
         if (divisionService != null && deskService != null) {
             divisionRoutes(divisionService, deskService)
             deskRoutes(deskService)
+        }
+        if (liquidityService != null) {
+            liquidityRoutes(liquidityService)
         }
     }
 }
@@ -169,6 +176,9 @@ fun Application.moduleWithRoutes() {
     val divisionService = DivisionService(divisionRepository)
     val deskService = DeskService(deskRepository, divisionRepository)
 
+    val liquidityRepository = ExposedInstrumentLiquidityRepository(db)
+    val liquidityService = InstrumentLiquidityService(liquidityRepository)
+
     val seedDone = AtomicBoolean(false)
     val readinessChecker = ReadinessChecker(
         dataSource = DatabaseFactory.dataSource,
@@ -176,7 +186,7 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService)
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService, liquidityService)
 
     routing {
         get("/health/ready") {
@@ -193,7 +203,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository, divisionRepository, deskRepository).seed()
+            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository, divisionRepository, deskRepository, liquidityRepository).seed()
             seedDone.set(true)
         }
     } else {

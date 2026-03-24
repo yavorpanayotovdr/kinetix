@@ -62,7 +62,7 @@ enum ValuationOutput { var | expected_shortfall | greeks | pv }
 
 enum LimitLevel { firm | division | desk | book | trader | counterparty }
 
-enum LimitType { position | notional | var | concentration }
+enum LimitType { position | notional | var | concentration | adv_concentration }
 
 enum LimitCheckStatus { ok | warning | breached }
 

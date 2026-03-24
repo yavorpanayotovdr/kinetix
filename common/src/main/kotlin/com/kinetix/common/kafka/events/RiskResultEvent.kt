@@ -25,6 +25,7 @@ data class RiskResultEvent(
     val aggregateVega: String? = null,
     val marginUtilisation: Double? = null,
     val concentrationByInstrument: List<ConcentrationItem>? = null,
+    val liquidityConcentrationStatus: String? = null,
 )
 
 @Serializable

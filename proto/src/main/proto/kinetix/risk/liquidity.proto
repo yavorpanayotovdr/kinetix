@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "kinetix/common/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Enumerations
+// ---------------------------------------------------------------------------
+
+enum LiquidityTier {
+  LIQUIDITY_TIER_UNSPECIFIED = 0;
+  HIGH_LIQUID = 1;   // < 10% of ADV, 1-day horizon
+  LIQUID = 2;        // 10–25% of ADV, 3-day horizon
+  SEMI_LIQUID = 3;   // 25–50% of ADV, 5-day horizon
+  ILLIQUID = 4;      // > 50% of ADV or no ADV data, 10-day horizon
+}
+
+// ---------------------------------------------------------------------------
+// Input messages
+// ---------------------------------------------------------------------------
+
+// Per-position liquidity reference data supplied by reference-data-service.
+message LiquidityInput {
+  string instrument_id = 1;
+  double market_value = 2;
+  double adv = 3;             // average daily volume; 0 means missing
+  bool adv_missing = 4;       // true when no ADV record exists
+  int32 adv_staleness_days = 5;
+  kinetix.common.AssetClass asset_class = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Request / Response
+// ---------------------------------------------------------------------------
+
+message LiquidityAdjustedVaRRequest {
+  kinetix.common.BookId book_id = 1;
+  double base_var = 2;
+  int32 base_holding_period = 3;  // typically 1 day
+  repeated LiquidityInput inputs = 4;
+  // Optional: per-asset-class stress factors for stressed liquidation value.
+  // Key is asset_class name (e.g. "EQUITY"), value is stress factor (0.0–1.0).
+  map<string, double> stress_factors = 5;
+  double portfolio_daily_vol = 6;  // portfolio-level daily vol for stress calc
+}
+
+message PositionLiquidityRisk {
+  string instrument_id = 1;
+  kinetix.common.AssetClass asset_class = 2;
+  double market_value = 3;
+  LiquidityTier tier = 4;
+  int32 horizon_days = 5;
+  double adv = 6;
+  bool adv_missing = 7;
+  bool adv_stale = 8;
+  double lvar_contribution = 9;
+  double stressed_liquidation_value = 10;
+  string concentration_status = 11;  // "OK" | "WARNING" | "BREACHED"
+}
+
+message LiquidityAdjustedVaRResponse {
+  kinetix.common.BookId book_id = 1;
+  double portfolio_lvar = 2;
+  double data_completeness = 3;    // fraction of portfolio with ADV data (0.0–1.0)
+  repeated PositionLiquidityRisk position_risks = 4;
+  string portfolio_concentration_status = 5;  // worst status across positions
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service LiquidityRiskService {
+  rpc CalculateLiquidityAdjustedVaR(LiquidityAdjustedVaRRequest) returns (LiquidityAdjustedVaRResponse);
+}

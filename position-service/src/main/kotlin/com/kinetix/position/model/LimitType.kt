@@ -5,4 +5,5 @@ enum class LimitType {
     NOTIONAL,
     VAR,
     CONCENTRATION,
+    ADV_CONCENTRATION,
 }
