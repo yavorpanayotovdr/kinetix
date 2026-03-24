@@ -258,7 +258,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([{ portfolioId: 'book-1' }, { portfolioId: 'book-2' }]),
+        body: JSON.stringify([{ bookId: 'book-1' }, { bookId: 'book-2' }]),
       })
     })
 
