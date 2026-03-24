@@ -20,6 +20,7 @@ import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.persistence.ExposedCollateralBalanceRepository
+import com.kinetix.position.persistence.ExposedNettingSetTradeRepository
 import com.kinetix.position.service.CollateralTrackingService
 import com.kinetix.position.service.CounterpartyExposureService
 import com.kinetix.position.seed.DevDataSeeder
@@ -160,7 +161,8 @@ fun Application.moduleWithRoutes() {
         )
     )
     val liveFxRateProvider = LiveFxRateProvider(delegate = staticFxRateProvider)
-    val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
+    val nettingSetTradeRepository = ExposedNettingSetTradeRepository(db)
+    val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository, nettingSetTradeRepository)
     val collateralBalanceRepository = ExposedCollateralBalanceRepository(db)
     val collateralTrackingService = CollateralTrackingService(collateralBalanceRepository)
     val portfolioAggregationService = PortfolioAggregationService(positionRepository, liveFxRateProvider)
