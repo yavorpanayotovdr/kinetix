@@ -8,6 +8,8 @@ import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.model.PnlTrigger
+import com.kinetix.risk.service.IntradayPnlService
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -24,6 +26,7 @@ class TradeEventConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val varCalculationService: VaRCalculationService,
     private val varCache: VaRCache? = null,
+    private val intradayPnlService: IntradayPnlService? = null,
     private val topic: String = "trades.lifecycle",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
 ) {
@@ -60,6 +63,18 @@ class TradeEventConsumer(
                                 )
                                 if (result != null) {
                                     varCache?.put(bookId.value, result)
+                                }
+                                try {
+                                    intradayPnlService?.recompute(
+                                        bookId = bookId,
+                                        trigger = PnlTrigger.TRADE_BOOKED,
+                                        correlationId = event.correlationId,
+                                    )
+                                } catch (e: Exception) {
+                                    logger.warn(
+                                        "Intraday P&L recompute failed after trade event for book {}: {}",
+                                        bookId.value, e.message,
+                                    )
                                 }
                             } finally {
                                 MDC.remove("correlationId")

@@ -518,6 +518,7 @@ fun Application.moduleWithRoutes() {
         KafkaConsumer<String, String>(tradeConsumerProps),
         varCalculationService,
         varCache = varCache,
+        intradayPnlService = intradayPnlService,
         retryableConsumer = tradeRetryableConsumer,
     )
 

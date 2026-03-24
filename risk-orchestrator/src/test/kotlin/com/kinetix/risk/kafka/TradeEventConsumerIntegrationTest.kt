@@ -3,8 +3,10 @@ package com.kinetix.risk.kafka
 import com.kinetix.common.kafka.events.TradeEventMessage
 import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.model.PnlTrigger
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.service.IntradayPnlService
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -102,6 +104,62 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         }
 
         portfoliosCalculated.toSet() shouldBe setOf("port-A", "port-B")
+
+        job.cancel()
+        producer.close()
+    }
+
+    test("triggers intradayPnlService recompute after VaR calculation on trade event") {
+        val bootstrapServers = KafkaTestSetup.start()
+        val topic = "trades.lifecycle.test-3"
+        val varService = mockk<VaRCalculationService>()
+        val intradayPnlService = mockk<IntradayPnlService>(relaxed = true)
+        val kafkaConsumer = KafkaTestSetup.createConsumer(bootstrapServers, "trade-consumer-test-3")
+        val consumer = TradeEventConsumer(
+            kafkaConsumer,
+            varService,
+            intradayPnlService = intradayPnlService,
+            topic = topic,
+        )
+
+        val mockResult = mockk<ValuationResult>()
+        var varCalculated = false
+        coEvery { varService.calculateVaR(any(), any()) } answers {
+            varCalculated = true
+            mockResult
+        }
+
+        val job = launch { consumer.start() }
+
+        val event = TradeEventMessage(
+            tradeId = "trade-pnl",
+            bookId = "port-pnl",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+        )
+
+        val producer = KafkaTestSetup.createProducer(bootstrapServers)
+        producer.send(ProducerRecord(topic, "port-pnl", Json.encodeToString(event))).get()
+
+        withTimeout(10_000) {
+            while (!varCalculated) {
+                delay(100)
+            }
+        }
+        delay(200) // allow P&L call to propagate
+
+        coVerify(exactly = 1) {
+            intradayPnlService.recompute(
+                bookId = BookId("port-pnl"),
+                trigger = PnlTrigger.TRADE_BOOKED,
+                correlationId = null,
+            )
+        }
 
         job.cancel()
         producer.close()
