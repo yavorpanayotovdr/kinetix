@@ -9,7 +9,7 @@ import prometheus_client
 
 logger = logging.getLogger(__name__)
 
-from kinetix.risk import market_data_dependencies_pb2_grpc, ml_prediction_pb2_grpc, regulatory_reporting_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
+from kinetix.risk import liquidity_pb2_grpc, market_data_dependencies_pb2_grpc, ml_prediction_pb2_grpc, regulatory_reporting_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
 from kinetix_risk.converters import (
     cross_book_var_result_to_proto_response,
     proto_calculation_type_to_domain,
@@ -30,6 +30,7 @@ from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.valuation import calculate_valuation
 from kinetix_risk.volatility import VolatilityProvider
 from kinetix_risk.dependencies_server import MarketDataDependenciesServicer
+from kinetix_risk.liquidity_server import LiquidityAdjustedVaRServicer
 from kinetix_risk.regulatory_server import RegulatoryReportingServicer
 from kinetix_risk.stress_server import StressTestServicer
 
@@ -239,6 +240,9 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
     )
     market_data_dependencies_pb2_grpc.add_MarketDataDependenciesServiceServicer_to_server(
         MarketDataDependenciesServicer(), server
+    )
+    liquidity_pb2_grpc.add_LiquidityRiskServiceServicer_to_server(
+        LiquidityAdjustedVaRServicer(), server
     )
 
     tls_enabled = os.environ.get("GRPC_TLS_ENABLED", "false").lower() == "true"
