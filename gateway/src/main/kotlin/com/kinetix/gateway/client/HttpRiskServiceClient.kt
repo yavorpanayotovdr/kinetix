@@ -528,4 +528,38 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getRiskBudgets(level: String?, entityId: String?): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/risk/budgets") {
+            url {
+                if (level != null) parameters.append("level", level)
+                if (entityId != null) parameters.append("entityId", entityId)
+            }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getRiskBudget(id: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/budgets/$id")
+        if (response.status == io.ktor.http.HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun createRiskBudget(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/budgets") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun deleteRiskBudget(id: String): Boolean {
+        val response = httpClient.delete("$baseUrl/api/v1/risk/budgets/$id")
+        if (response.status == io.ktor.http.HttpStatusCode.NotFound) return false
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return true
+    }
 }

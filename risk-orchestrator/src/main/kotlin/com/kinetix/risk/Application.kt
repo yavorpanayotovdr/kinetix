@@ -49,6 +49,7 @@ import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.hierarchyRiskRoutes
+import com.kinetix.risk.routes.riskBudgetRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
 import com.kinetix.risk.routes.liquidityRiskRoutes
 import com.kinetix.risk.routes.riskRoutes
@@ -280,6 +281,7 @@ fun Application.moduleWithRoutes() {
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
     val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
     val hierarchySnapshotRepository = ExposedRiskHierarchySnapshotRepository(riskDb)
+    val riskBudgetAllocationRepository = com.kinetix.risk.persistence.ExposedRiskBudgetAllocationRepository(riskDb)
 
     val liquidityRiskServiceCoroutineStub = LiquidityRiskServiceGrpcKt.LiquidityRiskServiceCoroutineStub(channel)
     val grpcLiquidityClient = GrpcLiquidityClient(liquidityRiskServiceCoroutineStub)
@@ -539,6 +541,7 @@ fun Application.moduleWithRoutes() {
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         hierarchyRiskRoutes(hierarchyRiskService)
+        riskBudgetRoutes(riskBudgetAllocationRepository)
         intradayPnlRoutes(intradayPnlRepository)
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
         jobHistoryRoutes(jobRecorder)

@@ -464,4 +464,8 @@ interface RiskServiceClient {
     suspend fun runHistoricalReplay(params: HistoricalReplayParams): HistoricalReplayResultSummary
     suspend fun runReverseStress(params: ReverseStressParams): ReverseStressResultSummary
     suspend fun getHierarchyRisk(level: String, entityId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getRiskBudgets(level: String? = null, entityId: String? = null): kotlinx.serialization.json.JsonArray
+    suspend fun getRiskBudget(id: String): kotlinx.serialization.json.JsonObject?
+    suspend fun createRiskBudget(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun deleteRiskBudget(id: String): Boolean
 }
