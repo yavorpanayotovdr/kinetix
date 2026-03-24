@@ -85,13 +85,9 @@ class ExecutionRepositoryIntegrationTest : FunSpec({
     test("fill deduplication: second insert of same fix_exec_id throws (unique constraint)") {
         orderRepo.save(makeOrder("ord-6", "book-1", OrderStatus.PARTIAL))
         fillRepo.save(makeFill("fill-3", "ord-6", BigDecimal("40"), BigDecimal("150.00"), "exec-003"))
-        var threw = false
-        try {
+        io.kotest.assertions.throwables.shouldThrow<org.jetbrains.exposed.exceptions.ExposedSQLException> {
             fillRepo.save(makeFill("fill-4", "ord-6", BigDecimal("40"), BigDecimal("150.00"), "exec-003"))
-        } catch (e: Exception) {
-            threw = true
         }
-        threw shouldBe true
     }
 
     // ------- Execution cost repository -------
