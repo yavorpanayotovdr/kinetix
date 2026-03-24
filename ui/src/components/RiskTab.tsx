@@ -13,6 +13,7 @@ import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { BookContributionTable } from './BookContributionTable'
 import { HierarchyContributionTable } from './HierarchyContributionTable'
+import { RiskBudgetPanel } from './RiskBudgetPanel'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
@@ -224,7 +225,8 @@ export function RiskTab({
             </>
           )}
           {aggregatedView && hierarchyNode && (
-            <div className="mt-4" data-testid="hierarchy-contribution-section">
+            <div className="mt-4 space-y-3" data-testid="hierarchy-contribution-section">
+              <RiskBudgetPanel node={hierarchyNode} />
               <HierarchyContributionTable
                 node={hierarchyNode}
                 onEntityClick={onNavigateToBook}
