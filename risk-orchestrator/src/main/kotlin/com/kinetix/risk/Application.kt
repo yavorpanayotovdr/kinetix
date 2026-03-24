@@ -561,6 +561,7 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+            hierarchyRiskService = hierarchyRiskService,
         ).start()
     }
     launch {

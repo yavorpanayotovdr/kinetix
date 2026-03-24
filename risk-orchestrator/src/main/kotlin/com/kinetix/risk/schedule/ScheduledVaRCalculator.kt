@@ -4,8 +4,10 @@ import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.HierarchyLevel
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -17,6 +19,7 @@ class ScheduledVaRCalculator(
     private val varCache: VaRCache,
     private val bookIds: suspend () -> List<BookId>,
     private val intervalMillis: Long = 60_000,
+    private val hierarchyRiskService: HierarchyRiskService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledVaRCalculator::class.java)
 
@@ -40,6 +43,17 @@ class ScheduledVaRCalculator(
                         }
                     } catch (e: Exception) {
                         logger.error("Scheduled VaR calculation failed for portfolio {}", bookId.value, e)
+                    }
+                }
+
+                // After all per-book VaRs are refreshed, aggregate the firm hierarchy.
+                // This ensures the hierarchy snapshot reflects the latest book-level results.
+                if (hierarchyRiskService != null) {
+                    try {
+                        hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM")
+                        logger.info("Scheduled firm-level hierarchy aggregation complete")
+                    } catch (e: Exception) {
+                        logger.error("Scheduled firm-level hierarchy aggregation failed", e)
                     }
                 }
             } catch (e: Exception) {
