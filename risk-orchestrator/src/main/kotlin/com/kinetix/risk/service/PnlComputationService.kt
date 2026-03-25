@@ -9,8 +9,10 @@ import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.client.VolatilityServiceClient
 import com.kinetix.risk.model.DailyRiskSnapshot
 import com.kinetix.risk.model.PnlAttribution
+import com.kinetix.risk.model.SodGreekSnapshot
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.PnlAttributionRepository
+import com.kinetix.risk.persistence.SodGreekSnapshotRepository
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -25,6 +27,8 @@ class PnlComputationService(
     private val positionProvider: PositionProvider,
     private val volatilityServiceClient: VolatilityServiceClient? = null,
     private val ratesServiceClient: RatesServiceClient? = null,
+    /** Repository for immutable pricing Greeks locked at SOD. Null when not wired (degrades to PRICE_ONLY). */
+    private val sodGreekSnapshotRepository: SodGreekSnapshotRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(PnlComputationService::class.java)
 
@@ -39,6 +43,9 @@ class PnlComputationService(
 
         val sodSnapshots = dailyRiskSnapshotRepository.findByBookIdAndDate(bookId, date)
         val currentPositions = positionProvider.getPositions(bookId)
+
+        // Prefetch pricing Greeks (second-order cross-Greeks live here)
+        val greeksByInstrument = fetchPricingGreeks(bookId, date)
 
         // Prefetch current market data for all instruments in one pass.
         val instrumentIds = sodSnapshots.map { it.instrumentId }.distinct()
@@ -56,15 +63,23 @@ class PnlComputationService(
             val volChange = computeVolChange(snapshot, currentVolMap[snapshot.instrumentId])
             val rateChange = computeRateChange(snapshot, currentRateMap[currency])
 
+            // Prefer pricing Greeks from SodGreekSnapshot over VaR Greeks from DailyRiskSnapshot.
+            // VaR Greeks are bump-and-reprice aggregations; pricing Greeks are the closed-form
+            // BS partials required for a correct Taylor expansion P&L attribution.
+            val pricingGreek = greeksByInstrument[snapshot.instrumentId]
+
             PositionPnlInput(
                 instrumentId = snapshot.instrumentId,
                 assetClass = snapshot.assetClass,
                 totalPnl = totalPnl,
-                delta = BigDecimal.valueOf(snapshot.delta ?: 0.0),
-                gamma = BigDecimal.valueOf(snapshot.gamma ?: 0.0),
-                vega = BigDecimal.valueOf(snapshot.vega ?: 0.0),
-                theta = BigDecimal.valueOf(snapshot.theta ?: 0.0),
-                rho = BigDecimal.valueOf(snapshot.rho ?: 0.0),
+                delta = greekOrFallback(pricingGreek?.delta, snapshot.delta),
+                gamma = greekOrFallback(pricingGreek?.gamma, snapshot.gamma),
+                vega = greekOrFallback(pricingGreek?.vega, snapshot.vega),
+                theta = greekOrFallback(pricingGreek?.theta, snapshot.theta),
+                rho = greekOrFallback(pricingGreek?.rho, snapshot.rho),
+                vanna = pricingGreek?.vanna?.let { BigDecimal.valueOf(it) } ?: BigDecimal.ZERO,
+                volga = pricingGreek?.volga?.let { BigDecimal.valueOf(it) } ?: BigDecimal.ZERO,
+                charm = pricingGreek?.charm?.let { BigDecimal.valueOf(it) } ?: BigDecimal.ZERO,
                 priceChange = priceChange,
                 volChange = volChange,
                 rateChange = rateChange,
@@ -75,12 +90,26 @@ class PnlComputationService(
         pnlAttributionRepository.save(attribution)
 
         logger.info(
-            "P&L attribution computed for portfolio {} on {}: totalPnl={}",
-            bookId.value, date, attribution.totalPnl,
+            "P&L attribution computed for portfolio {} on {}: totalPnl={}, quality={}",
+            bookId.value, date, attribution.totalPnl, attribution.dataQualityFlag,
         )
 
         return attribution
     }
+
+    /**
+     * Fetches per-instrument pricing Greeks from the [SodGreekSnapshotRepository].
+     * Returns an empty map when the repository is not wired or returns no data —
+     * attribution will fall back to VaR Greeks with PRICE_ONLY quality flag.
+     */
+    private suspend fun fetchPricingGreeks(bookId: BookId, date: LocalDate): Map<InstrumentId, SodGreekSnapshot> {
+        val repo = sodGreekSnapshotRepository ?: return emptyMap()
+        return repo.findByBookIdAndDate(bookId, date).associateBy { it.instrumentId }
+    }
+
+    /** Returns pricing Greek value when available; falls back to VaR Greek value; returns zero if neither exists. */
+    private fun greekOrFallback(pricingGreek: Double?, varGreek: Double?): BigDecimal =
+        BigDecimal.valueOf(pricingGreek ?: varGreek ?: 0.0)
 
     private suspend fun fetchCurrentVols(instrumentIds: List<InstrumentId>): Map<InstrumentId, Double> {
         val client = volatilityServiceClient ?: return emptyMap()
