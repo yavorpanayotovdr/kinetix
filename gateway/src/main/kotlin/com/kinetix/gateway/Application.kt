@@ -30,6 +30,7 @@ import com.kinetix.gateway.routes.auditProxyRoutes
 import com.kinetix.gateway.routes.instrumentRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
+import com.kinetix.gateway.routes.strategyProxyRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.runComparisonRoutes
 import com.kinetix.gateway.routes.sodSnapshotRoutes
@@ -353,6 +354,7 @@ fun Application.devModule() {
         authenticate("auth-jwt") {
             requirePermission(Permission.READ_PORTFOLIOS) {
                 positionRoutes(positionClient)
+                strategyProxyRoutes(httpClient, positionUrl)
                 priceRoutes(priceClient)
             }
             requirePermission(Permission.CALCULATE_RISK) {
