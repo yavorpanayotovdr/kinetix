@@ -19,6 +19,7 @@ import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.intradayPnlProxyRoutes
+import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
@@ -210,6 +211,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
         eodTimelineRoutes(riskClient)
+        intradayVaRTimelineProxyRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
         marketRegimeRoutes(riskClient)
@@ -256,6 +258,7 @@ fun Application.module(
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
         eodTimelineRoutes(riskClient)
+        intradayVaRTimelineProxyRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
         marketRegimeRoutes(riskClient)
@@ -328,6 +331,7 @@ fun Application.devModule() {
     routing {
         pnlWebSocket(pnlBroadcaster)
         intradayPnlProxyRoutes(riskClient)
+        intradayVaRTimelineProxyRoutes(riskClient)
         marketRegimeRoutes(riskClient)
         notificationRoutes(notificationClient)
         stressScenarioRoutes(regulatoryClient)
