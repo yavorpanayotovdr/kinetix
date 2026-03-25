@@ -1,7 +1,9 @@
 package com.kinetix.regulatory.stress
 
+import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.stress.dto.ApproveScenarioRequest
 import com.kinetix.regulatory.stress.dto.CreateScenarioRequest
+import com.kinetix.regulatory.stress.dto.ReverseStressRequest
 import com.kinetix.regulatory.stress.dto.RunStressTestRequest
 import com.kinetix.regulatory.stress.dto.StressScenarioResponse
 import com.kinetix.regulatory.stress.dto.StressTestResultResponse
@@ -18,7 +20,10 @@ import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.stress.StressScenarioRoutes")
 
-fun Route.stressScenarioRoutes(service: StressScenarioService) {
+fun Route.stressScenarioRoutes(
+    service: StressScenarioService,
+    riskOrchestratorClient: RiskOrchestratorClient? = null,
+) {
     route("/api/v1/stress-scenarios") {
         get({
             summary = "List all stress scenarios"
@@ -103,6 +108,29 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             val updated = service.retire(id)
             logger.info("Stress scenario retired: id={}, status={}", updated.id, updated.status)
             call.respond(updated.toResponse())
+        }
+
+        post("/reverse-stress", {
+            summary = "Find the minimum-norm shock vector that causes the target portfolio loss"
+            tags = listOf("Stress Testing")
+            request {
+                body<ReverseStressRequest>()
+            }
+        }) {
+            val client = riskOrchestratorClient
+                ?: throw IllegalStateException("RiskOrchestratorClient not configured")
+            val request = call.receive<ReverseStressRequest>()
+            if (request.targetLoss <= 0.0) {
+                throw IllegalArgumentException("targetLoss must be positive")
+            }
+            logger.info("Running reverse stress: bookId={}, targetLoss={}", request.bookId, request.targetLoss)
+            val result = client.runReverseStress(
+                bookId = request.bookId,
+                targetLoss = request.targetLoss,
+                maxShock = request.maxShock,
+            )
+            logger.info("Reverse stress complete: bookId={}, converged={}", request.bookId, result.converged)
+            call.respond(HttpStatusCode.OK, result)
         }
 
         put("/{id}", {
