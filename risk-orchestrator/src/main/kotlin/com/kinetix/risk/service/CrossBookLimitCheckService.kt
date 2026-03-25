@@ -1,7 +1,10 @@
 package com.kinetix.risk.service
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.LimitServiceClient
+import com.kinetix.risk.kafka.GovernanceAuditPublisher
 import com.kinetix.risk.model.CrossBookValuationResult
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -20,6 +23,7 @@ data class CrossBookLimitCheckResult(
 class CrossBookLimitCheckService(
     private val limitServiceClient: LimitServiceClient,
     private val warningThresholdPct: Double = 0.8,
+    private val governanceAuditPublisher: GovernanceAuditPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(CrossBookLimitCheckService::class.java)
 
@@ -54,6 +58,18 @@ class CrossBookLimitCheckService(
                     "Cross-book VaR limit {}: group={}, aggregatedVaR={}, limit={} ({})",
                     status, groupId, aggregatedVaR.toPlainString(), limitValue.toPlainString(), limit.level,
                 )
+                if (status == "BREACHED") {
+                    governanceAuditPublisher?.publish(
+                        GovernanceAuditEvent(
+                            eventType = AuditEventType.LIMIT_BREACHED,
+                            userId = "SYSTEM",
+                            userRole = "SYSTEM",
+                            limitId = limit.id,
+                            bookId = groupId,
+                            details = "VaR $aggregatedVaR > ${limit.level} limit $limitValue",
+                        )
+                    )
+                }
             }
 
             CrossBookLimitCheckResult(

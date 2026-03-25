@@ -53,11 +53,11 @@ class DevDataSeederTest : FunSpec({
     test("all trade IDs are unique and match seed convention") {
         val tradeIds = DevDataSeeder.EVENTS.map { it.tradeId }.toSet()
         tradeIds.size shouldBe DevDataSeeder.EVENTS.size
-        tradeIds.all { it.startsWith("seed-") } shouldBe true
+        tradeIds.all { it?.startsWith("seed-") == true } shouldBe true
     }
 
     test("events cover all eight books") {
-        val portfolios = DevDataSeeder.EVENTS.map { it.bookId }.distinct().sorted()
+        val portfolios = DevDataSeeder.EVENTS.mapNotNull { it.bookId }.distinct().sorted()
         portfolios shouldBe listOf(
             "balanced-income", "derivatives-book", "emerging-markets",
             "equity-growth", "fixed-income", "macro-hedge",

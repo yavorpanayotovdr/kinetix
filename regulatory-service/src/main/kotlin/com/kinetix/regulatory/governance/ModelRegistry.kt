@@ -1,9 +1,15 @@
 package com.kinetix.regulatory.governance
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import java.time.Instant
 import java.util.UUID
 
-class ModelRegistry(private val repository: ModelVersionRepository) {
+class ModelRegistry(
+    private val repository: ModelVersionRepository,
+    private val auditPublisher: GovernanceAuditPublisher? = null,
+) {
 
     private val allowedTransitions = mapOf(
         ModelVersionStatus.DRAFT to setOf(ModelVersionStatus.VALIDATED),
@@ -59,6 +65,17 @@ class ModelRegistry(private val repository: ModelVersionRepository) {
             approvedAt = if (targetStatus == ModelVersionStatus.APPROVED) Instant.now() else model.approvedAt,
         )
         repository.save(updated)
+
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.MODEL_STATUS_CHANGED,
+                userId = approvedBy ?: "SYSTEM",
+                userRole = if (approvedBy != null) "APPROVER" else "SYSTEM",
+                modelName = model.modelName,
+                details = "${model.status}->${targetStatus}",
+            )
+        )
+
         return updated
     }
 }

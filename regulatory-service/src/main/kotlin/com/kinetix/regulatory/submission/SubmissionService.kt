@@ -1,9 +1,15 @@
 package com.kinetix.regulatory.submission
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import java.time.Instant
 import java.util.UUID
 
-class SubmissionService(private val repository: SubmissionRepository) {
+class SubmissionService(
+    private val repository: SubmissionRepository,
+    private val auditPublisher: GovernanceAuditPublisher? = null,
+) {
 
     suspend fun create(reportType: String, preparerId: String, deadline: Instant): RegulatorySubmission {
         val submission = RegulatorySubmission(
@@ -44,6 +50,15 @@ class SubmissionService(private val repository: SubmissionRepository) {
             approverId = approverId,
         )
         repository.save(updated)
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.SUBMISSION_APPROVED,
+                userId = approverId,
+                userRole = "APPROVER",
+                submissionId = id,
+                details = submission.reportType,
+            )
+        )
         return updated
     }
 

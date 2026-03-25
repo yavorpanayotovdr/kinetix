@@ -1,5 +1,8 @@
 package com.kinetix.risk.service
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.risk.kafka.GovernanceAuditPublisher
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -18,6 +21,7 @@ class EodPromotionService(
     private val matViewRefresher: (suspend () -> Unit)? = null,
     private val matViewRefreshRetryDelayMs: Long = 5_000L,
     private val manifestRepository: RunManifestRepository? = null,
+    private val governanceAuditPublisher: GovernanceAuditPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
 
@@ -101,6 +105,16 @@ class EodPromotionService(
                     logger.warn("Failed to publish RISK_RUN_EOD_PROMOTED audit event for job {}", promoted.jobId, e)
                 }
             }
+
+            governanceAuditPublisher?.publish(
+                GovernanceAuditEvent(
+                    eventType = AuditEventType.EOD_PROMOTED,
+                    userId = promotedBy,
+                    userRole = "EOD_OPERATOR",
+                    bookId = promoted.bookId,
+                    details = "jobId=${promoted.jobId},valuationDate=${promoted.valuationDate}",
+                )
+            )
 
             if (matViewRefresher != null) {
                 refreshMatViewWithRetry(promoted.jobId)

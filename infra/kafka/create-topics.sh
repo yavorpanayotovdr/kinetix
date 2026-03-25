@@ -62,11 +62,15 @@ create_topic "reference-data.credit-spreads" 3
 create_topic "volatility.surfaces"   3
 create_topic "correlation.matrices"  3
 
+# ── Governance audit ─────────────────────────────────────────────────
+create_topic "governance.audit"     3
+
 # ── Dead-letter queues (same REPLICATION_FACTOR as regular topics) ────
 create_topic "trades.lifecycle.dlq"  1
 create_topic "price.updates.dlq"    1
 create_topic "risk.results.dlq"     1
 create_topic "risk.anomalies.dlq"   1
+create_topic "governance.audit.dlq" 1
 
 echo ""
 echo "Topics created:"

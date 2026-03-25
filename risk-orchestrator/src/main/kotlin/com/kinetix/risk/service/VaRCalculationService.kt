@@ -1,9 +1,12 @@
 package com.kinetix.risk.service
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.risk.client.InstrumentServiceClient
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.client.dtos.InstrumentDto
+import com.kinetix.risk.kafka.GovernanceAuditPublisher
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
@@ -35,6 +38,7 @@ class VaRCalculationService(
     private val runManifestCapture: RunManifestCapture? = null,
     private val instrumentServiceClient: InstrumentServiceClient? = null,
     private val activeRegimeProvider: (() -> RegimeState?)? = null,
+    private val governanceAuditPublisher: GovernanceAuditPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -383,6 +387,16 @@ class VaRCalculationService(
                 requestedTimeHorizonDays = if (regimeOverrideApplied) request.timeHorizonDays else null,
             )
             updateJobSafely(job)
+
+            governanceAuditPublisher?.publish(
+                GovernanceAuditEvent(
+                    eventType = AuditEventType.RISK_CALCULATION_COMPLETED,
+                    userId = triggeredBy,
+                    userRole = "SYSTEM",
+                    bookId = request.bookId.value,
+                    details = "${effectiveRequest.calculationType}/${effectiveRequest.confidenceLevel}",
+                )
+            )
 
             return enrichedResult
         } catch (e: Exception) {
