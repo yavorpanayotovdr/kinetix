@@ -913,3 +913,88 @@ fun ReverseStressResultClientDto.toDomain() = ReverseStressResultSummary(
     converged = converged,
     calculatedAt = calculatedAt,
 )
+
+// --- Rebalancing What-If DTOs ---
+
+@Serializable
+data class RebalancingTradeClientDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+    val bidAskSpreadBps: Double = 5.0,
+)
+
+@Serializable
+data class RebalancingRequestClientDto(
+    val trades: List<RebalancingTradeClientDto>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class GreeksChangeClientDto(
+    val deltaChange: String,
+    val gammaChange: String,
+    val vegaChange: String,
+    val thetaChange: String,
+    val rhoChange: String,
+)
+
+@Serializable
+data class TradeVarContributionClientDto(
+    val instrumentId: String,
+    val side: String,
+    val quantity: String,
+    val marginalVarImpact: String,
+    val executionCost: String,
+)
+
+@Serializable
+data class RebalancingWhatIfResultClientDto(
+    val baseVar: String,
+    val rebalancedVar: String,
+    val varChange: String,
+    val varChangePct: String,
+    val baseExpectedShortfall: String,
+    val rebalancedExpectedShortfall: String,
+    val esChange: String,
+    val baseGreeks: GreeksResultDto? = null,
+    val rebalancedGreeks: GreeksResultDto? = null,
+    val greeksChange: GreeksChangeClientDto,
+    val tradeContributions: List<TradeVarContributionClientDto>,
+    val estimatedExecutionCost: String,
+    val calculatedAt: String,
+)
+
+fun RebalancingWhatIfResultClientDto.toDomain() = RebalancingWhatIfResultSummary(
+    baseVar = baseVar,
+    rebalancedVar = rebalancedVar,
+    varChange = varChange,
+    varChangePct = varChangePct,
+    baseExpectedShortfall = baseExpectedShortfall,
+    rebalancedExpectedShortfall = rebalancedExpectedShortfall,
+    esChange = esChange,
+    baseGreeks = baseGreeks?.toDomain(),
+    rebalancedGreeks = rebalancedGreeks?.toDomain(),
+    greeksChange = GreeksChangeSummary(
+        deltaChange = greeksChange.deltaChange,
+        gammaChange = greeksChange.gammaChange,
+        vegaChange = greeksChange.vegaChange,
+        thetaChange = greeksChange.thetaChange,
+        rhoChange = greeksChange.rhoChange,
+    ),
+    tradeContributions = tradeContributions.map {
+        TradeVarContributionSummary(
+            instrumentId = it.instrumentId,
+            side = it.side,
+            quantity = it.quantity,
+            marginalVarImpact = it.marginalVarImpact,
+            executionCost = it.executionCost,
+        )
+    },
+    estimatedExecutionCost = estimatedExecutionCost,
+    calculatedAt = calculatedAt,
+)

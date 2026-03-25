@@ -444,6 +444,55 @@ data class WhatIfResultSummary(
     val calculatedAt: String,
 )
 
+data class GreeksChangeSummary(
+    val deltaChange: String,
+    val gammaChange: String,
+    val vegaChange: String,
+    val thetaChange: String,
+    val rhoChange: String,
+)
+
+data class TradeVarContributionSummary(
+    val instrumentId: String,
+    val side: String,
+    val quantity: String,
+    val marginalVarImpact: String,
+    val executionCost: String,
+)
+
+data class RebalancingTradeParam(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+    val bidAskSpreadBps: Double = 5.0,
+)
+
+data class RebalancingRequestParams(
+    val bookId: String,
+    val trades: List<RebalancingTradeParam>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+data class RebalancingWhatIfResultSummary(
+    val baseVar: String,
+    val rebalancedVar: String,
+    val varChange: String,
+    val varChangePct: String,
+    val baseExpectedShortfall: String,
+    val rebalancedExpectedShortfall: String,
+    val esChange: String,
+    val baseGreeks: GreeksResultSummary?,
+    val rebalancedGreeks: GreeksResultSummary?,
+    val greeksChange: GreeksChangeSummary,
+    val tradeContributions: List<TradeVarContributionSummary>,
+    val estimatedExecutionCost: String,
+    val calculatedAt: String,
+)
+
 interface RiskServiceClient {
     suspend fun getMarginEstimate(bookId: String, previousMTM: String? = null): MarginEstimateSummary?
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
@@ -463,6 +512,7 @@ interface RiskServiceClient {
     suspend fun computePnlAttribution(bookId: String): PnlAttributionSummary
     suspend fun getPnlAttribution(bookId: String, date: String? = null): PnlAttributionSummary?
     suspend fun runWhatIf(params: WhatIfRequestParams): WhatIfResultSummary
+    suspend fun runRebalancing(params: RebalancingRequestParams): RebalancingWhatIfResultSummary
     suspend fun getPositionRisk(bookId: String, valuationDate: String? = null): List<PositionRiskSummaryItem>?
     suspend fun compareRuns(bookId: String, baseJobId: String, targetJobId: String): kotlinx.serialization.json.JsonObject
     suspend fun compareDayOverDay(bookId: String, targetDate: String?, baseDate: String?): kotlinx.serialization.json.JsonObject?

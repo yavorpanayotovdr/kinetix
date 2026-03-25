@@ -889,6 +889,110 @@ fun com.kinetix.gateway.client.WhatIfResultSummary.toResponse(): WhatIfGatewayRe
         calculatedAt = calculatedAt,
     )
 
+// --- Rebalancing What-If DTOs ---
+
+@Serializable
+data class RebalancingGatewayTradeDto(
+    val instrumentId: String,
+    val assetClass: String,
+    val side: String,
+    val quantity: String,
+    val priceAmount: String,
+    val priceCurrency: String,
+    val bidAskSpreadBps: Double = 5.0,
+)
+
+@Serializable
+data class RebalancingGatewayRequest(
+    val trades: List<RebalancingGatewayTradeDto>,
+    val calculationType: String? = null,
+    val confidenceLevel: String? = null,
+)
+
+@Serializable
+data class GreeksChangeResponse(
+    val deltaChange: String,
+    val gammaChange: String,
+    val vegaChange: String,
+    val thetaChange: String,
+    val rhoChange: String,
+)
+
+@Serializable
+data class TradeVarContributionResponse(
+    val instrumentId: String,
+    val side: String,
+    val quantity: String,
+    val marginalVarImpact: String,
+    val executionCost: String,
+)
+
+@Serializable
+data class RebalancingWhatIfGatewayResponse(
+    val baseVar: String,
+    val rebalancedVar: String,
+    val varChange: String,
+    val varChangePct: String,
+    val baseExpectedShortfall: String,
+    val rebalancedExpectedShortfall: String,
+    val esChange: String,
+    val baseGreeks: GreeksResponse? = null,
+    val rebalancedGreeks: GreeksResponse? = null,
+    val greeksChange: GreeksChangeResponse,
+    val tradeContributions: List<TradeVarContributionResponse>,
+    val estimatedExecutionCost: String,
+    val calculatedAt: String,
+)
+
+fun RebalancingGatewayRequest.toRebalancingParams(bookId: String): com.kinetix.gateway.client.RebalancingRequestParams =
+    com.kinetix.gateway.client.RebalancingRequestParams(
+        bookId = bookId,
+        trades = trades.map {
+            com.kinetix.gateway.client.RebalancingTradeParam(
+                instrumentId = it.instrumentId,
+                assetClass = it.assetClass,
+                side = it.side,
+                quantity = it.quantity,
+                priceAmount = it.priceAmount,
+                priceCurrency = it.priceCurrency,
+                bidAskSpreadBps = it.bidAskSpreadBps,
+            )
+        },
+        calculationType = calculationType,
+        confidenceLevel = confidenceLevel,
+    )
+
+fun com.kinetix.gateway.client.RebalancingWhatIfResultSummary.toRebalancingResponse(): RebalancingWhatIfGatewayResponse =
+    RebalancingWhatIfGatewayResponse(
+        baseVar = baseVar,
+        rebalancedVar = rebalancedVar,
+        varChange = varChange,
+        varChangePct = varChangePct,
+        baseExpectedShortfall = baseExpectedShortfall,
+        rebalancedExpectedShortfall = rebalancedExpectedShortfall,
+        esChange = esChange,
+        baseGreeks = baseGreeks?.toResponse(),
+        rebalancedGreeks = rebalancedGreeks?.toResponse(),
+        greeksChange = GreeksChangeResponse(
+            deltaChange = greeksChange.deltaChange,
+            gammaChange = greeksChange.gammaChange,
+            vegaChange = greeksChange.vegaChange,
+            thetaChange = greeksChange.thetaChange,
+            rhoChange = greeksChange.rhoChange,
+        ),
+        tradeContributions = tradeContributions.map {
+            TradeVarContributionResponse(
+                instrumentId = it.instrumentId,
+                side = it.side,
+                quantity = it.quantity,
+                marginalVarImpact = it.marginalVarImpact,
+                executionCost = it.executionCost,
+            )
+        },
+        estimatedExecutionCost = estimatedExecutionCost,
+        calculatedAt = calculatedAt,
+    )
+
 // --- Data Quality DTOs ---
 
 @Serializable

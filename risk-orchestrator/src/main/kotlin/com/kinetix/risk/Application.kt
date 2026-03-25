@@ -596,8 +596,9 @@ fun Application.moduleWithRoutes() {
 
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
+        val rebalancingWhatIfService = com.kinetix.risk.service.RebalancingWhatIfService(effectivePositionProvider, effectiveRiskEngineClient, whatIfAnalysisService)
         val batchStressTestService = BatchStressTestService(stressTestStub, effectivePositionProvider)
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder, batchStressTestService = batchStressTestService)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, rebalancingWhatIfService = rebalancingWhatIfService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder, batchStressTestService = batchStressTestService)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         hierarchyRiskRoutes(hierarchyRiskService)
         riskBudgetRoutes(riskBudgetAllocationRepository)

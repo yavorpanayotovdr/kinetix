@@ -259,6 +259,32 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
+    override suspend fun runRebalancing(params: RebalancingRequestParams): RebalancingWhatIfResultSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/what-if/${params.bookId}/rebalance") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                RebalancingRequestClientDto(
+                    trades = params.trades.map {
+                        RebalancingTradeClientDto(
+                            instrumentId = it.instrumentId,
+                            assetClass = it.assetClass,
+                            side = it.side,
+                            quantity = it.quantity,
+                            priceAmount = it.priceAmount,
+                            priceCurrency = it.priceCurrency,
+                            bidAskSpreadBps = it.bidAskSpreadBps,
+                        )
+                    },
+                    calculationType = params.calculationType,
+                    confidenceLevel = params.confidenceLevel,
+                )
+            )
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: RebalancingWhatIfResultClientDto = response.body()
+        return dto.toDomain()
+    }
+
     override suspend fun getPositionRisk(bookId: String, valuationDate: String?): List<PositionRiskSummaryItem>? {
         val response = httpClient.get("$baseUrl/api/v1/risk/positions/$bookId") {
             if (!valuationDate.isNullOrBlank()) {
