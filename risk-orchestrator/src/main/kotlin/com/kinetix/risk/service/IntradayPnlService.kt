@@ -1,8 +1,12 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.client.RatesServiceClient
+import com.kinetix.risk.client.VolatilityServiceClient
 import com.kinetix.risk.model.DailyRiskSnapshot
 import com.kinetix.risk.model.InstrumentPnlBreakdown
 import com.kinetix.risk.model.IntradayPnlSnapshot
@@ -27,6 +31,8 @@ class IntradayPnlService(
     private val pnlAttributionService: PnlAttributionService,
     private val publisher: IntradayPnlPublisher,
     private val debounceInterval: Duration = Duration.ofSeconds(1),
+    private val volatilityServiceClient: VolatilityServiceClient? = null,
+    private val ratesServiceClient: RatesServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(IntradayPnlService::class.java)
     private val mc = MathContext(20, RoundingMode.HALF_UP)
@@ -78,8 +84,14 @@ class IntradayPnlService(
         }
         val totalPnl = totalRealised.add(totalUnrealised, mc)
 
+        // Fetch current market data for vol/rate change computation.
+        val instrumentIds = sodSnapshots.map { it.instrumentId }.distinct()
+        val currencies = positions.map { it.currency }.distinct()
+        val currentVolMap = fetchCurrentVols(instrumentIds)
+        val currentRateMap = fetchCurrentRates(currencies)
+
         // Greek attribution: analytical overlay against frozen SOD state.
-        val pnlInputs = buildAttributionInputs(positions, sodSnapshots, baseCurrency)
+        val pnlInputs = buildAttributionInputs(positions, sodSnapshots, baseCurrency, currentVolMap, currentRateMap)
         val attribution = pnlAttributionService.attribute(bookId, pnlInputs, date)
 
         // High-water mark is monotonically non-decreasing within the trading day.
@@ -130,6 +142,8 @@ class IntradayPnlService(
         positions: List<com.kinetix.common.model.Position>,
         sodSnapshots: List<DailyRiskSnapshot>,
         baseCurrency: String,
+        currentVolMap: Map<InstrumentId, Double>,
+        currentRateMap: Map<Currency, Double>,
     ): List<PositionPnlInput> {
         val sodByInstrument = sodSnapshots.associateBy { it.instrumentId }
         return positions.mapNotNull { position ->
@@ -138,6 +152,9 @@ class IntradayPnlService(
             val priceChange = currentPrice.subtract(sod.marketPrice, mc)
             val positionPnl = convertToBase(position.unrealizedPnl, baseCurrency)
                 .add(convertToBase(position.realizedPnl, baseCurrency), mc)
+
+            val volChange = computeVolChange(sod, currentVolMap[position.instrumentId])
+            val rateChange = computeRateChange(sod, currentRateMap[position.currency])
 
             PositionPnlInput(
                 instrumentId = position.instrumentId,
@@ -149,10 +166,51 @@ class IntradayPnlService(
                 theta = BigDecimal.valueOf(sod.theta ?: 0.0),
                 rho = BigDecimal.valueOf(sod.rho ?: 0.0),
                 priceChange = priceChange,
-                volChange = BigDecimal.ZERO,
-                rateChange = BigDecimal.ZERO,
+                volChange = volChange,
+                rateChange = rateChange,
             )
         }
+    }
+
+    private suspend fun fetchCurrentVols(instrumentIds: List<InstrumentId>): Map<InstrumentId, Double> {
+        val client = volatilityServiceClient ?: return emptyMap()
+        return instrumentIds.mapNotNull { id ->
+            when (val response = client.getLatestSurface(id)) {
+                is ClientResponse.Success -> {
+                    val atm = response.value.points.firstOrNull()?.impliedVol?.toDouble()
+                    if (atm != null) id to atm else null
+                }
+                is ClientResponse.NotFound -> {
+                    logger.debug("No current vol surface for {} — volChange will be zero", id.value)
+                    null
+                }
+            }
+        }.toMap()
+    }
+
+    private suspend fun fetchCurrentRates(currencies: List<Currency>): Map<Currency, Double> {
+        val client = ratesServiceClient ?: return emptyMap()
+        return currencies.mapNotNull { currency ->
+            when (val response = client.getLatestRiskFreeRate(currency, "1Y")) {
+                is ClientResponse.Success -> currency to response.value.rate
+                is ClientResponse.NotFound -> {
+                    logger.debug("No current risk-free rate for {} 1Y — rateChange will be zero", currency.currencyCode)
+                    null
+                }
+            }
+        }.toMap()
+    }
+
+    private fun computeVolChange(snapshot: DailyRiskSnapshot, currentVol: Double?): BigDecimal {
+        val sodVol = snapshot.sodVol ?: return BigDecimal.ZERO
+        val current = currentVol ?: return BigDecimal.ZERO
+        return BigDecimal.valueOf(current - sodVol)
+    }
+
+    private fun computeRateChange(snapshot: DailyRiskSnapshot, currentRate: Double?): BigDecimal {
+        val sodRate = snapshot.sodRate ?: return BigDecimal.ZERO
+        val current = currentRate ?: return BigDecimal.ZERO
+        return BigDecimal.valueOf(current - sodRate)
     }
 
     private fun convertToBase(money: Money, baseCurrency: String): BigDecimal {

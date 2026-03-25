@@ -415,6 +415,8 @@ fun Application.moduleWithRoutes() {
         varCalculationService = varCalculationService,
         positionProvider = effectivePositionProvider,
         jobRecorder = jobRecorder,
+        volatilityServiceClient = effectiveVolatilityServiceClient,
+        ratesServiceClient = effectiveRatesServiceClient,
     )
     val pnlAttributionService = PnlAttributionService()
     val pnlComputationService = PnlComputationService(
@@ -424,6 +426,8 @@ fun Application.moduleWithRoutes() {
         pnlAttributionRepository = pnlAttributionRepository,
         varCache = varCache,
         positionProvider = effectivePositionProvider,
+        volatilityServiceClient = effectiveVolatilityServiceClient,
+        ratesServiceClient = effectiveRatesServiceClient,
     )
 
     val intradayPnlRepository = com.kinetix.risk.persistence.ExposedIntradayPnlRepository(riskDb)
@@ -435,6 +439,8 @@ fun Application.moduleWithRoutes() {
         positionProvider = effectivePositionProvider,
         pnlAttributionService = pnlAttributionService,
         publisher = intradayPnlPublisher,
+        volatilityServiceClient = effectiveVolatilityServiceClient,
+        ratesServiceClient = effectiveRatesServiceClient,
     )
 
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)
