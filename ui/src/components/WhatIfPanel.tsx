@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { X, Plus, Trash2, ArrowDown, ArrowUp } from 'lucide-react'
-import type { WhatIfResponseDto, WhatIfImpactDto, PositionRiskDto } from '../types'
+import type { WhatIfResponseDto, WhatIfImpactDto, PositionRiskDto, RebalancingResponseDto } from '../types'
 import type { TradeFormEntry, ValidationErrors } from '../hooks/useWhatIf'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
@@ -26,6 +26,9 @@ interface WhatIfPanelProps {
   validationErrors?: ValidationErrors
   onCompareInDetail?: () => void
   onRetry?: () => void
+  rebalancingMode?: boolean
+  rebalancingResult?: RebalancingResponseDto | null
+  onApplyPreset?: (preset: 'REDUCE_LARGEST' | 'FLATTEN_DELTA' | 'ROLL_EXPIRING') => void
 }
 
 function ChangeIcon({ value }: { value: number }) {
@@ -91,6 +94,9 @@ export function WhatIfPanel({
   validationErrors = {},
   onCompareInDetail,
   onRetry,
+  rebalancingMode = false,
+  rebalancingResult = null,
+  onApplyPreset,
 }: WhatIfPanelProps) {
   const firstInputRef = useRef<HTMLInputElement>(null)
 
@@ -268,6 +274,20 @@ export function WhatIfPanel({
                   Notional: {formatNum(Number(trade.quantity) * Number(trade.priceAmount))}
                 </p>
               )}
+
+              {rebalancingMode && (
+                <div>
+                  <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Bid/Ask Spread (bps)</label>
+                  <Input
+                    data-testid={`whatif-bid-ask-${index}`}
+                    type="number"
+                    defaultValue="5"
+                    onChange={(e) => onUpdateTrade(index, 'bidAskSpreadBps' as keyof TradeFormEntry, e.target.value)}
+                    placeholder="5"
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
           </Card>
         ))}
@@ -282,6 +302,40 @@ export function WhatIfPanel({
           <Plus className="h-4 w-4" />
           Add another trade
         </button>
+
+        {/* Preset rebalancing templates (rebalancing mode only) */}
+        {rebalancingMode && (
+          <Card>
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Preset Templates
+              </h3>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  data-testid="whatif-preset-reduce-largest"
+                  onClick={() => onApplyPreset?.('REDUCE_LARGEST')}
+                  className="text-left px-3 py-1.5 text-xs rounded-md border border-slate-200 dark:border-surface-600 hover:bg-slate-50 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  Reduce largest position by 25%
+                </button>
+                <button
+                  data-testid="whatif-preset-flatten-delta"
+                  onClick={() => onApplyPreset?.('FLATTEN_DELTA')}
+                  className="text-left px-3 py-1.5 text-xs rounded-md border border-slate-200 dark:border-surface-600 hover:bg-slate-50 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  Flatten delta
+                </button>
+                <button
+                  data-testid="whatif-preset-roll-expiring"
+                  onClick={() => onApplyPreset?.('ROLL_EXPIRING')}
+                  className="text-left px-3 py-1.5 text-xs rounded-md border border-slate-200 dark:border-surface-600 hover:bg-slate-50 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  Roll expiring options
+                </button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Results live region */}
         <div data-testid="whatif-results-live" aria-live="polite">
@@ -308,6 +362,136 @@ export function WhatIfPanel({
               </button>
             )}
           </div>
+        )}
+
+        {/* Rebalancing comparison */}
+        {rebalancingResult && (
+          <>
+            <Card data-testid="whatif-rebalancing-comparison">
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Rebalancing Impact
+                </h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-slate-500 dark:text-slate-400">
+                      <th className="text-left py-1 font-medium">Metric</th>
+                      <th className="text-right py-1 font-medium">Before</th>
+                      <th className="text-right py-1 font-medium">After</th>
+                      <th className="text-right py-1 font-medium">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
+                    <tr>
+                      <td className="py-1.5 text-slate-700 font-medium">VaR</td>
+                      <td data-testid="whatif-rebal-var-base" className="py-1.5 text-right text-slate-700">
+                        {formatNum(rebalancingResult.baseVar)}
+                      </td>
+                      <td data-testid="whatif-rebal-var-after" className="py-1.5 text-right text-slate-700">
+                        {formatNum(rebalancingResult.rebalancedVar)}
+                      </td>
+                      <td
+                        data-testid="whatif-rebal-var-change"
+                        className={`py-1.5 text-right font-medium ${changeColorClass(Number(rebalancingResult.varChange))}`}
+                      >
+                        <ChangeIcon value={Number(rebalancingResult.varChange)} />
+                        {' '}{formatNum(rebalancingResult.varChange)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 text-slate-700 font-medium">VaR %</td>
+                      <td className="py-1.5 text-right text-slate-700">—</td>
+                      <td className="py-1.5 text-right text-slate-700">—</td>
+                      <td
+                        data-testid="whatif-rebal-var-change-pct"
+                        className={`py-1.5 text-right font-medium ${changeColorClass(Number(rebalancingResult.varChangePct))}`}
+                      >
+                        {rebalancingResult.varChangePct}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 text-slate-700 font-medium">ES</td>
+                      <td className="py-1.5 text-right text-slate-700">
+                        {formatNum(rebalancingResult.baseExpectedShortfall)}
+                      </td>
+                      <td className="py-1.5 text-right text-slate-700">
+                        {formatNum(rebalancingResult.rebalancedExpectedShortfall)}
+                      </td>
+                      <td
+                        className={`py-1.5 text-right font-medium ${changeColorClass(Number(rebalancingResult.esChange))}`}
+                      >
+                        <ChangeIcon value={Number(rebalancingResult.esChange)} />
+                        {' '}{formatNum(rebalancingResult.esChange)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 text-slate-700 font-medium">Delta</td>
+                      <td className="py-1.5 text-right text-slate-700">—</td>
+                      <td className="py-1.5 text-right text-slate-700">—</td>
+                      <td
+                        className={`py-1.5 text-right font-medium ${changeColorClass(Number(rebalancingResult.greeksChange.deltaChange))}`}
+                      >
+                        {formatNum(rebalancingResult.greeksChange.deltaChange)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-surface-700">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Est. Execution Cost</span>
+                  <span data-testid="whatif-execution-cost" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {formatNum(rebalancingResult.estimatedExecutionCost)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {rebalancingResult.tradeContributions.length > 0 && (
+              <Card data-testid="whatif-trade-contributions">
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Per-Trade Contribution
+                  </h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-slate-500 dark:text-slate-400">
+                        <th className="text-left py-1 font-medium">Instrument</th>
+                        <th className="text-right py-1 font-medium">Side</th>
+                        <th className="text-right py-1 font-medium">VaR Impact</th>
+                        <th className="text-right py-1 font-medium">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
+                      {rebalancingResult.tradeContributions.map((contrib, i) => (
+                        <tr key={i}>
+                          <td
+                            data-testid={`whatif-contribution-instrument-${i}`}
+                            className="py-1.5 text-slate-700 font-medium"
+                          >
+                            {contrib.instrumentId}
+                          </td>
+                          <td className="py-1.5 text-right text-slate-700">
+                            {contrib.side}
+                          </td>
+                          <td
+                            data-testid={`whatif-contribution-var-impact-${i}`}
+                            className={`py-1.5 text-right font-medium ${changeColorClass(Number(contrib.marginalVarImpact))}`}
+                          >
+                            {formatNum(contrib.marginalVarImpact)}
+                          </td>
+                          <td
+                            data-testid={`whatif-contribution-cost-${i}`}
+                            className="py-1.5 text-right text-slate-700"
+                          >
+                            {formatNum(contrib.executionCost)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </>
         )}
 
         {/* Comparison table */}

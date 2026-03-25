@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { WhatIfResponseDto, WhatIfImpactDto } from '../types'
+import type { WhatIfResponseDto, WhatIfImpactDto, RebalancingResponseDto } from '../types'
 import type { TradeFormEntry } from '../hooks/useWhatIf'
 import { WhatIfPanel } from './WhatIfPanel'
 
@@ -407,6 +407,146 @@ describe('WhatIfPanel', () => {
     render(<WhatIfPanel {...defaultProps} />)
 
     expect(screen.getByTestId('whatif-add-trade')).toHaveAttribute('aria-label', 'Add another hypothetical trade')
+  })
+
+  describe('rebalancing mode', () => {
+    const rebalancingResult: RebalancingResponseDto = {
+      baseVar: '100000.00',
+      rebalancedVar: '80000.00',
+      varChange: '-20000.00',
+      varChangePct: '-20.00',
+      baseExpectedShortfall: '130000.00',
+      rebalancedExpectedShortfall: '104000.00',
+      esChange: '-26000.00',
+      baseGreeks: null,
+      rebalancedGreeks: null,
+      greeksChange: {
+        deltaChange: '-5000.000000',
+        gammaChange: '-100.000000',
+        vegaChange: '-500.000000',
+        thetaChange: '50.000000',
+        rhoChange: '-20.000000',
+      },
+      tradeContributions: [
+        {
+          instrumentId: 'AAPL',
+          side: 'SELL',
+          quantity: '50',
+          marginalVarImpact: '-12000.00',
+          executionCost: '42.50',
+        },
+        {
+          instrumentId: 'GOOGL',
+          side: 'SELL',
+          quantity: '10',
+          marginalVarImpact: '-8000.00',
+          executionCost: '28.00',
+        },
+      ],
+      estimatedExecutionCost: '70.50',
+      calculatedAt: '2026-03-25T10:00:00Z',
+    }
+
+    const rebalancingProps = {
+      ...defaultProps,
+      rebalancingMode: true,
+      rebalancingResult,
+    }
+
+    it('renders bid-ask spread input per trade when in rebalancing mode', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-bid-ask-0')).toBeInTheDocument()
+    })
+
+    it('renders rebalancing comparison table when rebalancing result is available', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-rebalancing-comparison')).toBeInTheDocument()
+    })
+
+    it('shows base VaR and rebalanced VaR in rebalancing comparison', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-rebal-var-base')).toHaveTextContent('100,000.00')
+      expect(screen.getByTestId('whatif-rebal-var-after')).toHaveTextContent('80,000.00')
+    })
+
+    it('shows VaR change percentage in rebalancing comparison', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-rebal-var-change-pct')).toHaveTextContent('-20.00%')
+    })
+
+    it('shows estimated execution cost summary', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-execution-cost')).toHaveTextContent('70.50')
+    })
+
+    it('renders per-trade marginal contribution table', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-trade-contributions')).toBeInTheDocument()
+    })
+
+    it('shows each trade contribution row with instrument and marginal VaR impact', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-contribution-instrument-0')).toHaveTextContent('AAPL')
+      expect(screen.getByTestId('whatif-contribution-var-impact-0')).toHaveTextContent('-12,000.00')
+      expect(screen.getByTestId('whatif-contribution-instrument-1')).toHaveTextContent('GOOGL')
+      expect(screen.getByTestId('whatif-contribution-var-impact-1')).toHaveTextContent('-8,000.00')
+    })
+
+    it('shows per-trade execution cost in contribution table', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-contribution-cost-0')).toHaveTextContent('42.50')
+      expect(screen.getByTestId('whatif-contribution-cost-1')).toHaveTextContent('28.00')
+    })
+
+    it('renders preset rebalancing template buttons', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      expect(screen.getByTestId('whatif-preset-reduce-largest')).toBeInTheDocument()
+      expect(screen.getByTestId('whatif-preset-flatten-delta')).toBeInTheDocument()
+      expect(screen.getByTestId('whatif-preset-roll-expiring')).toBeInTheDocument()
+    })
+
+    it('calls onApplyPreset with preset name when preset button is clicked', () => {
+      const onApplyPreset = vi.fn()
+      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+
+      fireEvent.click(screen.getByTestId('whatif-preset-reduce-largest'))
+
+      expect(onApplyPreset).toHaveBeenCalledWith('REDUCE_LARGEST')
+    })
+
+    it('calls onApplyPreset with FLATTEN_DELTA when that preset is clicked', () => {
+      const onApplyPreset = vi.fn()
+      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+
+      fireEvent.click(screen.getByTestId('whatif-preset-flatten-delta'))
+
+      expect(onApplyPreset).toHaveBeenCalledWith('FLATTEN_DELTA')
+    })
+
+    it('calls onApplyPreset with ROLL_EXPIRING when that preset is clicked', () => {
+      const onApplyPreset = vi.fn()
+      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+
+      fireEvent.click(screen.getByTestId('whatif-preset-roll-expiring'))
+
+      expect(onApplyPreset).toHaveBeenCalledWith('ROLL_EXPIRING')
+    })
+
+    it('shows VaR reduction in green in rebalancing comparison', () => {
+      render(<WhatIfPanel {...rebalancingProps} />)
+
+      const change = screen.getByTestId('whatif-rebal-var-change')
+      expect(change.className).toContain('text-green-600')
+    })
   })
 
   describe('instrument type selector', () => {
