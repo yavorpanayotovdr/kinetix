@@ -16,7 +16,10 @@ import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RegulatoryServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.client.HttpVolatilityServiceClient
+import com.kinetix.gateway.client.VolatilityServiceClient
 import com.kinetix.gateway.routes.backtestProxyRoutes
+import com.kinetix.gateway.routes.volSurfaceRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.intradayPnlProxyRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
@@ -279,6 +282,13 @@ fun Application.module(regulatoryClient: RegulatoryServiceClient) {
     }
 }
 
+fun Application.moduleWithVolSurface(volatilityClient: VolatilityServiceClient) {
+    module()
+    routing {
+        volSurfaceRoutes(volatilityClient)
+    }
+}
+
 fun Application.moduleWithDataQuality(
     positionClient: PositionServiceClient,
     priceClient: PriceServiceClient,
@@ -321,11 +331,13 @@ fun Application.devModule() {
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
     val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
+    val volatilityClient = HttpVolatilityServiceClient(httpClient, volatilityUrl)
     val priceBroadcaster = PriceBroadcaster()
     val pnlBroadcaster = PnlBroadcaster()
 
     module(positionClient, priceClient, priceBroadcaster, riskClient)
     routing {
+        volSurfaceRoutes(volatilityClient)
         pnlWebSocket(pnlBroadcaster)
         intradayPnlProxyRoutes(riskClient)
         marketRegimeRoutes(riskClient)
