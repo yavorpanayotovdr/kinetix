@@ -379,6 +379,54 @@ export interface WhatIfResponseDto {
   calculatedAt: string
 }
 
+export interface RebalancingTradeDto {
+  instrumentId: string
+  assetClass: string
+  side: string
+  quantity: string
+  priceAmount: string
+  priceCurrency: string
+  bidAskSpreadBps?: number
+}
+
+export interface RebalancingRequestDto {
+  trades: RebalancingTradeDto[]
+  calculationType?: string
+  confidenceLevel?: string
+}
+
+export interface GreeksChangeDto {
+  deltaChange: string
+  gammaChange: string
+  vegaChange: string
+  thetaChange: string
+  rhoChange: string
+}
+
+export interface TradeVarContributionDto {
+  instrumentId: string
+  side: string
+  quantity: string
+  marginalVarImpact: string
+  executionCost: string
+}
+
+export interface RebalancingResponseDto {
+  baseVar: string
+  rebalancedVar: string
+  varChange: string
+  varChangePct: string
+  baseExpectedShortfall: string
+  rebalancedExpectedShortfall: string
+  esChange: string
+  baseGreeks: GreeksResultDto | null
+  rebalancedGreeks: GreeksResultDto | null
+  greeksChange: GreeksChangeDto
+  tradeContributions: TradeVarContributionDto[]
+  estimatedExecutionCost: string
+  calculatedAt: string
+}
+
 export interface PositionPnlAttributionDto {
   instrumentId: string
   assetClass: string
