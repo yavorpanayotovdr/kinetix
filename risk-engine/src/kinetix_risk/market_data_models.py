@@ -97,3 +97,23 @@ class YieldCurveData:
     def shift(self, bps: float) -> "YieldCurveData":
         """Return a new YieldCurveData with all rates shifted by bps (parallel shift)."""
         return YieldCurveData(tenors=[(d, r + bps) for d, r in self.tenors])
+
+    def partial_shift(self, tenor_days: int, bump_bps: float, width_days: int) -> "YieldCurveData":
+        """Return a new YieldCurveData with a tent function bump centred at tenor_days.
+
+        The tent rises linearly from 0 at (tenor_days - width_days) to bump_bps at
+        tenor_days, then falls linearly back to 0 at (tenor_days + width_days).
+        Tenor nodes outside the tent are unchanged.
+        """
+        left_edge = tenor_days - width_days
+        right_edge = tenor_days + width_days
+
+        def tent_weight(days: int) -> float:
+            if days <= left_edge or days >= right_edge:
+                return 0.0
+            if days <= tenor_days:
+                return (days - left_edge) / (tenor_days - left_edge)
+            return (right_edge - days) / (right_edge - tenor_days)
+
+        bumped = [(d, r + bump_bps * tent_weight(d)) for d, r in self.tenors]
+        return YieldCurveData(tenors=bumped)

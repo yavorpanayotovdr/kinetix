@@ -49,6 +49,7 @@ import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
+import com.kinetix.gateway.routes.keyRateDurationRoutes
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
 import com.kinetix.gateway.websocket.AlertBroadcaster
 import com.kinetix.gateway.websocket.PnlBroadcaster
@@ -220,6 +221,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         marketRegimeRoutes(riskClient)
         hedgeRecommendationRoutes(riskClient)
         counterpartyRiskRoutes(riskClient)
+        keyRateDurationRoutes(riskClient)
     }
 }
 
@@ -266,6 +268,7 @@ fun Application.module(
         marketRegimeRoutes(riskClient)
         hedgeRecommendationRoutes(riskClient)
         counterpartyRiskRoutes(riskClient)
+        keyRateDurationRoutes(riskClient)
     }
 }
 

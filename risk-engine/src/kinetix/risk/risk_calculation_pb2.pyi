@@ -61,6 +61,14 @@ class LoadingMethod(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     LOADING_OLS_REGRESSION: _ClassVar[LoadingMethod]
     LOADING_ANALYTICAL: _ClassVar[LoadingMethod]
     LOADING_MANUAL: _ClassVar[LoadingMethod]
+
+class HedgeTargetMetric(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    HEDGE_TARGET_UNSPECIFIED: _ClassVar[HedgeTargetMetric]
+    HEDGE_TARGET_DELTA: _ClassVar[HedgeTargetMetric]
+    HEDGE_TARGET_GAMMA: _ClassVar[HedgeTargetMetric]
+    HEDGE_TARGET_VEGA: _ClassVar[HedgeTargetMetric]
+    HEDGE_TARGET_VAR: _ClassVar[HedgeTargetMetric]
 RISK_CALCULATION_TYPE_UNSPECIFIED: RiskCalculationType
 HISTORICAL: RiskCalculationType
 PARAMETRIC: RiskCalculationType
@@ -94,6 +102,11 @@ LOADING_METHOD_UNSPECIFIED: LoadingMethod
 LOADING_OLS_REGRESSION: LoadingMethod
 LOADING_ANALYTICAL: LoadingMethod
 LOADING_MANUAL: LoadingMethod
+HEDGE_TARGET_UNSPECIFIED: HedgeTargetMetric
+HEDGE_TARGET_DELTA: HedgeTargetMetric
+HEDGE_TARGET_GAMMA: HedgeTargetMetric
+HEDGE_TARGET_VEGA: HedgeTargetMetric
+HEDGE_TARGET_VAR: HedgeTargetMetric
 
 class TimeSeriesPoint(_message.Message):
     __slots__ = ("timestamp", "value")
@@ -430,3 +443,137 @@ class FactorDecompositionResponse(_message.Message):
     loadings: _containers.RepeatedCompositeFieldContainer[InstrumentLoadingResult]
     job_id: str
     def __init__(self, book_id: _Optional[str] = ..., decomposition_date: _Optional[str] = ..., total_var: _Optional[float] = ..., systematic_var: _Optional[float] = ..., idiosyncratic_var: _Optional[float] = ..., r_squared: _Optional[float] = ..., factor_contributions: _Optional[_Iterable[_Union[FactorContribution, _Mapping]]] = ..., loadings: _Optional[_Iterable[_Union[InstrumentLoadingResult, _Mapping]]] = ..., job_id: _Optional[str] = ...) -> None: ...
+
+class HedgeCandidateGreeks(_message.Message):
+    __slots__ = ("delta_per_unit", "gamma_per_unit", "vega_per_unit", "theta_per_unit", "rho_per_unit")
+    DELTA_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    GAMMA_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    VEGA_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    THETA_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    RHO_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    delta_per_unit: float
+    gamma_per_unit: float
+    vega_per_unit: float
+    theta_per_unit: float
+    rho_per_unit: float
+    def __init__(self, delta_per_unit: _Optional[float] = ..., gamma_per_unit: _Optional[float] = ..., vega_per_unit: _Optional[float] = ..., theta_per_unit: _Optional[float] = ..., rho_per_unit: _Optional[float] = ...) -> None: ...
+
+class HedgeCandidateInstrument(_message.Message):
+    __slots__ = ("instrument_id", "instrument_type", "price_per_unit", "bid_ask_spread_bps", "greeks", "liquidity_tier", "price_age_minutes")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    INSTRUMENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    PRICE_PER_UNIT_FIELD_NUMBER: _ClassVar[int]
+    BID_ASK_SPREAD_BPS_FIELD_NUMBER: _ClassVar[int]
+    GREEKS_FIELD_NUMBER: _ClassVar[int]
+    LIQUIDITY_TIER_FIELD_NUMBER: _ClassVar[int]
+    PRICE_AGE_MINUTES_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    instrument_type: str
+    price_per_unit: float
+    bid_ask_spread_bps: float
+    greeks: HedgeCandidateGreeks
+    liquidity_tier: str
+    price_age_minutes: int
+    def __init__(self, instrument_id: _Optional[str] = ..., instrument_type: _Optional[str] = ..., price_per_unit: _Optional[float] = ..., bid_ask_spread_bps: _Optional[float] = ..., greeks: _Optional[_Union[HedgeCandidateGreeks, _Mapping]] = ..., liquidity_tier: _Optional[str] = ..., price_age_minutes: _Optional[int] = ...) -> None: ...
+
+class HedgePortfolioGreeks(_message.Message):
+    __slots__ = ("delta", "gamma", "vega", "theta", "rho")
+    DELTA_FIELD_NUMBER: _ClassVar[int]
+    GAMMA_FIELD_NUMBER: _ClassVar[int]
+    VEGA_FIELD_NUMBER: _ClassVar[int]
+    THETA_FIELD_NUMBER: _ClassVar[int]
+    RHO_FIELD_NUMBER: _ClassVar[int]
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+    rho: float
+    def __init__(self, delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ..., theta: _Optional[float] = ..., rho: _Optional[float] = ...) -> None: ...
+
+class SuggestHedgeRequest(_message.Message):
+    __slots__ = ("book_id", "target_metric", "target_reduction_pct", "current_greeks", "candidates", "max_suggestions", "max_notional", "allowed_sides")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
+    TARGET_METRIC_FIELD_NUMBER: _ClassVar[int]
+    TARGET_REDUCTION_PCT_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_GREEKS_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATES_FIELD_NUMBER: _ClassVar[int]
+    MAX_SUGGESTIONS_FIELD_NUMBER: _ClassVar[int]
+    MAX_NOTIONAL_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_SIDES_FIELD_NUMBER: _ClassVar[int]
+    book_id: str
+    target_metric: HedgeTargetMetric
+    target_reduction_pct: float
+    current_greeks: HedgePortfolioGreeks
+    candidates: _containers.RepeatedCompositeFieldContainer[HedgeCandidateInstrument]
+    max_suggestions: int
+    max_notional: float
+    allowed_sides: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, book_id: _Optional[str] = ..., target_metric: _Optional[_Union[HedgeTargetMetric, str]] = ..., target_reduction_pct: _Optional[float] = ..., current_greeks: _Optional[_Union[HedgePortfolioGreeks, _Mapping]] = ..., candidates: _Optional[_Iterable[_Union[HedgeCandidateInstrument, _Mapping]]] = ..., max_suggestions: _Optional[int] = ..., max_notional: _Optional[float] = ..., allowed_sides: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class HedgeSuggestionProto(_message.Message):
+    __slots__ = ("instrument_id", "instrument_type", "side", "quantity", "estimated_cost", "crossing_cost", "target_reduction", "target_reduction_pct", "residual_metric", "liquidity_tier", "data_quality")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    INSTRUMENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    SIDE_FIELD_NUMBER: _ClassVar[int]
+    QUANTITY_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATED_COST_FIELD_NUMBER: _ClassVar[int]
+    CROSSING_COST_FIELD_NUMBER: _ClassVar[int]
+    TARGET_REDUCTION_FIELD_NUMBER: _ClassVar[int]
+    TARGET_REDUCTION_PCT_FIELD_NUMBER: _ClassVar[int]
+    RESIDUAL_METRIC_FIELD_NUMBER: _ClassVar[int]
+    LIQUIDITY_TIER_FIELD_NUMBER: _ClassVar[int]
+    DATA_QUALITY_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    instrument_type: str
+    side: str
+    quantity: float
+    estimated_cost: float
+    crossing_cost: float
+    target_reduction: float
+    target_reduction_pct: float
+    residual_metric: float
+    liquidity_tier: str
+    data_quality: str
+    def __init__(self, instrument_id: _Optional[str] = ..., instrument_type: _Optional[str] = ..., side: _Optional[str] = ..., quantity: _Optional[float] = ..., estimated_cost: _Optional[float] = ..., crossing_cost: _Optional[float] = ..., target_reduction: _Optional[float] = ..., target_reduction_pct: _Optional[float] = ..., residual_metric: _Optional[float] = ..., liquidity_tier: _Optional[str] = ..., data_quality: _Optional[str] = ...) -> None: ...
+
+class SuggestHedgeResponse(_message.Message):
+    __slots__ = ("suggestions",)
+    SUGGESTIONS_FIELD_NUMBER: _ClassVar[int]
+    suggestions: _containers.RepeatedCompositeFieldContainer[HedgeSuggestionProto]
+    def __init__(self, suggestions: _Optional[_Iterable[_Union[HedgeSuggestionProto, _Mapping]]] = ...) -> None: ...
+
+class KeyRateDurationBucket(_message.Message):
+    __slots__ = ("tenor_label", "tenor_days", "dv01")
+    TENOR_LABEL_FIELD_NUMBER: _ClassVar[int]
+    TENOR_DAYS_FIELD_NUMBER: _ClassVar[int]
+    DV01_FIELD_NUMBER: _ClassVar[int]
+    tenor_label: str
+    tenor_days: int
+    dv01: str
+    def __init__(self, tenor_label: _Optional[str] = ..., tenor_days: _Optional[int] = ..., dv01: _Optional[str] = ...) -> None: ...
+
+class KeyRateDurationRequest(_message.Message):
+    __slots__ = ("instrument_id", "face_value", "coupon_rate", "coupon_frequency", "maturity_years", "yield_curve")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    FACE_VALUE_FIELD_NUMBER: _ClassVar[int]
+    COUPON_RATE_FIELD_NUMBER: _ClassVar[int]
+    COUPON_FREQUENCY_FIELD_NUMBER: _ClassVar[int]
+    MATURITY_YEARS_FIELD_NUMBER: _ClassVar[int]
+    YIELD_CURVE_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    face_value: str
+    coupon_rate: str
+    coupon_frequency: int
+    maturity_years: str
+    yield_curve: Curve
+    def __init__(self, instrument_id: _Optional[str] = ..., face_value: _Optional[str] = ..., coupon_rate: _Optional[str] = ..., coupon_frequency: _Optional[int] = ..., maturity_years: _Optional[str] = ..., yield_curve: _Optional[_Union[Curve, _Mapping]] = ...) -> None: ...
+
+class KeyRateDurationResponse(_message.Message):
+    __slots__ = ("instrument_id", "krd_buckets", "total_dv01")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    KRD_BUCKETS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_DV01_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    krd_buckets: _containers.RepeatedCompositeFieldContainer[KeyRateDurationBucket]
+    total_dv01: str
+    def __init__(self, instrument_id: _Optional[str] = ..., krd_buckets: _Optional[_Iterable[_Union[KeyRateDurationBucket, _Mapping]]] = ..., total_dv01: _Optional[str] = ...) -> None: ...
