@@ -18,6 +18,9 @@ import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.CreateAlertRuleParams
 import com.kinetix.gateway.client.PositionStressImpactItem
 import com.kinetix.gateway.client.StressLimitBreachItem
+import com.kinetix.gateway.client.BatchScenarioFailureItem
+import com.kinetix.gateway.client.BatchScenarioResultItem
+import com.kinetix.gateway.client.BatchStressRunSummary
 import com.kinetix.gateway.client.StressTestBatchParams
 import com.kinetix.gateway.client.CurrencyExposureSummary
 import com.kinetix.gateway.client.FrtbResultSummary
@@ -440,6 +443,49 @@ fun GreekValuesItem.toDto(): GreekValuesDto = GreekValuesDto(
     delta = "%.6f".format(delta),
     gamma = "%.6f".format(gamma),
     vega = "%.6f".format(vega),
+)
+
+// --- Batch stress run response ---
+
+@Serializable
+data class BatchScenarioResultDto(
+    val scenarioName: String,
+    val baseVar: String,
+    val stressedVar: String,
+    val pnlImpact: String,
+)
+
+@Serializable
+data class BatchScenarioFailureDto(
+    val scenarioName: String,
+    val errorMessage: String,
+)
+
+@Serializable
+data class BatchStressRunResultResponse(
+    val results: List<BatchScenarioResultDto>,
+    val failedScenarios: List<BatchScenarioFailureDto>,
+    val worstScenarioName: String?,
+    val worstPnlImpact: String?,
+)
+
+fun BatchScenarioResultItem.toDto() = BatchScenarioResultDto(
+    scenarioName = scenarioName,
+    baseVar = baseVar,
+    stressedVar = stressedVar,
+    pnlImpact = pnlImpact,
+)
+
+fun BatchScenarioFailureItem.toDto() = BatchScenarioFailureDto(
+    scenarioName = scenarioName,
+    errorMessage = errorMessage,
+)
+
+fun BatchStressRunSummary.toResponse() = BatchStressRunResultResponse(
+    results = results.map { it.toDto() },
+    failedScenarios = failedScenarios.map { it.toDto() },
+    worstScenarioName = worstScenarioName,
+    worstPnlImpact = worstPnlImpact,
 )
 
 fun GreeksResultSummary.toResponse(): GreeksResponse = GreeksResponse(

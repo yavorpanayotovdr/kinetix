@@ -131,4 +131,77 @@ class StressTestRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
+
+    test("POST /api/v1/risk/stress/{bookId}/batch returns ranked results with worstScenarioName") {
+        coEvery { riskClient.runBatchStressTest(any()) } returns BatchStressRunSummary(
+            results = listOf(
+                BatchScenarioResultItem(
+                    scenarioName = "GFC_2008",
+                    baseVar = "50000.00",
+                    stressedVar = "80000.00",
+                    pnlImpact = "-400000.00",
+                ),
+                BatchScenarioResultItem(
+                    scenarioName = "COVID_2020",
+                    baseVar = "50000.00",
+                    stressedVar = "70000.00",
+                    pnlImpact = "-150000.00",
+                ),
+            ),
+            failedScenarios = emptyList(),
+            worstScenarioName = "GFC_2008",
+            worstPnlImpact = "-400000.00",
+        )
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post("/api/v1/risk/stress/port-1/batch") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"scenarioNames":["GFC_2008","COVID_2020"]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val results = body["results"]!!.jsonArray
+            results.size shouldBe 2
+            results[0].jsonObject["scenarioName"]!!.jsonPrimitive.content shouldBe "GFC_2008"
+            body["worstScenarioName"]!!.jsonPrimitive.content shouldBe "GFC_2008"
+            body["worstPnlImpact"]!!.jsonPrimitive.content shouldBe "-400000.00"
+        }
+    }
+
+    test("POST /api/v1/risk/stress/{bookId}/batch returns failedScenarios in response") {
+        coEvery { riskClient.runBatchStressTest(any()) } returns BatchStressRunSummary(
+            results = listOf(
+                BatchScenarioResultItem(
+                    scenarioName = "GFC_2008",
+                    baseVar = "50000.00",
+                    stressedVar = "80000.00",
+                    pnlImpact = "-400000.00",
+                ),
+            ),
+            failedScenarios = listOf(
+                BatchScenarioFailureItem(
+                    scenarioName = "BROKEN",
+                    errorMessage = "engine unavailable",
+                ),
+            ),
+            worstScenarioName = "GFC_2008",
+            worstPnlImpact = "-400000.00",
+        )
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post("/api/v1/risk/stress/port-1/batch") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"scenarioNames":["GFC_2008","BROKEN"]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val failures = body["failedScenarios"]!!.jsonArray
+            failures.size shouldBe 1
+            failures[0].jsonObject["scenarioName"]!!.jsonPrimitive.content shouldBe "BROKEN"
+        }
+    }
 })

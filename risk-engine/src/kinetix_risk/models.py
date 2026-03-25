@@ -124,6 +124,12 @@ class AssetClassImpact:
     pnl_impact: float
 
 
+class ScenarioCategory(str, Enum):
+    REGULATORY_MANDATED = "REGULATORY_MANDATED"
+    INTERNAL_APPROVED = "INTERNAL_APPROVED"
+    SUPERVISORY_REQUESTED = "SUPERVISORY_REQUESTED"
+
+
 @dataclass(frozen=True)
 class StressScenario:
     name: str
@@ -131,6 +137,7 @@ class StressScenario:
     vol_shocks: dict[AssetClass, float]
     correlation_override: np.ndarray | None
     price_shocks: dict[AssetClass, float]
+    category: ScenarioCategory = ScenarioCategory.INTERNAL_APPROVED
 
 
 @dataclass(frozen=True)

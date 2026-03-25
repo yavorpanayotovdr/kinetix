@@ -14,6 +14,7 @@ data class StressScenario(
     val approvedAt: Instant?,
     val createdAt: Instant,
     val scenarioType: ScenarioType = ScenarioType.PARAMETRIC,
+    val category: ScenarioCategory = ScenarioCategory.INTERNAL_APPROVED,
     val version: Int = 1,
     val parentScenarioId: String? = null,
     val correlationOverride: String? = null,

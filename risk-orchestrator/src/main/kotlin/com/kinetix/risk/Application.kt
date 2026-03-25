@@ -86,6 +86,7 @@ import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.LiquidityRiskService
+import com.kinetix.risk.service.BatchStressTestService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.service.AnalyticalHedgeCalculator
@@ -591,7 +592,8 @@ fun Application.moduleWithRoutes() {
 
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
+        val batchStressTestService = BatchStressTestService(stressTestStub, effectivePositionProvider)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder, batchStressTestService = batchStressTestService)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         hierarchyRiskRoutes(hierarchyRiskService)
         riskBudgetRoutes(riskBudgetAllocationRepository)

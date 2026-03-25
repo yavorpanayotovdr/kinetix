@@ -178,6 +178,35 @@ data class StressTestBatchRequestDto(
 )
 
 @Serializable
+data class BatchScenarioResultClientDto(
+    val scenarioName: String,
+    val baseVar: String,
+    val stressedVar: String,
+    val pnlImpact: String,
+)
+
+@Serializable
+data class BatchScenarioFailureClientDto(
+    val scenarioName: String,
+    val errorMessage: String,
+)
+
+@Serializable
+data class BatchStressRunResultClientDto(
+    val results: List<BatchScenarioResultClientDto>,
+    val failedScenarios: List<BatchScenarioFailureClientDto>,
+    val worstScenarioName: String? = null,
+    val worstPnlImpact: String? = null,
+) {
+    fun toDomain() = BatchStressRunSummary(
+        results = results.map { BatchScenarioResultItem(it.scenarioName, it.baseVar, it.stressedVar, it.pnlImpact) },
+        failedScenarios = failedScenarios.map { BatchScenarioFailureItem(it.scenarioName, it.errorMessage) },
+        worstScenarioName = worstScenarioName,
+        worstPnlImpact = worstPnlImpact,
+    )
+}
+
+@Serializable
 data class GreekValuesDto(
     val assetClass: String,
     val delta: String,

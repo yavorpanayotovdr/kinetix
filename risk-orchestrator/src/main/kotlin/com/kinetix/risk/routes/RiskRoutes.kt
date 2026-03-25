@@ -14,6 +14,7 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.persistence.PnlAttributionRepository
+import com.kinetix.risk.service.BatchStressTestService
 import com.kinetix.risk.service.NoSodBaselineException
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
@@ -21,6 +22,9 @@ import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.ValuationJobRecorder
 import com.kinetix.risk.service.WhatIfAnalysisService
+import com.kinetix.risk.routes.dtos.BatchScenarioFailureDto
+import com.kinetix.risk.routes.dtos.BatchScenarioResultDto
+import com.kinetix.risk.routes.dtos.BatchStressRunResultResponse
 import com.kinetix.proto.common.BookId as ProtoBookId
 import com.kinetix.proto.risk.FrtbRequest
 import com.kinetix.proto.risk.GenerateReportRequest
@@ -61,6 +65,7 @@ fun Route.riskRoutes(
     pnlComputationService: PnlComputationService? = null,
     stressLimitCheckService: StressLimitCheckService? = null,
     jobRecorder: ValuationJobRecorder? = null,
+    batchStressTestService: BatchStressTestService? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{bookId}") {
@@ -387,9 +392,10 @@ fun Route.riskRoutes(
         }
     }
 
-    // Batch stress test route
+    // Batch stress test route — delegates to BatchStressTestService when wired up.
+    // Returns ranked results (worst P&L first) with individual scenario failure tolerance.
     post("/api/v1/risk/stress/{bookId}/batch", {
-        summary = "Run all stress tests for a portfolio"
+        summary = "Run all stress tests for a portfolio, ranked by worst P&L impact"
         tags = listOf("Stress Tests")
         request {
             pathParameter<String>("bookId") { description = "Portfolio identifier" }
@@ -398,38 +404,70 @@ fun Route.riskRoutes(
     }) {
         val bookId = call.requirePathParam("bookId")
         val body = call.receive<StressTestBatchRequestBody>()
-        val positions = positionProvider.getPositions(BookId(bookId))
-        val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
-        val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
-        val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
-        val protoPositions = positions.map { it.toProto() }
 
-        val rawResults = coroutineScope {
-            body.scenarioNames.map { scenarioName ->
-                async {
-                    val protoRequest = StressTestRequest.newBuilder()
-                        .setBookId(ProtoBookId.newBuilder().setValue(bookId))
-                        .setScenarioName(scenarioName)
-                        .setCalculationType(calcType.toProto())
-                        .setConfidenceLevel(confLevel.toProto())
-                        .setTimeHorizonDays(timeHorizon)
-                        .addAllPositions(protoPositions)
-                        .build()
-                    stressTestStub.runStressTest(protoRequest).toStressTestResponse()
-                }
-            }.awaitAll()
-        }
-
-        val results = if (stressLimitCheckService != null) {
-            rawResults.map { result ->
-                val breaches = stressLimitCheckService.evaluateBreaches(result)
-                result.copy(limitBreaches = breaches)
-            }
+        if (batchStressTestService != null) {
+            val batchResult = batchStressTestService.runBatch(
+                bookId = BookId(bookId),
+                scenarioNames = body.scenarioNames,
+                calculationType = body.calculationType ?: "PARAMETRIC",
+                confidenceLevel = body.confidenceLevel ?: "CL_95",
+                timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
+            )
+            call.respond(
+                BatchStressRunResultResponse(
+                    results = batchResult.results.map { r ->
+                        BatchScenarioResultDto(
+                            scenarioName = r.scenarioName,
+                            baseVar = r.baseVar,
+                            stressedVar = r.stressedVar,
+                            pnlImpact = r.pnlImpact,
+                        )
+                    },
+                    failedScenarios = batchResult.failedScenarios.map { f ->
+                        BatchScenarioFailureDto(
+                            scenarioName = f.scenarioName,
+                            errorMessage = f.errorMessage,
+                        )
+                    },
+                    worstScenarioName = batchResult.worstScenarioName,
+                    worstPnlImpact = batchResult.worstPnlImpact,
+                )
+            )
         } else {
-            rawResults
-        }
+            // Legacy path: inline parallel execution without ranking or failure tolerance.
+            val positions = positionProvider.getPositions(BookId(bookId))
+            val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
+            val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
+            val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
+            val protoPositions = positions.map { it.toProto() }
 
-        call.respond(results)
+            val rawResults = coroutineScope {
+                body.scenarioNames.map { scenarioName ->
+                    async {
+                        val protoRequest = StressTestRequest.newBuilder()
+                            .setBookId(ProtoBookId.newBuilder().setValue(bookId))
+                            .setScenarioName(scenarioName)
+                            .setCalculationType(calcType.toProto())
+                            .setConfidenceLevel(confLevel.toProto())
+                            .setTimeHorizonDays(timeHorizon)
+                            .addAllPositions(protoPositions)
+                            .build()
+                        stressTestStub.runStressTest(protoRequest).toStressTestResponse()
+                    }
+                }.awaitAll()
+            }
+
+            val results = if (stressLimitCheckService != null) {
+                rawResults.map { result ->
+                    val breaches = stressLimitCheckService.evaluateBreaches(result)
+                    result.copy(limitBreaches = breaches)
+                }
+            } else {
+                rawResults
+            }
+
+            call.respond(results)
+        }
     }
 
     get("/api/v1/risk/stress/scenarios", {
