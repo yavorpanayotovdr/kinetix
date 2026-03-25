@@ -64,6 +64,11 @@ class RiskCalculationServiceStub(object):
                 request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeRequest.SerializeToString,
                 response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeResponse.FromString,
                 _registered_method=True)
+        self.CalculateKeyRateDurations = channel.unary_unary(
+                '/kinetix.risk.RiskCalculationService/CalculateKeyRateDurations',
+                request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationResponse.FromString,
+                _registered_method=True)
 
 
 class RiskCalculationServiceServicer(object):
@@ -106,6 +111,12 @@ class RiskCalculationServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CalculateKeyRateDurations(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RiskCalculationServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -138,6 +149,11 @@ def add_RiskCalculationServiceServicer_to_server(servicer, server):
                     servicer.SuggestHedge,
                     request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeRequest.FromString,
                     response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeResponse.SerializeToString,
+            ),
+            'CalculateKeyRateDurations': grpc.unary_unary_rpc_method_handler(
+                    servicer.CalculateKeyRateDurations,
+                    request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -302,6 +318,33 @@ class RiskCalculationService(object):
             '/kinetix.risk.RiskCalculationService/SuggestHedge',
             kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeRequest.SerializeToString,
             kinetix_dot_risk_dot_risk__calculation__pb2.SuggestHedgeResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CalculateKeyRateDurations(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.RiskCalculationService/CalculateKeyRateDurations',
+            kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationRequest.SerializeToString,
+            kinetix_dot_risk_dot_risk__calculation__pb2.KeyRateDurationResponse.FromString,
             options,
             channel_credentials,
             insecure,

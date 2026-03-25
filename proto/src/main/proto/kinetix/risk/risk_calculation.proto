@@ -322,6 +322,27 @@ message SuggestHedgeResponse {
   repeated HedgeSuggestionProto suggestions = 1;
 }
 
+message KeyRateDurationBucket {
+  string tenor_label = 1;
+  int32 tenor_days = 2;
+  string dv01 = 3;
+}
+
+message KeyRateDurationRequest {
+  string instrument_id = 1;
+  string face_value = 2;
+  string coupon_rate = 3;
+  int32 coupon_frequency = 4;
+  string maturity_years = 5;
+  Curve yield_curve = 6;  // tenor points: CurvePoint.tenor = days-as-string, value = rate
+}
+
+message KeyRateDurationResponse {
+  string instrument_id = 1;
+  repeated KeyRateDurationBucket krd_buckets = 2;
+  string total_dv01 = 3;
+}
+
 service RiskCalculationService {
   // Deprecated: use Valuate instead
   rpc CalculateVaR(VaRRequest) returns (VaRResponse);
@@ -330,4 +351,5 @@ service RiskCalculationService {
   rpc CalculateCrossBookVaR(CrossBookVaRRequest) returns (CrossBookVaRResponse);
   rpc DecomposeFactorRisk(FactorDecompositionRequest) returns (FactorDecompositionResponse);
   rpc SuggestHedge(SuggestHedgeRequest) returns (SuggestHedgeResponse);
+  rpc CalculateKeyRateDurations(KeyRateDurationRequest) returns (KeyRateDurationResponse);
 }

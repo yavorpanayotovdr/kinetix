@@ -21,7 +21,9 @@ from kinetix_risk.converters import (
     var_result_to_proto_response,
 )
 from kinetix_risk.version import get_model_version
+from kinetix_risk.key_rate_duration import STANDARD_TENOR_BUCKETS, calculate_krd
 from kinetix_risk.market_data_consumer import consume_market_data
+from kinetix_risk.market_data_models import YieldCurveData
 from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expected_shortfall, risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
@@ -192,6 +194,47 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
     def SuggestHedge(self, request, context):
         return HedgeOptimizerServicer().SuggestHedge(request, context)
+
+    def CalculateKeyRateDurations(self, request, context):
+        try:
+            tenors = [
+                (int(pt.tenor), pt.value)
+                for pt in request.yield_curve.points
+                if pt.tenor.isdigit()
+            ]
+            if not tenors:
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, "yield_curve must have at least one point")
+                return
+
+            yield_curve = YieldCurveData(tenors=tenors)
+            result = calculate_krd(
+                face_value=float(request.face_value),
+                coupon_rate=float(request.coupon_rate),
+                coupon_frequency=request.coupon_frequency or 2,
+                maturity_years=float(request.maturity_years),
+                yield_curve=yield_curve,
+                tenor_buckets=STANDARD_TENOR_BUCKETS,
+            )
+
+            from kinetix.risk import risk_calculation_pb2
+            buckets = [
+                risk_calculation_pb2.KeyRateDurationBucket(
+                    tenor_label=b.tenor_label,
+                    tenor_days=b.tenor_days,
+                    dv01=str(round(b.dv01, 6)),
+                )
+                for b in result.krd_buckets
+            ]
+            return risk_calculation_pb2.KeyRateDurationResponse(
+                instrument_id=request.instrument_id,
+                krd_buckets=buckets,
+                total_dv01=str(round(result.total_dv01, 6)),
+            )
+        except ValueError as e:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        except Exception as e:
+            logger.exception("CalculateKeyRateDurations failed")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
 
 
 def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models"):
