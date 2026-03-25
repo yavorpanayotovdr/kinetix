@@ -1,5 +1,20 @@
 from kinetix_risk.models import AssetClass, FrtbRiskClass
 
+# BCBS 352 Table 1 tenor-specific GIRR risk weights.
+# These replace the old flat 1.5% weight for GIRR delta charge computation.
+GIRR_RISK_WEIGHTS: dict[str, float] = {
+    "0.25Y": 0.0170,
+    "0.5Y":  0.0170,
+    "1Y":    0.0160,
+    "2Y":    0.0130,
+    "3Y":    0.0120,
+    "5Y":    0.0110,
+    "10Y":   0.0110,
+    "15Y":   0.0110,
+    "20Y":   0.0110,
+    "30Y":   0.0110,
+}
+
 RISK_WEIGHTS: dict[FrtbRiskClass, float] = {
     FrtbRiskClass.GIRR: 0.015,
     FrtbRiskClass.CSR_NON_SEC: 0.03,
