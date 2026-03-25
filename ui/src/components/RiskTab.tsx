@@ -29,8 +29,9 @@ import { RunComparisonContainer } from './RunComparisonContainer'
 import { CorrelationHeatmap } from './CorrelationHeatmap'
 import { HedgeRecommendationPanel } from './HedgeRecommendationPanel'
 import { useHedgeRecommendation } from '../hooks/useHedgeRecommendation'
+import { VolSurfacePanel } from './VolSurfacePanel'
 
-type RiskSubTab = 'dashboard' | 'run-compare'
+type RiskSubTab = 'dashboard' | 'run-compare' | 'market-data'
 
 interface RiskTabProps {
   bookId: string | null
@@ -174,7 +175,10 @@ export function RiskTab({
   const subTabs: { key: RiskSubTab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'run-compare', label: 'Run Compare' },
+    { key: 'market-data', label: 'Market Data' },
   ]
+
+  const instrumentIds = [...new Set(positionRisk.map((p) => p.instrumentId))]
 
   return (
     <div>
@@ -321,6 +325,10 @@ export function RiskTab({
 
       {subTab === 'run-compare' && (
         <RunComparisonContainer bookId={bookId} initialJobIds={pendingJobCompare} />
+      )}
+
+      {subTab === 'market-data' && (
+        <VolSurfacePanel instruments={instrumentIds} />
       )}
 
       <HedgeRecommendationPanel

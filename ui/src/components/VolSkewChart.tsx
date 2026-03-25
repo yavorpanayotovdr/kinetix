@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { VolPointDiffResponse, VolPointResponse } from '../api/volSurface'
 
 interface VolSkewChartProps {
