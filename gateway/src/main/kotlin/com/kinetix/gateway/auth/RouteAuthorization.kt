@@ -25,3 +25,17 @@ fun Route.requirePermission(permission: Permission, build: Route.() -> Unit): Ro
     route.build()
     return route
 }
+
+/**
+ * Verifies that the authenticated user has access to the given book.
+ * Returns false (and responds 403) if the check fails so callers can return early.
+ */
+suspend fun ApplicationCall.checkBookAccess(bookId: String, service: BookAccessService): Boolean {
+    val principal = principal<JwtUserPrincipal>() ?: return true // unauthenticated calls are handled by the auth layer
+    return if (service.canAccess(principal.user, bookId)) {
+        true
+    } else {
+        respond(HttpStatusCode.Forbidden, mapOf("error" to "forbidden", "message" to "Access to book $bookId is not permitted"))
+        false
+    }
+}

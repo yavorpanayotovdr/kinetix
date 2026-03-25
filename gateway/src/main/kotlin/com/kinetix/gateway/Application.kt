@@ -2,7 +2,10 @@ package com.kinetix.gateway
 
 import com.kinetix.common.model.BookId
 import com.kinetix.common.security.Permission
+import com.kinetix.gateway.auth.BookAccessService
+import com.kinetix.gateway.auth.InMemoryBookAccessService
 import com.kinetix.gateway.auth.JwtConfig
+import com.kinetix.gateway.auth.checkBookAccess
 import com.kinetix.gateway.auth.configureJwtAuth
 import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.HttpNotificationServiceClient
@@ -479,6 +482,7 @@ fun Application.module(
     regulatoryClient: RegulatoryServiceClient? = null,
     httpClient: io.ktor.client.HttpClient? = null,
     auditBaseUrl: String? = null,
+    bookAccessService: BookAccessService = InMemoryBookAccessService(),
 ) {
     module()
     configureJwtAuth(jwtConfig)
@@ -494,7 +498,9 @@ fun Application.module(
                 route("/api/v1/books/{bookId}") {
                     requirePermission(Permission.WRITE_TRADES) {
                         post("/trades") {
-                            val bookId = BookId(call.requirePathParam("bookId"))
+                            val rawBookId = call.requirePathParam("bookId")
+                            if (!call.checkBookAccess(rawBookId, bookAccessService)) return@post
+                            val bookId = BookId(rawBookId)
                             val request = call.receive<BookTradeRequest>()
                             val command = request.toCommand(bookId)
                             val result = positionClient.bookTrade(command)
@@ -503,7 +509,9 @@ fun Application.module(
                     }
                     requirePermission(Permission.READ_POSITIONS) {
                         get("/positions") {
-                            val bookId = BookId(call.requirePathParam("bookId"))
+                            val rawBookId = call.requirePathParam("bookId")
+                            if (!call.checkBookAccess(rawBookId, bookAccessService)) return@get
+                            val bookId = BookId(rawBookId)
                             val positions = positionClient.getPositions(bookId)
                             call.respond(positions.map { it.toResponse() })
                         }

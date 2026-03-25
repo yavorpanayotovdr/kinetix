@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.kinetix.common.model.*
 import com.kinetix.common.persistence.ConnectionPoolConfig
 import com.kinetix.common.security.Role
+import com.kinetix.gateway.auth.InMemoryBookAccessService
 import com.kinetix.gateway.auth.JwtConfig
 import com.kinetix.gateway.client.*
 import com.kinetix.gateway.ratelimit.RateLimit
@@ -76,7 +77,13 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
                 val token = generateToken(listOf(Role.TRADER))
 
                 testApplication {
-                    application { module(jwtConfig, positionClient = positionClient) }
+                    application {
+                        module(
+                            jwtConfig,
+                            positionClient = positionClient,
+                            bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
+                        )
+                    }
                     val response = client.post("/api/v1/books/port-1/trades") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                         contentType(ContentType.Application.Json)

@@ -4,6 +4,7 @@ import com.kinetix.common.model.*
 import com.kinetix.common.security.Role
 import com.kinetix.gateway.client.*
 import com.kinetix.gateway.module
+import com.kinetix.gateway.auth.InMemoryBookAccessService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -108,7 +109,11 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(
+                    jwtConfig,
+                    positionClient = positionClient,
+                    bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
+                )
             }
             val response = client.post("/api/v1/books/port-1/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
