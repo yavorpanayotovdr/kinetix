@@ -23,8 +23,11 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
             it[bookId] = event.bookId
             it[triggeredAt] = OffsetDateTime.ofInstant(event.triggeredAt, ZoneOffset.UTC)
             it[status] = event.status.name
+            it[acknowledgedAt] = event.acknowledgedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[resolvedAt] = event.resolvedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[resolvedReason] = event.resolvedReason
+            it[escalatedAt] = event.escalatedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
+            it[escalatedTo] = event.escalatedTo
             it[correlationId] = event.correlationId
             it[contributors] = event.contributors
             it[suggestedAction] = event.suggestedAction
@@ -86,6 +89,39 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         }
     }
 
+    override suspend fun acknowledge(
+        id: String,
+        acknowledgedAt: Instant,
+    ): Unit = newSuspendedTransaction(db = db) {
+        AlertEventsTable.update({ AlertEventsTable.id eq id }) {
+            it[AlertEventsTable.status] = AlertStatus.ACKNOWLEDGED.name
+            it[AlertEventsTable.acknowledgedAt] = OffsetDateTime.ofInstant(acknowledgedAt, ZoneOffset.UTC)
+        }
+    }
+
+    override suspend fun escalate(
+        id: String,
+        escalatedAt: Instant,
+        escalatedTo: String,
+    ): Unit = newSuspendedTransaction(db = db) {
+        AlertEventsTable.update({ AlertEventsTable.id eq id }) {
+            it[AlertEventsTable.status] = AlertStatus.ESCALATED.name
+            it[AlertEventsTable.escalatedAt] = OffsetDateTime.ofInstant(escalatedAt, ZoneOffset.UTC)
+            it[AlertEventsTable.escalatedTo] = escalatedTo
+        }
+    }
+
+    override suspend fun findAcknowledgedBefore(cutoff: Instant): List<AlertEvent> =
+        newSuspendedTransaction(db = db) {
+            AlertEventsTable
+                .selectAll()
+                .where {
+                    (AlertEventsTable.status eq AlertStatus.ACKNOWLEDGED.name) and
+                        (AlertEventsTable.acknowledgedAt lessEq OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC))
+                }
+                .map { it.toAlertEvent() }
+        }
+
     override suspend fun findById(id: String): AlertEvent? = newSuspendedTransaction(db = db) {
         AlertEventsTable
             .selectAll()
@@ -106,8 +142,11 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         bookId = this[AlertEventsTable.bookId],
         triggeredAt = this[AlertEventsTable.triggeredAt].toInstant(),
         status = AlertStatus.valueOf(this[AlertEventsTable.status]),
+        acknowledgedAt = this[AlertEventsTable.acknowledgedAt]?.toInstant(),
         resolvedAt = this[AlertEventsTable.resolvedAt]?.toInstant(),
         resolvedReason = this[AlertEventsTable.resolvedReason],
+        escalatedAt = this[AlertEventsTable.escalatedAt]?.toInstant(),
+        escalatedTo = this[AlertEventsTable.escalatedTo],
         correlationId = this[AlertEventsTable.correlationId],
         contributors = this[AlertEventsTable.contributors],
         suggestedAction = this[AlertEventsTable.suggestedAction],

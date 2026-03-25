@@ -1,0 +1,209 @@
+package com.kinetix.notification.engine
+
+import com.kinetix.notification.delivery.DeliveryRouter
+import com.kinetix.notification.model.AlertEvent
+import com.kinetix.notification.model.AlertStatus
+import com.kinetix.notification.model.AlertType
+import com.kinetix.notification.model.DeliveryChannel
+import com.kinetix.notification.model.Severity
+import com.kinetix.notification.persistence.InMemoryAlertEventRepository
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.mockk.coVerify
+import io.mockk.mockk
+import java.time.Instant
+
+class AlertEscalationServiceTest : FunSpec({
+
+    fun warningAlert(id: String, acknowledgedAt: Instant) = AlertEvent(
+        id = id,
+        ruleId = "r1",
+        ruleName = "VaR Breach",
+        type = AlertType.VAR_BREACH,
+        severity = Severity.WARNING,
+        message = "VaR exceeded threshold",
+        currentValue = 150_000.0,
+        threshold = 100_000.0,
+        bookId = "book-1",
+        triggeredAt = acknowledgedAt.minusSeconds(3600),
+        status = AlertStatus.ACKNOWLEDGED,
+        acknowledgedAt = acknowledgedAt,
+    )
+
+    fun criticalAlert(id: String, acknowledgedAt: Instant) = AlertEvent(
+        id = id,
+        ruleId = "r2",
+        ruleName = "Critical VaR",
+        type = AlertType.VAR_BREACH,
+        severity = Severity.CRITICAL,
+        message = "Critical VaR breach",
+        currentValue = 250_000.0,
+        threshold = 100_000.0,
+        bookId = "book-1",
+        triggeredAt = acknowledgedAt.minusSeconds(3600),
+        status = AlertStatus.ACKNOWLEDGED,
+        acknowledgedAt = acknowledgedAt,
+    )
+
+    test("escalates WARNING alert acknowledged beyond timeout to desk-head") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60) // 31 minutes ago
+
+        val alert = warningAlert("alert-1", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val escalated = repo.findById("alert-1")!!
+        escalated.status shouldBe AlertStatus.ESCALATED
+        escalated.escalatedAt shouldNotBe null
+        escalated.escalatedTo shouldBe "desk-head"
+    }
+
+    test("escalates CRITICAL alert acknowledged beyond timeout to risk-manager and CRO") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = criticalAlert("alert-2", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val escalated = repo.findById("alert-2")!!
+        escalated.status shouldBe AlertStatus.ESCALATED
+        escalated.escalatedTo shouldBe "risk-manager,cro"
+    }
+
+    test("does not escalate alert acknowledged within timeout") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(10 * 60) // only 10 minutes ago
+
+        val alert = warningAlert("alert-3", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val unchanged = repo.findById("alert-3")!!
+        unchanged.status shouldBe AlertStatus.ACKNOWLEDGED
+        unchanged.escalatedAt shouldBe null
+    }
+
+    test("does not escalate TRIGGERED alert (must be ACKNOWLEDGED first)") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+
+        val triggeredAlert = AlertEvent(
+            id = "alert-4",
+            ruleId = "r1",
+            ruleName = "VaR Breach",
+            type = AlertType.VAR_BREACH,
+            severity = Severity.CRITICAL,
+            message = "breach",
+            currentValue = 150_000.0,
+            threshold = 100_000.0,
+            bookId = "book-1",
+            triggeredAt = now.minusSeconds(3600),
+            status = AlertStatus.TRIGGERED,
+        )
+        repo.save(triggeredAlert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val unchanged = repo.findById("alert-4")!!
+        unchanged.status shouldBe AlertStatus.TRIGGERED
+        unchanged.escalatedAt shouldBe null
+    }
+
+    test("does not re-escalate already ESCALATED alert") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(90 * 60)
+
+        val alreadyEscalated = AlertEvent(
+            id = "alert-5",
+            ruleId = "r1",
+            ruleName = "VaR Breach",
+            type = AlertType.VAR_BREACH,
+            severity = Severity.WARNING,
+            message = "breach",
+            currentValue = 150_000.0,
+            threshold = 100_000.0,
+            bookId = "book-1",
+            triggeredAt = acknowledgedAt.minusSeconds(3600),
+            status = AlertStatus.ESCALATED,
+            acknowledgedAt = acknowledgedAt,
+            escalatedAt = acknowledgedAt.plusSeconds(31 * 60),
+            escalatedTo = "desk-head",
+        )
+        repo.save(alreadyEscalated)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        // still ESCALATED, escalatedAt unchanged
+        val unchanged = repo.findById("alert-5")!!
+        unchanged.status shouldBe AlertStatus.ESCALATED
+        unchanged.escalatedAt shouldBe alreadyEscalated.escalatedAt
+    }
+
+    test("re-routes escalated alert via delivery router") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = warningAlert("alert-6", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        coVerify(exactly = 1) {
+            router.route(any(), listOf(DeliveryChannel.EMAIL))
+        }
+    }
+
+    test("resolved alert is not escalated even if acknowledged long ago") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(60 * 60)
+
+        val resolvedAlert = AlertEvent(
+            id = "alert-7",
+            ruleId = "r1",
+            ruleName = "VaR Breach",
+            type = AlertType.VAR_BREACH,
+            severity = Severity.WARNING,
+            message = "breach",
+            currentValue = 150_000.0,
+            threshold = 100_000.0,
+            bookId = "book-1",
+            triggeredAt = acknowledgedAt.minusSeconds(3600),
+            status = AlertStatus.RESOLVED,
+            acknowledgedAt = acknowledgedAt,
+            resolvedAt = acknowledgedAt.plusSeconds(600),
+            resolvedReason = "MANUAL",
+        )
+        repo.save(resolvedAlert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val unchanged = repo.findById("alert-7")!!
+        unchanged.status shouldBe AlertStatus.RESOLVED
+    }
+})

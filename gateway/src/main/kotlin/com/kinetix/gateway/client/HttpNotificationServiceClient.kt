@@ -48,6 +48,12 @@ class HttpNotificationServiceClient(
         return dtos.map { it.toDomain() }
     }
 
+    override suspend fun listEscalatedAlerts(): List<AlertEventItem> {
+        val response = httpClient.get("$baseUrl/api/v1/notifications/alerts/escalated")
+        val dtos: List<AlertEventDto> = response.body()
+        return dtos.map { it.toDomain() }
+    }
+
     override suspend fun getAlertContributors(alertId: String): String? {
         val response = httpClient.get("$baseUrl/api/v1/notifications/alerts/$alertId/contributors")
         if (response.status == HttpStatusCode.NotFound) return null

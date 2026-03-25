@@ -23,9 +23,9 @@ class AlertModelsTest : FunSpec({
         )
     }
 
-    test("AlertStatus has three values") {
+    test("AlertStatus has four values including ESCALATED") {
         AlertStatus.entries.map { it.name } shouldContainExactly listOf(
-            "TRIGGERED", "ACKNOWLEDGED", "RESOLVED",
+            "TRIGGERED", "ACKNOWLEDGED", "ESCALATED", "RESOLVED",
         )
     }
 

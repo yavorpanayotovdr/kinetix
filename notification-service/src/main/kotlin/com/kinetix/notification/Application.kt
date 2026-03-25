@@ -7,7 +7,9 @@ import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
 import com.kinetix.notification.delivery.WebhookDeliveryService
+import com.kinetix.notification.engine.AlertEscalationService
 import com.kinetix.notification.engine.RulesEngine
+import com.kinetix.notification.engine.ScheduledAlertEscalation
 import com.kinetix.notification.persistence.AlertAcknowledgement
 import com.kinetix.notification.persistence.AlertAcknowledgementRepository
 import com.kinetix.notification.persistence.InMemoryAlertAcknowledgementRepository
@@ -200,6 +202,17 @@ fun Application.moduleWithRoutes() {
     launch { riskResultConsumer.start() }
     launch { anomalyEventConsumer.start() }
 
+    val escalationTimeoutMinutes = environment.config.propertyOrNull("escalation.timeoutMinutes")
+        ?.getString()?.toLongOrNull() ?: 30L
+    val escalationService = AlertEscalationService(eventRepository, deliveryRouter, escalationTimeoutMinutes)
+    val escalationScheduler = ScheduledAlertEscalation(escalationService)
+    launch {
+        while (true) {
+            kotlinx.coroutines.delay(60_000L)
+            escalationScheduler.tick()
+        }
+    }
+
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
@@ -260,6 +273,8 @@ data class AlertEventResponse(
     val status: String = "TRIGGERED",
     val resolvedAt: String? = null,
     val resolvedReason: String? = null,
+    val escalatedAt: String? = null,
+    val escalatedTo: String? = null,
     val correlationId: String? = null,
     val suggestedAction: String? = null,
 )
@@ -331,7 +346,7 @@ fun Route.notificationRoutes(
                     required = false
                 }
                 queryParameter<String>("status") {
-                    description = "Filter by alert status (TRIGGERED, ACKNOWLEDGED, RESOLVED)"
+                    description = "Filter by alert status (TRIGGERED, ACKNOWLEDGED, ESCALATED, RESOLVED)"
                     required = false
                 }
             }
@@ -346,6 +361,14 @@ fun Route.notificationRoutes(
                 }
             }
             val alerts = inAppDelivery.getRecentAlerts(limit, statusFilter).map { it.toEventResponse() }
+            call.respond(alerts)
+        }
+
+        get("/alerts/escalated", {
+            summary = "List escalated alerts"
+            tags = listOf("Alerts")
+        }) {
+            val alerts = inAppDelivery.getRecentAlerts(200, AlertStatus.ESCALATED).map { it.toEventResponse() }
             call.respond(alerts)
         }
 
@@ -367,17 +390,19 @@ fun Route.notificationRoutes(
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("Not Found", "Alert not found"))
                 return@post
             }
-            if (alert.status == AlertStatus.RESOLVED) {
-                call.respond(HttpStatusCode.Conflict, ErrorResponse("Conflict", "Alert is already resolved"))
-                return@post
-            }
-            if (alert.status == AlertStatus.ACKNOWLEDGED) {
-                call.respond(HttpStatusCode.Conflict, ErrorResponse("Conflict", "Alert is already acknowledged"))
+            if (!alert.status.canTransitionTo(AlertStatus.ACKNOWLEDGED)) {
+                val reason = when (alert.status) {
+                    AlertStatus.RESOLVED -> "Alert is already resolved"
+                    AlertStatus.ACKNOWLEDGED -> "Alert is already acknowledged"
+                    AlertStatus.ESCALATED -> "Escalated alerts cannot be re-acknowledged; resolve them instead"
+                    else -> "Cannot acknowledge alert in status ${alert.status}"
+                }
+                call.respond(HttpStatusCode.Conflict, ErrorResponse("Conflict", reason))
                 return@post
             }
 
             val now = java.time.Instant.now()
-            eventRepo.updateStatus(alertId, AlertStatus.ACKNOWLEDGED)
+            eventRepo.acknowledge(alertId, now)
             ackRepository.save(
                 AlertAcknowledgement(
                     id = UUID.randomUUID().toString(),
@@ -389,8 +414,8 @@ fun Route.notificationRoutes(
                 ),
             )
 
-            val updated = eventRepo.findById(alertId)!!
-            call.respond(updated.toEventResponse())
+            val fetched = eventRepo.findById(alertId)!!
+            call.respond(fetched.toEventResponse())
         }
 
         get("/alerts/{alertId}/contributors", {
@@ -442,6 +467,8 @@ private fun com.kinetix.notification.model.AlertEvent.toEventResponse() = AlertE
     status = status.name,
     resolvedAt = resolvedAt?.toString(),
     resolvedReason = resolvedReason,
+    escalatedAt = escalatedAt?.toString(),
+    escalatedTo = escalatedTo,
     correlationId = correlationId,
     suggestedAction = suggestedAction,
 )

@@ -6,7 +6,7 @@ import { exportToCsv } from '../utils/exportCsv'
 import { Card, Button, Badge, Input, Select, Spinner } from './ui'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 
-type StatusFilter = 'TRIGGERED' | 'ACKNOWLEDGED' | 'RESOLVED' | 'ALL'
+type StatusFilter = 'TRIGGERED' | 'ACKNOWLEDGED' | 'ESCALATED' | 'RESOLVED' | 'ALL'
 
 interface NotificationCenterProps {
   rules: AlertRuleDto[]
@@ -229,14 +229,16 @@ export function NotificationCenter({
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-slate-700">Recent Alerts</h3>
           <div data-testid="alert-status-filters" className="flex gap-1">
-            {(['ALL', 'TRIGGERED', 'ACKNOWLEDGED', 'RESOLVED'] as StatusFilter[]).map((s) => (
+            {(['ALL', 'TRIGGERED', 'ACKNOWLEDGED', 'ESCALATED', 'RESOLVED'] as StatusFilter[]).map((s) => (
               <button
                 key={s}
                 data-testid={`status-filter-${s.toLowerCase()}`}
                 onClick={() => setStatusFilter(s)}
                 className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
                   statusFilter === s
-                    ? 'bg-blue-100 text-blue-800 font-medium'
+                    ? s === 'ESCALATED'
+                      ? 'bg-orange-100 text-orange-800 font-medium'
+                      : 'bg-blue-100 text-blue-800 font-medium'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -289,7 +291,17 @@ export function NotificationCenter({
                 {alert.severity}
               </span>
               <div className="flex-1">
-                <div className="text-slate-800">{alert.message}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-800">{alert.message}</span>
+                  {alert.status === 'ESCALATED' && (
+                    <span
+                      data-testid={`escalation-badge-${alert.id}`}
+                      className="px-1.5 py-0.5 text-xs font-semibold bg-orange-100 text-orange-800 rounded"
+                    >
+                      ESCALATED
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-slate-500">
                   Book: {alert.bookId} | {formatRelativeTime(alert.triggeredAt)}
                   {alert.status === 'RESOLVED' && alert.resolvedAt && (
@@ -302,6 +314,16 @@ export function NotificationCenter({
                     <span className="ml-2 text-slate-500">
                       <CheckCircle className="inline h-3 w-3 mr-0.5" />
                       Acknowledged
+                    </span>
+                  )}
+                  {alert.status === 'ESCALATED' && alert.escalatedTo && (
+                    <span className="ml-2 text-orange-700">
+                      Escalated to: <span data-testid={`escalated-to-${alert.id}`}>{alert.escalatedTo}</span>
+                      {alert.escalatedAt && (
+                        <span data-testid={`escalated-at-${alert.id}`} className="ml-1">
+                          ({formatRelativeTime(alert.escalatedAt)})
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>

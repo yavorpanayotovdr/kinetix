@@ -110,4 +110,61 @@ class NotificationRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
+
+    test("GET /api/v1/notifications/alerts/escalated returns only escalated alerts") {
+        val escalatedAlert = AlertEventItem(
+            id = "esc-1",
+            ruleId = "rule-1",
+            ruleName = "VaR Limit",
+            type = "VAR_BREACH",
+            severity = "CRITICAL",
+            message = "VaR breach not acknowledged in time",
+            currentValue = 250_000.0,
+            threshold = 100_000.0,
+            bookId = "port-1",
+            triggeredAt = Instant.parse("2025-01-15T09:00:00Z"),
+            status = "ESCALATED",
+            escalatedAt = Instant.parse("2025-01-15T09:35:00Z"),
+            escalatedTo = "risk-manager,cro",
+        )
+        coEvery { notificationClient.listEscalatedAlerts() } returns listOf(escalatedAlert)
+
+        testApplication {
+            application { module(notificationClient) }
+            val response = client.get("/api/v1/notifications/alerts/escalated")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 1
+            body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "esc-1"
+            body[0].jsonObject["status"]?.jsonPrimitive?.content shouldBe "ESCALATED"
+            body[0].jsonObject["escalatedTo"]?.jsonPrimitive?.content shouldBe "risk-manager,cro"
+        }
+    }
+
+    test("GET /api/v1/notifications/alerts/escalated response includes escalatedAt field") {
+        val escalatedAlert = AlertEventItem(
+            id = "esc-2",
+            ruleId = "rule-1",
+            ruleName = "VaR Limit",
+            type = "VAR_BREACH",
+            severity = "WARNING",
+            message = "Overdue alert",
+            currentValue = 150_000.0,
+            threshold = 100_000.0,
+            bookId = "port-1",
+            triggeredAt = Instant.parse("2025-01-15T09:00:00Z"),
+            status = "ESCALATED",
+            escalatedAt = Instant.parse("2025-01-15T09:35:00Z"),
+            escalatedTo = "desk-head",
+        )
+        coEvery { notificationClient.listEscalatedAlerts() } returns listOf(escalatedAlert)
+
+        testApplication {
+            application { module(notificationClient) }
+            val response = client.get("/api/v1/notifications/alerts/escalated")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body[0].jsonObject["escalatedAt"]?.jsonPrimitive?.content shouldBe "2025-01-15T09:35:00Z"
+        }
+    }
 })

@@ -51,6 +51,16 @@ export async function fetchAlerts(
   return response.json()
 }
 
+export async function fetchEscalatedAlerts(): Promise<AlertEventDto[]> {
+  const response = await fetch('/api/v1/notifications/alerts/escalated')
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch escalated alerts: ${response.status} ${response.statusText}`,
+    )
+  }
+  return response.json()
+}
+
 export async function acknowledgeAlert(
   alertId: string,
   acknowledgedBy: string,

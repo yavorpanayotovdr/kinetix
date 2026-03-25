@@ -15,7 +15,16 @@ enum class AlertType {
     REGIME_CHANGE,
     FACTOR_CONCENTRATION,
 }
-enum class AlertStatus { TRIGGERED, ACKNOWLEDGED, RESOLVED }
+enum class AlertStatus {
+    TRIGGERED, ACKNOWLEDGED, ESCALATED, RESOLVED;
+
+    fun canTransitionTo(next: AlertStatus): Boolean = when (this) {
+        TRIGGERED -> next == ACKNOWLEDGED || next == RESOLVED
+        ACKNOWLEDGED -> next == ESCALATED || next == RESOLVED
+        ESCALATED -> next == RESOLVED
+        RESOLVED -> false
+    }
+}
 enum class Severity { INFO, WARNING, CRITICAL }
 enum class ComparisonOperator { GREATER_THAN, LESS_THAN, EQUALS }
 enum class DeliveryChannel { IN_APP, EMAIL, WEBHOOK }
@@ -43,8 +52,11 @@ data class AlertEvent(
     val bookId: String,
     val triggeredAt: Instant,
     val status: AlertStatus = AlertStatus.TRIGGERED,
+    val acknowledgedAt: Instant? = null,
     val resolvedAt: Instant? = null,
     val resolvedReason: String? = null,
+    val escalatedAt: Instant? = null,
+    val escalatedTo: String? = null,
     val correlationId: String? = null,
     val contributors: String? = null,
     val suggestedAction: String? = null,

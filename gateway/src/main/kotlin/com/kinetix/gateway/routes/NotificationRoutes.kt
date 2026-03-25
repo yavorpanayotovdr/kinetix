@@ -69,6 +69,14 @@ fun Route.notificationRoutes(client: NotificationServiceClient) {
             call.respond(alerts.map { it.toDto() })
         }
 
+        get("/alerts/escalated", {
+            summary = "List escalated alerts"
+            tags = listOf("Notifications")
+        }) {
+            val alerts = client.listEscalatedAlerts()
+            call.respond(alerts.map { it.toDto() })
+        }
+
         get("/alerts/{alertId}/contributors", {
             summary = "Get alert contributors"
             tags = listOf("Notifications")

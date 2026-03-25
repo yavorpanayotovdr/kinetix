@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchRules, createRule, deleteRule, fetchAlerts } from './notifications'
+import { fetchRules, createRule, deleteRule, fetchAlerts, fetchEscalatedAlerts } from './notifications'
 
 describe('notifications API', () => {
   const mockFetch = vi.fn()
@@ -174,6 +174,40 @@ describe('notifications API', () => {
 
       await expect(fetchAlerts()).rejects.toThrow(
         'Failed to fetch alerts: 500 Internal Server Error',
+      )
+    })
+  })
+
+  describe('fetchEscalatedAlerts', () => {
+    it('fetches from escalated endpoint', async () => {
+      const escalatedAlert = {
+        ...sampleAlert,
+        id: 'esc-1',
+        status: 'ESCALATED',
+        escalatedAt: '2025-01-15T09:35:00Z',
+        escalatedTo: 'risk-manager,cro',
+      }
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([escalatedAlert]),
+      })
+
+      const result = await fetchEscalatedAlerts()
+
+      expect(result).toEqual([escalatedAlert])
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/notifications/alerts/escalated')
+    })
+
+    it('throws on failure', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+      })
+
+      await expect(fetchEscalatedAlerts()).rejects.toThrow(
+        'Failed to fetch escalated alerts: 503 Service Unavailable',
       )
     })
   })

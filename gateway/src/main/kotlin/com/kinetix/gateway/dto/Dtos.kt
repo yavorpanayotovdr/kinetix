@@ -651,6 +651,8 @@ data class AlertEventDto(
     val status: String = "TRIGGERED",
     val resolvedAt: String? = null,
     val resolvedReason: String? = null,
+    val escalatedAt: String? = null,
+    val escalatedTo: String? = null,
     val correlationId: String? = null,
     val suggestedAction: String? = null,
 )
@@ -698,6 +700,8 @@ fun AlertEventItem.toDto(): AlertEventDto = AlertEventDto(
     status = status,
     resolvedAt = resolvedAt?.toString(),
     resolvedReason = resolvedReason,
+    escalatedAt = escalatedAt?.toString(),
+    escalatedTo = escalatedTo,
     correlationId = correlationId,
     suggestedAction = suggestedAction,
 )

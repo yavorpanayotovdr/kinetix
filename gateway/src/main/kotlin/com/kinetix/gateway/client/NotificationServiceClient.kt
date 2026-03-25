@@ -27,6 +27,8 @@ data class AlertEventItem(
     val status: String = "TRIGGERED",
     val resolvedAt: Instant? = null,
     val resolvedReason: String? = null,
+    val escalatedAt: Instant? = null,
+    val escalatedTo: String? = null,
     val correlationId: String? = null,
     val suggestedAction: String? = null,
 )
@@ -50,6 +52,7 @@ interface NotificationServiceClient {
     suspend fun createRule(params: CreateAlertRuleParams): AlertRuleItem
     suspend fun deleteRule(ruleId: String): Boolean
     suspend fun listAlerts(limit: Int = 50, status: String? = null): List<AlertEventItem>
+    suspend fun listEscalatedAlerts(): List<AlertEventItem>
     suspend fun acknowledgeAlert(alertId: String, params: AcknowledgeAlertParams): AlertEventItem?
     suspend fun getAlertContributors(alertId: String): String?
 }
