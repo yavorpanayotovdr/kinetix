@@ -12,8 +12,13 @@ import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.fix.ExposedExecutionCostRepository
+import com.kinetix.position.fix.ExposedExecutionFillRepository
+import com.kinetix.position.fix.ExposedExecutionOrderRepository
 import com.kinetix.position.fix.ExposedFIXSessionRepository
 import com.kinetix.position.fix.ExposedPrimeBrokerReconciliationRepository
+import com.kinetix.position.fix.FIXExecutionReportProcessor
+import com.kinetix.position.fix.LoggingFIXOrderSender
+import com.kinetix.position.fix.OrderSubmissionService
 import com.kinetix.position.fix.PrimeBrokerReconciliationService
 import com.kinetix.position.reconciliation.ExposedReconciliationRepository
 import com.kinetix.position.reconciliation.PositionReconciliationJob
@@ -24,6 +29,7 @@ import com.kinetix.position.routes.executionRoutes
 import com.kinetix.position.routes.fixSessionRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
+import com.kinetix.position.routes.orderRoutes
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.persistence.ExposedCollateralBalanceRepository
 import com.kinetix.position.persistence.ExposedNettingSetTradeRepository
@@ -181,6 +187,15 @@ fun Application.moduleWithRoutes() {
     val primeBrokerReconciliationRepository = ExposedPrimeBrokerReconciliationRepository(db)
     val primeBrokerReconciliationService = PrimeBrokerReconciliationService()
     val fixSessionRepository = ExposedFIXSessionRepository(db)
+    val executionOrderRepository = ExposedExecutionOrderRepository(db)
+    val executionFillRepository = ExposedExecutionFillRepository(db)
+    val fixOrderSender = LoggingFIXOrderSender()
+    val orderSubmissionService = OrderSubmissionService(executionOrderRepository, fixSessionRepository, fixOrderSender)
+    val fixExecutionReportProcessor = FIXExecutionReportProcessor(
+        orderRepository = executionOrderRepository,
+        fillRepository = executionFillRepository,
+        tradeBookingService = tradeBookingService,
+    )
 
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
@@ -265,6 +280,7 @@ fun Application.moduleWithRoutes() {
         preTradeCheckRoutes(preTradeCheckService)
         executionRoutes(executionCostRepository, primeBrokerReconciliationRepository, primeBrokerReconciliationService, positionRepository)
         fixSessionRoutes(fixSessionRepository)
+        orderRoutes(orderSubmissionService)
     }
 
     launch {
