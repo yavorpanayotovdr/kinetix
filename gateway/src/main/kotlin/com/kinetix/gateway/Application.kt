@@ -46,6 +46,7 @@ import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
+import com.kinetix.gateway.audit.GovernanceAuditPublisher
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
 import com.kinetix.gateway.websocket.PnlBroadcaster
 import com.kinetix.gateway.websocket.PriceBroadcaster
@@ -394,20 +395,21 @@ fun Application.module(
     positionClient: PositionServiceClient? = null,
     riskClient: RiskServiceClient? = null,
     notificationClient: NotificationServiceClient? = null,
+    auditPublisher: GovernanceAuditPublisher? = null,
 ) {
     module()
     configureJwtAuth(jwtConfig)
     routing {
         authenticate("auth-jwt") {
             if (positionClient != null) {
-                requirePermission(Permission.READ_PORTFOLIOS) {
+                requirePermission(Permission.READ_PORTFOLIOS, auditPublisher) {
                     get("/api/v1/books") {
                         val portfolios = positionClient.listPortfolios()
                         call.respond(portfolios.map { it.toResponse() })
                     }
                 }
                 route("/api/v1/books/{bookId}") {
-                    requirePermission(Permission.WRITE_TRADES) {
+                    requirePermission(Permission.WRITE_TRADES, auditPublisher) {
                         post("/trades") {
                             val bookId = BookId(call.requirePathParam("bookId"))
                             val request = call.receive<BookTradeRequest>()
@@ -416,7 +418,7 @@ fun Application.module(
                             call.respond(HttpStatusCode.Created, result.toResponse())
                         }
                     }
-                    requirePermission(Permission.READ_POSITIONS) {
+                    requirePermission(Permission.READ_POSITIONS, auditPublisher) {
                         get("/positions") {
                             val bookId = BookId(call.requirePathParam("bookId"))
                             val positions = positionClient.getPositions(bookId)
@@ -426,7 +428,7 @@ fun Application.module(
                 }
             }
             if (riskClient != null) {
-                requirePermission(Permission.CALCULATE_RISK) {
+                requirePermission(Permission.CALCULATE_RISK, auditPublisher) {
                     varRoutes(riskClient)
                     crossBookVaRRoutes(riskClient)
                     whatIfRoutes(riskClient)
@@ -434,17 +436,17 @@ fun Application.module(
                     dependenciesRoutes(riskClient)
                     sodSnapshotRoutes(riskClient)
                 }
-                requirePermission(Permission.READ_RISK) {
+                requirePermission(Permission.READ_RISK, auditPublisher) {
                     stressTestRoutes(riskClient)
                     jobHistoryRoutes(riskClient)
                     marketRegimeRoutes(riskClient)
                 }
-                requirePermission(Permission.READ_REGULATORY) {
+                requirePermission(Permission.READ_REGULATORY, auditPublisher) {
                     regulatoryRoutes(riskClient)
                 }
             }
             if (notificationClient != null) {
-                requirePermission(Permission.READ_ALERTS) {
+                requirePermission(Permission.READ_ALERTS, auditPublisher) {
                     notificationRoutes(notificationClient)
                 }
             }
