@@ -4,19 +4,27 @@ import java.time.Instant
 
 data class AuditEvent(
     val id: Long = 0,
-    val tradeId: String,
-    val bookId: String,
-    val instrumentId: String,
-    val assetClass: String,
-    val side: String,
-    val quantity: String,
-    val priceAmount: String,
-    val priceCurrency: String,
-    val tradedAt: String,
+    // Trade fields — nullable for governance events
+    val tradeId: String? = null,
+    val bookId: String? = null,
+    val instrumentId: String? = null,
+    val assetClass: String? = null,
+    val side: String? = null,
+    val quantity: String? = null,
+    val priceAmount: String? = null,
+    val priceCurrency: String? = null,
+    val tradedAt: String? = null,
+    // Common fields
     val receivedAt: Instant,
     val previousHash: String? = null,
     val recordHash: String = "",
     val userId: String? = null,
     val userRole: String? = null,
     val eventType: String = "TRADE_BOOKED",
+    // Governance fields — null for trade events
+    val modelName: String? = null,
+    val scenarioId: String? = null,
+    val limitId: String? = null,
+    val submissionId: String? = null,
+    val details: String? = null,
 )

@@ -24,18 +24,16 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             ?.takeIf { it.isNotEmpty() }
 
         // Truncate timestamps to microseconds to match PostgreSQL TIMESTAMPTZ precision.
-        // Without this, the hash computed from nanosecond-precision values would
-        // differ from one recomputed after a DB round-trip (which loses nanoseconds).
         val storedReceivedAt = event.receivedAt.truncatedTo(ChronoUnit.MICROS)
-        val storedTradedAt = Instant.parse(event.tradedAt).truncatedTo(ChronoUnit.MICROS)
+        val storedTradedAt = event.tradedAt?.let { Instant.parse(it).truncatedTo(ChronoUnit.MICROS) }
+
         // Normalize numeric strings to canonical form so the hash matches after DB round-trip.
-        // NUMERIC(28,12) pads to 12 decimal places; stripTrailingZeros().toPlainString()
-        // produces a stable canonical representation that survives the round-trip.
-        val normalizedQuantity = event.quantity.toBigDecimal().stripTrailingZeros().toPlainString()
-        val normalizedPriceAmount = event.priceAmount.toBigDecimal().stripTrailingZeros().toPlainString()
+        val normalizedQuantity = event.quantity?.toBigDecimal()?.stripTrailingZeros()?.toPlainString()
+        val normalizedPriceAmount = event.priceAmount?.toBigDecimal()?.stripTrailingZeros()?.toPlainString()
+
         val eventForHash = event.copy(
             receivedAt = storedReceivedAt,
-            tradedAt = storedTradedAt.toString(),
+            tradedAt = storedTradedAt?.toString(),
             quantity = normalizedQuantity,
             priceAmount = normalizedPriceAmount,
         )
@@ -47,16 +45,21 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             it[instrumentId] = event.instrumentId
             it[assetClass] = event.assetClass
             it[side] = event.side
-            it[quantity] = event.quantity.toBigDecimal()
-            it[priceAmount] = event.priceAmount.toBigDecimal()
+            it[quantity] = normalizedQuantity?.toBigDecimal()
+            it[priceAmount] = normalizedPriceAmount?.toBigDecimal()
             it[priceCurrency] = event.priceCurrency
-            it[tradedAt] = OffsetDateTime.ofInstant(storedTradedAt, ZoneOffset.UTC)
+            it[tradedAt] = storedTradedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[receivedAt] = OffsetDateTime.ofInstant(storedReceivedAt, ZoneOffset.UTC)
             it[AuditEventsTable.previousHash] = latestHash
             it[AuditEventsTable.recordHash] = recordHash
             it[userId] = event.userId
             it[userRole] = event.userRole
             it[eventType] = event.eventType
+            it[modelName] = event.modelName
+            it[scenarioId] = event.scenarioId
+            it[limitId] = event.limitId
+            it[submissionId] = event.submissionId
+            it[details] = event.details
         }
     }
 
@@ -102,15 +105,20 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         instrumentId = this[AuditEventsTable.instrumentId],
         assetClass = this[AuditEventsTable.assetClass],
         side = this[AuditEventsTable.side],
-        quantity = this[AuditEventsTable.quantity].stripTrailingZeros().toPlainString(),
-        priceAmount = this[AuditEventsTable.priceAmount].stripTrailingZeros().toPlainString(),
+        quantity = this[AuditEventsTable.quantity]?.stripTrailingZeros()?.toPlainString(),
+        priceAmount = this[AuditEventsTable.priceAmount]?.stripTrailingZeros()?.toPlainString(),
         priceCurrency = this[AuditEventsTable.priceCurrency],
-        tradedAt = this[AuditEventsTable.tradedAt].toInstant().toString(),
+        tradedAt = this[AuditEventsTable.tradedAt]?.toInstant()?.toString(),
         receivedAt = this[AuditEventsTable.receivedAt].toInstant(),
         previousHash = this[AuditEventsTable.previousHash],
         recordHash = this[AuditEventsTable.recordHash],
         userId = this[AuditEventsTable.userId],
         userRole = this[AuditEventsTable.userRole],
         eventType = this[AuditEventsTable.eventType],
+        modelName = this[AuditEventsTable.modelName],
+        scenarioId = this[AuditEventsTable.scenarioId],
+        limitId = this[AuditEventsTable.limitId],
+        submissionId = this[AuditEventsTable.submissionId],
+        details = this[AuditEventsTable.details],
     )
 }
