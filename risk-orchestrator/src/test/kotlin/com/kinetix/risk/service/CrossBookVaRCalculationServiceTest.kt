@@ -223,4 +223,34 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
         result.totalStandaloneVar shouldBe 5000.0
         result.diversificationBenefit shouldBeExactly 0.0
     }
+
+    test("diversification benefit is clamped to zero when cross-book VaR exceeds sum of standalones") {
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL", marketPrice = "200.00"))
+        val bookBPositions = listOf(position(bookId = "book-B", instrumentId = "TSLA", marketPrice = "100.00"))
+
+        coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
+        coEvery { positionProvider.getPositions(BookId("book-B")) } returns bookBPositions
+        // Standalone VaRs sum to 3000
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 2000.0)
+        coEvery { varCache.get("book-B") } returns varResult(bookId = "book-B", varValue = 1000.0)
+        // Cross-book VaR exceeds the sum of standalones (can happen with super-additive correlations)
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
+            varValue = 4000.0,
+            componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 4000.0, 100.0)),
+        )
+        coEvery { resultPublisher.publish(any(), any()) } just Runs
+
+        val request = CrossBookVaRRequest(
+            bookIds = listOf(BookId("book-A"), BookId("book-B")),
+            portfolioGroupId = "group-1",
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+        )
+
+        val result = service.calculate(request)
+
+        result.shouldNotBeNull()
+        result.totalStandaloneVar shouldBe 3000.0
+        result.diversificationBenefit shouldBeExactly 0.0
+    }
 })

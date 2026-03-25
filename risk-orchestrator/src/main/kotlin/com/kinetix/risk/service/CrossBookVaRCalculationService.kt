@@ -114,7 +114,7 @@ class CrossBookVaRCalculationService(
         )
 
         val totalStandaloneVar = bookContributions.sumOf { it.standaloneVar }
-        val diversificationBenefit = totalStandaloneVar - crossBookVarValue
+        val diversificationBenefit = maxOf(0.0, totalStandaloneVar - crossBookVarValue)
 
         // Phase 7: Build and return CrossBookValuationResult
         val result = CrossBookValuationResult(
@@ -243,7 +243,7 @@ class CrossBookVaRCalculationService(
                 0.0
             }
 
-            val diversificationBenefit = standaloneVar - bookVarContribution
+            val diversificationBenefit = maxOf(0.0, standaloneVar - bookVarContribution)
 
             BookVaRContribution(
                 bookId = bookId,
