@@ -1,0 +1,86 @@
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import type { IntradayVaRPointDto, TradeAnnotationDto } from '../types'
+import { IntradayVaRChart } from './IntradayVaRChart'
+
+const makePoint = (timestamp: string, overrides: Partial<IntradayVaRPointDto> = {}): IntradayVaRPointDto => ({
+  timestamp,
+  varValue: 12500.0,
+  expectedShortfall: 15000.0,
+  delta: 0.65,
+  gamma: null,
+  vega: null,
+  ...overrides,
+})
+
+const makeAnnotation = (timestamp: string, overrides: Partial<TradeAnnotationDto> = {}): TradeAnnotationDto => ({
+  timestamp,
+  instrumentId: 'AAPL',
+  side: 'BUY',
+  quantity: '100',
+  tradeId: 'T001',
+  ...overrides,
+})
+
+const twoPoints = [
+  makePoint('2026-03-25T09:00:00Z', { varValue: 10000.0 }),
+  makePoint('2026-03-25T09:30:00Z', { varValue: 12500.0 }),
+]
+
+describe('IntradayVaRChart', () => {
+  it('renders empty state when no varPoints are provided', () => {
+    render(<IntradayVaRChart varPoints={[]} tradeAnnotations={[]} />)
+
+    expect(screen.getByTestId('intraday-var-chart-empty')).toBeInTheDocument()
+    expect(screen.getByText(/No intraday VaR data/)).toBeInTheDocument()
+  })
+
+  it('renders single-point notice when only one VaR point exists', () => {
+    render(<IntradayVaRChart varPoints={[makePoint('2026-03-25T09:00:00Z')]} tradeAnnotations={[]} />)
+
+    expect(screen.getByTestId('intraday-var-chart-single')).toBeInTheDocument()
+  })
+
+  it('renders the chart SVG when two or more points are present', () => {
+    const { container } = render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={[]} />)
+
+    expect(container.querySelector('svg')).toBeInTheDocument()
+  })
+
+  it('renders VaR line path when multiple points are present', () => {
+    const { container } = render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={[]} />)
+
+    const varPath = container.querySelector('path[data-series="var"]')
+    expect(varPath).toBeInTheDocument()
+  })
+
+  it('renders trade annotation markers for each annotation', () => {
+    const annotations = [
+      makeAnnotation('2026-03-25T09:15:00Z', { tradeId: 'T001' }),
+      makeAnnotation('2026-03-25T09:20:00Z', { tradeId: 'T002' }),
+    ]
+    const { container } = render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={annotations} />)
+
+    const markers = container.querySelectorAll('[data-testid="trade-marker"]')
+    expect(markers.length).toBe(2)
+  })
+
+  it('renders no trade markers when tradeAnnotations is empty', () => {
+    const { container } = render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={[]} />)
+
+    const markers = container.querySelectorAll('[data-testid="trade-marker"]')
+    expect(markers.length).toBe(0)
+  })
+
+  it('displays the latest VaR value in the header', () => {
+    render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={[]} />)
+
+    expect(screen.getByTestId('intraday-var-latest')).toBeInTheDocument()
+  })
+
+  it('renders the chart container with correct testid', () => {
+    render(<IntradayVaRChart varPoints={twoPoints} tradeAnnotations={[]} />)
+
+    expect(screen.getByTestId('intraday-var-chart')).toBeInTheDocument()
+  })
+})
