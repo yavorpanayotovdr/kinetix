@@ -90,6 +90,32 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
                     pos.containsKey("marketValue") shouldBe true
                 }
             }
+
+            then("propagates strategyId, strategyType, and strategyName in the response") {
+                val position = Position(
+                    bookId = BookId("port-1"),
+                    instrumentId = InstrumentId("AAPL-CALL"),
+                    assetClass = AssetClass.EQUITY,
+                    quantity = BigDecimal("10"),
+                    averageCost = Money(BigDecimal("5.00"), Currency.getInstance("USD")),
+                    marketPrice = Money(BigDecimal("8.00"), Currency.getInstance("USD")),
+                    strategyId = "strat-1",
+                    strategyType = "STRADDLE",
+                    strategyName = "Sep Straddle",
+                )
+                coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
+
+                testApplication {
+                    application { module(positionClient) }
+                    val response = client.get("/api/v1/books/port-1/positions")
+                    response.status shouldBe HttpStatusCode.OK
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+                    val pos = body[0].jsonObject
+                    pos["strategyId"]?.jsonPrimitive?.content shouldBe "strat-1"
+                    pos["strategyType"]?.jsonPrimitive?.content shouldBe "STRADDLE"
+                    pos["strategyName"]?.jsonPrimitive?.content shouldBe "Sep Straddle"
+                }
+            }
         }
 
         `when`("POST /api/v1/books/{bookId}/trades with invalid body") {

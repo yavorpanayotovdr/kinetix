@@ -42,6 +42,9 @@ data class PositionResponse(
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
     val realizedPnl: MoneyDto,
+    val strategyId: String? = null,
+    val strategyType: String? = null,
+    val strategyName: String? = null,
 )
 
 @Serializable
@@ -150,6 +153,9 @@ private fun Position.toResponse() = PositionResponse(
     marketValue = marketValue.toDto(),
     unrealizedPnl = unrealizedPnl.toDto(),
     realizedPnl = realizedPnl.toDto(),
+    strategyId = strategyId,
+    strategyType = strategyType,
+    strategyName = strategyName,
 )
 
 private fun Trade.toResponse() = TradeResponse(

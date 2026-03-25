@@ -76,6 +76,7 @@ class TradeBookingService(
                 ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
 
             val updatedPosition = currentPosition.applyTrade(trade)
+                .let { pos -> if (trade.strategyId != null) pos.copy(strategyId = trade.strategyId) else pos }
             positionRepository.save(updatedPosition)
 
             Pair(BookTradeResult(trade, updatedPosition, warnings), true)

@@ -13,6 +13,7 @@ import com.kinetix.gateway.client.HttpPositionServiceClient
 import com.kinetix.gateway.client.HttpPriceServiceClient
 import com.kinetix.gateway.client.HttpRegulatoryServiceClient
 import com.kinetix.gateway.client.HttpRiskServiceClient
+import com.kinetix.gateway.client.HttpVolatilityServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.PriceServiceClient
@@ -22,6 +23,8 @@ import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.intradayPnlProxyRoutes
+import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
+import com.kinetix.gateway.routes.volSurfaceRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
@@ -302,6 +305,13 @@ fun Application.moduleWithDataQuality(
     }
 }
 
+fun Application.moduleWithVolSurface(volatilityServiceClient: com.kinetix.gateway.client.VolatilityServiceClient) {
+    module()
+    routing {
+        volSurfaceRoutes(volatilityServiceClient)
+    }
+}
+
 fun Application.devModule() {
     val servicesConfig = environment.config.config("services")
     val positionUrl = servicesConfig.property("position.url").getString()
@@ -338,6 +348,7 @@ fun Application.devModule() {
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
     val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
+    val volatilityClient = HttpVolatilityServiceClient(httpClient, volatilityUrl)
     val priceBroadcaster = PriceBroadcaster()
     val pnlBroadcaster = PnlBroadcaster()
     val alertBroadcaster = AlertBroadcaster()

@@ -14,6 +14,7 @@ object PositionsTable : Table("positions") {
     val updatedAt = timestampWithTimeZone("updated_at")
     val realizedPnlAmount = decimal("realized_pnl_amount", 28, 12).default(java.math.BigDecimal.ZERO)
     val instrumentType = varchar("instrument_type", 50).default("UNKNOWN")
+    val strategyId = varchar("strategy_id", 36).nullable()
 
     override val primaryKey = PrimaryKey(bookId, instrumentId)
 }

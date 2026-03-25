@@ -42,6 +42,9 @@ data class PositionDto(
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
     val instrumentType: String? = null,
+    val strategyId: String? = null,
+    val strategyType: String? = null,
+    val strategyName: String? = null,
 )
 
 @Serializable
@@ -514,6 +517,9 @@ fun PositionDto.toDomain() = Position(
     averageCost = averageCost.toDomainMoney(),
     marketPrice = marketPrice.toDomainMoney(),
     instrumentType = instrumentType,
+    strategyId = strategyId,
+    strategyType = strategyType,
+    strategyName = strategyName,
 )
 
 fun TradeDto.toDomain() = Trade(

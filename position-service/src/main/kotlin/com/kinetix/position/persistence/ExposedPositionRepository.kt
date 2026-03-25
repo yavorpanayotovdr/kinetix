@@ -7,6 +7,8 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.Join
+import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 import java.time.OffsetDateTime
@@ -27,18 +29,19 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
             it[realizedPnlAmount] = position.realizedPnl.amount
             it[instrumentType] = position.instrumentType ?: "UNKNOWN"
+            it[strategyId] = position.strategyId
         }
     }
 
     override suspend fun findByBookId(bookId: BookId): List<Position> = newSuspendedTransaction(db = db) {
-        PositionsTable
+        positionsWithStrategiesJoin()
             .selectAll()
             .where { PositionsTable.bookId eq bookId.value }
             .map { it.toPosition() }
     }
 
     override suspend fun findByInstrumentId(instrumentId: InstrumentId): List<Position> = newSuspendedTransaction(db = db) {
-        PositionsTable
+        positionsWithStrategiesJoin()
             .selectAll()
             .where { PositionsTable.instrumentId eq instrumentId.value }
             .map { it.toPosition() }
@@ -48,7 +51,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
         bookId: BookId,
         instrumentId: InstrumentId,
     ): Position? = newSuspendedTransaction(db = db) {
-        PositionsTable
+        positionsWithStrategiesJoin()
             .selectAll()
             .where {
                 (PositionsTable.bookId eq bookId.value) and
@@ -75,6 +78,14 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             .map { BookId(it[PositionsTable.bookId]) }
     }
 
+    private fun positionsWithStrategiesJoin(): Join =
+        PositionsTable.join(
+            TradeStrategiesTable,
+            JoinType.LEFT,
+            onColumn = PositionsTable.strategyId,
+            otherColumn = TradeStrategiesTable.strategyId,
+        )
+
     private fun ResultRow.toPosition(): Position = Position(
         bookId = BookId(this[PositionsTable.bookId]),
         instrumentId = InstrumentId(this[PositionsTable.instrumentId]),
@@ -93,5 +104,8 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             Currency.getInstance(this[PositionsTable.currency]),
         ),
         instrumentType = this[PositionsTable.instrumentType],
+        strategyId = this[PositionsTable.strategyId],
+        strategyType = this.getOrNull(TradeStrategiesTable.strategyType),
+        strategyName = this.getOrNull(TradeStrategiesTable.name),
     )
 }
