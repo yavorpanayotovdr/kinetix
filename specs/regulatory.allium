@@ -23,8 +23,24 @@ entity ModelVersion {
     }
 
     parameters: String?
+    registered_by: String
+    model_tier: String?
+    validation_report_url: String?
+    known_limitations: String?
+    approved_use_cases: String?
+    next_validation_date: Date?
     approved_by: String when status = approved | retired
     approved_at: Timestamp when status = approved | retired
+
+    @guidance
+        -- model_tier classifies the model by risk impact: high | medium | low.
+        -- High-tier models require more rigorous validation and shorter
+        -- next_validation_date intervals.
+        -- validation_report_url links to the externally stored validation document.
+        -- known_limitations and approved_use_cases are free-text fields for
+        -- model risk transparency — surfaced in the model governance UI.
+        -- registered_by is the identity of the engineer or quant who submitted
+        -- the model for registration; used to enforce the four-eyes approval check.
 }
 
 -- Backtest records
@@ -137,12 +153,13 @@ entity FrtbCalculationRecord {
 -- Model governance lifecycle
 
 rule RegisterModel {
-    when: RegisterModelRequested(model_name, version, parameters)
+    when: RegisterModelRequested(model_name, version, parameters, registered_by)
     ensures: ModelVersion.created(
         model_name: model_name,
         version: version,
         status: draft,
-        parameters: parameters
+        parameters: parameters,
+        registered_by: registered_by
     )
 }
 
@@ -157,9 +174,23 @@ rule ApproveModel {
     when: ApproveModelRequested(model_id, approved_by)
     let model = ModelVersion{id: model_id}
     requires: model.status = validated
+    requires: approved_by != model.registered_by
     ensures: model.status = approved
     ensures: model.approved_by = approved_by
     ensures: model.approved_at = now
+}
+
+rule ApproveModelRejectedSelfApproval {
+    when: ApproveModelRequested(model_id, approved_by)
+    let model = ModelVersion{id: model_id}
+    requires: model.status = validated
+    requires: approved_by = model.registered_by
+
+    @guidance
+        -- Four-eyes principle violation.
+        -- Reject: the person approving a model cannot be the same person
+        -- who registered it.
+        -- Mirrors ApproveSubmissionRejectedSelfApproval for model governance.
 }
 
 rule RetireModel {
@@ -222,7 +253,11 @@ rule RunGovernedStressTest {
 
     @guidance
         -- Only APPROVED scenarios can be executed.
-        -- Parses shocks JSON; computes pnl_impact from shock values.
+        -- pnl_impact must be computed as sum(position_market_value * price_shock)
+        -- via the risk engine gRPC call — NOT by summing raw shock JSON values.
+        -- The current computePnlImpact stub is a known data integrity bug:
+        -- it reads shock magnitudes directly from the shocks JSON field without
+        -- repricing positions, producing incorrect P&L figures.
         -- Creates StressTestResultRecord with results.
 }
 
@@ -337,6 +372,19 @@ rule StoreFrtbCalculation {
 }
 
 ------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    backtest_result_retention: Duration = 7.years
+    stress_test_result_retention: Duration = 7.years
+}
+
+-- Note: backtest_result_retention was previously 3 years, which is insufficient
+-- under current compliance requirements. Both backtest and stress test results
+-- must be retained for the full 7-year regulatory audit period.
+
+------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
@@ -377,4 +425,23 @@ invariant BacktestInputReproducibility {
     @guidance
         -- Two backtest runs with the same input_digest (SHA-256)
         -- must produce identical statistical results.
+}
+
+invariant ModelApprovalFourEyes {
+    for m in ModelVersions:
+        m.approved_by = null or m.approved_by != m.registered_by
+
+    @guidance
+        -- The person approving a model must differ from the person who registered it.
+        -- Enforces separation of duties in the model governance lifecycle.
+        -- Mirrors SubmissionFourEyes for model approvals.
+}
+
+invariant StressTestResultRetention {
+    @guidance
+        -- Stress test results (StressTestResultRecord) must be retained for
+        -- config.stress_test_result_retention (7 years) for regulatory audit purposes.
+        -- Results must not be deleted or archived to inaccessible storage within
+        -- this window. The retention policy must be enforced at the database level
+        -- (TimescaleDB retention policy or equivalent) and verified in compliance audits.
 }

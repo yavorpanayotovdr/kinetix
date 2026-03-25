@@ -68,6 +68,50 @@ value AssetClassShock {
     vol_shock: Decimal
 }
 
+value CorrelatedShockSpec {
+    primary_asset_class: core/AssetClass
+    primary_shock: Decimal
+    implied_shocks: List<AssetClassShock>
+
+    @guidance
+        -- Captures joint shock specifications where secondary shocks are derived
+        -- from conditional distributions given the primary shock.
+        -- Example: equity -30% implies vol +20pp, rates -50bp, credit +100bp
+        -- based on historical correlations.
+        -- The implied_shocks list contains the secondary asset class shocks
+        -- inferred from the primary shock magnitude via the correlation matrix.
+        -- Used by CreateCorrelatedScenario to produce internally consistent
+        -- multi-factor scenarios rather than independently specified shocks.
+}
+
+value ParametricGridSpec {
+    primary_axis: String
+    primary_range: List<Decimal>
+    secondary_axis: String
+    secondary_range: List<Decimal>
+
+    @guidance
+        -- Defines a 2D grid of parametric shocks for scenario sweep analysis.
+        -- primary_axis and secondary_axis are asset class or risk factor names
+        -- (e.g., "equity", "interest_rate", "credit_spread").
+        -- primary_range and secondary_range are the shock magnitudes to apply
+        -- at each grid point (e.g., [-0.10, -0.20, -0.30] for equity shocks).
+        -- The full grid is the Cartesian product of the two ranges.
+}
+
+value BatchStressRunResult {
+    scenario_results: List<StressTestResult>
+    worst_scenario_name: String
+    worst_pnl_impact: Decimal
+
+    @guidance
+        -- Aggregated output from RunBatchStressTest.
+        -- scenario_results contains one entry per approved scenario, ranked
+        -- by pnl_impact ascending (most negative first).
+        -- worst_scenario_name identifies the scenario producing the largest loss.
+        -- worst_pnl_impact is the minimum (most negative) pnl_impact across all results.
+}
+
 ------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
@@ -116,6 +160,7 @@ entity SavedScenario {
     liquidity_stress_factors: String?
     historical_period_id: String?
     target_loss: Decimal?
+    category: core/ScenarioCategory
     created_by: String
     created_at: Timestamp
     approved_by: String?
@@ -348,6 +393,61 @@ rule RunSavedScenario {
         -- Ad-hoc (unsaved) scenarios can be run directly without approval.
 }
 
+-- Correlated multi-factor scenario creation
+
+rule CreateCorrelatedScenario {
+    when: CreateCorrelatedScenarioRequested(name, description, correlated_shock_spec, created_by)
+    let spec = correlated_shock_spec
+
+    ensures: SavedScenario.created(
+        name: name,
+        description: description,
+        scenario_type: parametric,
+        version: 1,
+        shocks: serialize_correlated_shocks(spec),
+        created_by: created_by,
+        created_at: now
+    )
+
+    @guidance
+        -- Creates a parametric scenario whose secondary shocks are derived from
+        -- the primary shock via historical correlation structure (CorrelatedShockSpec).
+        -- The correlation matrix used to derive implied_shocks must be the most
+        -- recently approved correlation matrix from correlation-service.
+        -- If no approved correlation matrix exists, reject with
+        -- "No approved correlation matrix available."
+        -- The resulting scenario is saved with shocks serialised from all
+        -- asset class shocks (primary + implied) for execution by RunSavedScenario.
+        -- Enters the governance workflow (draft → pending_approval → approved)
+        -- via regulatory.allium before it can be run.
+}
+
+-- Batch stress run across all approved scenarios for a book
+
+rule RunBatchStressTest {
+    when: RunBatchStressTestRequested(book_id)
+
+    let approved_scenarios = SavedScenario where status = approved
+    let base_var = compute_base_var(book_id)
+
+    ensures: BatchStressRunResult(
+        scenario_results: run_parallel(approved_scenarios, book_id, base_var),
+        worst_scenario_name: name_of(min_by(scenario_results, pnl_impact)),
+        worst_pnl_impact: min(scenario_results.pnl_impact)
+    )
+
+    @guidance
+        -- Runs all approved scenarios for the given book concurrently.
+        -- Base VaR is computed once and shared across all scenario executions
+        -- to avoid redundant calculation.
+        -- Each scenario execution follows RunSavedScenario dispatch logic.
+        -- Results are ranked by pnl_impact ascending (worst loss first).
+        -- The rule returns immediately with a BatchStressRunResult once all
+        -- parallel executions complete.
+        -- If any individual scenario fails, it is excluded from results and
+        -- a warning is recorded; the batch run is not aborted.
+}
+
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
@@ -390,10 +490,33 @@ invariant ProxyReturnsFlagged {
         -- The UI must surface this as a data coverage warning.
 }
 
+invariant ScenarioPnlImpactFromRiskEngine {
+    @guidance
+        -- Scenario P&L impact must be computed by the risk engine using
+        -- full position repricing: pnl_impact = sum(position_market_value * price_shock)
+        -- via the risk engine gRPC call.
+        -- It must NEVER be computed by summing raw shock JSON values directly.
+        -- The current computePnlImpact stub in the codebase violates this invariant
+        -- and is a known data integrity bug (see TODO in risk-orchestrator).
+        -- Any implementation that reads shock values from the shocks JSON field and
+        -- sums them without consulting the risk engine is incorrect.
+}
+
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
 open question "Should reverse stress test support the 'most likely shock' method (shock weighted by historical correlation/frequency) in addition to 'minimum norm'?"
+-- Resolution: Deferred. The 'most likely shock' method requires correlation
+-- infrastructure (conditional distribution sampling) that is not yet in place.
+-- The minimum-norm approach remains the sole solver until correlation
+-- infrastructure is available. Revisit when DynamicCorrelationEstimation
+-- (risk-models.allium) is wired into the reverse stress solver path.
 
-open question "Should historical replay periods be extendable beyond the price-service 2-year retention window by loading data from cold storage?"
+open question "Should historical scenario periods be extendable beyond the price-service 2-year retention window by loading data from cold storage or a dedicated historical archive?"
+-- Context: The current price-service retention policy (4.1: 2-year rolling window)
+-- means pre-defined crisis periods such as GFC_OCT_2008 cannot be replayed using
+-- live price history. HistoricalScenarioReturn pre-computes returns for those periods
+-- as a static dataset, but custom date ranges (ReplayCustomDateRange) are limited to
+-- the 2-year window. If users need to replay arbitrary historical windows beyond 2 years,
+-- a cold storage integration or a separate historical price archive is required.

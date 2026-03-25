@@ -28,7 +28,17 @@ entity YieldCurve {
     @guidance
         -- Tenors must be sorted by maturity days ascending.
         -- rateAt(days) performs linear interpolation between surrounding tenors.
+        --   NOTE: linear interpolation is inadequate for key rate duration (KRD) computation.
+        --   For KRD, monotone cubic spline interpolation (Hyman modification of Fritsch-Carlson)
+        --   should be used instead of linear to avoid spurious sensitivity artefacts at tenor
+        --   boundaries.
         -- shift(bps) produces a parallel shift of all rates.
+        -- partialShift(tenor_days, bps, width_days) bumps a single tenor bucket using a tent
+        --   function centred on tenor_days spanning width_days. Rates at adjacent tenors outside
+        --   the tent are held constant. Used for KRD computation.
+        -- Yield curve history must be stored (not just the latest snapshot) to support curve
+        --   P&L explain: the difference between yesterday's curve and today's curve per tenor
+        --   is the primary attribution driver for fixed-income books.
 }
 
 entity RiskFreeRate {
@@ -59,8 +69,15 @@ entity VolSurface {
 
     @guidance
         -- volAt(strike, maturityDays) performs bilinear interpolation.
+        --   WARNING: bilinear interpolation in (strike, maturity) space is NOT arbitrage-free.
+        --   It can produce butterfly arbitrages for skewed surfaces, especially short-dated
+        --   near-ATM. This is a known model limitation and must be documented in any risk
+        --   model disclosure or regulatory submission that references vol surface outputs.
         -- Clamps to nearest available strike and maturity if outside grid.
         -- scaleAll(factor) multiplies all implied vols by factor.
+        -- diffAgainst(other_surface) computes a point-by-point vol difference between this
+        --   surface and other_surface. When strike grids differ between the two surfaces,
+        --   interpolates both to a common grid before differencing. Returns VolSurfaceDiff.
 }
 
 entity CorrelationMatrix {
@@ -80,12 +97,33 @@ entity CorrelationMatrix {
 }
 
 ------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value VolPointDiff {
+    strike: Decimal
+    maturity_days: Integer
+    base_vol: Decimal
+    compare_vol: Decimal
+    diff: Decimal
+}
+
+value VolSurfaceDiff {
+    instrument_id: String
+    base_date: String
+    compare_date: String
+    diffs: List<VolPointDiff>
+}
+
+------------------------------------------------------------
 -- Config
 ------------------------------------------------------------
 
 config {
     price_retention: core/Duration = 730.days
     price_compression_after: core/Duration = 30.days
+    vol_surface_retention: core/Duration = 730.days
+    yield_curve_history_retention: core/Duration = 2555.days
 }
 
 ------------------------------------------------------------
@@ -181,6 +219,23 @@ rule IngestVolSurface {
         -- Published to Kafka volatility.surfaces topic.
 }
 
+-- Vol surface day-over-day diff
+
+rule CompareVolSurfaces {
+    when: CompareVolSurfacesRequested(instrument_id, base_date, compare_date)
+
+    let base    = VolSurface where instrument_id = instrument_id and as_of = base_date
+    let compare = VolSurface where instrument_id = instrument_id and as_of = compare_date
+    requires: base != null
+    requires: compare != null
+
+    @guidance
+        -- Calls diffAgainst(other_surface) on the base surface passing compare as argument.
+        -- When strike grids differ, interpolates to the union of both grids before differencing.
+        -- Returns a VolSurfaceDiff suitable for vol P&L explain and surface change reporting.
+        -- Does not persist the diff; callers hold it in memory or cache it as needed.
+}
+
 -- Correlation matrix ingestion
 
 rule IngestCorrelationMatrix {
@@ -223,4 +278,22 @@ invariant SquareCorrelationMatrix {
 invariant VolSurfacePositiveVols {
     for surface in VolSurfaces:
         surface.points.count >= 1
+}
+
+invariant VolSurfaceRetentionEnforced {
+    @guidance
+        -- Vol surface snapshots older than config.vol_surface_retention must be compressed
+        -- or dropped. Compression is acceptable (e.g. TimescaleDB chunk compression) as long
+        -- as the data remains queryable. Full deletion is only permitted beyond the retention
+        -- window. Any query for a date older than the retention window must return an explicit
+        -- "data not available" response rather than silently returning stale data.
+}
+
+invariant YieldCurveHistoryRequired {
+    @guidance
+        -- Historical yield curve snapshots (one per as_of date per curve_id) must be retained
+        -- for at least config.yield_curve_history_retention (2555 days = 7 years) to support
+        -- curve P&L explain. Deleting or overwriting historical snapshots is not permitted.
+        -- Only the latest snapshot per curve_id may be cached in Redis; the full history lives
+        -- in the rates-service database.
 }

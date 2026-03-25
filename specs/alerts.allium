@@ -46,11 +46,15 @@ entity AlertEvent {
     transitions status {
         triggered -> acknowledged
         triggered -> resolved
-        terminal: acknowledged, resolved
+        acknowledged -> escalated
+        escalated -> resolved
+        terminal: resolved
     }
 
     resolved_at: Timestamp when status = resolved
     resolved_reason: String when status = resolved
+    escalated_to: String?
+    escalated_at: Timestamp?
     correlation_id: String?
     contributors: String?
     suggested_action: String?
@@ -62,6 +66,14 @@ entity AlertAcknowledgement {
     acknowledged_by: String
     acknowledged_at: Timestamp
     notes: String?
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    escalation_timeout: Duration = 30.minutes
 }
 
 ------------------------------------------------------------
@@ -207,6 +219,32 @@ rule AcknowledgeAlertRejectedAlreadyAcknowledged {
         -- Cannot acknowledge an already-acknowledged alert.
 }
 
+rule EscalateAlert {
+    when: EscalationCheckTriggered()
+    for alert in AlertEvents where status = acknowledged:
+        let acknowledgement = AlertAcknowledgement{alert_event: alert}
+        requires: (now - acknowledgement.acknowledged_at) >= config.escalation_timeout
+
+        ensures: alert.status = escalated
+        ensures: alert.escalated_at = now
+        ensures: alert.escalated_to = escalation_target(alert.severity)
+        ensures: AlertEscalated(alert: alert)
+
+    @guidance
+        -- EscalationCheckTriggered fires periodically (e.g. every minute).
+        -- An acknowledged alert that has not been resolved within
+        -- escalation_timeout is escalated.
+        -- escalation_target derives the notification target from current severity:
+        --   MEDIUM -> desk head (email + in-app)
+        --   HIGH   -> risk manager (email + webhook)
+        --   CRITICAL -> CRO + ops channel (email + webhook + PagerDuty)
+        -- The escalated alert may also have its severity promoted one level
+        -- if it was originally MEDIUM or HIGH.
+        -- Acknowledged alerts that trigger escalation must produce an
+        -- audit event (event_type: limit_breached or risk_calculation_completed
+        -- as appropriate) so that the escalation is part of the hash-chained trail.
+}
+
 -- Delivery routing
 
 rule RouteAlertDelivery {
@@ -234,6 +272,11 @@ invariant AlertStatusTransitions {
         -- Valid transitions:
         --   triggered -> acknowledged (manual)
         --   triggered -> resolved (auto-clear or manual)
-        -- acknowledged is a terminal state (no further transitions).
-        -- resolved is a terminal state.
+        --   acknowledged -> escalated (automatic, after escalation_timeout)
+        --   escalated -> resolved (auto-clear or manual)
+        -- resolved is the only terminal state.
+        -- acknowledged is no longer terminal: it can escalate.
+        -- Every acknowledgement must produce an audit event so that
+        -- the point of acknowledgement and any subsequent escalation
+        -- are visible in the hash-chained audit trail.
 }

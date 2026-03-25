@@ -295,6 +295,15 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
+  // Intraday VaR timeline endpoint — return empty points by default
+  await page.route('**/api/v1/risk/var/*/intraday*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ bookId: 'port-1', varPoints: [], tradeAnnotations: [] }),
+    })
+  })
+
   // Regime current — return NORMAL by default
   await page.route('**/api/v1/risk/regime/current', (route: Route) => {
     route.fulfill({
@@ -1645,6 +1654,72 @@ export async function mockIntradayPnlRoutes(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ bookId, snapshots }),
+    })
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Intraday VaR timeline fixtures
+// ---------------------------------------------------------------------------
+
+export interface IntradayVaRPointFixture {
+  timestamp: string
+  varValue: number
+  expectedShortfall: number
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+}
+
+export interface TradeAnnotationFixture {
+  timestamp: string
+  instrumentId: string
+  side: string
+  quantity: string
+  tradeId: string
+}
+
+export const TEST_INTRADAY_VAR_POINTS: IntradayVaRPointFixture[] = [
+  {
+    timestamp: '2026-03-25T09:00:00Z',
+    varValue: 10000.0,
+    expectedShortfall: 12500.0,
+    delta: 0.60,
+    gamma: null,
+    vega: null,
+  },
+  {
+    timestamp: '2026-03-25T09:30:00Z',
+    varValue: 12500.0,
+    expectedShortfall: 15000.0,
+    delta: 0.65,
+    gamma: null,
+    vega: null,
+  },
+]
+
+export const TEST_INTRADAY_TRADE_ANNOTATIONS: TradeAnnotationFixture[] = [
+  {
+    timestamp: '2026-03-25T09:15:00Z',
+    instrumentId: 'AAPL',
+    side: 'BUY',
+    quantity: '100',
+    tradeId: 'T001',
+  },
+]
+
+export async function mockIntradayVaRTimelineRoutes(
+  page: Page,
+  bookId: string,
+  varPoints: IntradayVaRPointFixture[],
+  tradeAnnotations: TradeAnnotationFixture[] = [],
+): Promise<void> {
+  await page.unroute(`**/api/v1/risk/var/${bookId}/intraday*`)
+  await page.route(`**/api/v1/risk/var/${bookId}/intraday*`, (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ bookId, varPoints, tradeAnnotations }),
     })
   })
 }

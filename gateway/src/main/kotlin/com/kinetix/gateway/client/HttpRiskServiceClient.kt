@@ -665,4 +665,20 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getIntradayVaRTimeline(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/var/$bookId/intraday") {
+            url {
+                parameters.append("from", from)
+                parameters.append("to", to)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.BadRequest) {
+            val body = try { response.bodyAsText() } catch (_: Exception) { "" }
+            throw IllegalArgumentException(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }

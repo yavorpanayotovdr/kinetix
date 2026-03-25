@@ -38,6 +38,18 @@ value Tenor {
 -- Enumerations
 ------------------------------------------------------------
 
+enum Role { admin | trader | risk_manager | compliance | viewer }
+
+enum Permission {
+    read_positions | book_trades | calculate_risk | read_risk |
+    manage_alerts | manage_limits | approve_submissions | promote_eod_run |
+    view_audit | manage_models | manage_scenarios | admin
+}
+
+enum ScenarioCategory { regulatory_mandated | internal_approved | supervisory_requested }
+
+enum DataQualityFlag { full_attribution | price_only | stale_greeks }
+
 enum AssetClass { equity | fixed_income | fx | commodity | derivative }
 
 enum Side { buy | sell }
@@ -76,7 +88,7 @@ enum ManifestStatus { inputs_frozen | complete | partial | failed }
 
 enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness }
 
-enum AlertStatus { triggered | acknowledged | resolved }
+enum AlertStatus { triggered | acknowledged | escalated | resolved }
 
 enum Severity { info | warning | critical }
 

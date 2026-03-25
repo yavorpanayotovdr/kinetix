@@ -52,6 +52,7 @@ import com.kinetix.risk.routes.croReportRoutes
 import com.kinetix.risk.routes.hierarchyRiskRoutes
 import com.kinetix.risk.routes.riskBudgetRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
+import com.kinetix.risk.routes.intradayVaRTimelineRoutes
 import com.kinetix.risk.routes.factorRiskRoutes
 import com.kinetix.risk.routes.liquidityRiskRoutes
 import com.kinetix.risk.routes.riskRoutes
@@ -79,6 +80,9 @@ import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.IntradayPnlService
+import com.kinetix.risk.service.IntradayVaRTimelineService
+import com.kinetix.risk.service.PositionServiceTradeProvider
+import com.kinetix.risk.persistence.ExposedIntradayVaRTimelineRepository
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
@@ -599,6 +603,12 @@ fun Application.moduleWithRoutes() {
         riskBudgetRoutes(riskBudgetAllocationRepository)
         croReportRoutes(hierarchyRiskService)
         intradayPnlRoutes(intradayPnlRepository)
+        intradayVaRTimelineRoutes(
+            IntradayVaRTimelineService(
+                repository = ExposedIntradayVaRTimelineRepository(riskDb),
+                tradeProvider = PositionServiceTradeProvider(positionServiceClient),
+            )
+        )
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
         factorRiskRoutes(factorDecompositionRepository)
         jobHistoryRoutes(jobRecorder)

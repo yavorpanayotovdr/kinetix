@@ -47,6 +47,31 @@ value WrongWayRiskFlag {
     message: String
 }
 
+value SaCcrTradeClassification {
+    trade_id: String
+    asset_class: String
+    hedging_set: String
+    supervisory_delta: Decimal
+    adjusted_notional: Decimal
+    maturity_factor: Decimal
+    supervisory_factor: Decimal
+}
+
+value SaCcrResult {
+    replacement_cost: Decimal
+    pfe_addon: Decimal
+    multiplier: Decimal
+    ead: Decimal
+    alpha: Decimal
+}
+
+value HedgingSetAddon {
+    asset_class: String
+    hedging_set_key: String
+    addon_amount: Decimal
+    position_count: Integer
+}
+
 ------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
@@ -161,6 +186,8 @@ config {
     govvie_haircut: Decimal = 0.03
     corporate_bond_haircut: Decimal = 0.10
     equity_haircut: Decimal = 0.20
+    sa_ccr_alpha: Decimal = 1.4
+    sa_ccr_floor: Decimal = 0.05
 }
 
 ------------------------------------------------------------
@@ -306,6 +333,64 @@ rule PostCollateral {
     )
 }
 
+-- SA-CCR (Standardised Approach for Counterparty Credit Risk, BCBS 279)
+
+rule CalculateSaCcr {
+    when: CalculateSaCcrRequested(counterparty_id, netting_set_id)
+
+    let netting_agreement = NettingAgreement{netting_set_id: netting_set_id}
+    requires: netting_agreement != null
+    let trades = NettingSetTrades where netting_set = netting_agreement
+    let collateral = CollateralBalances where netting_set = netting_agreement
+
+    let V = sum(trades, t => mtm(t))
+    let C = sum(collateral where direction = "RECEIVED", c => c.value_after_haircut)
+            - sum(collateral where direction = "POSTED", c => c.value_after_haircut)
+    let RC = max(V - C, 0)
+
+    let classifications = for t in trades: classify_sa_ccr(t)
+    let hedging_set_addons = aggregate_by_hedging_set(classifications)
+    let AddOn = sum(hedging_set_addons, h => h.addon_amount)
+
+    let multiplier = min(1, config.sa_ccr_floor
+                         + (1 - config.sa_ccr_floor) * exp(V / (2 * config.sa_ccr_floor * AddOn)))
+    let PFE = multiplier * AddOn
+    let EAD = config.sa_ccr_alpha * (RC + PFE)
+
+    ensures: SaCcrResult{
+        replacement_cost: RC,
+        pfe_addon: PFE,
+        multiplier: multiplier,
+        ead: EAD,
+        alpha: config.sa_ccr_alpha
+    }
+
+    @guidance
+        -- SA-CCR (BCBS 279) calculates Exposure at Default as: EAD = alpha * (RC + PFE).
+        -- RC = max(V - C, 0) where V = current MtM of the netting set, C = net collateral.
+        -- PFE = multiplier * AddOn_aggregate.
+        -- multiplier = min(1, floor + (1-floor) * exp(V / (2*floor*AddOn))) where floor = 0.05.
+        --   The multiplier allows partial recognition of over-collateralisation; floor prevents
+        --   it from dropping to zero.
+        -- AddOn per asset class uses supervisory factors and delta/vega sensitivities from
+        --   BCBS 279 Table 2. Hedging set grouping:
+        --     IR:     hedging set = currency
+        --     FX:     hedging set = currency pair
+        --     Credit: hedging set = reference entity
+        --     Equity: hedging set = individual name or index
+        --     Commodity: hedging set = commodity type (energy, metals, agriculture, other)
+        -- supervisory_delta: uses bs_delta() for option positions; +1 (long) or -1 (short)
+        --   for linear positions.
+        -- maturity_factor = sqrt(min(M, 1Y) / 1Y) for margined trades; see BCBS 279 §166 for
+        --   unmargined.
+        -- Computationally simple: table lookup and aggregation — NOT Monte Carlo simulation.
+        --   SA-CCR is designed to be deterministic and auditable.
+        -- SA-CCR (regulatory) and internal Monte Carlo PFE (economic) are complementary and
+        --   must coexist. SA-CCR is the regulatory capital number reported to supervisors.
+        --   Internal MC PFE drives economic limits and risk appetite. They must never be
+        --   conflated or substituted for each other in reporting.
+}
+
 -- Daily batch
 
 rule ScheduledCounterpartyRisk {
@@ -362,6 +447,16 @@ invariant WrongWayRiskSectorMatch {
         -- matches the position's sector. Cross-sector positions are not flagged.
 }
 
+invariant SaCcrIsRegulatory {
+    @guidance
+        -- SA-CCR EAD is a regulatory capital number computed under BCBS 279 rules.
+        -- It must NOT be confused with, or substituted by, the internal Monte Carlo PFE
+        -- figure in any regulatory report, capital adequacy filing, or supervisor-facing
+        -- disclosure. Systems that surface both numbers must label them unambiguously:
+        --   "SA-CCR EAD (regulatory)" vs "PFE 95th pct (internal model)".
+        -- Mixing the two in a single exposure figure is a material regulatory error.
+}
+
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
@@ -369,3 +464,5 @@ invariant WrongWayRiskSectorMatch {
 open question "Should DVA (Debit Valuation Adjustment) be computed alongside CVA? DVA = our own credit risk from the counterparty's perspective."
 
 open question "For FX collateral: should the FX conversion rate for haircut calculation use the same rate as position valuation, or a more conservative rate?"
+
+open question "Should SA-CVA (BCBS 325) be implemented alongside SA-CCR? CVA capital charge is a separate regulatory exercise but uses similar inputs (supervisory delta, hedging set classifications). Implementing SA-CVA would complete the Basel IV CCR capital stack."

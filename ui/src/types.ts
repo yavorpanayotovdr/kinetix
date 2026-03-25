@@ -108,6 +108,29 @@ export interface IntradayPnlSeriesDto {
   snapshots: IntradayPnlSnapshotDto[]
 }
 
+export interface IntradayVaRPointDto {
+  timestamp: string
+  varValue: number
+  expectedShortfall: number
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+}
+
+export interface TradeAnnotationDto {
+  timestamp: string
+  instrumentId: string
+  side: string
+  quantity: string
+  tradeId: string
+}
+
+export interface IntradayVaRTimelineDto {
+  bookId: string
+  varPoints: IntradayVaRPointDto[]
+  tradeAnnotations: TradeAnnotationDto[]
+}
+
 export interface ComponentBreakdownDto {
   assetClass: string
   varContribution: string

@@ -20,6 +20,35 @@ value VaRComponentBreakdown {
     percentage_of_total: Decimal
 }
 
+-- Pricing sensitivities: analytical first-order and second-order derivatives of
+-- present value with respect to market inputs. Computed from Black-Scholes
+-- analytical formulae, bond_dv01, and swap_dv01. These are the correct inputs
+-- for P&L attribution (dPV/dX), NOT the VaR sensitivities below.
+value PricingGreeks {
+    delta: Decimal        -- dPV/dSpot (BS analytical)
+    gamma: Decimal        -- d²PV/dSpot² (BS analytical)
+    vega: Decimal         -- dPV/dVol (BS analytical)
+    theta: Decimal        -- dPV/dTime (BS analytical)
+    rho: Decimal          -- dPV/dRate (BS analytical)
+    bond_dv01: Decimal?   -- dPV/dYield for fixed-income (analytical DCF bump)
+    swap_dv01: Decimal?   -- dPV/dYield for swaps (analytical DCF bump)
+}
+
+-- VaR sensitivities: finite-difference derivatives of portfolio VaR with
+-- respect to market inputs (dVaR/dX). These are what greeks.py currently
+-- computes via bumped VaR recalculation. They measure how VaR changes when
+-- a market input moves — NOT how PV changes. Do NOT use these for P&L
+-- attribution; use PricingGreeks instead.
+value VaRSensitivities {
+    delta: Decimal   -- dVaR/dPrice (via +1% price bump)
+    gamma: Decimal   -- d(delta)/dPrice (via +/-1% bumps)
+    vega: Decimal    -- dVaR/dVol (via +1pp vol bump)
+    theta: Decimal   -- dVaR/dTime (time horizon change by 1 day)
+    rho: Decimal     -- dVaR/dRate (1bp interest rate bump)
+}
+
+-- Legacy alias retained for existing callers. Prefer PricingGreeks or
+-- VaRSensitivities depending on context.
 value OptionGreeks {
     delta: Decimal
     gamma: Decimal
@@ -99,6 +128,20 @@ value FrtbCapitalCharge {
     drc: DrcResult
     rrao: RraoResult
     total_capital_charge: Decimal
+}
+
+-- Key rate duration: sensitivity of PV to a 1bp parallel shift at a specific
+-- tenor bucket, with all other tenors held constant (tent function bump).
+value KeyRateDuration {
+    tenor_label: String   -- e.g. "1Y", "2Y", "5Y", "10Y"
+    tenor_days: Integer
+    dv01: Decimal         -- PV change for 1bp shift at this tenor (analytical)
+}
+
+value KeyRateDurationResult {
+    instrument_id: String
+    krd_buckets: List<KeyRateDuration>
+    total_dv01: Decimal   -- sum of all bucket dv01s; equals full-curve DV01
 }
 
 value BacktestResult {
@@ -270,7 +313,12 @@ rule CalculatePortfolioGreeks {
     when: PortfolioGreeksRequested(positions, market_data, correlation_matrix)
 
     @guidance
-        -- Greeks computed via finite differences on portfolio VaR:
+        -- IMPORTANT: these are VaR sensitivities (dVaR/dX), NOT pricing
+        -- sensitivities (dPV/dX). They measure how portfolio VaR changes
+        -- when a market input is bumped. Do NOT use these for P&L attribution.
+        -- Use CalculatePricingGreeks / PricingGreeks for that purpose.
+        --
+        -- VaR sensitivities via finite differences:
         --   Delta = dVaR/dPrice (via +1% price bump)
         --   Gamma = d(delta)/dPrice (via +/-1% bumps)
         --   Vega  = dVaR/dVol (via +1pp vol bump)
@@ -279,6 +327,51 @@ rule CalculatePortfolioGreeks {
         --
         -- Vanna/Volga/Charm computed by bumping both price and vol/time.
         -- Per-position Black-Scholes Greeks for enriched option positions.
+        -- Returns VaRSensitivities, not PricingGreeks.
+}
+
+rule CalculatePricingGreeks {
+    when: PricingGreeksRequested(positions, market_data)
+
+    @guidance
+        -- Computes analytical pricing sensitivities (dPV/dX) for use in P&L
+        -- attribution. These are NOT bumped-VaR quantities.
+        --
+        -- Options (Black-Scholes Merton):
+        --   delta = exp(-qT) * N(d1) [call] or exp(-qT) * (N(d1) - 1) [put]
+        --   gamma = exp(-qT) * pdf(d1) / (S * sigma * sqrt(T))
+        --   vega  = S * exp(-qT) * pdf(d1) * sqrt(T)
+        --   theta = full BSM theta expression
+        --   rho   = K * T * exp(-rT) * N(d2) [call], negative for put
+        --
+        -- Fixed-income (bonds):
+        --   bond_dv01 = |PV(yield+0.0001) - PV(yield-0.0001)| / 2
+        --   (delta/gamma/vega/theta/rho = 0 for non-option fixed income)
+        --
+        -- Swaps:
+        --   swap_dv01 = |PV(yield+0.0001) - PV(yield-0.0001)| / 2
+        --   (delta/gamma/vega/theta/rho = 0 for non-option swaps)
+        --
+        -- Returns PricingGreeks per position.
+        -- These are locked into SodGreekSnapshot before market open.
+}
+
+rule CalculateKeyRateDurations {
+    when: KeyRateDurationsRequested(instrument_id, face_value, coupon_rate, coupon_frequency, maturity_years, yield_curve)
+
+    @guidance
+        -- Computes per-tenor DV01 using tent function bumps on a fitted yield curve.
+        -- NOT bumped-VaR quantities — these are analytical PV sensitivities.
+        --
+        -- Standard tenor grid: 1M, 3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y.
+        -- For each tenor bucket t_i:
+        --   1. Fit yield curve using monotone cubic spline through CurvePoints.
+        --   2. Apply tent function bump: rate increases linearly from 0 at t_{i-1}
+        --      to +1bp at t_i, then decreases linearly to 0 at t_{i+1}.
+        --   3. Reprice bond under bumped curve.
+        --   4. krd[i] = PV(bumped) - PV(base).
+        -- Sum of all KRD buckets equals the full-curve DV01.
+        -- Uses the same DCF pricer as PriceBond.
 }
 
 -- Bond pricing
@@ -427,3 +520,9 @@ invariant BacktestTrafficLightZones {
         -- YELLOW: 5 <= violation_count <= 9
         -- RED: violation_count >= 10
 }
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "FRTB GIRR tenor grid: should we implement the simplified 4-tenor grid (0.25Y, 1Y, 5Y, 30Y) used in the current SBM prototype, or the full 10-tenor BCBS 352 GIRR grid (0.25Y, 0.5Y, 1Y, 2Y, 3Y, 5Y, 10Y, 15Y, 20Y, 30Y)? Inflation and cross-currency basis are separate GIRR risk factors, not additional tenor vertices. The 4-tenor approach is faster and sufficient for internal limits; the 10-tenor grid is required for regulatory submission. Decision affects CalculateKeyRateDurations tenor grid, SBM delta charge bucketing, and the GIRR correlation matrices."

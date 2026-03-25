@@ -369,6 +369,7 @@ fun Application.devModule() {
                 sodSnapshotRoutes(riskClient)
                 runComparisonRoutes(riskClient)
                 intradayPnlProxyRoutes(riskClient)
+                intradayVaRTimelineProxyRoutes(riskClient)
             }
             requirePermission(Permission.READ_RISK) {
                 stressTestRoutes(riskClient)

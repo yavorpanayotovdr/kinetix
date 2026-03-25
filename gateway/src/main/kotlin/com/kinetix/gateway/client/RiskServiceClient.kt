@@ -501,4 +501,5 @@ interface RiskServiceClient {
     suspend fun computeCounterpartyPFE(counterpartyId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject?
     suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getKeyRateDurations(bookId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getIntradayVaRTimeline(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject?
 }

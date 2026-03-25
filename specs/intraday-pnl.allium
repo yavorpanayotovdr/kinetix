@@ -73,6 +73,9 @@ value GreekAttribution {
     vega_pnl: Decimal
     theta_pnl: Decimal
     rho_pnl: Decimal
+    cross_gamma_pnl: Decimal
+    vanna_pnl: Decimal
+    volga_pnl: Decimal
     unexplained_pnl: Decimal
 }
 
@@ -257,20 +260,49 @@ rule SkipRecomputeNoBaseline {
 deferred attribute_pnl
     -- Decomposes total P&L into Greek components using frozen SOD state.
     --
+    -- IMPORTANT: Use PRICING sensitivities (analytical Black-Scholes Greeks,
+    -- bond_dv01, swap_dv01), NOT VaR sensitivities from greeks.py.
+    -- The VaR engine estimates sensitivities numerically for simulation;
+    -- attribution requires the analytical closed-form Greeks for precision.
+    --
     -- For each instrument with a SOD snapshot:
     --   price_change = current_price - sod_price
-    --   vol_change = current_vol - sod_vol (from latest vol surface)
-    --   rate_change = current_rate - sod_rate (from latest yield curve)
+    --
+    --   vol_change MUST be fetched from volatility-service:
+    --     vol_change = current_vol - sod_vol
+    --     where current_vol = volatility-service.getImpliedVol(instrument_id, now)
+    --     and sod_vol = volatility-service.getImpliedVol(instrument_id, sod_time)
+    --     NOT hardcoded to zero.
+    --
+    --   rate_change MUST be fetched from rates-service:
+    --     rate_change = current_rate - sod_rate
+    --     where current_rate = rates-service.getRate(instrument_id, tenor, now)
+    --     and sod_rate = rates-service.getRate(instrument_id, tenor, sod_time)
+    --     NOT hardcoded to zero.
+    --
     --   fractional_day = (now - market_open) / trading_day_duration
     --
-    --   delta_pnl = sod_delta * price_change
-    --   gamma_pnl = 0.5 * sod_gamma * price_change^2
-    --   vega_pnl = sod_vega * vol_change
-    --   theta_pnl = sod_theta * fractional_day
-    --   rho_pnl = sod_rho * rate_change
+    --   delta_pnl     = sod_delta * price_change
+    --   gamma_pnl     = 0.5 * sod_gamma * price_change^2
+    --   vega_pnl      = sod_vega * vol_change
+    --   theta_pnl     = sod_theta * fractional_day
+    --   rho_pnl       = sod_rho * rate_change
+    --
+    --   cross_gamma_pnl = sum_ij(cross_gamma_ij * dS_i * dS_j)
+    --     where i != j, for multi-asset portfolios.
+    --     cross_gamma_ij = d^2(V) / (dS_i * dS_j) at SOD.
+    --     For single-asset portfolios this is zero.
+    --
+    --   vanna_pnl     = sod_vanna * price_change * vol_change
+    --     where vanna = d(delta) / d(vol) = d(vega) / d(S)
+    --
+    --   volga_pnl     = 0.5 * sod_volga * vol_change^2
+    --     where volga = d^2(V) / d(vol)^2
     --
     -- Aggregate across instruments to book level.
-    -- unexplained = total_pnl - (delta + gamma + vega + theta + rho)
+    -- unexplained = total_pnl
+    --     - (delta + gamma + vega + theta + rho
+    --        + cross_gamma + vanna + volga)
     --
     -- All amounts converted to base_currency via current FX rates.
 
@@ -352,6 +384,9 @@ invariant AttributionSumsToTotal {
             + s.attribution.vega_pnl
             + s.attribution.theta_pnl
             + s.attribution.rho_pnl
+            + s.attribution.cross_gamma_pnl
+            + s.attribution.vanna_pnl
+            + s.attribution.volga_pnl
             + s.attribution.unexplained_pnl
 }
 
@@ -384,9 +419,33 @@ invariant DebounceRespected {
         -- if no position changes occur.
 }
 
+invariant UnexplainedPnlThreshold {
+    @guidance
+        -- If |attribution.unexplained_pnl / total_pnl| > 0.20 (20%),
+        -- the system must flag this as a data quality warning.
+        -- This condition indicates stale Greeks, missing vol/rate data
+        -- (e.g. volatility-service or rates-service returned a stale or
+        -- null value causing vol_change or rate_change to be treated as zero),
+        -- or a position type whose sensitivities are not captured by the
+        -- current Greek set.
+        -- The warning is surfaced:
+        --   1. As a field on the IntradayPnlSnapshot (data_quality_warning: Boolean).
+        --   2. In the UI alongside the attribution breakdown.
+        --   3. As a structured log entry at WARN level with book_id, unexplained_pct,
+        --      and snapshot_at for operational monitoring.
+        -- A warning does not prevent the snapshot from being persisted or published.
+        -- The total_pnl figure (computed from positions) remains the authoritative value.
+}
+
 invariant CurrencyConsistency {
     @guidance
         -- All monetary amounts within a single IntradayPnlSnapshot
         -- are denominated in the snapshot's base_currency.
         -- Conversion happens at computation time using current FX rates.
 }
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should the intraday P&L chart also display a VaR timeline alongside P&L — i.e. VaR recalculated at each snapshot point and plotted through the day? This would allow traders to see whether P&L moves are tracking within the intraday VaR envelope, and surface early warning when a drawdown is consuming a significant fraction of the VaR budget. Requires risk-orchestrator to persist per-snapshot VaR alongside each IntradayPnlSnapshot, and the UI chart to render a dual-axis or band overlay."

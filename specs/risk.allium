@@ -65,6 +65,10 @@ value PositionPnlAttribution {
     vega_pnl: Decimal
     theta_pnl: Decimal
     rho_pnl: Decimal
+    vanna_pnl: Decimal       -- vanna * dS * dvol
+    volga_pnl: Decimal       -- 0.5 * volga * dvol^2
+    charm_pnl: Decimal       -- charm * dS * dT
+    cross_gamma_pnl: Decimal -- sum over i,j of cross_gamma(i,j) * dS_i * dS_j
     unexplained_pnl: Decimal
 }
 
@@ -192,9 +196,45 @@ entity SodBaseline {
     baseline_date: String
     snapshot_type: core/SnapshotType
     source_job_id: String
+    greek_snapshot_id: String?  -- references SodGreekSnapshot.snapshot_id
     calculation_type: String?
     var_value: Decimal?
     expected_shortfall: Decimal?
+}
+
+-- Immutable snapshot of analytical pricing Greeks (PricingGreeks) locked
+-- before market open. These are the SOD sensitivities used for P&L attribution
+-- throughout the trading day. Must NOT be updated once locked.
+-- Distinct from DailyRiskSnapshot (which holds VaR sensitivities).
+entity SodGreekSnapshot {
+    snapshot_id: String
+    book_id: String
+    snapshot_date: String
+    locked_at: Timestamp      -- time at which the snapshot was locked
+    locked_by: String         -- user or "SYSTEM"
+    is_locked: Boolean
+
+    -- Per-instrument pricing Greeks (dPV/dX, from BS / bond_dv01 / swap_dv01)
+    -- keyed by instrument_id
+    position_greeks: List<SodPositionGreeks>
+}
+
+value SodPositionGreeks {
+    instrument_id: String
+    asset_class: core/AssetClass
+    sod_price: Decimal
+    sod_vol: Decimal?
+    sod_rate: Decimal?
+    delta: Decimal        -- dPV/dSpot
+    gamma: Decimal        -- d²PV/dSpot²
+    vega: Decimal         -- dPV/dVol
+    theta: Decimal        -- dPV/dTime
+    rho: Decimal          -- dPV/dRate
+    vanna: Decimal        -- d²PV/dSpot dVol
+    volga: Decimal        -- d²PV/dVol²
+    charm: Decimal        -- d²PV/dSpot dTime
+    bond_dv01: Decimal?
+    swap_dv01: Decimal?
 }
 
 entity PnlAttribution {
@@ -207,6 +247,11 @@ entity PnlAttribution {
     vega_pnl: Decimal
     theta_pnl: Decimal
     rho_pnl: Decimal
+    vanna_pnl: Decimal       -- vanna * dS * dvol; summed across positions
+    volga_pnl: Decimal       -- 0.5 * volga * dvol^2; summed across positions
+    charm_pnl: Decimal       -- charm * dS * dT; summed across positions
+    cross_gamma_pnl: Decimal -- sum over i,j of cross_gamma(i,j) * dS_i * dS_j
+    data_quality_flag: core/DataQualityFlag
     unexplained_pnl: Decimal
     position_attributions: List<PositionPnlAttribution>
     calculated_at: Timestamp
@@ -398,19 +443,38 @@ rule ComputePnlAttribution {
     when: ComputePnlAttributionRequested(book_id, date)
 
     @guidance
+        -- IMPORTANT: use PRICING sensitivities (PricingGreeks from SodGreekSnapshot),
+        -- NOT VaR sensitivities from greeks.py / DailyRiskSnapshot. VaR sensitivities
+        -- are dVaR/dX; P&L attribution requires dPV/dX.
+        --
         -- 1. Verify SodBaseline exists for date (else throw NoSodBaselineException).
-        -- 2. Fetch SOD snapshots (daily_risk_snapshots).
+        -- 2. Load SodGreekSnapshot via SodBaseline.greek_snapshot_id.
+        --    If greek_snapshot_id is null, set data_quality_flag = price_only and
+        --    skip Greek attribution (delta_pnl/gamma_pnl/... = 0).
         -- 3. Fetch current positions from position-service.
-        -- 4. For each instrument:
-        --      price_change = current_price - sod_price
-        --      total_pnl = price_change * quantity
-        -- 5. Attribute per position:
-        --      delta_pnl = delta * price_change
-        --      gamma_pnl = 0.5 * gamma * price_change^2
-        --      vega_pnl = vega * vol_change
-        --      theta_pnl = theta * days_elapsed
-        --      rho_pnl = residual
-        -- 6. Persist PnlAttribution.
+        -- 4. Fetch intraday market deltas from live services:
+        --      dS = current_price - sod_price  (from price-service)
+        --      dvol = current_vol - sod_vol     (from volatility-service; NOT hardcoded 0)
+        --      drate = current_rate - sod_rate  (from rates-service; NOT hardcoded 0)
+        -- 5. For each instrument:
+        --      total_pnl = dS * quantity
+        -- 6. Attribute per position using SodPositionGreeks:
+        --      delta_pnl       = delta * dS
+        --      gamma_pnl       = 0.5 * gamma * dS^2
+        --      vega_pnl        = vega * dvol
+        --      theta_pnl       = theta * days_elapsed
+        --      rho_pnl         = rho * drate
+        --      vanna_pnl       = vanna * dS * dvol
+        --      volga_pnl       = 0.5 * volga * dvol^2
+        --      charm_pnl       = charm * dS * days_elapsed
+        --      cross_gamma_pnl = sum over (i,j) of cross_gamma(i,j) * dS_i * dS_j
+        --                        (cross-instrument term for multi-asset books)
+        --      unexplained_pnl = total_pnl - sum of all attributed terms
+        -- 7. Set data_quality_flag:
+        --      full_attribution  — all Greeks and intraday vols/rates available
+        --      price_only        — SodGreekSnapshot missing; delta terms not computed
+        --      stale_greeks      — SodGreekSnapshot present but locked > 2 hours before open
+        -- 8. Persist PnlAttribution.
 }
 
 -- EOD promotion (four-eyes approval)
@@ -505,4 +569,21 @@ invariant OneSodBaselinePerBookPerDate {
     @guidance
         -- Only one SodBaseline can exist for a given (book_id, baseline_date).
         -- Creating a new one for the same date replaces the previous.
+}
+
+invariant PnlExplainUsesPricingSensitivities {
+    @guidance
+        -- P&L attribution (ComputePnlAttribution) must use analytical pricing
+        -- Greeks from SodGreekSnapshot (dPV/dX), not VaR sensitivities from
+        -- DailyRiskSnapshot or greeks.py (dVaR/dX).
+        -- If SodGreekSnapshot is unavailable, data_quality_flag = price_only
+        -- and Greek attribution terms are zeroed; unexplained_pnl absorbs them.
+}
+
+invariant SodGreekSnapshotImmutable {
+    @guidance
+        -- Once SodGreekSnapshot.is_locked = true, the snapshot and all its
+        -- SodPositionGreeks entries are immutable for the remainder of the
+        -- trading day. Any attempt to modify a locked snapshot must be rejected.
+        -- A new snapshot for the following day may be created independently.
 }

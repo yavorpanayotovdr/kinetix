@@ -29,8 +29,11 @@ import { RunComparisonContainer } from './RunComparisonContainer'
 import { CorrelationHeatmap } from './CorrelationHeatmap'
 import { HedgeRecommendationPanel } from './HedgeRecommendationPanel'
 import { useHedgeRecommendation } from '../hooks/useHedgeRecommendation'
+import { useIntradayVaRTimeline } from '../hooks/useIntradayVaRTimeline'
+import { IntradayVaRChart } from './IntradayVaRChart'
+import { TimeRangeSelector } from './TimeRangeSelector'
 
-type RiskSubTab = 'dashboard' | 'run-compare'
+type RiskSubTab = 'dashboard' | 'run-compare' | 'intraday'
 
 interface RiskTabProps {
   bookId: string | null
@@ -139,6 +142,23 @@ export function RiskTab({
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
+  const [intradayTimeRange, setIntradayTimeRange] = useState<{ from: string; to: string; label: string }>(() => {
+    const now = new Date()
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    return { from, to: now.toISOString(), label: 'Today' }
+  })
+
+  const {
+    varPoints: intradayVarPoints,
+    tradeAnnotations: intradayTradeAnnotations,
+    loading: intradayLoading,
+    error: intradayError,
+  } = useIntradayVaRTimeline(
+    subTab === 'intraday' ? bookId : null,
+    intradayTimeRange.from,
+    intradayTimeRange.to,
+  )
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.shiftKey && e.key === 'H' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
@@ -174,6 +194,7 @@ export function RiskTab({
   const subTabs: { key: RiskSubTab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'run-compare', label: 'Run Compare' },
+    { key: 'intraday', label: 'Intraday' },
   ]
 
   return (
@@ -321,6 +342,33 @@ export function RiskTab({
 
       {subTab === 'run-compare' && (
         <RunComparisonContainer bookId={bookId} initialJobIds={pendingJobCompare} />
+      )}
+
+      {subTab === 'intraday' && (
+        <div data-testid="intraday-var-panel">
+          <div className="mb-4">
+            <TimeRangeSelector value={intradayTimeRange} onChange={setIntradayTimeRange} />
+          </div>
+          {intradayError && (
+            <div className="mb-3 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+              {intradayError}
+            </div>
+          )}
+          {intradayLoading && intradayVarPoints.length === 0 && (
+            <div
+              data-testid="intraday-var-loading"
+              className="flex items-center justify-center py-12 text-sm text-slate-400"
+            >
+              Loading intraday VaR data...
+            </div>
+          )}
+          {!intradayLoading && (
+            <IntradayVaRChart
+              varPoints={intradayVarPoints}
+              tradeAnnotations={intradayTradeAnnotations}
+            />
+          )}
+        </div>
       )}
 
       <HedgeRecommendationPanel
