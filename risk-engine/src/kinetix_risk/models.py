@@ -203,6 +203,28 @@ class RiskClassCharge:
 
 
 @dataclass(frozen=True)
+class TenorCharge:
+    """Per-tenor breakdown for GIRR delta charge (BCBS 352 Table 1)."""
+
+    tenor_label: str
+    sensitivity: float
+    risk_weight: float
+    weighted_sensitivity: float
+
+
+@dataclass(frozen=True)
+class GirrRiskClassCharge(RiskClassCharge):
+    """GIRR risk class charge with per-tenor detail per BCBS 352."""
+
+    tenor_charges: list[TenorCharge] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        # Provide a default empty list when not supplied (frozen dataclass workaround)
+        if self.tenor_charges is None:
+            object.__setattr__(self, "tenor_charges", [])
+
+
+@dataclass(frozen=True)
 class SbmResult:
     risk_class_charges: list[RiskClassCharge]
     total_sbm_charge: float
