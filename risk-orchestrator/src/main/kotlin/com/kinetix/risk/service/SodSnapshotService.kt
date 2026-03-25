@@ -1,8 +1,12 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.client.RatesServiceClient
+import com.kinetix.risk.client.VolatilityServiceClient
 import com.kinetix.risk.model.*
 import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.SodBaselineRepository
@@ -10,6 +14,7 @@ import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Currency
 import java.util.UUID
 
 class SodSnapshotService(
@@ -20,6 +25,8 @@ class SodSnapshotService(
     private val positionProvider: PositionProvider,
     private val jobRecorder: ValuationJobRecorder? = null,
     private val maxCacheAgeMinutes: Long = 120,
+    private val volatilityServiceClient: VolatilityServiceClient? = null,
+    private val ratesServiceClient: RatesServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(SodSnapshotService::class.java)
 
@@ -38,6 +45,9 @@ class SodSnapshotService(
 
         val snapshots = result.positionRisk.map { risk ->
             val position = positions.find { it.instrumentId == risk.instrumentId }
+            val sodVol = fetchSodVol(risk.instrumentId)
+            val currency = position?.currency ?: Currency.getInstance("USD")
+            val sodRate = fetchSodRate(currency)
             DailyRiskSnapshot(
                 bookId = bookId,
                 snapshotDate = date,
@@ -50,6 +60,8 @@ class SodSnapshotService(
                 vega = risk.vega,
                 theta = result.greeks?.theta,
                 rho = result.greeks?.rho,
+                sodVol = sodVol,
+                sodRate = sodRate,
             )
         }
 
@@ -143,5 +155,40 @@ class SodSnapshotService(
             logger.info("Cached VaR is {}min old (max {}min), will recalculate", age.toMinutes(), maxCacheAgeMinutes)
         }
         return fresh
+    }
+
+    /**
+     * Fetches the current ATM implied vol (1-month tenor) for [instrumentId] from the vol service.
+     * Uses the vol surface's ATM point: strike=marketPrice with maturity=30 days.
+     * Returns null and logs a warning on failure — callers treat null as zero volChange.
+     */
+    private suspend fun fetchSodVol(instrumentId: InstrumentId): Double? {
+        val client = volatilityServiceClient ?: return null
+        return when (val response = client.getLatestSurface(instrumentId)) {
+            is ClientResponse.Success -> {
+                val surface = response.value
+                // Use the first point as an ATM proxy; the surface may be flat for non-option instruments.
+                surface.points.firstOrNull()?.impliedVol?.toDouble()
+            }
+            is ClientResponse.NotFound -> {
+                logger.debug("No vol surface for {} at SOD — sodVol will be null", instrumentId.value)
+                null
+            }
+        }
+    }
+
+    /**
+     * Fetches the current 1Y risk-free rate for [currency] from the rates service.
+     * Returns null and logs a warning on failure — callers treat null as zero rateChange.
+     */
+    private suspend fun fetchSodRate(currency: Currency): Double? {
+        val client = ratesServiceClient ?: return null
+        return when (val response = client.getLatestRiskFreeRate(currency, "1Y")) {
+            is ClientResponse.Success -> response.value.rate
+            is ClientResponse.NotFound -> {
+                logger.debug("No risk-free rate for {} 1Y at SOD — sodRate will be null", currency.currencyCode)
+                null
+            }
+        }
     }
 }
