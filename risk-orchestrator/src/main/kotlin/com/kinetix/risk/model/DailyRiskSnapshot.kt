@@ -19,4 +19,6 @@ data class DailyRiskSnapshot(
     val vega: Double? = null,
     val theta: Double? = null,
     val rho: Double? = null,
+    val varContribution: BigDecimal? = null,
+    val esContribution: BigDecimal? = null,
 )

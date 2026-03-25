@@ -30,6 +30,8 @@ private fun snapshot(
     vega: Double? = 1500.0,
     theta: Double? = -50.0,
     rho: Double? = 30.0,
+    varContribution: BigDecimal? = null,
+    esContribution: BigDecimal? = null,
 ) = DailyRiskSnapshot(
     bookId = bookId,
     snapshotDate = snapshotDate,
@@ -42,6 +44,8 @@ private fun snapshot(
     vega = vega,
     theta = theta,
     rho = rho,
+    varContribution = varContribution,
+    esContribution = esContribution,
 )
 
 class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
@@ -168,5 +172,27 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
 
         repository.findByBookIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+    }
+
+    test("persists and retrieves var and es contribution columns") {
+        val snap = snapshot(
+            varContribution = BigDecimal("12345.67890000"),
+            esContribution = BigDecimal("23456.78900000"),
+        )
+        repository.save(snap)
+
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        found shouldHaveSize 1
+        found[0].varContribution?.compareTo(BigDecimal("12345.67890000")) shouldBe 0
+        found[0].esContribution?.compareTo(BigDecimal("23456.78900000")) shouldBe 0
+    }
+
+    test("contribution columns are null when not provided") {
+        repository.save(snapshot())
+
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        found shouldHaveSize 1
+        found[0].varContribution shouldBe null
+        found[0].esContribution shouldBe null
     }
 })
