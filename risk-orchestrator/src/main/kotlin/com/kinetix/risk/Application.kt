@@ -62,6 +62,11 @@ import com.kinetix.risk.routes.runComparisonRoutes
 import com.kinetix.risk.routes.eodTimelineRoutes
 import com.kinetix.risk.routes.hedgeRecommendationRoutes
 import com.kinetix.risk.routes.counterpartyRiskRoutes
+import com.kinetix.risk.routes.reportRoutes
+import com.kinetix.risk.persistence.ExposedReportRepository
+import com.kinetix.risk.schedule.RiskPositionsFlatRefresher
+import com.kinetix.risk.service.JdbcReportQueryExecutor
+import com.kinetix.risk.service.ReportService
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.MarketDataQuantDiffer
@@ -346,6 +351,7 @@ fun Application.moduleWithRoutes() {
             newSuspendedTransaction(db = riskDb) {
                 exec("REFRESH MATERIALIZED VIEW CONCURRENTLY daily_official_eod_summary")
             }
+            RiskPositionsFlatRefresher(riskDb).refresh()
         },
         manifestRepository = manifestRepo,
     )
@@ -617,6 +623,11 @@ fun Application.moduleWithRoutes() {
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
+
+        val reportRepository = ExposedReportRepository(riskDb)
+        val reportQueryExecutor = JdbcReportQueryExecutor(RiskDatabaseFactory.dataSource)
+        val reportService = ReportService(reportRepository, reportQueryExecutor)
+        reportRoutes(reportService)
     }
 
     launch {
