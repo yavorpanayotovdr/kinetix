@@ -10,6 +10,7 @@ import com.kinetix.referencedata.persistence.DatabaseFactory
 import com.kinetix.referencedata.persistence.DeskRepository
 import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedBenchmarkRepository
 import com.kinetix.referencedata.persistence.ExposedCounterpartyRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
 import com.kinetix.referencedata.persistence.ExposedDeskRepository
@@ -18,12 +19,14 @@ import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentLiquidityRepository
 import com.kinetix.referencedata.persistence.ExposedNettingAgreementRepository
+import com.kinetix.referencedata.routes.benchmarkRoutes
 import com.kinetix.referencedata.routes.counterpartyRoutes
 import com.kinetix.referencedata.routes.deskRoutes
 import com.kinetix.referencedata.routes.divisionRoutes
 import com.kinetix.referencedata.routes.instrumentRoutes
 import com.kinetix.referencedata.routes.liquidityRoutes
 import com.kinetix.referencedata.routes.referenceDataRoutes
+import com.kinetix.referencedata.service.BenchmarkService
 import com.kinetix.referencedata.service.CounterpartyService
 import com.kinetix.referencedata.service.DeskService
 import com.kinetix.referencedata.service.DivisionService
@@ -107,6 +110,7 @@ fun Application.module(
     deskService: DeskService? = null,
     liquidityService: InstrumentLiquidityService? = null,
     counterpartyService: CounterpartyService? = null,
+    benchmarkService: BenchmarkService? = null,
 ) {
     module()
     install(StatusPages) {
@@ -138,6 +142,9 @@ fun Application.module(
         }
         if (counterpartyService != null) {
             counterpartyRoutes(counterpartyService)
+        }
+        if (benchmarkService != null) {
+            benchmarkRoutes(benchmarkService)
         }
     }
 }
@@ -198,7 +205,10 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService, liquidityService, counterpartyService)
+    val benchmarkRepository = ExposedBenchmarkRepository(db)
+    val benchmarkService = BenchmarkService(benchmarkRepository)
+
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService, liquidityService, counterpartyService, benchmarkService)
 
     routing {
         get("/health/ready") {
