@@ -322,4 +322,110 @@ describe('NotificationCenter', () => {
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     })
   })
+
+  describe('escalation', () => {
+    const escalatedAlert: AlertEventDto = {
+      id: 'esc-1',
+      ruleId: 'rule-1',
+      ruleName: 'VaR Limit',
+      type: 'VAR_BREACH',
+      severity: 'CRITICAL',
+      message: 'VaR breach not acknowledged in time',
+      currentValue: 250000,
+      threshold: 100000,
+      bookId: 'book-1',
+      triggeredAt: '2025-01-15T09:00:00Z',
+      status: 'ESCALATED',
+      escalatedAt: '2025-01-15T09:35:00Z',
+      escalatedTo: 'risk-manager,cro',
+    }
+
+    it('shows ESCALATED status filter option', () => {
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={[]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('status-filter-escalated')).toBeInTheDocument()
+    })
+
+    it('shows escalation badge (orange) on escalated alerts', () => {
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={[escalatedAlert]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      const badge = screen.getByTestId('escalation-badge-esc-1')
+      expect(badge).toBeInTheDocument()
+      expect(badge.className).toContain('orange')
+    })
+
+    it('shows escalatedTo in escalated alert detail', () => {
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={[escalatedAlert]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('escalated-to-esc-1')).toHaveTextContent('risk-manager,cro')
+    })
+
+    it('shows escalatedAt in escalated alert detail', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={[escalatedAlert]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      expect(screen.getByTestId('escalated-at-esc-1')).toBeInTheDocument()
+
+      vi.useRealTimers()
+    })
+
+    it('ESCALATED filter shows only escalated alerts', () => {
+      const triggeredAlert: AlertEventDto = { ...sampleAlerts[0], id: 'trig-1', status: 'TRIGGERED' }
+
+      render(
+        <NotificationCenter
+          rules={[]}
+          alerts={[escalatedAlert, triggeredAlert]}
+          loading={false}
+          error={null}
+          onCreateRule={() => {}}
+          onDeleteRule={() => {}}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('status-filter-escalated'))
+
+      const alertsList = screen.getByTestId('alerts-list')
+      expect(alertsList.children.length).toBe(1)
+      expect(screen.getByTestId('escalation-badge-esc-1')).toBeInTheDocument()
+    })
+  })
 })

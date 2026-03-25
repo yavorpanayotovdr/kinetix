@@ -255,6 +255,8 @@ export interface AlertEventDto {
   status: string
   resolvedAt?: string
   resolvedReason?: string
+  escalatedAt?: string
+  escalatedTo?: string
   correlationId?: string
   suggestedAction?: string
 }
