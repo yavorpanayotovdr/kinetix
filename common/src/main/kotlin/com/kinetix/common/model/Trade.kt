@@ -17,6 +17,7 @@ data class Trade(
     val originalTradeId: TradeId? = null,
     val counterpartyId: String? = null,
     val instrumentType: String? = null,
+    val strategyId: String? = null,
 ) {
     init {
         require(quantity > BigDecimal.ZERO) { "Trade quantity must be positive, was $quantity" }
