@@ -54,6 +54,8 @@ fun Route.stressScenarioRoutes(
                 createdBy = request.createdBy,
                 scenarioType = runCatching { ScenarioType.valueOf(request.scenarioType) }
                     .getOrDefault(ScenarioType.PARAMETRIC),
+                category = runCatching { ScenarioCategory.valueOf(request.category) }
+                    .getOrDefault(ScenarioCategory.INTERNAL_APPROVED),
                 parentScenarioId = request.parentScenarioId,
                 correlationOverride = request.correlationOverride,
                 liquidityStressFactors = request.liquidityStressFactors,
@@ -183,6 +185,7 @@ private fun StressScenario.toResponse() = StressScenarioResponse(
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),
     scenarioType = scenarioType.name,
+    category = category.name,
     version = version,
     parentScenarioId = parentScenarioId,
     correlationOverride = correlationOverride,

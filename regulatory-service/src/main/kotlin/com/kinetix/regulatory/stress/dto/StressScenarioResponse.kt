@@ -14,6 +14,7 @@ data class StressScenarioResponse(
     val approvedAt: String?,
     val createdAt: String,
     val scenarioType: String = "PARAMETRIC",
+    val category: String = "INTERNAL_APPROVED",
     val version: Int = 1,
     val parentScenarioId: String? = null,
     val correlationOverride: String? = null,

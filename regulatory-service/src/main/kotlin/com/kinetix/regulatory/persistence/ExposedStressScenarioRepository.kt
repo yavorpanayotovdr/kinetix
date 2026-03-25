@@ -1,5 +1,6 @@
 package com.kinetix.regulatory.persistence
 
+import com.kinetix.regulatory.stress.ScenarioCategory
 import com.kinetix.regulatory.stress.ScenarioStatus
 import com.kinetix.regulatory.stress.ScenarioType
 import com.kinetix.regulatory.stress.StressScenario
@@ -45,6 +46,7 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
                 }
                 it[createdAt] = OffsetDateTime.ofInstant(scenario.createdAt, ZoneOffset.UTC)
                 it[scenarioType] = scenario.scenarioType.name
+                it[category] = scenario.category.name
                 it[version] = scenario.version
                 it[parentScenarioId] = scenario.parentScenarioId
                 it[correlationOverride] = scenario.correlationOverride
@@ -91,6 +93,8 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
         createdAt = this[StressScenariosTable.createdAt].toInstant(),
         scenarioType = runCatching { ScenarioType.valueOf(this[StressScenariosTable.scenarioType]) }
             .getOrDefault(ScenarioType.PARAMETRIC),
+        category = runCatching { ScenarioCategory.valueOf(this[StressScenariosTable.category]) }
+            .getOrDefault(ScenarioCategory.INTERNAL_APPROVED),
         version = this[StressScenariosTable.version],
         parentScenarioId = this[StressScenariosTable.parentScenarioId],
         correlationOverride = this[StressScenariosTable.correlationOverride],
