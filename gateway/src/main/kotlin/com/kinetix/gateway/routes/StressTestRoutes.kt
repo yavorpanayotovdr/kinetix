@@ -3,6 +3,7 @@ package com.kinetix.gateway.routes
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.HistoricalReplayRequest
 import com.kinetix.gateway.dto.ReverseStressRequest
+import com.kinetix.gateway.dto.BatchStressRunResultResponse
 import com.kinetix.gateway.dto.StressTestBatchRequest
 import com.kinetix.gateway.dto.StressTestRequest
 import com.kinetix.gateway.dto.VaRCalculationRequest
@@ -46,8 +47,8 @@ fun Route.stressTestRoutes(client: RiskServiceClient) {
         val bookId = call.requirePathParam("bookId")
         val request = call.receive<StressTestBatchRequest>()
         val params = request.toParams(bookId)
-        val results = client.runBatchStressTest(params)
-        call.respond(results.map { it.toResponse() })
+        val result = client.runBatchStressTest(params)
+        call.respond(result.toResponse())
     }
 
     get("/api/v1/risk/stress/scenarios", {

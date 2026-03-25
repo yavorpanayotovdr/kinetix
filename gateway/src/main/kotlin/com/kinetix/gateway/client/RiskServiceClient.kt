@@ -85,6 +85,25 @@ data class StressTestBatchParams(
     val timeHorizonDays: Int,
 )
 
+data class BatchScenarioResultItem(
+    val scenarioName: String,
+    val baseVar: String,
+    val stressedVar: String,
+    val pnlImpact: String,
+)
+
+data class BatchScenarioFailureItem(
+    val scenarioName: String,
+    val errorMessage: String,
+)
+
+data class BatchStressRunSummary(
+    val results: List<BatchScenarioResultItem>,
+    val failedScenarios: List<BatchScenarioFailureItem>,
+    val worstScenarioName: String?,
+    val worstPnlImpact: String?,
+)
+
 data class GreekValuesItem(
     val assetClass: String,
     val delta: Double,
@@ -430,7 +449,7 @@ interface RiskServiceClient {
     suspend fun calculateVaR(params: VaRCalculationParams): ValuationResultSummary?
     suspend fun getLatestVaR(bookId: String, valuationDate: String? = null): ValuationResultSummary?
     suspend fun runStressTest(params: StressTestParams): StressTestResultSummary?
-    suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary>
+    suspend fun runBatchStressTest(params: StressTestBatchParams): BatchStressRunSummary
     suspend fun listScenarios(): List<String>
     suspend fun calculateGreeks(params: VaRCalculationParams): GreeksResultSummary?
     suspend fun calculateFrtb(bookId: String): FrtbResultSummary?

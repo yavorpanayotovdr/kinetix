@@ -111,7 +111,7 @@ class HttpRiskServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun runBatchStressTest(params: StressTestBatchParams): List<StressTestResultSummary> {
+    override suspend fun runBatchStressTest(params: StressTestBatchParams): BatchStressRunSummary {
         val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}/batch") {
             contentType(ContentType.Application.Json)
             setBody(
@@ -124,8 +124,8 @@ class HttpRiskServiceClient(
             )
         }
         if (!response.status.isSuccess()) handleErrorResponse(response)
-        val dtos: List<StressTestResultDto> = response.body()
-        return dtos.map { it.toDomain() }
+        val dto: BatchStressRunResultClientDto = response.body()
+        return dto.toDomain()
     }
 
     override suspend fun listScenarios(): List<String> {
