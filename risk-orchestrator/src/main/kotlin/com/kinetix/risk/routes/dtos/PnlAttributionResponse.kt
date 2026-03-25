@@ -12,7 +12,12 @@ data class PnlAttributionResponse(
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+    val vannaPnl: String,
+    val volgaPnl: String,
+    val charmPnl: String,
+    val crossGammaPnl: String,
     val unexplainedPnl: String,
     val positionAttributions: List<PositionPnlAttributionDto>,
+    val dataQualityFlag: String,
     val calculatedAt: String,
 )

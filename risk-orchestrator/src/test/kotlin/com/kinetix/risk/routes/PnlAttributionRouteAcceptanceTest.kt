@@ -3,11 +3,11 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.BookId
+import com.kinetix.risk.model.AttributionDataQuality
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import com.kinetix.risk.persistence.PnlAttributionRepository
 import com.kinetix.risk.routes.dtos.PnlAttributionResponse
-import com.kinetix.risk.routes.dtos.PositionPnlAttributionDto
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -45,7 +45,11 @@ private fun sampleAttribution(
     vegaPnl = bd("2.00"),
     thetaPnl = bd("-0.50"),
     rhoPnl = bd("0.30"),
-    unexplainedPnl = bd("3.70"),
+    vannaPnl = bd("0.10"),
+    volgaPnl = bd("0.04"),
+    charmPnl = bd("-0.002"),
+    crossGammaPnl = bd("0.00"),
+    unexplainedPnl = bd("3.562"),
     positionAttributions = listOf(
         PositionPnlAttribution(
             instrumentId = InstrumentId("AAPL"),
@@ -56,7 +60,11 @@ private fun sampleAttribution(
             vegaPnl = bd("1.50"),
             thetaPnl = bd("-0.30"),
             rhoPnl = bd("0.20"),
-            unexplainedPnl = bd("2.60"),
+            vannaPnl = bd("0.07"),
+            volgaPnl = bd("0.025"),
+            charmPnl = bd("-0.001"),
+            crossGammaPnl = bd("0.00"),
+            unexplainedPnl = bd("2.506"),
         ),
         PositionPnlAttribution(
             instrumentId = InstrumentId("MSFT"),
@@ -67,9 +75,14 @@ private fun sampleAttribution(
             vegaPnl = bd("0.50"),
             thetaPnl = bd("-0.20"),
             rhoPnl = bd("0.10"),
-            unexplainedPnl = bd("1.10"),
+            vannaPnl = bd("0.03"),
+            volgaPnl = bd("0.015"),
+            charmPnl = bd("-0.001"),
+            crossGammaPnl = bd("0.00"),
+            unexplainedPnl = bd("1.056"),
         ),
     ),
+    dataQualityFlag = AttributionDataQuality.FULL_ATTRIBUTION,
     calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
 )
 
@@ -81,7 +94,7 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
         clearMocks(pnlAttributionRepository)
     }
 
-    test("GET /api/v1/risk/pnl-attribution/{bookId} returns latest attribution") {
+    test("GET /api/v1/risk/pnl-attribution/{bookId} returns latest attribution with cross-Greek fields") {
         val attribution = sampleAttribution()
         coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
 
@@ -111,12 +124,17 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
             body.vegaPnl shouldBe "2.00"
             body.thetaPnl shouldBe "-0.50"
             body.rhoPnl shouldBe "0.30"
-            body.unexplainedPnl shouldBe "3.70"
+            body.vannaPnl shouldBe "0.10"
+            body.volgaPnl shouldBe "0.04"
+            body.charmPnl shouldBe "-0.002"
+            body.crossGammaPnl shouldBe "0.00"
+            body.unexplainedPnl shouldBe "3.562"
+            body.dataQualityFlag shouldBe "FULL_ATTRIBUTION"
             body.calculatedAt shouldBe "2025-01-15T10:00:00Z"
         }
     }
 
-    test("GET /api/v1/risk/pnl-attribution/{bookId} returns position attributions in correct structure") {
+    test("GET /api/v1/risk/pnl-attribution/{bookId} returns position attributions with cross-Greek fields") {
         val attribution = sampleAttribution()
         coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
 
@@ -149,11 +167,16 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
             aapl.vegaPnl shouldBe "1.50"
             aapl.thetaPnl shouldBe "-0.30"
             aapl.rhoPnl shouldBe "0.20"
-            aapl.unexplainedPnl shouldBe "2.60"
+            aapl.vannaPnl shouldBe "0.07"
+            aapl.volgaPnl shouldBe "0.025"
+            aapl.charmPnl shouldBe "-0.001"
+            aapl.crossGammaPnl shouldBe "0.00"
+            aapl.unexplainedPnl shouldBe "2.506"
 
             val msft = body.positionAttributions[1]
             msft.instrumentId shouldBe "MSFT"
             msft.totalPnl shouldBe "3.00"
+            msft.vannaPnl shouldBe "0.03"
         }
     }
 
@@ -186,6 +209,7 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
 
             val body = Json.decodeFromString<PnlAttributionResponse>(response.bodyAsText())
             body.date shouldBe "2025-01-15"
+            body.dataQualityFlag shouldBe "FULL_ATTRIBUTION"
         }
     }
 

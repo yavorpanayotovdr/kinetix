@@ -12,5 +12,9 @@ data class PositionPnlAttributionJson(
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+    val vannaPnl: String = "0",
+    val volgaPnl: String = "0",
+    val charmPnl: String = "0",
+    val crossGammaPnl: String = "0",
     val unexplainedPnl: String,
 )

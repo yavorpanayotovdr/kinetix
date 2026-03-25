@@ -28,6 +28,10 @@ private data class InstrumentPnlRecord(
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+    val vannaPnl: String = "0",
+    val volgaPnl: String = "0",
+    val charmPnl: String = "0",
+    val crossGammaPnl: String = "0",
     val unexplainedPnl: String,
 )
 
@@ -44,6 +48,10 @@ private fun List<InstrumentPnlBreakdown>.toJson(): String =
             vegaPnl = it.vegaPnl,
             thetaPnl = it.thetaPnl,
             rhoPnl = it.rhoPnl,
+            vannaPnl = it.vannaPnl,
+            volgaPnl = it.volgaPnl,
+            charmPnl = it.charmPnl,
+            crossGammaPnl = it.crossGammaPnl,
             unexplainedPnl = it.unexplainedPnl,
         )
     })
@@ -59,6 +67,10 @@ private fun String.toInstrumentPnlBreakdowns(): List<InstrumentPnlBreakdown> =
             vegaPnl = it.vegaPnl,
             thetaPnl = it.thetaPnl,
             rhoPnl = it.rhoPnl,
+            vannaPnl = it.vannaPnl,
+            volgaPnl = it.volgaPnl,
+            charmPnl = it.charmPnl,
+            crossGammaPnl = it.crossGammaPnl,
             unexplainedPnl = it.unexplainedPnl,
         )
     }
@@ -79,6 +91,10 @@ class ExposedIntradayPnlRepository(private val db: Database? = null) : IntradayP
             it[vegaPnl] = snapshot.vegaPnl
             it[thetaPnl] = snapshot.thetaPnl
             it[rhoPnl] = snapshot.rhoPnl
+            it[vannaPnl] = snapshot.vannaPnl
+            it[volgaPnl] = snapshot.volgaPnl
+            it[charmPnl] = snapshot.charmPnl
+            it[crossGammaPnl] = snapshot.crossGammaPnl
             it[unexplainedPnl] = snapshot.unexplainedPnl
             it[highWaterMark] = snapshot.highWaterMark
             it[instrumentPnlJson] = snapshot.instrumentPnl.toJson()
@@ -128,6 +144,10 @@ class ExposedIntradayPnlRepository(private val db: Database? = null) : IntradayP
         vegaPnl = this[IntradayPnlSnapshotsTable.vegaPnl],
         thetaPnl = this[IntradayPnlSnapshotsTable.thetaPnl],
         rhoPnl = this[IntradayPnlSnapshotsTable.rhoPnl],
+        vannaPnl = this[IntradayPnlSnapshotsTable.vannaPnl],
+        volgaPnl = this[IntradayPnlSnapshotsTable.volgaPnl],
+        charmPnl = this[IntradayPnlSnapshotsTable.charmPnl],
+        crossGammaPnl = this[IntradayPnlSnapshotsTable.crossGammaPnl],
         unexplainedPnl = this[IntradayPnlSnapshotsTable.unexplainedPnl],
         highWaterMark = this[IntradayPnlSnapshotsTable.highWaterMark],
         instrumentPnl = this[IntradayPnlSnapshotsTable.instrumentPnlJson].toInstrumentPnlBreakdowns(),

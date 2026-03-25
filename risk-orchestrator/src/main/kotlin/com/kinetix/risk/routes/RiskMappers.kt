@@ -139,8 +139,13 @@ internal fun PnlAttribution.toResponse() = PnlAttributionResponse(
     vegaPnl = vegaPnl.toPlainString(),
     thetaPnl = thetaPnl.toPlainString(),
     rhoPnl = rhoPnl.toPlainString(),
+    vannaPnl = vannaPnl.toPlainString(),
+    volgaPnl = volgaPnl.toPlainString(),
+    charmPnl = charmPnl.toPlainString(),
+    crossGammaPnl = crossGammaPnl.toPlainString(),
     unexplainedPnl = unexplainedPnl.toPlainString(),
     positionAttributions = positionAttributions.map { it.toDto() },
+    dataQualityFlag = dataQualityFlag.name,
     calculatedAt = calculatedAt.toString(),
 )
 
@@ -153,6 +158,10 @@ internal fun PositionPnlAttribution.toDto() = PositionPnlAttributionDto(
     vegaPnl = vegaPnl.toPlainString(),
     thetaPnl = thetaPnl.toPlainString(),
     rhoPnl = rhoPnl.toPlainString(),
+    vannaPnl = vannaPnl.toPlainString(),
+    volgaPnl = volgaPnl.toPlainString(),
+    charmPnl = charmPnl.toPlainString(),
+    crossGammaPnl = crossGammaPnl.toPlainString(),
     unexplainedPnl = unexplainedPnl.toPlainString(),
 )
 

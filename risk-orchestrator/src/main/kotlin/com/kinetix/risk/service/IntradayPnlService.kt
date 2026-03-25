@@ -108,6 +108,10 @@ class IntradayPnlService(
                 vegaPnl = pos.vegaPnl.toPlainString(),
                 thetaPnl = pos.thetaPnl.toPlainString(),
                 rhoPnl = pos.rhoPnl.toPlainString(),
+                vannaPnl = pos.vannaPnl.toPlainString(),
+                volgaPnl = pos.volgaPnl.toPlainString(),
+                charmPnl = pos.charmPnl.toPlainString(),
+                crossGammaPnl = pos.crossGammaPnl.toPlainString(),
                 unexplainedPnl = pos.unexplainedPnl.toPlainString(),
             )
         }
@@ -125,8 +129,13 @@ class IntradayPnlService(
             vegaPnl = attribution.vegaPnl,
             thetaPnl = attribution.thetaPnl,
             rhoPnl = attribution.rhoPnl,
+            vannaPnl = attribution.vannaPnl,
+            volgaPnl = attribution.volgaPnl,
+            charmPnl = attribution.charmPnl,
+            crossGammaPnl = attribution.crossGammaPnl,
             unexplainedPnl = totalPnl - (attribution.deltaPnl + attribution.gammaPnl +
-                attribution.vegaPnl + attribution.thetaPnl + attribution.rhoPnl),
+                attribution.vegaPnl + attribution.thetaPnl + attribution.rhoPnl +
+                attribution.vannaPnl + attribution.volgaPnl + attribution.charmPnl + attribution.crossGammaPnl),
             highWaterMark = newHwm,
             instrumentPnl = instrumentPnl,
             correlationId = correlationId,

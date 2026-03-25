@@ -3,6 +3,7 @@ package com.kinetix.risk.persistence
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.BookId
+import com.kinetix.risk.model.AttributionDataQuality
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import org.jetbrains.exposed.sql.Database
@@ -33,8 +34,13 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
             it[vegaPnl] = attribution.vegaPnl
             it[thetaPnl] = attribution.thetaPnl
             it[rhoPnl] = attribution.rhoPnl
+            it[vannaPnl] = attribution.vannaPnl
+            it[volgaPnl] = attribution.volgaPnl
+            it[charmPnl] = attribution.charmPnl
+            it[crossGammaPnl] = attribution.crossGammaPnl
             it[unexplainedPnl] = attribution.unexplainedPnl
             it[positionAttributions] = attribution.positionAttributions.map { pa -> pa.toJson() }
+            it[dataQualityFlag] = attribution.dataQualityFlag.name
             it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
     }
@@ -88,6 +94,10 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
         vegaPnl = vegaPnl.toPlainString(),
         thetaPnl = thetaPnl.toPlainString(),
         rhoPnl = rhoPnl.toPlainString(),
+        vannaPnl = vannaPnl.toPlainString(),
+        volgaPnl = volgaPnl.toPlainString(),
+        charmPnl = charmPnl.toPlainString(),
+        crossGammaPnl = crossGammaPnl.toPlainString(),
         unexplainedPnl = unexplainedPnl.toPlainString(),
     )
 
@@ -100,6 +110,10 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
         vegaPnl = BigDecimal(vegaPnl),
         thetaPnl = BigDecimal(thetaPnl),
         rhoPnl = BigDecimal(rhoPnl),
+        vannaPnl = BigDecimal(vannaPnl),
+        volgaPnl = BigDecimal(volgaPnl),
+        charmPnl = BigDecimal(charmPnl),
+        crossGammaPnl = BigDecimal(crossGammaPnl),
         unexplainedPnl = BigDecimal(unexplainedPnl),
     )
 
@@ -113,8 +127,15 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
         vegaPnl = this[PnlAttributionsTable.vegaPnl],
         thetaPnl = this[PnlAttributionsTable.thetaPnl],
         rhoPnl = this[PnlAttributionsTable.rhoPnl],
+        vannaPnl = this[PnlAttributionsTable.vannaPnl],
+        volgaPnl = this[PnlAttributionsTable.volgaPnl],
+        charmPnl = this[PnlAttributionsTable.charmPnl],
+        crossGammaPnl = this[PnlAttributionsTable.crossGammaPnl],
         unexplainedPnl = this[PnlAttributionsTable.unexplainedPnl],
         positionAttributions = this[PnlAttributionsTable.positionAttributions]?.map { it.toDomain() } ?: emptyList(),
+        dataQualityFlag = runCatching {
+            AttributionDataQuality.valueOf(this[PnlAttributionsTable.dataQualityFlag])
+        }.getOrDefault(AttributionDataQuality.PRICE_ONLY),
         calculatedAt = this[PnlAttributionsTable.createdAt].toInstant(),
     )
 }

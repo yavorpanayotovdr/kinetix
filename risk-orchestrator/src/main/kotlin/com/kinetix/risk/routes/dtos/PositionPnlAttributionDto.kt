@@ -12,5 +12,9 @@ data class PositionPnlAttributionDto(
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+    val vannaPnl: String,
+    val volgaPnl: String,
+    val charmPnl: String,
+    val crossGammaPnl: String,
     val unexplainedPnl: String,
 )
