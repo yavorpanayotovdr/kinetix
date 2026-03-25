@@ -17,6 +17,12 @@ object StressScenariosTable : Table("stress_scenarios") {
     val approvedAt = timestampWithTimeZone("approved_at").nullable()
     val createdAt = timestampWithTimeZone("created_at")
     val scenarioType = varchar("scenario_type", 30).default("PARAMETRIC")
+    val version = integer("version").default(1)
+    val parentScenarioId = varchar("parent_scenario_id", 255).nullable()
+    val correlationOverride = text("correlation_override").nullable()
+    val liquidityStressFactors = text("liquidity_stress_factors").nullable()
+    val historicalPeriodId = varchar("historical_period_id", 255).nullable()
+    val targetLoss = decimal("target_loss", 28, 8).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

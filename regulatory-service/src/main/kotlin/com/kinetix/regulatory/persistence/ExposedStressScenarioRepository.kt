@@ -21,11 +21,15 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
 
         if (existing != null) {
             StressScenariosTable.update({ StressScenariosTable.id eq scenario.id }) {
+                it[shocks] = Json.parseToJsonElement(scenario.shocks)
                 it[status] = scenario.status.name
                 it[approvedBy] = scenario.approvedBy
                 it[approvedAt] = scenario.approvedAt?.let { ts ->
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
                 }
+                it[version] = scenario.version
+                it[correlationOverride] = scenario.correlationOverride
+                it[liquidityStressFactors] = scenario.liquidityStressFactors
             }
         } else {
             StressScenariosTable.insert {
@@ -41,6 +45,12 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
                 }
                 it[createdAt] = OffsetDateTime.ofInstant(scenario.createdAt, ZoneOffset.UTC)
                 it[scenarioType] = scenario.scenarioType.name
+                it[version] = scenario.version
+                it[parentScenarioId] = scenario.parentScenarioId
+                it[correlationOverride] = scenario.correlationOverride
+                it[liquidityStressFactors] = scenario.liquidityStressFactors
+                it[historicalPeriodId] = scenario.historicalPeriodId
+                it[targetLoss] = scenario.targetLoss
             }
         }
     }
@@ -81,5 +91,11 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
         createdAt = this[StressScenariosTable.createdAt].toInstant(),
         scenarioType = runCatching { ScenarioType.valueOf(this[StressScenariosTable.scenarioType]) }
             .getOrDefault(ScenarioType.PARAMETRIC),
+        version = this[StressScenariosTable.version],
+        parentScenarioId = this[StressScenariosTable.parentScenarioId],
+        correlationOverride = this[StressScenariosTable.correlationOverride],
+        liquidityStressFactors = this[StressScenariosTable.liquidityStressFactors],
+        historicalPeriodId = this[StressScenariosTable.historicalPeriodId],
+        targetLoss = this[StressScenariosTable.targetLoss],
     )
 }

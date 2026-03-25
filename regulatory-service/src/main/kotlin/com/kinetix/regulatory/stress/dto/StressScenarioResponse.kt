@@ -14,4 +14,10 @@ data class StressScenarioResponse(
     val approvedAt: String?,
     val createdAt: String,
     val scenarioType: String = "PARAMETRIC",
+    val version: Int = 1,
+    val parentScenarioId: String? = null,
+    val correlationOverride: String? = null,
+    val liquidityStressFactors: String? = null,
+    val historicalPeriodId: String? = null,
+    val targetLoss: String? = null,
 )

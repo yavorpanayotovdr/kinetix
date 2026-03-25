@@ -9,4 +9,9 @@ data class CreateScenarioRequest(
     val shocks: String,
     val createdBy: String,
     val scenarioType: String = "PARAMETRIC",
+    val parentScenarioId: String? = null,
+    val correlationOverride: String? = null,
+    val liquidityStressFactors: String? = null,
+    val historicalPeriodId: String? = null,
+    val targetLoss: String? = null,
 )
