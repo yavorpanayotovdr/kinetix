@@ -1996,3 +1996,68 @@ export async function mockCounterpartyRiskRoutes(
     }
   })
 }
+
+// ---------------------------------------------------------------------------
+// Brinson attribution fixture data and mock helpers
+// ---------------------------------------------------------------------------
+
+export const TEST_BRINSON_ATTRIBUTION = {
+  bookId: 'port-1',
+  benchmarkId: 'SP500',
+  asOfDate: '2026-03-25',
+  sectors: [
+    {
+      sectorLabel: 'AAPL',
+      portfolioWeight: 0.35,
+      benchmarkWeight: 0.07,
+      portfolioReturn: 0.12,
+      benchmarkReturn: 0.10,
+      allocationEffect: 0.028,
+      selectionEffect: 0.014,
+      interactionEffect: 0.004,
+      totalActiveContribution: 0.046,
+    },
+    {
+      sectorLabel: 'GOOGL',
+      portfolioWeight: 0.25,
+      benchmarkWeight: 0.065,
+      portfolioReturn: 0.08,
+      benchmarkReturn: 0.09,
+      allocationEffect: 0.010,
+      selectionEffect: -0.0065,
+      interactionEffect: -0.0019,
+      totalActiveContribution: 0.0016,
+    },
+  ],
+  totalActiveReturn: 0.0476,
+  totalAllocationEffect: 0.038,
+  totalSelectionEffect: 0.0075,
+  totalInteractionEffect: 0.0021,
+}
+
+/**
+ * Mocks the Brinson attribution endpoint for a specific book.
+ * Call this AFTER mockAllApiRoutes.
+ */
+export async function mockBrinsonAttributionRoutes(
+  page: Page,
+  opts: { data?: object | null; errorStatus?: number; errorMessage?: string } = {},
+): Promise<void> {
+  await page.route('**/api/v1/books/*/attribution*', (route: Route) => {
+    if (opts.errorStatus) {
+      route.fulfill({
+        status: opts.errorStatus,
+        contentType: 'text/plain',
+        body: opts.errorMessage ?? 'Error',
+      })
+    } else if (opts.data === null) {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+    } else {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.data ?? TEST_BRINSON_ATTRIBUTION),
+      })
+    }
+  })
+}
