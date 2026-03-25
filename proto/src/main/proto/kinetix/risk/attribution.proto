@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+// Brinson-Hood-Beebower performance attribution.
+//
+// Sectors must correspond between portfolio and benchmark weights/returns.
+// Weights per side must sum to 1.0.
+
+message SectorInput {
+  string sector_label    = 1;
+  double portfolio_weight = 2;
+  double benchmark_weight = 3;
+  double portfolio_return = 4;
+  double benchmark_return = 5;
+}
+
+message AttributionPeriod {
+  repeated SectorInput sectors          = 1;
+  double total_benchmark_return         = 2;
+}
+
+message BrinsonAttributionRequest {
+  // Single period: provide exactly one period.
+  // Multi-period geometric: provide periods in chronological order.
+  repeated AttributionPeriod periods    = 1;
+}
+
+message SectorAttributionResult {
+  string sector_label       = 1;
+  double portfolio_weight   = 2;
+  double benchmark_weight   = 3;
+  double portfolio_return   = 4;
+  double benchmark_return   = 5;
+  double allocation_effect  = 6;
+  double selection_effect   = 7;
+  double interaction_effect = 8;
+  double total_active_contribution = 9;
+}
+
+message BrinsonAttributionResponse {
+  repeated SectorAttributionResult sectors   = 1;
+  double total_active_return                 = 2;
+  double total_allocation_effect             = 3;
+  double total_selection_effect              = 4;
+  double total_interaction_effect            = 5;
+}
+
+service AttributionService {
+  rpc CalculateBrinsonAttribution(BrinsonAttributionRequest)
+      returns (BrinsonAttributionResponse);
+}
