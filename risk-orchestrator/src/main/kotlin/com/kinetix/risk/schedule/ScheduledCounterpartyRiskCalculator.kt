@@ -59,6 +59,8 @@ class ScheduledCounterpartyRiskCalculator(
                 service.computeAndPersistPFE(
                     counterpartyId = counterpartyId,
                     positions = emptyList(),
+                    numSimulations = 0,
+                    seed = 0L,
                 )
                 successCount++
                 logger.debug("Counterparty risk computed for {}", counterpartyId)
