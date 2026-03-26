@@ -1,9 +1,22 @@
 package com.kinetix.position.fix
 
+import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.Money
 import com.kinetix.common.model.Side
+import com.kinetix.common.model.TradeId
+import com.kinetix.position.model.LimitBreach
+import com.kinetix.position.service.BookTradeCommand
+import com.kinetix.position.service.PreTradeCheckService
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Currency
 import java.util.UUID
 
 /**
@@ -11,9 +24,11 @@ import java.util.UUID
  *
  * The flow is:
  *   1. Validate and persist the order with status PENDING_RISK_CHECK.
- *   2. Auto-approve (pre-trade risk check integration point for future work).
- *   3. If a connected FIX session is supplied, dispatch via [FIXOrderSender] and advance status to SENT.
- *   4. Return the order in its final status.
+ *   2. Run pre-trade risk check via [PreTradeCheckService] with a configurable timeout.
+ *   3. Reject if the check is blocked (hard breach) or times out.
+ *   4. Approve with FLAGGED result if soft breaches exist but no hard block.
+ *   5. If a connected FIX session is supplied and the order is approved, dispatch via [FIXOrderSender].
+ *   6. Return the order in its final status.
  *
  * This class is intentionally free of infrastructure concerns — all I/O is injected so that
  * unit tests can run without a database or FIX session.
@@ -22,6 +37,8 @@ class OrderSubmissionService(
     private val orderRepository: ExecutionOrderRepository,
     private val sessionRepository: FIXSessionRepository,
     private val fixOrderSender: FIXOrderSender,
+    private val preTradeCheckService: PreTradeCheckService,
+    private val riskCheckTimeoutMs: Long = 500L,
 ) {
 
     private val logger = LoggerFactory.getLogger(OrderSubmissionService::class.java)
@@ -35,6 +52,7 @@ class OrderSubmissionService(
         limitPrice: BigDecimal?,
         arrivalPrice: BigDecimal,
         fixSessionId: String?,
+        assetClass: String = "EQUITY",
     ): Order {
         require(quantity > BigDecimal.ZERO) { "Quantity must be positive" }
 
@@ -54,12 +72,62 @@ class OrderSubmissionService(
             fixSessionId = fixSessionId,
         )
         orderRepository.save(order)
-        logger.info("Order created: orderId={}, book={}, instrument={}, side={}, qty={}",
-            order.orderId, bookId, instrumentId, side, quantity)
+        logger.info(
+            "Order created: orderId={}, book={}, instrument={}, side={}, qty={}",
+            order.orderId, bookId, instrumentId, side, quantity,
+        )
 
-        // Pre-trade risk check integration point — auto-approve for now.
-        orderRepository.updateStatus(order.orderId, OrderStatus.APPROVED, "APPROVED", null)
-        val approved = order.copy(status = OrderStatus.APPROVED, riskCheckResult = "APPROVED")
+        val command = BookTradeCommand(
+            tradeId = TradeId(UUID.randomUUID().toString()),
+            bookId = BookId(bookId),
+            instrumentId = InstrumentId(instrumentId),
+            assetClass = resolveAssetClass(assetClass),
+            side = side,
+            quantity = quantity,
+            price = Money(arrivalPrice, Currency.getInstance("USD")),
+            tradedAt = order.submittedAt,
+        )
+
+        val checkResult = try {
+            withTimeout(riskCheckTimeoutMs) {
+                preTradeCheckService.check(command)
+            }
+        } catch (e: TimeoutCancellationException) {
+            logger.warn(
+                "Pre-trade risk check timed out after {}ms: orderId={}, book={}, instrument={}",
+                riskCheckTimeoutMs, order.orderId, bookId, instrumentId,
+            )
+            orderRepository.updateStatus(order.orderId, OrderStatus.REJECTED, "TIMEOUT", null)
+            return order.copy(status = OrderStatus.REJECTED, riskCheckResult = "TIMEOUT")
+        }
+
+        if (checkResult.blocked) {
+            val details = serializeBreaches(checkResult.breaches)
+            logger.warn(
+                "Order REJECTED by pre-trade check: orderId={}, book={}, instrument={}, breaches={}",
+                order.orderId, bookId, instrumentId, details,
+            )
+            orderRepository.updateStatus(order.orderId, OrderStatus.REJECTED, "REJECTED", details)
+            return order.copy(status = OrderStatus.REJECTED, riskCheckResult = "REJECTED", riskCheckDetails = details)
+        }
+
+        val (riskResult, riskDetails) = if (checkResult.breaches.isNotEmpty()) {
+            val details = serializeBreaches(checkResult.breaches)
+            logger.info(
+                "Order approved with warnings: orderId={}, book={}, instrument={}, breaches={}",
+                order.orderId, bookId, instrumentId, details,
+            )
+            "FLAGGED" to details
+        } else {
+            "APPROVED" to null
+        }
+
+        orderRepository.updateStatus(order.orderId, OrderStatus.APPROVED, riskResult, riskDetails)
+        val approved = order.copy(
+            status = OrderStatus.APPROVED,
+            riskCheckResult = riskResult,
+            riskCheckDetails = riskDetails,
+        )
 
         if (fixSessionId == null) {
             return approved
@@ -67,8 +135,10 @@ class OrderSubmissionService(
 
         val session = sessionRepository.findById(fixSessionId)
         if (session == null || session.status != FIXSessionStatus.CONNECTED) {
-            logger.warn("FIX session {} not connected — order {} remains APPROVED without dispatch",
-                fixSessionId, approved.orderId)
+            logger.warn(
+                "FIX session {} not connected — order {} remains APPROVED without dispatch",
+                fixSessionId, approved.orderId,
+            )
             return approved
         }
 
@@ -78,4 +148,18 @@ class OrderSubmissionService(
 
         return approved.copy(status = OrderStatus.SENT)
     }
+
+    private fun resolveAssetClass(assetClass: String): AssetClass =
+        runCatching { AssetClass.valueOf(assetClass.uppercase()) }.getOrDefault(AssetClass.EQUITY)
+
+    private fun serializeBreaches(breaches: List<LimitBreach>): String =
+        Json.encodeToString(breaches.map { breach ->
+            mapOf(
+                "limitType" to breach.limitType,
+                "severity" to breach.severity.name,
+                "currentValue" to breach.currentValue,
+                "limitValue" to breach.limitValue,
+                "message" to breach.message,
+            )
+        })
 }

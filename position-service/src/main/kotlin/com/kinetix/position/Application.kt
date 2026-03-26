@@ -196,7 +196,12 @@ fun Application.moduleWithRoutes() {
     val executionOrderRepository = ExposedExecutionOrderRepository(db)
     val executionFillRepository = ExposedExecutionFillRepository(db)
     val fixOrderSender = LoggingFIXOrderSender()
-    val orderSubmissionService = OrderSubmissionService(executionOrderRepository, fixSessionRepository, fixOrderSender)
+    val orderSubmissionService = OrderSubmissionService(
+        orderRepository = executionOrderRepository,
+        sessionRepository = fixSessionRepository,
+        fixOrderSender = fixOrderSender,
+        preTradeCheckService = preTradeCheckService,
+    )
     val fixExecutionReportProcessor = FIXExecutionReportProcessor(
         orderRepository = executionOrderRepository,
         fillRepository = executionFillRepository,

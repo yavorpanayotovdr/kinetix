@@ -1,10 +1,15 @@
 package com.kinetix.position.fix
 
 import com.kinetix.common.model.Side
+import com.kinetix.position.model.LimitBreach
+import com.kinetix.position.model.LimitBreachResult
+import com.kinetix.position.model.LimitBreachSeverity
+import com.kinetix.position.service.PreTradeCheckService
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.string.shouldContain
 import io.mockk.*
 import java.math.BigDecimal
 import java.time.Instant
@@ -14,14 +19,21 @@ class OrderSubmissionServiceTest : FunSpec({
     val orderRepository = mockk<ExecutionOrderRepository>()
     val sessionRepository = mockk<FIXSessionRepository>()
     val fixOrderSender = mockk<FIXOrderSender>()
+    val preTradeCheckService = mockk<PreTradeCheckService>()
 
-    val service = OrderSubmissionService(orderRepository, sessionRepository, fixOrderSender)
+    val service = OrderSubmissionService(
+        orderRepository = orderRepository,
+        sessionRepository = sessionRepository,
+        fixOrderSender = fixOrderSender,
+        preTradeCheckService = preTradeCheckService,
+    )
 
     beforeEach {
-        clearMocks(orderRepository, sessionRepository, fixOrderSender)
+        clearMocks(orderRepository, sessionRepository, fixOrderSender, preTradeCheckService)
         coEvery { orderRepository.save(any()) } just runs
         coEvery { orderRepository.updateStatus(any(), any(), any(), any()) } just runs
         coEvery { fixOrderSender.send(any(), any()) } just runs
+        coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(emptyList())
     }
 
     test("saves order and returns it with APPROVED status when no FIX session is provided") {
@@ -134,5 +146,144 @@ class OrderSubmissionServiceTest : FunSpec({
         }
 
         coVerify(exactly = 0) { orderRepository.save(any()) }
+    }
+
+    test("approves and dispatches when check passes with no breaches") {
+        coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(emptyList())
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+        )
+
+        order.status shouldBe OrderStatus.APPROVED
+        order.riskCheckResult shouldBe "APPROVED"
+        order.riskCheckDetails shouldBe null
+        coVerify(exactly = 1) { orderRepository.updateStatus(any(), OrderStatus.APPROVED, "APPROVED", null) }
+    }
+
+    test("approves with FLAGGED when check returns soft-breach warnings") {
+        val softBreach = LimitBreach(
+            limitType = "CONCENTRATION",
+            severity = LimitBreachSeverity.SOFT,
+            currentValue = "0.22",
+            limitValue = "0.25",
+            message = "Approaching concentration limit",
+        )
+        coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(listOf(softBreach))
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+        )
+
+        order.status shouldBe OrderStatus.APPROVED
+        order.riskCheckResult shouldBe "FLAGGED"
+        order.riskCheckDetails.shouldNotBeNull()
+        order.riskCheckDetails!! shouldContain "CONCENTRATION"
+        coVerify(exactly = 1) {
+            orderRepository.updateStatus(any(), OrderStatus.APPROVED, "FLAGGED", match { it != null && it.contains("CONCENTRATION") })
+        }
+        coVerify(exactly = 0) { fixOrderSender.send(any(), any()) }
+    }
+
+    test("rejects and does not dispatch when check returns hard limit breach") {
+        val hardBreach = LimitBreach(
+            limitType = "POSITION",
+            severity = LimitBreachSeverity.HARD,
+            currentValue = "1100000",
+            limitValue = "1000000",
+            message = "Position limit exceeded",
+        )
+        coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(listOf(hardBreach))
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+        )
+
+        order.status shouldBe OrderStatus.REJECTED
+        order.riskCheckResult shouldBe "REJECTED"
+        order.riskCheckDetails.shouldNotBeNull()
+        order.riskCheckDetails!! shouldContain "POSITION"
+        coVerify(exactly = 1) {
+            orderRepository.updateStatus(any(), OrderStatus.REJECTED, "REJECTED", match { it != null && it.contains("POSITION") })
+        }
+        coVerify(exactly = 0) { fixOrderSender.send(any(), any()) }
+    }
+
+    test("rejects and updates status when check times out") {
+        val service = OrderSubmissionService(
+            orderRepository = orderRepository,
+            sessionRepository = sessionRepository,
+            fixOrderSender = fixOrderSender,
+            preTradeCheckService = preTradeCheckService,
+            riskCheckTimeoutMs = 50L,
+        )
+        coEvery { preTradeCheckService.check(any()) } coAnswers {
+            kotlinx.coroutines.delay(500)
+            LimitBreachResult(emptyList())
+        }
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+        )
+
+        order.status shouldBe OrderStatus.REJECTED
+        order.riskCheckResult shouldBe "TIMEOUT"
+        coVerify(exactly = 1) { orderRepository.updateStatus(any(), OrderStatus.REJECTED, "TIMEOUT", null) }
+        coVerify(exactly = 0) { fixOrderSender.send(any(), any()) }
+    }
+
+    test("populates riskCheckDetails with breach info on rejection") {
+        val hardBreach = LimitBreach(
+            limitType = "NOTIONAL",
+            severity = LimitBreachSeverity.HARD,
+            currentValue = "11000000",
+            limitValue = "10000000",
+            message = "Notional limit exceeded",
+        )
+        coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(listOf(hardBreach))
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+        )
+
+        order.riskCheckDetails.shouldNotBeNull()
+        order.riskCheckDetails!! shouldContain "NOTIONAL"
+        order.riskCheckDetails!! shouldContain "Notional limit exceeded"
+        order.riskCheckDetails!! shouldContain "HARD"
     }
 })
