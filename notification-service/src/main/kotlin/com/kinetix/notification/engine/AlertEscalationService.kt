@@ -23,11 +23,12 @@ class AlertEscalationService(
         val overdue = repository.findAcknowledgedBefore(cutoff)
 
         for (alert in overdue) {
-            val escalatedTo = escalationTargetFor(alert.severity)
-            repository.escalate(alert.id, now, escalatedTo)
+            val promotedSeverity = promoteSeverity(alert.severity)
+            val escalatedTo = escalationTargetFor(promotedSeverity)
+            repository.escalate(alert.id, now, escalatedTo, promotedSeverity.takeIf { it != alert.severity })
 
             val escalatedAlert = repository.findById(alert.id) ?: continue
-            val channels = escalationChannelsFor(alert.severity)
+            val channels = escalationChannelsFor(promotedSeverity)
             deliveryRouter.route(escalatedAlert, channels)
 
             auditPublisher?.publish(
@@ -36,15 +37,25 @@ class AlertEscalationService(
                     userId = "system",
                     userRole = "SYSTEM",
                     bookId = alert.bookId,
-                    details = "alertId=${alert.id} severity=${alert.severity} escalatedTo=$escalatedTo type=${alert.type}",
+                    details = "alertId=${alert.id} severity=${alert.severity}->${promotedSeverity} escalatedTo=$escalatedTo type=${alert.type}",
                 ),
             )
 
             logger.info(
-                "Escalated alert={} severity={} to={} after {}min timeout",
-                alert.id, alert.severity, escalatedTo, escalationTimeoutMinutes,
+                "Escalated alert={} severity={}=>{} to={} after {}min timeout",
+                alert.id, alert.severity, promotedSeverity, escalatedTo, escalationTimeoutMinutes,
             )
         }
+    }
+
+    /**
+     * Promotes severity on escalation: WARNING -> CRITICAL.
+     * INFO stays INFO (informational alerts are not promoted).
+     * CRITICAL stays CRITICAL.
+     */
+    internal fun promoteSeverity(severity: Severity): Severity = when (severity) {
+        Severity.WARNING -> Severity.CRITICAL
+        Severity.CRITICAL, Severity.INFO -> severity
     }
 
     private fun escalationTargetFor(severity: Severity): String = when (severity) {

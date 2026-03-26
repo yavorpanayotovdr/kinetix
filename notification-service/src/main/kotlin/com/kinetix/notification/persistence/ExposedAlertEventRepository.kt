@@ -103,11 +103,15 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         id: String,
         escalatedAt: Instant,
         escalatedTo: String,
+        promotedSeverity: com.kinetix.notification.model.Severity?,
     ): Unit = newSuspendedTransaction(db = db) {
         AlertEventsTable.update({ AlertEventsTable.id eq id }) {
             it[AlertEventsTable.status] = AlertStatus.ESCALATED.name
             it[AlertEventsTable.escalatedAt] = OffsetDateTime.ofInstant(escalatedAt, ZoneOffset.UTC)
             it[AlertEventsTable.escalatedTo] = escalatedTo
+            if (promotedSeverity != null) {
+                it[AlertEventsTable.severity] = promotedSeverity.name
+            }
         }
     }
 

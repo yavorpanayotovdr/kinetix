@@ -49,7 +49,7 @@ class AlertEscalationServiceTest : FunSpec({
         acknowledgedAt = acknowledgedAt,
     )
 
-    test("escalates WARNING alert acknowledged beyond timeout to desk-head") {
+    test("escalates WARNING alert acknowledged beyond timeout — severity promoted to CRITICAL, escalated to risk-manager and CRO") {
         val repo = InMemoryAlertEventRepository()
         val router = mockk<DeliveryRouter>(relaxed = true)
         val now = Instant.parse("2025-01-15T12:00:00Z")
@@ -64,7 +64,9 @@ class AlertEscalationServiceTest : FunSpec({
         val escalated = repo.findById("alert-1")!!
         escalated.status shouldBe AlertStatus.ESCALATED
         escalated.escalatedAt shouldNotBe null
-        escalated.escalatedTo shouldBe "desk-head"
+        // WARNING is promoted to CRITICAL on escalation, so target is risk-manager,cro
+        escalated.severity shouldBe Severity.CRITICAL
+        escalated.escalatedTo shouldBe "risk-manager,cro"
     }
 
     test("escalates CRITICAL alert acknowledged beyond timeout to risk-manager and CRO") {
@@ -162,7 +164,7 @@ class AlertEscalationServiceTest : FunSpec({
         unchanged.escalatedAt shouldBe alreadyEscalated.escalatedAt
     }
 
-    test("re-routes escalated alert via delivery router") {
+    test("re-routes escalated alert via delivery router with promoted CRITICAL channels") {
         val repo = InMemoryAlertEventRepository()
         val router = mockk<DeliveryRouter>(relaxed = true)
         val now = Instant.parse("2025-01-15T12:00:00Z")
@@ -175,7 +177,7 @@ class AlertEscalationServiceTest : FunSpec({
         service.processEscalations(now)
 
         coVerify(exactly = 1) {
-            router.route(any(), listOf(DeliveryChannel.EMAIL))
+            router.route(any(), listOf(DeliveryChannel.EMAIL, DeliveryChannel.WEBHOOK, DeliveryChannel.PAGER_DUTY))
         }
     }
 
@@ -198,13 +200,14 @@ class AlertEscalationServiceTest : FunSpec({
                     event.eventType == AuditEventType.ALERT_ESCALATED &&
                         event.bookId == "book-1" &&
                         event.details?.contains("alert-audit") == true &&
-                        event.details?.contains("desk-head") == true
+                        // WARNING is promoted to CRITICAL, so target is risk-manager,cro
+                        event.details?.contains("risk-manager,cro") == true
                 },
             )
         }
     }
 
-    test("escalates WARNING alert via email only") {
+    test("escalates WARNING alert via email, webhook, and PagerDuty after severity promotion to CRITICAL") {
         val repo = InMemoryAlertEventRepository()
         val router = mockk<DeliveryRouter>(relaxed = true)
         val now = Instant.parse("2025-01-15T12:00:00Z")
@@ -217,7 +220,7 @@ class AlertEscalationServiceTest : FunSpec({
         service.processEscalations(now)
 
         coVerify(exactly = 1) {
-            router.route(any(), listOf(DeliveryChannel.EMAIL))
+            router.route(any(), listOf(DeliveryChannel.EMAIL, DeliveryChannel.WEBHOOK, DeliveryChannel.PAGER_DUTY))
         }
     }
 
@@ -267,5 +270,75 @@ class AlertEscalationServiceTest : FunSpec({
 
         val unchanged = repo.findById("alert-7")!!
         unchanged.status shouldBe AlertStatus.RESOLVED
+    }
+
+    // ALT-05: severity promotion rules
+    test("promoteSeverity promotes WARNING to CRITICAL") {
+        val service = AlertEscalationService(
+            repository = InMemoryAlertEventRepository(),
+            deliveryRouter = mockk(relaxed = true),
+        )
+        service.promoteSeverity(Severity.WARNING) shouldBe Severity.CRITICAL
+    }
+
+    test("promoteSeverity leaves CRITICAL unchanged") {
+        val service = AlertEscalationService(
+            repository = InMemoryAlertEventRepository(),
+            deliveryRouter = mockk(relaxed = true),
+        )
+        service.promoteSeverity(Severity.CRITICAL) shouldBe Severity.CRITICAL
+    }
+
+    test("promoteSeverity leaves INFO unchanged") {
+        val service = AlertEscalationService(
+            repository = InMemoryAlertEventRepository(),
+            deliveryRouter = mockk(relaxed = true),
+        )
+        service.promoteSeverity(Severity.INFO) shouldBe Severity.INFO
+    }
+
+    test("escalated WARNING alert has severity promoted to CRITICAL in repository") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = warningAlert("alt05-promote", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val escalated = repo.findById("alt05-promote")!!
+        escalated.severity shouldBe Severity.CRITICAL
+    }
+
+    test("escalated INFO alert severity stays INFO") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val infoAlert = AlertEvent(
+            id = "alt05-info",
+            ruleId = "r3",
+            ruleName = "Data Staleness",
+            type = AlertType.DATA_STALENESS,
+            severity = Severity.INFO,
+            message = "stale data",
+            currentValue = 0.0,
+            threshold = 0.0,
+            bookId = "book-1",
+            triggeredAt = acknowledgedAt.minusSeconds(3600),
+            status = AlertStatus.ACKNOWLEDGED,
+            acknowledgedAt = acknowledgedAt,
+        )
+        repo.save(infoAlert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        val escalated = repo.findById("alt05-info")!!
+        escalated.severity shouldBe Severity.INFO
     }
 })

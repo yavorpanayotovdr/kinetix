@@ -10,7 +10,12 @@ interface AlertEventRepository {
     suspend fun findActiveByBook(bookId: String): List<AlertEvent>
     suspend fun updateStatus(id: String, status: AlertStatus, resolvedAt: java.time.Instant? = null, resolvedReason: String? = null)
     suspend fun acknowledge(id: String, acknowledgedAt: java.time.Instant)
-    suspend fun escalate(id: String, escalatedAt: java.time.Instant, escalatedTo: String)
+    suspend fun escalate(
+        id: String,
+        escalatedAt: java.time.Instant,
+        escalatedTo: String,
+        promotedSeverity: com.kinetix.notification.model.Severity? = null,
+    )
     suspend fun findAcknowledgedBefore(cutoff: java.time.Instant): List<AlertEvent>
     suspend fun findById(id: String): AlertEvent?
 }

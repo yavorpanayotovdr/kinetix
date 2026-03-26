@@ -40,10 +40,22 @@ class InMemoryAlertEventRepository : AlertEventRepository {
         events.addFirst(event.copy(status = AlertStatus.ACKNOWLEDGED, acknowledgedAt = acknowledgedAt))
     }
 
-    override suspend fun escalate(id: String, escalatedAt: Instant, escalatedTo: String) {
+    override suspend fun escalate(
+        id: String,
+        escalatedAt: Instant,
+        escalatedTo: String,
+        promotedSeverity: com.kinetix.notification.model.Severity?,
+    ) {
         val event = events.find { it.id == id } ?: return
         events.remove(event)
-        events.addFirst(event.copy(status = AlertStatus.ESCALATED, escalatedAt = escalatedAt, escalatedTo = escalatedTo))
+        events.addFirst(
+            event.copy(
+                status = AlertStatus.ESCALATED,
+                escalatedAt = escalatedAt,
+                escalatedTo = escalatedTo,
+                severity = promotedSeverity ?: event.severity,
+            )
+        )
     }
 
     override suspend fun findAcknowledgedBefore(cutoff: Instant): List<AlertEvent> =

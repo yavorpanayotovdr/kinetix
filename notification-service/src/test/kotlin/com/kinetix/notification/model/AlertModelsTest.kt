@@ -29,9 +29,9 @@ class AlertModelsTest : FunSpec({
         )
     }
 
-    test("DeliveryChannel has three options") {
+    test("DeliveryChannel has four options including PAGER_DUTY") {
         DeliveryChannel.entries.map { it.name } shouldContainExactly listOf(
-            "IN_APP", "EMAIL", "WEBHOOK",
+            "IN_APP", "EMAIL", "WEBHOOK", "PAGER_DUTY",
         )
     }
 
