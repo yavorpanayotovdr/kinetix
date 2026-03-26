@@ -178,6 +178,19 @@ class FIXExecutionReportProcessor(
         val newQty = if (event.lastQty.signum() > 0) event.lastQty else order.quantity
         val newLimitPrice = if (event.lastPrice.signum() > 0) event.lastPrice else order.limitPrice
 
+        // Guard: reject replace if new quantity is less than already-filled amount.
+        // Prevents a malicious replace from reducing quantity below cumulative fills,
+        // which would create phantom P&L and break position accounting.
+        val existingFills = fillRepository.findByOrderId(order.orderId)
+        val filledQty = existingFills.fold(BigDecimal.ZERO) { acc, fill -> acc + fill.fillQty }
+        if (newQty < filledQty) {
+            logger.error(
+                "Rejecting replace: newQty {} < filledQty {} for orderId={}",
+                newQty, filledQty, order.orderId,
+            )
+            return
+        }
+
         orderRepository.updateQuantityAndPrice(order.orderId, newQty, newLimitPrice)
         logger.info(
             "Order replaced via FIX: orderId={}, newQty={}, newLimitPrice={}",

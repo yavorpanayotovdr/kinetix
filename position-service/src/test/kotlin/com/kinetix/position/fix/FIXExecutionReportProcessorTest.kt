@@ -195,6 +195,7 @@ class FIXExecutionReportProcessorTest : FunSpec({
     test("replace (ExecType=5) updates order quantity and limit price") {
         val order = makeOrder("ord-8", quantity = BigDecimal("100"))
         coEvery { orderRepository.findById("ord-8") } returns order
+        coEvery { fillRepository.findByOrderId("ord-8") } returns emptyList()
         coEvery { orderRepository.updateQuantityAndPrice(any(), any(), any()) } just runs
 
         processor.process(fillEvent("ord-8", "exec-replace-1", "5",
@@ -265,6 +266,36 @@ class FIXExecutionReportProcessorTest : FunSpec({
             )
         }
         coVerify(exactly = 1) { executionCostRepository.save(costAnalysis) }
+    }
+
+    test("replace (ExecType=5) rejected when newQty is less than cumulative fills") {
+        val order = makeOrder("ord-replace-guard", quantity = BigDecimal("100"))
+        coEvery { orderRepository.findById("ord-replace-guard") } returns order
+        coEvery { fillRepository.findByOrderId("ord-replace-guard") } returns listOf(
+            ExecutionFill(
+                fillId = "fill-1",
+                orderId = "ord-replace-guard",
+                bookId = "book-1",
+                instrumentId = "AAPL",
+                fillTime = java.time.Instant.now(),
+                fillQty = BigDecimal("80"),
+                fillPrice = BigDecimal("150.00"),
+                fillType = FillType.FULL,
+                venue = null,
+                cumulativeQty = BigDecimal("80"),
+                averagePrice = BigDecimal("150.00"),
+                fixExecId = "exec-f1",
+            ),
+        )
+
+        // Replace with newQty=50, which is less than 80 already filled → reject
+        processor.process(fillEvent("ord-replace-guard", "exec-replace-bad", "5",
+            lastQty = BigDecimal("50"),
+            lastPrice = BigDecimal("155.00"),
+        ))
+
+        // Should NOT update — the replace was rejected
+        coVerify(exactly = 0) { orderRepository.updateQuantityAndPrice(any(), any(), any()) }
     }
 
     test("does not compute execution cost after a partial fill") {

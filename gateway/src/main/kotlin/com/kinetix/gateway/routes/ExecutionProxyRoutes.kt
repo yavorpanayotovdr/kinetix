@@ -19,6 +19,11 @@ import io.ktor.utils.io.*
  * for these endpoints. The position-service owns the business logic.
  */
 fun Route.executionProxyRoutes(httpClient: HttpClient, positionUrl: String) {
+    // Order submission — requires WRITE_TRADES (enforced at gateway level)
+    post("/api/v1/orders") {
+        proxyTo(httpClient, "$positionUrl/api/v1/orders", call)
+    }
+
     // Pre-trade risk check (no DB persistence, <100ms target)
     post("/api/v1/risk/pre-trade-check") {
         proxyTo(httpClient, "$positionUrl/api/v1/risk/pre-trade-check", call)
