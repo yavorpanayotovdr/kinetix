@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.OffsetDateTime
@@ -53,6 +54,37 @@ class ExposedPrimeBrokerReconciliationRepository(private val db: Database? = nul
                 ?.toReconciliation()
         }
 
+    override suspend fun findById(id: String): PrimeBrokerReconciliation? =
+        newSuspendedTransaction(db = db) {
+            PrimeBrokerReconciliationTable
+                .selectAll()
+                .where { PrimeBrokerReconciliationTable.id eq id }
+                .firstOrNull()
+                ?.toReconciliation()
+        }
+
+    override suspend fun updateBreakStatus(
+        reconciliationId: String,
+        instrumentId: String,
+        status: ReconciliationBreakStatus,
+    ): Unit = newSuspendedTransaction(db = db) {
+        val row = PrimeBrokerReconciliationTable
+            .selectAll()
+            .where { PrimeBrokerReconciliationTable.id eq reconciliationId }
+            .firstOrNull()
+            ?: throw NoSuchElementException("Reconciliation not found: $reconciliationId")
+
+        val breaks = json.decodeFromString<List<ReconciliationBreakDto>>(row[PrimeBrokerReconciliationTable.breaks])
+        val updated = breaks.map { br ->
+            if (br.instrumentId == instrumentId) br.copy(breakStatus = status.name)
+            else br
+        }
+
+        PrimeBrokerReconciliationTable.update({ PrimeBrokerReconciliationTable.id eq reconciliationId }) {
+            it[PrimeBrokerReconciliationTable.breaks] = json.encodeToString(updated)
+        }
+    }
+
     private fun ResultRow.toReconciliation(): PrimeBrokerReconciliation {
         val breaksJson = this[PrimeBrokerReconciliationTable.breaks]
         val breaks = json.decodeFromString<List<ReconciliationBreakDto>>(breaksJson)
@@ -78,6 +110,7 @@ private data class ReconciliationBreakDto(
     val breakQty: String,
     val breakNotional: String,
     val severity: String? = null,
+    val breakStatus: String? = null,
 )
 
 private fun ReconciliationBreak.toDto() = ReconciliationBreakDto(
@@ -87,6 +120,7 @@ private fun ReconciliationBreak.toDto() = ReconciliationBreakDto(
     breakQty = breakQty.toPlainString(),
     breakNotional = breakNotional.toPlainString(),
     severity = severity.name,
+    breakStatus = status.name,
 )
 
 private fun ReconciliationBreakDto.toDomain() = ReconciliationBreak(
@@ -97,4 +131,6 @@ private fun ReconciliationBreakDto.toDomain() = ReconciliationBreak(
     breakNotional = BigDecimal(breakNotional),
     severity = severity?.let { ReconciliationBreakSeverity.valueOf(it) }
         ?: ReconciliationBreakSeverity.NORMAL,
+    status = breakStatus?.let { ReconciliationBreakStatus.valueOf(it) }
+        ?: ReconciliationBreakStatus.OPEN,
 )

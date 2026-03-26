@@ -6,13 +6,16 @@ import com.kinetix.position.fix.PrimeBrokerPosition
 import com.kinetix.position.fix.PrimeBrokerReconciliation
 import com.kinetix.position.fix.PrimeBrokerReconciliationRepository
 import com.kinetix.position.fix.PrimeBrokerReconciliationService
+import com.kinetix.position.fix.ReconciliationBreakStatus
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.routes.dtos.ExecutionCostResponse
 import com.kinetix.position.routes.dtos.PrimeBrokerPositionDto
 import com.kinetix.position.routes.dtos.PrimeBrokerStatementRequest
 import com.kinetix.position.routes.dtos.ReconciliationBreakDto
 import com.kinetix.position.routes.dtos.ReconciliationResponse
+import com.kinetix.position.routes.dtos.UpdateBreakStatusRequest
 import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -105,6 +108,33 @@ fun Route.executionRoutes(
                 call.respond(HttpStatusCode.Created, reconciliation.toResponse())
             }
         }
+
+        route("/reconciliation-breaks/{reconciliationId}/{instrumentId}/status") {
+            patch({
+                summary = "Update the status of a reconciliation break"
+                tags = listOf("Execution")
+                request {
+                    pathParameter<String>("reconciliationId") { description = "Reconciliation identifier" }
+                    pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                    body<UpdateBreakStatusRequest>()
+                }
+                response {
+                    code(HttpStatusCode.NoContent) { }
+                    code(HttpStatusCode.BadRequest) { }
+                    code(HttpStatusCode.NotFound) { }
+                }
+            }) {
+                val reconciliationId = call.requirePathParam("reconciliationId")
+                val instrumentId = call.requirePathParam("instrumentId")
+                val request = call.receive<UpdateBreakStatusRequest>()
+                val status = runCatching { ReconciliationBreakStatus.valueOf(request.status) }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid status: ${request.status}. Must be one of ${ReconciliationBreakStatus.entries.map { it.name }}")
+                    return@patch
+                }
+                primeBrokerReconciliationRepository.updateBreakStatus(reconciliationId, instrumentId, status)
+                call.respond(HttpStatusCode.NoContent)
+            }
+        }
     }
 }
 
@@ -140,6 +170,7 @@ private fun PrimeBrokerReconciliation.toResponse() = ReconciliationResponse(
             breakQty = it.breakQty.toPlainString(),
             breakNotional = it.breakNotional.toPlainString(),
             severity = it.severity.name,
+            status = it.status.name,
         )
     },
     reconciledAt = reconciledAt.toString(),

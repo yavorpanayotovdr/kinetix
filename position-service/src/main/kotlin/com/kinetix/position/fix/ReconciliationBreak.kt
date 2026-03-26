@@ -11,4 +11,5 @@ data class ReconciliationBreak(
     val breakQty: BigDecimal,
     val breakNotional: BigDecimal,
     val severity: ReconciliationBreakSeverity,
+    val status: ReconciliationBreakStatus = ReconciliationBreakStatus.OPEN,
 )

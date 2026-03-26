@@ -13,12 +13,14 @@ import com.kinetix.position.fix.PrimeBrokerReconciliation
 import com.kinetix.position.fix.PrimeBrokerReconciliationRepository
 import com.kinetix.position.fix.PrimeBrokerReconciliationService
 import com.kinetix.position.fix.ReconciliationBreak
+import com.kinetix.position.fix.ReconciliationBreakStatus
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.routes.executionRoutes
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.request.*
+import io.ktor.client.request.patch
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -29,6 +31,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -165,6 +168,32 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
             body["status"]!!.jsonPrimitive.content shouldBe "CLEAN"
             body["matchedCount"]!!.jsonPrimitive.content shouldBe "1"
             body["breakCount"]!!.jsonPrimitive.content shouldBe "0"
+        }
+    }
+
+    // EXEC-04: break status update endpoint
+    test("PATCH /api/v1/execution/reconciliation-breaks/{id}/{instrument}/status updates break status") {
+        coEvery { reconRepo.updateBreakStatus("recon-1", "AAPL", ReconciliationBreakStatus.INVESTIGATING) } returns Unit
+
+        testApplication {
+            application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
+            val response = client.patch("/api/v1/execution/reconciliation-breaks/recon-1/AAPL/status") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"status": "INVESTIGATING"}""")
+            }
+            response.status shouldBe HttpStatusCode.NoContent
+            coVerify(exactly = 1) { reconRepo.updateBreakStatus("recon-1", "AAPL", ReconciliationBreakStatus.INVESTIGATING) }
+        }
+    }
+
+    test("PATCH break status with invalid status returns 400") {
+        testApplication {
+            application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
+            val response = client.patch("/api/v1/execution/reconciliation-breaks/recon-1/AAPL/status") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"status": "INVALID_STATUS"}""")
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
         }
     }
 

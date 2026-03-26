@@ -10,6 +10,7 @@ data class ReconciliationBreakDto(
     val breakQty: String,
     val breakNotional: String,
     val severity: String,
+    val status: String,
 )
 
 @Serializable

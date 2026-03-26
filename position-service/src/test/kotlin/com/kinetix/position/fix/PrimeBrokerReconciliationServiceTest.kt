@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
 import java.time.Instant
+import io.kotest.matchers.collections.shouldContainExactly
 
 private fun pbPos(instrumentId: String, qty: String, price: String) =
     PrimeBrokerPosition(instrumentId, BigDecimal(qty), BigDecimal(price))
@@ -154,5 +155,18 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
         result.bookId shouldBe "book-1"
         result.reconciliationDate shouldBe "2026-03-24"
         result.reconciledAt shouldBe reconciledAt
+    }
+
+    // EXEC-04: ReconciliationBreakStatus lifecycle
+    test("new breaks are created with OPEN status") {
+        val internal = mapOf("AAPL" to BigDecimal("105"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "100.00"))
+        val result = service.reconcile("book-1", "2026-03-24", internal, pbPositions, reconciledAt)
+        result.breaks[0].status shouldBe ReconciliationBreakStatus.OPEN
+    }
+
+    test("ReconciliationBreakStatus has three states") {
+        ReconciliationBreakStatus.entries.map { it.name } shouldBe
+            listOf("OPEN", "INVESTIGATING", "RESOLVED")
     }
 })
