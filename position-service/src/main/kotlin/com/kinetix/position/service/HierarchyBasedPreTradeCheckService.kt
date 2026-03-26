@@ -1,6 +1,7 @@
 package com.kinetix.position.service
 
 import com.kinetix.common.model.Side
+import com.kinetix.position.client.InstrumentLiquidityClient
 import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.model.LimitBreachResult
 import com.kinetix.position.model.LimitBreachSeverity
@@ -10,10 +11,15 @@ import com.kinetix.position.model.LimitType
 import com.kinetix.position.persistence.PositionRepository
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import java.math.RoundingMode
+
+private val ADV_HARD_THRESHOLD = BigDecimal("0.10")
+private val ADV_SOFT_THRESHOLD = BigDecimal("0.05")
 
 class HierarchyBasedPreTradeCheckService(
     private val positionRepository: PositionRepository,
     private val limitHierarchyService: LimitHierarchyService,
+    private val liquidityClient: InstrumentLiquidityClient? = null,
 ) : PreTradeCheckService {
 
     private val logger = LoggerFactory.getLogger(HierarchyBasedPreTradeCheckService::class.java)
@@ -68,6 +74,8 @@ class HierarchyBasedPreTradeCheckService(
             )
         }
 
+        checkAdvConcentration(command, tradeNotional, breaches)
+
         val result = LimitBreachResult(breaches)
         if (result.blocked) {
             logger.warn(
@@ -88,6 +96,53 @@ class HierarchyBasedPreTradeCheckService(
             )
         }
         return result
+    }
+
+    private suspend fun checkAdvConcentration(
+        command: BookTradeCommand,
+        tradeNotional: BigDecimal,
+        breaches: MutableList<LimitBreach>,
+    ) {
+        val client = liquidityClient ?: return
+
+        val adv = client.getAdv(command.instrumentId)
+
+        if (adv == null || adv.signum() == 0) {
+            breaches.add(
+                LimitBreach(
+                    limitType = LimitType.ADV_CONCENTRATION.name,
+                    severity = LimitBreachSeverity.HARD,
+                    currentValue = tradeNotional.toPlainString(),
+                    limitValue = "0",
+                    message = "ADV data unavailable for ${command.instrumentId.value} — trade blocked (fail-safe)",
+                )
+            )
+            return
+        }
+
+        val advPct = tradeNotional.divide(adv, 10, RoundingMode.HALF_UP)
+
+        when {
+            advPct > ADV_HARD_THRESHOLD -> breaches.add(
+                LimitBreach(
+                    limitType = LimitType.ADV_CONCENTRATION.name,
+                    severity = LimitBreachSeverity.HARD,
+                    currentValue = advPct.toPlainString(),
+                    limitValue = ADV_HARD_THRESHOLD.toPlainString(),
+                    message = "Trade notional is ${advPct.multiply(BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)}% of ADV — exceeds hard limit of 10%",
+                )
+            )
+            advPct > ADV_SOFT_THRESHOLD -> breaches.add(
+                LimitBreach(
+                    limitType = LimitType.ADV_CONCENTRATION.name,
+                    severity = LimitBreachSeverity.SOFT,
+                    currentValue = advPct.toPlainString(),
+                    limitValue = ADV_SOFT_THRESHOLD.toPlainString(),
+                    message = "Trade notional is ${advPct.multiply(BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)}% of ADV — approaching limit of 10%",
+                )
+            )
+            else -> { /* within acceptable ADV concentration */ }
+        }
     }
 
     private suspend fun checkLimit(

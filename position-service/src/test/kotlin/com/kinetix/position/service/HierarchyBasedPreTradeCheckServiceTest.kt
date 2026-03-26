@@ -7,6 +7,7 @@ import com.kinetix.common.model.Money
 import com.kinetix.common.model.Position
 import com.kinetix.common.model.Side
 import com.kinetix.common.model.TradeId
+import com.kinetix.position.client.InstrumentLiquidityClient
 import com.kinetix.position.model.LimitBreachSeverity
 import com.kinetix.position.model.LimitCheckStatus
 import com.kinetix.position.model.LimitDefinition
@@ -94,14 +95,18 @@ class HierarchyBasedPreTradeCheckServiceTest : FunSpec({
     val positionRepo = mockk<PositionRepository>()
     val limitDefinitionRepo = mockk<LimitDefinitionRepository>()
     val temporaryLimitIncreaseRepo = mockk<TemporaryLimitIncreaseRepository>()
+    val liquidityClient = mockk<InstrumentLiquidityClient>()
     val hierarchyService = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
 
-    fun service() = HierarchyBasedPreTradeCheckService(positionRepo, hierarchyService)
+    fun service() = HierarchyBasedPreTradeCheckService(positionRepo, hierarchyService, liquidityClient)
 
     beforeEach {
-        clearMocks(positionRepo, limitDefinitionRepo, temporaryLimitIncreaseRepo)
+        clearMocks(positionRepo, limitDefinitionRepo, temporaryLimitIncreaseRepo, liquidityClient)
         coEvery { temporaryLimitIncreaseRepo.findActiveByLimitId(any(), any()) } returns null
         coEvery { limitDefinitionRepo.findByEntityAndType(any(), any(), any()) } returns null
+        // Default: large ADV so existing limit tests are unaffected by the ADV check.
+        // ADV-specific tests override this per-test.
+        coEvery { liquidityClient.getAdv(any()) } returns BigDecimal("1000000000")
     }
 
     // ── POSITION limit ────────────────────────────────────────────────────────
@@ -238,5 +243,77 @@ class HierarchyBasedPreTradeCheckServiceTest : FunSpec({
         result.blocked shouldBe true
         result.breaches shouldHaveSize 2
         result.breaches.map { it.limitType }.toSet() shouldBe setOf("POSITION", "NOTIONAL")
+    }
+
+    // ── ADV_CONCENTRATION check ───────────────────────────────────────────────
+
+    test("blocks trade when ADV data is unavailable (fail-safe)") {
+        // Trade: BUY 100 AAPL @ $150 = $15,000 notional
+        coEvery { positionRepo.findByKey(BOOK, AAPL) } returns null
+        coEvery { positionRepo.findByBookId(BOOK) } returns emptyList()
+        coEvery { liquidityClient.getAdv(AAPL) } returns null
+
+        val result = service().check(command(quantity = "100", price = "150.00"))
+
+        result.blocked shouldBe true
+        result.breaches shouldHaveSize 1
+        result.breaches[0].limitType shouldBe "ADV_CONCENTRATION"
+        result.breaches[0].severity shouldBe LimitBreachSeverity.HARD
+    }
+
+    test("blocks trade when ADV concentration exceeds 10%") {
+        // Trade: BUY 100 AAPL @ $150 = $15,000 notional
+        // ADV = $100,000 → adv_pct = 15,000 / 100,000 = 15% > 10%
+        coEvery { positionRepo.findByKey(BOOK, AAPL) } returns null
+        coEvery { positionRepo.findByBookId(BOOK) } returns emptyList()
+        coEvery { liquidityClient.getAdv(AAPL) } returns BigDecimal("100000")
+
+        val result = service().check(command(quantity = "100", price = "150.00"))
+
+        result.blocked shouldBe true
+        result.breaches shouldHaveSize 1
+        result.breaches[0].limitType shouldBe "ADV_CONCENTRATION"
+        result.breaches[0].severity shouldBe LimitBreachSeverity.HARD
+    }
+
+    test("warns when ADV concentration is between 5% and 10%") {
+        // Trade: BUY 100 AAPL @ $150 = $15,000 notional
+        // ADV = $200,000 → adv_pct = 15,000 / 200,000 = 7.5% — between 5% and 10%
+        coEvery { positionRepo.findByKey(BOOK, AAPL) } returns null
+        coEvery { positionRepo.findByBookId(BOOK) } returns emptyList()
+        coEvery { liquidityClient.getAdv(AAPL) } returns BigDecimal("200000")
+
+        val result = service().check(command(quantity = "100", price = "150.00"))
+
+        result.blocked shouldBe false
+        result.breaches shouldHaveSize 1
+        result.breaches[0].limitType shouldBe "ADV_CONCENTRATION"
+        result.breaches[0].severity shouldBe LimitBreachSeverity.SOFT
+    }
+
+    test("passes when ADV concentration is below 5%") {
+        // Trade: BUY 100 AAPL @ $150 = $15,000 notional
+        // ADV = $1,000,000 → adv_pct = 15,000 / 1,000,000 = 1.5% < 5%
+        coEvery { positionRepo.findByKey(BOOK, AAPL) } returns null
+        coEvery { positionRepo.findByBookId(BOOK) } returns emptyList()
+        coEvery { liquidityClient.getAdv(AAPL) } returns BigDecimal("1000000")
+
+        val result = service().check(command(quantity = "100", price = "150.00"))
+
+        result.blocked shouldBe false
+        result.breaches.shouldBeEmpty()
+    }
+
+    test("handles zero ADV gracefully by treating it as unavailable (fail-safe)") {
+        coEvery { positionRepo.findByKey(BOOK, AAPL) } returns null
+        coEvery { positionRepo.findByBookId(BOOK) } returns emptyList()
+        coEvery { liquidityClient.getAdv(AAPL) } returns BigDecimal.ZERO
+
+        val result = service().check(command(quantity = "100", price = "150.00"))
+
+        result.blocked shouldBe true
+        result.breaches shouldHaveSize 1
+        result.breaches[0].limitType shouldBe "ADV_CONCENTRATION"
+        result.breaches[0].severity shouldBe LimitBreachSeverity.HARD
     }
 })
