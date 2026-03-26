@@ -188,6 +188,59 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
         }
     }
 
+    // Scenario: counterpartyId is persisted when supplied
+    given("a booking request that includes a counterpartyId") {
+        `when`("the trade is submitted") {
+            then("the persisted trade record carries the supplied counterpartyId") {
+                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
+
+                service.handle(
+                    BookTradeCommand(
+                        tradeId = TradeId("t-cpty-1"),
+                        bookId = BookId("port-cpty-1"),
+                        instrumentId = InstrumentId("AAPL"),
+                        assetClass = AssetClass.EQUITY,
+                        side = Side.BUY,
+                        quantity = BigDecimal("100"),
+                        price = Money(BigDecimal("150.00"), USD),
+                        tradedAt = TRADED_AT,
+                        counterpartyId = "CPTY-ABC",
+                    ),
+                )
+
+                val saved = tradeRepo.findByTradeId(TradeId("t-cpty-1"))
+                saved?.counterpartyId shouldBe "CPTY-ABC"
+            }
+        }
+    }
+
+    // Scenario: counterpartyId defaults to null when not supplied
+    given("a booking request with no counterpartyId") {
+        `when`("the trade is submitted") {
+            then("the persisted trade record has a null counterpartyId") {
+                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val service = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
+
+                service.handle(
+                    BookTradeCommand(
+                        tradeId = TradeId("t-cpty-2"),
+                        bookId = BookId("port-cpty-2"),
+                        instrumentId = InstrumentId("AAPL"),
+                        assetClass = AssetClass.EQUITY,
+                        side = Side.BUY,
+                        quantity = BigDecimal("50"),
+                        price = Money(BigDecimal("100.00"), USD),
+                        tradedAt = TRADED_AT,
+                    ),
+                )
+
+                val saved = tradeRepo.findByTradeId(TradeId("t-cpty-2"))
+                saved?.counterpartyId shouldBe null
+            }
+        }
+    }
+
     // Scenario 4: duplicate trade ID handled idempotently
     given("a previously booked trade with ID t-idem-1") {
         `when`("the same trade ID is submitted a second time") {

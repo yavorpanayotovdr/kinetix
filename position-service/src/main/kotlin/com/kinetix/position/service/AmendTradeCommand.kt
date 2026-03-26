@@ -16,4 +16,5 @@ data class AmendTradeCommand(
     val tradedAt: Instant,
     val userId: String? = null,
     val userRole: String? = null,
+    val counterpartyId: String? = null,
 )

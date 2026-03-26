@@ -45,6 +45,7 @@ class TradeLifecycleService(
                 eventType = TradeEventType.AMEND,
                 status = TradeStatus.LIVE,
                 originalTradeId = command.originalTradeId,
+                counterpartyId = command.counterpartyId,
             )
 
             val finalPosition = positionAfterReversal.applyTrade(amendTrade)
