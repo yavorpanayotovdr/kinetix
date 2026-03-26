@@ -10,6 +10,29 @@ use "./core.allium" as core
 external entity User {}
 
 ------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value BenchmarkConstituent {
+    benchmark_id: String
+    instrument_id: String
+    weight: Decimal
+    as_of_date: String
+}
+
+value BenchmarkDailyReturn {
+    benchmark_id: String
+    return_date: String
+    daily_return: Decimal
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum InstrumentLiquidityTier { tier_1 | tier_2 | tier_3 | illiquid }
+
+------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
 
@@ -33,6 +56,8 @@ entity Instrument {
     instrument_type: CashEquity | EquityOption | EquityFuture | GovernmentBond | CorporateBond | InterestRateSwap | FxSpot | FxForward | FxOption | CommodityFuture | CommodityOption
     display_name: String
     currency: String
+    created_at: Timestamp
+    updated_at: Timestamp
 
     -- Derived
     asset_class: core/AssetClass
@@ -47,7 +72,7 @@ variant EquityOption : Instrument {
     expiry_date: String
     exercise_style: core/ExerciseStyle
     contract_multiplier: Decimal
-    dividend_yield: Decimal?
+    dividend_yield: Decimal = 0.0
 }
 
 variant EquityFuture : Instrument {
@@ -119,12 +144,12 @@ variant CommodityOption : Instrument {
     option_type: core/OptionType
     strike: Decimal
     expiry_date: String
-    contract_multiplier: Decimal?
+    contract_multiplier: Decimal = 1.0
 }
 
 entity DividendYield {
     instrument_id: String
-    yield_value: Decimal
+    yield: Decimal
     ex_date: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
@@ -136,6 +161,63 @@ entity CreditSpread {
     rating: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
+}
+
+entity Counterparty {
+    counterparty_id: String
+    legal_name: String
+    short_name: String
+    lei: String?
+    rating_sp: String?
+    rating_moodys: String?
+    rating_fitch: String?
+    sector: String
+    country: String?
+    is_financial: Boolean
+    pd_1y: Decimal?
+    lgd: Decimal
+    cds_spreads_bps: Decimal?
+    created_at: Timestamp
+    updated_at: Timestamp
+
+    -- Relationships
+    netting_agreements: NettingAgreement with counterparty_id = this.counterparty_id
+}
+
+entity NettingAgreement {
+    netting_set_id: String
+    counterparty_id: String
+    agreement_type: String
+    close_out_netting: Boolean
+    csa_threshold: Decimal?
+    currency: String?
+    created_at: Timestamp
+    updated_at: Timestamp
+}
+
+entity Benchmark {
+    benchmark_id: String
+    name: String
+    description: String?
+    created_at: Timestamp
+}
+
+entity InstrumentLiquidity {
+    instrument_id: String
+    adv: Decimal
+    bid_ask_spread_bps: Decimal
+    asset_class: String
+    liquidity_tier: InstrumentLiquidityTier
+    adv_updated_at: Timestamp
+    created_at: Timestamp
+    updated_at: Timestamp
+
+    @guidance
+        -- liquidity_tier is auto-classified based on ADV and spread:
+        --   TIER_1: adv >= 50,000,000 AND spread <= 5 bps
+        --   TIER_2: adv >= 10,000,000 AND spread <= 20 bps
+        --   TIER_3: adv >= 1,000,000
+        --   ILLIQUID: everything else, or no ADV data
 }
 
 ------------------------------------------------------------
@@ -177,10 +259,10 @@ rule RegisterInstrument {
 }
 
 rule IngestDividendYield {
-    when: IngestDividendYieldRequested(instrument_id, yield_value, ex_date, source)
+    when: IngestDividendYieldRequested(instrument_id, yield, ex_date, source)
     ensures: DividendYield.created(
         instrument_id: instrument_id,
-        yield_value: yield_value,
+        yield: yield,
         ex_date: ex_date,
         as_of_date: now,
         source: source
@@ -198,6 +280,115 @@ rule IngestCreditSpread {
         source: source
     )
     ensures: CreditSpreadPublished(instrument_id: instrument_id)
+}
+
+-- Counterparty management
+
+rule UpsertCounterparty {
+    when: UpsertCounterpartyRequested(counterparty_id, legal_name, short_name, lei, rating_sp, rating_moodys, rating_fitch, sector, country, is_financial, pd_1y, lgd, cds_spreads_bps)
+    requires: counterparty_id != ""
+    requires: legal_name != ""
+    requires: lgd > 0 and lgd <= 1.0
+
+    ensures: Counterparty.created(
+        counterparty_id: counterparty_id,
+        legal_name: legal_name,
+        short_name: short_name,
+        lei: lei,
+        rating_sp: rating_sp,
+        rating_moodys: rating_moodys,
+        rating_fitch: rating_fitch,
+        sector: sector,
+        country: country,
+        is_financial: is_financial,
+        pd_1y: pd_1y,
+        lgd: lgd,
+        cds_spreads_bps: cds_spreads_bps,
+        created_at: now,
+        updated_at: now
+    )
+
+    @guidance
+        -- Upserts: if a counterparty with the same counterparty_id exists,
+        -- its fields are updated and updated_at is set to now.
+}
+
+-- Netting agreement management
+
+rule UpsertNettingAgreement {
+    when: UpsertNettingAgreementRequested(netting_set_id, counterparty_id, agreement_type, close_out_netting, csa_threshold, currency)
+    requires: netting_set_id != ""
+    requires: counterparty_id != ""
+
+    ensures: NettingAgreement.created(
+        netting_set_id: netting_set_id,
+        counterparty_id: counterparty_id,
+        agreement_type: agreement_type,
+        close_out_netting: close_out_netting,
+        csa_threshold: csa_threshold,
+        currency: currency,
+        created_at: now,
+        updated_at: now
+    )
+
+    @guidance
+        -- Upserts: if a netting agreement with the same netting_set_id exists,
+        -- its fields are updated and updated_at is set to now.
+}
+
+-- Benchmark management
+
+rule CreateBenchmark {
+    when: CreateBenchmarkRequested(benchmark_id, name, description)
+    ensures: Benchmark.created(
+        benchmark_id: benchmark_id,
+        name: name,
+        description: description,
+        created_at: now
+    )
+}
+
+rule UpdateBenchmarkConstituents {
+    when: UpdateBenchmarkConstituentsRequested(benchmark_id, as_of_date, constituents)
+    let benchmark = Benchmark{benchmark_id: benchmark_id}
+    requires: benchmark != null
+
+    @guidance
+        -- Replaces all constituents for the benchmark at the given as_of_date.
+        -- Each constituent is a BenchmarkConstituent value with instrument_id and weight.
+}
+
+rule RecordBenchmarkReturn {
+    when: RecordBenchmarkReturnRequested(benchmark_id, return_date, daily_return)
+    let benchmark = Benchmark{benchmark_id: benchmark_id}
+    requires: benchmark != null
+
+    @guidance
+        -- Records a single daily return observation for the benchmark.
+}
+
+-- Instrument liquidity management
+
+rule UpsertInstrumentLiquidity {
+    when: UpsertInstrumentLiquidityRequested(instrument_id, adv, bid_ask_spread_bps, asset_class)
+
+    let tier = classify_tier(adv, bid_ask_spread_bps)
+
+    ensures: InstrumentLiquidity.created(
+        instrument_id: instrument_id,
+        adv: adv,
+        bid_ask_spread_bps: bid_ask_spread_bps,
+        asset_class: asset_class,
+        liquidity_tier: tier,
+        adv_updated_at: now,
+        created_at: now,
+        updated_at: now
+    )
+
+    @guidance
+        -- Upserts: if an instrument liquidity record with the same
+        -- instrument_id exists, its fields are updated and updated_at is set to now.
+        -- liquidity_tier is auto-classified, not provided by the caller.
 }
 
 ------------------------------------------------------------
@@ -221,4 +412,28 @@ invariant UniqueInstrumentIds {
     for i1 in Instruments:
         for i2 in Instruments:
             i1 = i2 or i1.instrument_id != i2.instrument_id
+}
+
+invariant UniqueCounterpartyIds {
+    for c1 in Counterpartys:
+        for c2 in Counterpartys:
+            c1 = c2 or c1.counterparty_id != c2.counterparty_id
+}
+
+invariant UniqueNettingSetIds {
+    for n1 in NettingAgreements:
+        for n2 in NettingAgreements:
+            n1 = n2 or n1.netting_set_id != n2.netting_set_id
+}
+
+invariant UniqueBenchmarkIds {
+    for b1 in Benchmarks:
+        for b2 in Benchmarks:
+            b1 = b2 or b1.benchmark_id != b2.benchmark_id
+}
+
+invariant UniqueInstrumentLiquidityIds {
+    for l1 in InstrumentLiquiditys:
+        for l2 in InstrumentLiquiditys:
+            l1 = l2 or l1.instrument_id != l2.instrument_id
 }

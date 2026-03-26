@@ -47,10 +47,12 @@ entity AlertEvent {
         triggered -> acknowledged
         triggered -> resolved
         acknowledged -> escalated
+        acknowledged -> resolved
         escalated -> resolved
         terminal: resolved
     }
 
+    acknowledged_at: Timestamp?
     resolved_at: Timestamp when status = resolved
     resolved_reason: String when status = resolved
     escalated_to: String?
@@ -235,11 +237,9 @@ rule EscalateAlert {
         -- An acknowledged alert that has not been resolved within
         -- escalation_timeout is escalated.
         -- escalation_target derives the notification target from current severity:
-        --   MEDIUM -> desk head (email + in-app)
-        --   HIGH   -> risk manager (email + webhook)
-        --   CRITICAL -> CRO + ops channel (email + webhook + PagerDuty)
-        -- The escalated alert may also have its severity promoted one level
-        -- if it was originally MEDIUM or HIGH.
+        --   info     -> desk-head (email)
+        --   warning  -> desk-head (email)
+        --   critical -> risk-manager,cro (email)
         -- Acknowledged alerts that trigger escalation must produce an
         -- audit event (event_type: limit_breached or risk_calculation_completed
         -- as appropriate) so that the escalation is part of the hash-chained trail.
@@ -255,6 +255,52 @@ rule RouteAlertDelivery {
         --   IN_APP: persist alert to database for UI retrieval.
         --   EMAIL: send notification email.
         --   WEBHOOK: POST to configured webhook endpoint.
+}
+
+-- Regime change alerts (from MarketRegimeEvent Kafka topic)
+
+rule EvaluateRegimeChange {
+    when: MarketRegimeEventReceived(event)
+    requires: event.regime != "NORMAL"
+
+    ensures: AlertEvent.created(
+        rule_id: "REGIME_CHANGE",
+        rule_name: "Market Regime Change",
+        type: regime_change,
+        severity: regime_severity(event.regime),
+        message: format_regime_message(event),
+        current_value: 0,
+        threshold: 0,
+        book_id: "GLOBAL",
+        triggered_at: now,
+        status: triggered,
+        correlation_id: event.correlation_id
+    )
+
+    @guidance
+        -- Consumes from Kafka topic risk.regime.changes via MarketRegimeEventConsumer.
+        -- RegimeChangeRule evaluates the regime and maps to severity:
+        --   CRISIS       -> critical
+        --   ELEVATED_VOL -> warning
+        --   RECOVERY     -> info
+        --   NORMAL       -> no alert (suppressed)
+        -- The alert message includes previous/new regime, effective VaR method,
+        -- confidence level, time horizon, correlation method, and whether
+        -- signal inputs are degraded.
+        -- Persisted via AlertEventRepository and delivered via DeliveryService.
+}
+
+-- Anomaly detection alerts (from risk.anomalies Kafka topic)
+
+rule ConsumeAnomalyEvent {
+    when: AnomalyEventReceived(event)
+    requires: event.is_anomaly = true
+
+    @guidance
+        -- Consumes from Kafka topic risk.anomalies via AnomalyEventConsumer.
+        -- Logs a warning when an anomaly is detected (metricName, anomalyScore,
+        -- explanation). Currently log-only; does not yet create an AlertEvent
+        -- or route through DeliveryService.
 }
 
 ------------------------------------------------------------
@@ -273,9 +319,10 @@ invariant AlertStatusTransitions {
         --   triggered -> acknowledged (manual)
         --   triggered -> resolved (auto-clear or manual)
         --   acknowledged -> escalated (automatic, after escalation_timeout)
+        --   acknowledged -> resolved (auto-clear or manual)
         --   escalated -> resolved (auto-clear or manual)
         -- resolved is the only terminal state.
-        -- acknowledged is no longer terminal: it can escalate.
+        -- acknowledged is no longer terminal: it can escalate or resolve.
         -- Every acknowledgement must produce an audit event so that
         -- the point of acknowledgement and any subsequent escalation
         -- are visible in the hash-chained audit trail.

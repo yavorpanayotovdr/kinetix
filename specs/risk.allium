@@ -28,13 +28,16 @@ value PositionRisk {
     delta: Decimal?
     gamma: Decimal?
     vega: Decimal?
-    theta: Decimal?
-    rho: Decimal?
-    var_contribution: Decimal?
-    es_contribution: Decimal?
-    percentage_of_total: Decimal?
+    var_contribution: Decimal
+    es_contribution: Decimal
+    percentage_of_total: Decimal
     instrument_type: String?
     display_name: String?
+
+    @guidance
+        -- theta and rho are NOT computed per position. They are only available
+        -- at the aggregate (ValuationJob) level where they represent portfolio-wide
+        -- VaR sensitivities. Per-position Greeks are limited to delta, gamma, vega.
 }
 
 value BookVaRContribution {
@@ -270,7 +273,7 @@ entity CrossBookValuationResult {
     diversification_benefit: Decimal
     calculated_at: Timestamp
     model_version: String?
-    monte_carlo_seed: Integer
+    monte_carlo_seed: Long
     job_id: String?
 }
 

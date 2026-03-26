@@ -4,6 +4,12 @@
 use "./core.allium" as core
 
 ------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum EstimationMethod { historical | exponentially_weighted | shrinkage }
+
+------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
 
@@ -85,7 +91,7 @@ entity CorrelationMatrix {
     values: List<Decimal>
     window_days: Integer
     as_of_date: Timestamp
-    method: String
+    method: EstimationMethod
 
     -- Derived
     dimension: labels.count

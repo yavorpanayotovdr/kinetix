@@ -24,6 +24,7 @@ entity ModelVersion {
 
     parameters: String?
     registered_by: String
+    created_at: Timestamp
     model_tier: String?
     validation_report_url: String?
     known_limitations: String?
@@ -68,11 +69,27 @@ entity BacktestResultRecord {
 
 -- Backtest comparison
 
+value BacktestConfig {
+    calculation_type: String
+    confidence_level: Decimal
+    total_days: Integer
+}
+
 value BacktestComparison {
-    base: BacktestResultRecord
-    target: BacktestResultRecord
+    base_config: BacktestConfig
+    target_config: BacktestConfig
+    base_violation_count: Integer
+    target_violation_count: Integer
     violation_count_diff: Integer
+    base_violation_rate: Decimal
+    target_violation_rate: Decimal
     violation_rate_diff: Decimal
+    base_kupiec_p_value: Decimal
+    target_kupiec_p_value: Decimal
+    base_christoffersen_p_value: Decimal
+    target_christoffersen_p_value: Decimal
+    base_traffic_light_zone: String
+    target_traffic_light_zone: String
     traffic_light_changed: Boolean
 }
 
@@ -91,7 +108,16 @@ entity GovernedStressScenario {
         terminal: retired
     }
 
+    scenario_type: core/ScenarioType
+    category: core/ScenarioCategory
+    version: Integer
     created_by: String
+    created_at: Timestamp
+    parent_scenario_id: String?
+    correlation_override: String?
+    liquidity_stress_factors: String?
+    historical_period_id: String?
+    target_loss: Decimal?
     approved_by: String when status = approved | retired
     approved_at: Timestamp when status = approved | retired
 }
@@ -131,6 +157,14 @@ entity RegulatorySubmission {
 
 -- FRTB calculation records
 
+value RiskClassCharge {
+    risk_class: String
+    delta_charge: Decimal
+    vega_charge: Decimal
+    curvature_charge: Decimal
+    total_charge: Decimal
+}
+
 entity FrtbCalculationRecord {
     book_id: String
     total_sbm_charge: Decimal
@@ -141,9 +175,34 @@ entity FrtbCalculationRecord {
     other_notional: Decimal
     total_rrao: Decimal
     total_capital_charge: Decimal
-    sbm_charges: String
+    sbm_charges: List<RiskClassCharge>
     calculated_at: Timestamp
     stored_at: Timestamp
+}
+
+-- Historical scenario periods and returns
+
+entity HistoricalScenarioPeriod {
+    period_id: String
+    name: String
+    description: String?
+    start_date: String
+    end_date: String
+    asset_class_focus: String?
+    severity_label: String?
+}
+
+value HistoricalScenarioReturn {
+    period_id: String
+    instrument_id: String
+    return_date: String
+    daily_return: Decimal
+    source: String
+
+    @guidance
+        -- source defaults to "HISTORICAL". Each return represents a single
+        -- instrument's daily return observation within a historical period.
+        -- Returns are ordered by return_date within each instrument grouping.
 }
 
 ------------------------------------------------------------
@@ -159,7 +218,8 @@ rule RegisterModel {
         version: version,
         status: draft,
         parameters: parameters,
-        registered_by: registered_by
+        registered_by: registered_by,
+        created_at: now
     )
 }
 
@@ -213,13 +273,22 @@ rule RejectInvalidModelTransition {
 -- Stress testing governance
 
 rule CreateStressScenario {
-    when: CreateStressScenarioRequested(name, description, shocks, created_by)
+    when: CreateStressScenarioRequested(name, description, shocks, created_by, scenario_type, category, parent_scenario_id, correlation_override, liquidity_stress_factors, historical_period_id, target_loss)
     ensures: GovernedStressScenario.created(
         name: name,
         description: description,
         shocks: shocks,
         status: draft,
-        created_by: created_by
+        scenario_type: scenario_type,
+        category: category,
+        version: 1,
+        created_by: created_by,
+        created_at: now,
+        parent_scenario_id: parent_scenario_id,
+        correlation_override: correlation_override,
+        liquidity_stress_factors: liquidity_stress_factors,
+        historical_period_id: historical_period_id,
+        target_loss: target_loss
     )
 }
 
@@ -246,6 +315,24 @@ rule RetireScenario {
     ensures: scenario.status = retired
 }
 
+rule UpdateScenario {
+    when: UpdateScenarioRequested(scenario_id, shocks, correlation_override, liquidity_stress_factors)
+    let scenario = GovernedStressScenario{id: scenario_id}
+    requires: scenario.status != retired
+
+    ensures: scenario.version = scenario.version + 1
+    ensures: scenario.shocks = shocks or scenario.shocks
+    ensures: scenario.correlation_override = correlation_override or scenario.correlation_override
+    ensures: scenario.liquidity_stress_factors = liquidity_stress_factors or scenario.liquidity_stress_factors
+
+    @guidance
+        -- All update parameters are optional; unchanged fields retain their current values.
+        -- If the scenario is APPROVED or PENDING_APPROVAL, the status is reset to DRAFT
+        -- and approved_by / approved_at are cleared. This forces re-approval after
+        -- material changes to the scenario definition.
+        -- RETIRED scenarios cannot be updated (IllegalStateException).
+}
+
 rule RunGovernedStressTest {
     when: RunGovernedStressTestRequested(scenario_id, book_id, model_version)
     let scenario = GovernedStressScenario{id: scenario_id}
@@ -259,6 +346,19 @@ rule RunGovernedStressTest {
         -- it reads shock magnitudes directly from the shocks JSON field without
         -- repricing positions, producing incorrect P&L figures.
         -- Creates StressTestResultRecord with results.
+}
+
+rule RunReverseStressTest {
+    when: RunReverseStressTestRequested(book_id, target_loss, max_shock)
+    requires: target_loss > 0
+
+    @guidance
+        -- Finds the minimum-norm shock vector that produces the target portfolio loss.
+        -- Delegates to risk-orchestrator's reverse stress endpoint.
+        -- max_shock constrains the maximum per-instrument shock magnitude
+        -- (defaults to unconstrained when negative).
+        -- Returns a ReverseStressResult with per-instrument shocks, achieved loss,
+        -- target loss, convergence flag, and calculation timestamp.
 }
 
 -- Backtest recording and comparison
@@ -369,6 +469,22 @@ rule StoreFrtbCalculation {
         calculated_at: frtb_result.calculated_at,
         stored_at: now
     )
+}
+
+-- Historical scenario replay
+
+rule RunHistoricalReplay {
+    when: RunHistoricalReplayRequested(period_id, book_id)
+    let period = HistoricalScenarioPeriod{period_id: period_id}
+
+    @guidance
+        -- Loads the historical period metadata and its stored daily returns,
+        -- groups returns by instrument, then delegates the replay calculation
+        -- to risk-orchestrator (which proxies to the risk-engine gRPC
+        -- StressTestService.RunHistoricalReplay).
+        -- Returns per-position P&L impacts including daily P&L series
+        -- and a flag indicating whether a proxy instrument was used.
+        -- The period must exist; otherwise a not-found error is raised.
 }
 
 ------------------------------------------------------------

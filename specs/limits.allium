@@ -28,6 +28,7 @@ value LimitBreach {
 ------------------------------------------------------------
 
 entity LimitDefinition {
+    id: String
     level: core/LimitLevel
     entity_id: String
     limit_type: core/LimitType
@@ -44,6 +45,7 @@ entity LimitDefinition {
     effective_value(is_intraday): Decimal
 
     @guidance
+        -- id is the persistence primary key.
         -- effective_value logic:
         --   If active temporary increase exists, use its new_value.
         --   Else if is_intraday and intraday_limit exists, use intraday_limit.
@@ -52,11 +54,13 @@ entity LimitDefinition {
 }
 
 entity TemporaryIncrease {
+    id: String
     limit: LimitDefinition
     new_value: Decimal
     approved_by: String
     expires_at: Timestamp
     reason: String
+    created_at: Timestamp
 }
 
 ------------------------------------------------------------
@@ -76,6 +80,7 @@ config {
 rule CreateLimit {
     when: CreateLimitRequested(level, entity_id, limit_type, limit_value, intraday_limit, overnight_limit)
     ensures: LimitDefinition.created(
+        id: generated_id,
         level: level,
         entity_id: entity_id,
         limit_type: limit_type,
@@ -84,6 +89,9 @@ rule CreateLimit {
         overnight_limit: overnight_limit,
         active: true
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 rule UpdateLimit {
@@ -99,12 +107,17 @@ rule RequestTemporaryIncrease {
     when: TemporaryIncreaseRequested(limit_id, new_value, approved_by, expires_at, reason)
     let limit = LimitDefinition{id: limit_id}
     ensures: TemporaryIncrease.created(
+        id: generated_id,
         limit: limit,
         new_value: new_value,
         approved_by: approved_by,
         expires_at: expires_at,
-        reason: reason
+        reason: reason,
+        created_at: now
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 -- Pre-trade limit checks

@@ -46,9 +46,15 @@ enum Permission {
     view_audit | manage_models | manage_scenarios | admin
 }
 
+enum ScenarioType { parametric | historical_replay | reverse_stress }
+
 enum ScenarioCategory { regulatory_mandated | internal_approved | supervisory_requested }
 
 enum DataQualityFlag { full_attribution | price_only | stale_greeks }
+    @guidance
+        -- No typed Kotlin enum named DataQualityFlag exists in production code.
+        -- The risk-orchestrator uses AttributionDataQuality enum with the same
+        -- values, serialised as plain String in DTOs and persistence.
 
 enum AssetClass { equity | fixed_income | fx | commodity | derivative }
 
@@ -74,7 +80,7 @@ enum ValuationOutput { var | expected_shortfall | greeks | pv }
 
 enum LimitLevel { firm | division | desk | book | trader | counterparty }
 
-enum LimitType { position | notional | var | concentration | adv_concentration }
+enum LimitType { position | notional | var | concentration | adv_concentration | var_budget }
 
 enum LimitCheckStatus { ok | warning | breached }
 
@@ -86,7 +92,7 @@ enum RunLabel { adhoc | sod | intraday | overnight | pre_close | official_eod | 
 
 enum ManifestStatus { inputs_frozen | complete | partial | failed }
 
-enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness }
+enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness | liquidity_concentration | regime_change | factor_concentration }
 
 enum AlertStatus { triggered | acknowledged | escalated | resolved }
 
@@ -103,8 +109,16 @@ enum ScenarioStatus { draft | pending_approval | approved | retired }
 enum SubmissionStatus { draft | pending_review | approved | submitted | acknowledged }
 
 enum TrafficLightZone { green | yellow | red }
+    @guidance
+        -- No typed Kotlin enum exists in production code. Currently implemented
+        -- as ad-hoc String values ("GREEN", "YELLOW", "RED") in
+        -- regulatory-service (BacktestRoutes.kt) and risk-orchestrator.
 
 enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | frtb_equity | frtb_commodity | frtb_fx }
+    @guidance
+        -- No production Kotlin enum class exists. Defined as a proto enum in
+        -- regulatory_reporting.proto (used by risk-orchestrator via generated code)
+        -- and as a private test-only enum in RegulatoryReportingAcceptanceTest.kt.
 
 enum OptionType { call | put }
     @guidance

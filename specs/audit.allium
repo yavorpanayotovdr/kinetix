@@ -56,6 +56,7 @@ entity AuditEvent {
     scenario_id: String?
     limit_id: String?
     submission_id: String?
+    details: String?
 
     @guidance
         -- quantity and price_amount stored as NUMERIC(28,12) for precision.
@@ -66,12 +67,16 @@ entity AuditEvent {
         -- in model_name, scenario_id, limit_id, or submission_id as appropriate.
         -- All fields (including nulls) are included in hash computation so that
         -- the hash is deterministic regardless of event type.
+        -- details is a free-text field for additional context (e.g. scenario name,
+        -- model version info). Included in SHA-256 hash computation between
+        -- submission_id and previous_hash.
 }
 
 entity VerificationCheckpoint {
-    last_verified_id: Integer
-    last_verified_hash: String
+    last_event_id: Long
+    last_hash: String
     verified_at: Timestamp
+    event_count: Long
 }
 
 ------------------------------------------------------------
@@ -118,7 +123,12 @@ rule RecordAuditEventOnBook {
 
     @guidance
         -- Uses RetryableConsumer with DLQ for resilience.
-        -- Hash computation (SHA-256) includes all fields plus previous_hash.
+        -- Hash computation (SHA-256) includes all fields in order:
+        -- received_at, trade_id, book_id, instrument_id, asset_class, side,
+        -- quantity, price_amount, price_currency, traded_at, user_id, user_role,
+        -- event_type, model_name, scenario_id, limit_id, submission_id, details,
+        -- previous_hash. Null fields are substituted with empty string (except
+        -- user_id and user_role which use "NULL").
         -- Numeric values and timestamps are normalized before hashing
         -- to match PostgreSQL storage precision (avoids hash drift).
 }
@@ -174,7 +184,7 @@ rule RecordAuditEventOnCancel {
 -- Model governance, limit, scenario, submission, and access denial audit events
 
 rule RecordGovernanceAuditEvent {
-    when: GovernanceTransitionOccurred(event_type, user_id, user_role, model_name, scenario_id, limit_id, submission_id)
+    when: GovernanceTransitionOccurred(event_type, user_id, user_role, model_name, scenario_id, limit_id, submission_id, book_id, details)
     let latest_hash = latest_audit_event_hash
 
     ensures: AuditEvent.created(
@@ -186,6 +196,8 @@ rule RecordGovernanceAuditEvent {
         scenario_id: scenario_id,
         limit_id: limit_id,
         submission_id: submission_id,
+        book_id: book_id,
+        details: details,
         previous_hash: latest_hash,
         record_hash: compute_hash(all_fields, latest_hash)
     )
@@ -199,6 +211,8 @@ rule RecordGovernanceAuditEvent {
         -- to satisfy four-eyes principle auditability requirements.
         -- Exactly one of model_name, scenario_id, limit_id, submission_id
         -- will be non-null depending on event_type.
+        -- book_id is populated for stress test runs and risk calculation events.
+        -- details carries additional context (e.g. scenario name, model version).
 }
 
 rule RecordRiskCalculationAuditEvent {

@@ -22,6 +22,8 @@ enum HierarchyLevel { firm | division | desk | book }
 
 enum BudgetPeriod { daily | monthly | quarterly }
 
+enum BreachStatus { within_budget | warning | breach }
+
 ------------------------------------------------------------
 -- Value Types
 ------------------------------------------------------------
@@ -39,6 +41,8 @@ value HierarchyNodeRisk {
     incremental_var: Decimal?
     top_contributors: List<RiskContributor>
     child_count: Integer
+    is_partial: Boolean = false
+    missing_books: List<String> = []
 }
 
 value RiskContributor {
@@ -49,22 +53,24 @@ value RiskContributor {
 }
 
 value BudgetUtilisation {
+    entity_level: HierarchyLevel
     entity_id: String
-    level: HierarchyLevel
+    budget_type: String
     budget_amount: Decimal
     current_var: Decimal
     utilisation_pct: Decimal
-    budget_period: BudgetPeriod
+    breach_status: BreachStatus
+    updated_at: Timestamp
 }
 
 ------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
 
-entity BookHierarchyMapping {
+entity BookHierarchyEntry {
     book_id: String
     desk_id: String
-    book_name: String
+    book_name: String?
     book_type: String?
 
     @guidance
@@ -142,7 +148,7 @@ rule ResolveHierarchy {
         -- Resolution:
         --   1. Fetch divisions from reference-data-service.
         --   2. Fetch desks per division from reference-data-service.
-        --   3. Map books to desks via BookHierarchyMapping.
+        --   3. Map books to desks via BookHierarchyEntry.
         --   4. Collect all book_ids under the requested entity.
 }
 

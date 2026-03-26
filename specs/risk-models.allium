@@ -80,7 +80,7 @@ value StressTestResult {
     stressed_var: Decimal
     pnl_impact: Decimal
     asset_class_impacts: List<AssetClassImpact>
-    position_impacts: List<PositionImpact>
+    position_impacts: List<PositionStressImpact>
 }
 
 value AssetClassImpact {
@@ -90,12 +90,13 @@ value AssetClassImpact {
     pnl_impact: Decimal
 }
 
-value PositionImpact {
+value PositionStressImpact {
     instrument_id: String
     asset_class: core/AssetClass
     base_market_value: Decimal
     stressed_market_value: Decimal
     pnl_impact: Decimal
+    percentage_of_total: Decimal
 }
 
 value SbmResult {
@@ -123,7 +124,8 @@ value RraoResult {
     total_rrao: Decimal
 }
 
-value FrtbCapitalCharge {
+value FrtbResult {
+    book_id: String
     sbm: SbmResult
     drc: DrcResult
     rrao: RraoResult
@@ -144,10 +146,17 @@ value KeyRateDurationResult {
     total_dv01: Decimal   -- sum of all bucket dv01s; equals full-curve DV01
 }
 
+value BacktestViolation {
+    day_index: Integer
+    var_value: Decimal
+    actual_pnl: Decimal
+}
+
 value BacktestResult {
     total_days: Integer
     violation_count: Integer
     violation_rate: Decimal
+    expected_violation_rate: Decimal
     kupiec_statistic: Decimal
     kupiec_p_value: Decimal
     kupiec_pass: Boolean
@@ -155,6 +164,7 @@ value BacktestResult {
     christoffersen_p_value: Decimal
     christoffersen_pass: Boolean
     traffic_light_zone: core/TrafficLightZone
+    violations: List<BacktestViolation>
 }
 
 ------------------------------------------------------------
@@ -167,6 +177,7 @@ entity StressScenario {
     vol_shocks: List<Decimal>
     price_shocks: List<Decimal>
     correlation_override: List<Decimal>?
+    category: core/ScenarioCategory
 
     @guidance
         -- vol_shocks: multipliers by asset class (e.g., 3.0 = 3x vol).
@@ -265,6 +276,13 @@ rule CalculateMonteCarloVaR {
         -- 5. VaR = percentile(losses, alpha*100) * sqrt(T).
         -- 6. ES = mean(tail_losses) * sqrt(T).
         -- 7. Seed=0 is non-deterministic; seed>0 is deterministic.
+        --
+        -- Variance reduction: antithetic variates.
+        -- For each random draw Z, also compute portfolio return using -Z.
+        -- Both original and antithetic paths (2N total) are combined for
+        -- quantile estimation. The negative correlation between paired paths
+        -- (Cov(L, L') < 0) roughly halves the estimator variance compared
+        -- to a naive 2N simulation at negligible additional cost.
 }
 
 -- Black-Scholes option pricing

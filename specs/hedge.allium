@@ -44,6 +44,8 @@ value HedgeSuggestion {
         -- estimated_cost: total cost including premium + crossing cost.
         -- crossing_cost: quantity * 0.5 * bid_ask_spread.
         -- carry_cost_per_day: theta cost for option hedges (daily bleed).
+        --   NOTE: the Kotlin field is carrycostPerDay (camelCase without
+        --   underscore between "carry" and "cost"), not carryCostPerDay.
         -- data_quality: FRESH if price < 15min old, STALE otherwise.
 }
 

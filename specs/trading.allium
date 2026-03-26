@@ -30,6 +30,7 @@ entity Trade {
     original_trade_id: String?
     counterparty_id: String?
     instrument_type: String?
+    strategy_id: String?
 
     -- Derived
     notional: price.amount * quantity
@@ -65,7 +66,7 @@ entity TradeEvent {
 -- Trade booking
 
 rule BookTrade {
-    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, correlation_id)
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id, correlation_id)
     requires: quantity > 0
     requires: price.amount >= 0
     requires: not exists Trade{trade_id: trade_id}
@@ -82,7 +83,8 @@ rule BookTrade {
         event_type: new,
         status: live,
         counterparty_id: counterparty_id,
-        instrument_type: instrument_type
+        instrument_type: instrument_type,
+        strategy_id: strategy_id
     )
 
     ensures: trade
@@ -96,7 +98,7 @@ rule BookTrade {
 }
 
 rule BookTradeIdempotent {
-    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, correlation_id)
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id, correlation_id)
     requires: exists Trade{trade_id: trade_id}
 
     @guidance
@@ -190,7 +192,7 @@ invariant TradeImmutabilityExceptStatus {
     @guidance
         -- Enforced by database trigger: only the status field can be updated.
         -- trade_id, book_id, instrument_id, asset_class, side, quantity,
-        -- price, traded_at, event_type are all immutable after insertion.
+        -- price, traded_at, event_type, strategy_id are all immutable after insertion.
 }
 
 invariant TradeNeverDeleted {

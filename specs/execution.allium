@@ -24,6 +24,8 @@ enum FillType { full | partial }
 
 enum ReconciliationBreakStatus { open | investigating | resolved }
 
+enum ReconciliationBreakSeverity { normal | critical }
+
 enum FIXSessionStatus { connected | disconnected | reconnecting }
 
 ------------------------------------------------------------
@@ -43,6 +45,7 @@ value ReconciliationBreak {
     prime_broker_qty: Decimal
     break_qty: Decimal
     break_notional: Decimal
+    severity: ReconciliationBreakSeverity
 }
 
 ------------------------------------------------------------

@@ -9,8 +9,8 @@ use "./core.allium" as core
 
 value CurrencyExposure {
     currency: String
-    local_value: Decimal
-    base_value: Decimal
+    local_value: core/Money
+    base_value: core/Money
     fx_rate: Decimal
 }
 
@@ -22,11 +22,22 @@ value PortfolioSummary {
     currency_breakdown: List<CurrencyExposure>
 }
 
+value NettingSetExposure {
+    netting_set_id: String?
+    net_exposure: Decimal
+    position_count: Integer
+}
+
 value CounterpartyExposure {
     counterparty_id: String
     net_exposure: Decimal
     gross_exposure: Decimal
     position_count: Integer
+    netting_set_breakdown: List<NettingSetExposure>?
+
+    @guidance
+        -- net_exposure is the sum of per-netting-set net exposures, each floored at zero.
+        -- Only positions within the same netting agreement offset each other.
 }
 
 ------------------------------------------------------------
@@ -42,6 +53,9 @@ entity Position {
     market_price: core/Money
     realized_pnl: core/Money
     instrument_type: String?
+    strategy_id: String?
+    strategy_type: String?
+    strategy_name: String?
 
     -- Derived
     market_value: market_price.amount * quantity
@@ -57,6 +71,7 @@ entity FxRate {
     from_currency: String
     to_currency: String
     rate: Decimal
+    as_of: Timestamp
 }
 
 ------------------------------------------------------------
@@ -132,8 +147,12 @@ rule AggregatePortfolio {
         --   Fetch FX rate to base_currency
         --   Convert to base currency
         -- Sum all base-currency values for totalNav and totalPnl.
-        -- FX rate lookup: check cache, try inverse, fall back to static rates.
-        -- Throws if no FX rate available for a currency.
+        -- FX rate lookup chain:
+        --   1. Check live cache for direct rate
+        --   2. Check live cache for inverse rate
+        --   3. Query persistent FX rate repository
+        --   4. Fall back to static rates
+        -- Throws if no FX rate available for a currency after all steps.
 }
 
 -- Counterparty exposure
@@ -144,10 +163,13 @@ rule CalculateCounterpartyExposure {
     @guidance
         -- Load all trades for book where counterparty_id is not null.
         -- Group by counterparty_id.
-        -- For each group:
-        --   net_exposure = sum of (notional * side_sign)
-        --   gross_exposure = sum of all notional values
-        --   position_count = number of trades
+        -- For each counterparty group:
+        --   Sub-group by netting_set_id (null for un-netted trades).
+        --   Per netting set: net_exposure = max(0, sum of notional * side_sign).
+        --   net_exposure = sum of per-netting-set net exposures (each floored at zero).
+        --   gross_exposure = sum of all notional values.
+        --   position_count = number of trades.
+        --   netting_set_breakdown = list of per-netting-set results.
 }
 
 ------------------------------------------------------------

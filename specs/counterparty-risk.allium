@@ -17,16 +17,18 @@ use "./core.allium" as core
 -- Value Types
 ------------------------------------------------------------
 
-value ExposureProfile {
+value ExposureAtTenor {
     tenor: String
+    tenor_years: Decimal
     expected_exposure: Decimal
-    pfe_95: Decimal
-    pfe_99: Decimal
+    pfe95: Decimal
+    pfe99: Decimal
 
     @guidance
         -- PFE at time horizon tenors (1M, 3M, 6M, 1Y, 2Y, 5Y).
+        -- tenor_years: numeric representation of the tenor (e.g., 0.25 for 3M, 1.0 for 1Y).
         -- expected_exposure = mean of positive exposure across MC paths.
-        -- pfe_95/99 = 95th/99th percentile of max positive exposure at that tenor.
+        -- pfe95/pfe99 = 95th/99th percentile of max positive exposure at that tenor.
 }
 
 value NettingSetExposure {
@@ -158,7 +160,7 @@ entity CounterpartyExposureSnapshot {
     cva: Decimal?
     wrong_way_risk_flags: List<WrongWayRiskFlag>
     netting_sets: List<NettingSetExposure>
-    exposure_profile: List<ExposureProfile>?
+    exposure_profile: List<ExposureAtTenor>?
 
     -- Derived
     has_pfe: pfe_95_1y != null
@@ -260,7 +262,7 @@ rule CalculatePFE {
         --   5. PFE = percentile of exposure across all simulations.
         --   6. Expected exposure = mean of positive exposures.
         --
-        -- Produces an ExposureProfile per tenor in config.pfe_tenors.
+        -- Produces an ExposureAtTenor per tenor in config.pfe_tenors.
         -- This is a nightly batch job (too expensive for on-demand intraday).
         -- For on-demand after a trade: compute only the affected counterparty.
 }

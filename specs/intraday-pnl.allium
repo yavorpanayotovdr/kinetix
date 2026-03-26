@@ -76,6 +76,7 @@ value GreekAttribution {
     cross_gamma_pnl: Decimal
     vanna_pnl: Decimal
     volga_pnl: Decimal
+    charm_pnl: Decimal
     unexplained_pnl: Decimal
 }
 
@@ -299,10 +300,14 @@ deferred attribute_pnl
     --   volga_pnl     = 0.5 * sod_volga * vol_change^2
     --     where volga = d^2(V) / d(vol)^2
     --
+    --   charm_pnl     = sod_charm * price_change * fractional_day
+    --     where charm = d(delta) / d(t) — decay of delta per unit time
+    --     per unit price move
+    --
     -- Aggregate across instruments to book level.
     -- unexplained = total_pnl
     --     - (delta + gamma + vega + theta + rho
-    --        + cross_gamma + vanna + volga)
+    --        + cross_gamma + vanna + volga + charm)
     --
     -- All amounts converted to base_currency via current FX rates.
 
@@ -387,6 +392,7 @@ invariant AttributionSumsToTotal {
             + s.attribution.cross_gamma_pnl
             + s.attribution.vanna_pnl
             + s.attribution.volga_pnl
+            + s.attribution.charm_pnl
             + s.attribution.unexplained_pnl
 }
 

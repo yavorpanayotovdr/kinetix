@@ -99,17 +99,35 @@ value ParametricGridSpec {
         -- The full grid is the Cartesian product of the two ranges.
 }
 
+value BatchScenarioResult {
+    scenario_name: String
+    base_var: String
+    stressed_var: String
+    pnl_impact: String
+}
+
+value BatchScenarioFailure {
+    scenario_name: String
+    error_message: String
+}
+
 value BatchStressRunResult {
-    scenario_results: List<StressTestResult>
-    worst_scenario_name: String
-    worst_pnl_impact: Decimal
+    results: List<BatchScenarioResult>
+    failed_scenarios: List<BatchScenarioFailure>
+    worst_scenario_name: String?
+    worst_pnl_impact: String?
 
     @guidance
         -- Aggregated output from RunBatchStressTest.
-        -- scenario_results contains one entry per approved scenario, ranked
-        -- by pnl_impact ascending (most negative first).
-        -- worst_scenario_name identifies the scenario producing the largest loss.
-        -- worst_pnl_impact is the minimum (most negative) pnl_impact across all results.
+        -- results contains one entry per successfully executed approved scenario,
+        -- ranked by pnl_impact ascending (most negative first).
+        -- failed_scenarios contains one entry per scenario that errored during execution;
+        -- failures do not abort the batch run.
+        -- worst_scenario_name identifies the scenario producing the largest loss
+        -- (null when no scenarios succeeded).
+        -- worst_pnl_impact is the minimum (most negative) pnl_impact across all results
+        -- (null when no scenarios succeeded).
+        -- Numeric values are serialised as strings for precision-safe transport.
 }
 
 ------------------------------------------------------------
