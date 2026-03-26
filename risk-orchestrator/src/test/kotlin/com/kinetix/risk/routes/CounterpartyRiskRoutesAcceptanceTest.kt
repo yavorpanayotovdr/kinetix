@@ -210,7 +210,7 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
                 exposureProfile = TENORS,
                 lgd = 0.4,
                 pd1y = 0.0,
-                cdsSpreadssBps = 65.0,
+                cdsSpreadBps = 65.0,
                 rating = "A+",
                 sector = "FINANCIALS",
                 riskFreeRate = 0.0,

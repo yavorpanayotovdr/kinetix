@@ -56,7 +56,7 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
         isFinancial = true,
         pd1y = BigDecimal("0.00050"),
         lgd = BigDecimal("0.400000"),
-        cdsSpreadssBps = BigDecimal("65.00"),
+        cdsSpreadBps = BigDecimal("65.00"),
         createdAt = NOW,
         updatedAt = NOW,
     )

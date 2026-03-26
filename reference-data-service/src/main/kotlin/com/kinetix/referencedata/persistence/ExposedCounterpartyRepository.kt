@@ -46,7 +46,7 @@ class ExposedCounterpartyRepository(
                 it[isFinancial] = counterparty.isFinancial
                 it[pd1y] = counterparty.pd1y
                 it[lgd] = counterparty.lgd
-                it[cdsSpreadBps] = counterparty.cdsSpreadssBps
+                it[cdsSpreadBps] = counterparty.cdsSpreadBps
                 it[createdAt] = now
                 it[updatedAt] = now
             }
@@ -65,7 +65,7 @@ class ExposedCounterpartyRepository(
         isFinancial = this[CounterpartyMasterTable.isFinancial],
         pd1y = this[CounterpartyMasterTable.pd1y],
         lgd = this[CounterpartyMasterTable.lgd],
-        cdsSpreadssBps = this[CounterpartyMasterTable.cdsSpreadBps],
+        cdsSpreadBps = this[CounterpartyMasterTable.cdsSpreadBps],
         createdAt = this[CounterpartyMasterTable.createdAt].toInstant(),
         updatedAt = this[CounterpartyMasterTable.updatedAt].toInstant(),
     )

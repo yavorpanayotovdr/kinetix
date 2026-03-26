@@ -16,7 +16,7 @@ data class Counterparty(
     val isFinancial: Boolean,
     val pd1y: BigDecimal?,
     val lgd: BigDecimal,
-    val cdsSpreadssBps: BigDecimal?,
+    val cdsSpreadBps: BigDecimal?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

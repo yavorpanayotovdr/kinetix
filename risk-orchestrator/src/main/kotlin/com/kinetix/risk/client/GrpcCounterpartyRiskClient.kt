@@ -47,7 +47,7 @@ class GrpcCounterpartyRiskClient(
         exposureProfile: List<ExposureAtTenor>,
         lgd: Double,
         pd1y: Double,
-        cdsSpreadssBps: Double,
+        cdsSpreadBps: Double,
         rating: String,
         sector: String,
         riskFreeRate: Double,
@@ -57,7 +57,7 @@ class GrpcCounterpartyRiskClient(
             .addAllExposureProfile(exposureProfile.map { it.toProto() })
             .setLgd(lgd)
             .setPd1Y(pd1y)
-            .setCdsSpreadBps(cdsSpreadssBps)
+            .setCdsSpreadBps(cdsSpreadBps)
             .setRating(rating)
             .setSector(sector)
             .setRiskFreeRate(riskFreeRate)

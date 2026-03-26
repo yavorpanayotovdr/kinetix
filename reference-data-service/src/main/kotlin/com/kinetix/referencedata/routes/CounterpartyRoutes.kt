@@ -122,7 +122,7 @@ private fun UpsertCounterpartyRequest.toDomain() = Counterparty(
     isFinancial = isFinancial,
     pd1y = pd1y?.let { BigDecimal.valueOf(it) },
     lgd = BigDecimal.valueOf(lgd),
-    cdsSpreadssBps = cdsSpreadBps?.let { BigDecimal.valueOf(it) },
+    cdsSpreadBps = cdsSpreadBps?.let { BigDecimal.valueOf(it) },
     createdAt = Instant.now(),
     updatedAt = Instant.now(),
 )
@@ -151,7 +151,7 @@ private fun Counterparty.toResponse() = CounterpartyResponse(
     isFinancial = isFinancial,
     pd1y = pd1y?.toDouble(),
     lgd = lgd.toDouble(),
-    cdsSpreadBps = cdsSpreadssBps?.toDouble(),
+    cdsSpreadBps = cdsSpreadBps?.toDouble(),
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )

@@ -41,7 +41,7 @@ interface CounterpartyRiskClient {
         exposureProfile: List<ExposureAtTenor>,
         lgd: Double,
         pd1y: Double = 0.0,
-        cdsSpreadssBps: Double = 0.0,
+        cdsSpreadBps: Double = 0.0,
         rating: String = "",
         sector: String = "",
         riskFreeRate: Double = 0.0,
