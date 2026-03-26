@@ -263,6 +263,47 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
         }
     }
 
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod as totalPnl minus sodTotalPnl") {
+        val t = Instant.parse("2026-03-24T11:00:00Z")
+        val snap = snapshot(snapshotAt = t, totalPnl = "1500.00").copy(sodTotalPnl = bd("300.00"))
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(snap)
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText())
+            body.snapshots[0].pnlVsSod shouldBe "1200.00"
+        }
+    }
+
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod equal to totalPnl when no SOD baseline") {
+        val t = Instant.parse("2026-03-24T11:00:00Z")
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
+            snapshot(snapshotAt = t, totalPnl = "800.00"),
+        )
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText())
+            body.snapshots[0].pnlVsSod shouldBe "800.00"
+        }
+    }
+
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns 400 for invalid timestamp format") {
         testApplication {
             install(ContentNegotiation) { json() }

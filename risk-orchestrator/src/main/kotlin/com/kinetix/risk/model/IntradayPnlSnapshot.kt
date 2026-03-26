@@ -32,6 +32,10 @@ data class IntradayPnlSnapshot(
     // Residual: total_pnl minus sum of all attributed terms
     val unexplainedPnl: BigDecimal,
 
+    // Start-of-day total P&L baseline used to compute pnl_vs_sod.
+    // Defaults to zero (pre-existing snapshots have no SOD reference).
+    val sodTotalPnl: BigDecimal = BigDecimal.ZERO,
+
     // High-water mark: monotonically non-decreasing within a trading day
     val highWaterMark: BigDecimal,
 
