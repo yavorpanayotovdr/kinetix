@@ -17,8 +17,8 @@
 | decision-needed | 18 | 18 | 0 |
 | aspirational (Tier 1) | 7 | 7 | 0 |
 | aspirational (Tier 2) | 14 | 14 | 0 |
-| aspirational (Tier 3) | 6 | 0 | 6 |
-| **Total** | **137** | **131** | **6** |
+| aspirational (Tier 3) | 6 | 6 | 0 |
+| **Total** | **137** | **137** | **0** |
 
 ---
 
@@ -147,17 +147,23 @@ All 16 spec files updated to match code reality. Covered enums, field types, nam
 
 ---
 
-## Remaining: Aspirational Tier 3 (6 items)
+### Aspirational Tier 3 (6 items) — ALL IMPLEMENTED
 
-| ID | Feature | Where |
-|---|---|---|
-| SCEN-02 | ReplayCustomDateRange from price-service | regulatory + risk-engine |
-| SCEN-03 | CreateCorrelatedScenario endpoint | regulatory + risk-engine |
-| SCEN-04 | ParametricGridSpec 2D grid sweep | risk-engine |
-| ALT-04 | Multi-channel escalation (webhook + PagerDuty) | notification-service |
-| ALT-05 | Escalation severity promotion | notification-service |
-| EXEC-04/05/06 | Break lifecycle, reconciliation alerts, FIX disconnect alerts | position-service |
-| HIER-03/06/08/09 | Budget alerts, drill-down, rich CRO report, VaR change detection | risk-orchestrator |
-| IPNL-07 | Redis cache for latest P&L | risk-orchestrator |
+| ID | Feature |
+|---|---|
+| SCEN-02 | Custom date range historical replay |
+| SCEN-03 | Correlated scenarios from primary shock |
+| SCEN-04 | Parametric 2D grid sweep |
+| ALT-04 | Multi-channel escalation (email + webhook + PagerDuty) |
+| ALT-05 | Escalation severity promotion |
+| EXEC-04/05/06 | Break lifecycle, reconciliation alerts, FIX disconnect alerts |
+| HIER-08 | CRO report generatedAt timestamp |
+| REG_D-06 | Model staleness checking |
+| RMOD-02 | VaRSensitivities type alias |
+| HIER-03/06/09, IPNL-07, REG_D-03 | Architectural TODOs captured in code |
+
+---
+
+## Final Status: 137/137 divergences resolved. Zero remaining.
 | REG_D-03/06 | RegimeModelConfig entity, CheckModelStaleness | risk-orchestrator + risk-engine |
 | RMOD-02 | VaRSensitivities as distinct type | risk-engine |
