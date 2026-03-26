@@ -8,6 +8,7 @@ import com.kinetix.risk.client.InstrumentServiceClient
 import com.kinetix.risk.client.LimitServiceClient
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.VolatilityServiceClient
 import com.kinetix.risk.client.dtos.LimitDefinitionDto
 import com.kinetix.risk.model.CandidateInstrument
 import com.kinetix.risk.model.GreekImpact
@@ -33,6 +34,7 @@ class HedgeRecommendationService(
     private val priceServiceClient: PriceServiceClient,
     private val referenceDataClient: ReferenceDataServiceClient,
     private val limitServiceClient: LimitServiceClient? = null,
+    private val volatilityServiceClient: VolatilityServiceClient? = null,
     private val calculator: AnalyticalHedgeCalculator,
     private val repository: HedgeRecommendationRepository,
     private val maxGreekStaleness: Duration = Duration.ofHours(2),
@@ -73,7 +75,7 @@ class HedgeRecommendationService(
                 targetMetric = target,
                 targetReductionPct = targetReductionPct,
                 requestedAt = now,
-                status = HedgeStatus.REJECTED,
+                status = HedgeStatus.PENDING,
                 message = "No liquid instruments found matching your constraints. " +
                     "Broaden the instrument universe or relax liquidity constraints and retry.",
                 constraints = constraints,
@@ -265,6 +267,21 @@ class HedgeRecommendationService(
 
             // Price age in minutes — use staleness flag from DTO
             val priceAgeMinutes = if (liq.advStale) 20 else 5
+
+            // For VEGA hedges, require vol surface data to be available.
+            // Fail-open: if the vol client is unavailable or throws, include the candidate.
+            if (target == HedgeTarget.VEGA && volatilityServiceClient != null) {
+                val volAvailable = try {
+                    volatilityServiceClient.getLatestSurface(InstrumentId(liq.instrumentId)) is ClientResponse.Success
+                } catch (e: Exception) {
+                    logger.warn("Vol surface check failed for {}, including candidate: {}", liq.instrumentId, e.message)
+                    true // fail-open
+                }
+                if (!volAvailable) {
+                    logger.debug("No vol surface available for vega candidate {}, excluding", liq.instrumentId)
+                    return null
+                }
+            }
 
             CandidateInstrument(
                 instrumentId = liq.instrumentId,

@@ -12,6 +12,8 @@ import com.kinetix.risk.client.InstrumentServiceClient
 import com.kinetix.risk.client.LimitServiceClient
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.VolatilityServiceClient
+import com.kinetix.common.model.VolSurface
 import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
 import com.kinetix.risk.client.dtos.LimitDefinitionDto
@@ -318,13 +320,13 @@ class HedgeRecommendationServiceTest : FunSpec({
         (candidateIds.contains("ILLIQUID-STOCK")) shouldBe false
     }
 
-    test("returns REJECTED recommendation with message when no liquid candidates are found") {
+    test("returns PENDING recommendation with empty suggestions and message when no liquid candidates are found") {
         coEvery { varCache.get("BOOK-1") } returns varResult()
         coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
 
-        rec.status shouldBe HedgeStatus.REJECTED
+        rec.status shouldBe HedgeStatus.PENDING
         rec.message shouldNotBe null
         rec.message!!.shouldContain("No liquid")
         rec.suggestions shouldHaveSize 0
@@ -389,7 +391,7 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
 
-        rec.status shouldBe HedgeStatus.REJECTED
+        rec.status shouldBe HedgeStatus.PENDING
     }
 
     test("excludes candidate when price is zero") {
@@ -402,7 +404,7 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
 
-        rec.status shouldBe HedgeStatus.REJECTED
+        rec.status shouldBe HedgeStatus.PENDING
     }
 
     test("excludes candidate when price service throws") {
@@ -415,7 +417,7 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
 
-        rec.status shouldBe HedgeStatus.REJECTED
+        rec.status shouldBe HedgeStatus.PENDING
     }
 
     // ------------------------------------------------------------------ position limit enforcement
@@ -660,5 +662,89 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         rec.suggestions shouldHaveSize 1
         rec.suggestions.first().warnings shouldBe emptyList()
+    }
+
+    // ------------------------------------------------------------------ vol surface availability for vega hedges (HDG-06)
+
+    context("vega hedge candidate filtering with vol surface client") {
+        val volatilityServiceClient = mockk<VolatilityServiceClient>()
+        val serviceWithVol = HedgeRecommendationService(
+            varCache = varCache,
+            instrumentServiceClient = instrumentServiceClient,
+            priceServiceClient = priceServiceClient,
+            referenceDataClient = referenceDataClient,
+            limitServiceClient = limitServiceClient,
+            volatilityServiceClient = volatilityServiceClient,
+            calculator = calculator,
+            repository = repository,
+            maxGreekStaleness = Duration.ofHours(2),
+            recommendationTtl = Duration.ofMinutes(30),
+        )
+
+        test("excludes candidate from vega hedge when vol surface is not available") {
+            coEvery { varCache.get("BOOK-1") } returns varResult()
+            coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+                "OPT-WITH-VOL" to liquidityDto("OPT-WITH-VOL").copy(hedgingEligible = true),
+                "OPT-NO-VOL" to liquidityDto("OPT-NO-VOL").copy(hedgingEligible = true),
+            )
+            coEvery { instrumentServiceClient.getInstrument(InstrumentId("OPT-WITH-VOL")) } returns
+                ClientResponse.Success(instrumentDto("OPT-WITH-VOL", instrumentType = "OPTION"))
+            coEvery { instrumentServiceClient.getInstrument(InstrumentId("OPT-NO-VOL")) } returns
+                ClientResponse.Success(instrumentDto("OPT-NO-VOL", instrumentType = "OPTION"))
+            coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("ANY"))
+            coEvery { volatilityServiceClient.getLatestSurface(InstrumentId("OPT-WITH-VOL")) } returns
+                ClientResponse.Success(mockk<VolSurface>(relaxed = true))
+            coEvery { volatilityServiceClient.getLatestSurface(InstrumentId("OPT-NO-VOL")) } returns
+                ClientResponse.NotFound(404)
+
+            val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+            coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+            serviceWithVol.suggestHedge(bookId, HedgeTarget.VEGA, 0.80, defaultConstraints)
+
+            val candidateIds = candidatesSlot.captured.map { it.instrumentId }
+            (candidateIds.contains("OPT-WITH-VOL")) shouldBe true
+            (candidateIds.contains("OPT-NO-VOL")) shouldBe false
+        }
+
+        test("does not filter by vol surface for non-VEGA targets") {
+            coEvery { varCache.get("BOOK-1") } returns varResult()
+            coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+                "STOCK-A" to liquidityDto("STOCK-A").copy(hedgingEligible = true),
+                "STOCK-B" to liquidityDto("STOCK-B").copy(hedgingEligible = true),
+            )
+            coEvery { instrumentServiceClient.getInstrument(any()) } returns
+                ClientResponse.Success(instrumentDto("ANY"))
+            coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("ANY"))
+
+            val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+            coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+            serviceWithVol.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+            // Vol service should NOT be called for non-VEGA targets
+            coVerify(exactly = 0) { volatilityServiceClient.getLatestSurface(any()) }
+            candidatesSlot.captured shouldHaveSize 2
+        }
+
+        test("includes candidate when vol surface check throws (fail-open)") {
+            coEvery { varCache.get("BOOK-1") } returns varResult()
+            coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+                "OPT-A" to liquidityDto("OPT-A").copy(hedgingEligible = true),
+            )
+            coEvery { instrumentServiceClient.getInstrument(any()) } returns
+                ClientResponse.Success(instrumentDto("OPT-A", instrumentType = "OPTION"))
+            coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("OPT-A"))
+            coEvery { volatilityServiceClient.getLatestSurface(any()) } throws
+                RuntimeException("vol service unavailable")
+
+            val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+            coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+            serviceWithVol.suggestHedge(bookId, HedgeTarget.VEGA, 0.80, defaultConstraints)
+
+            // Fail-open: include the candidate when vol surface check fails
+            candidatesSlot.captured shouldHaveSize 1
+        }
     }
 })

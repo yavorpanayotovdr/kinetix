@@ -634,6 +634,7 @@ fun Application.moduleWithRoutes() {
         instrumentServiceClient = instrumentServiceClient,
         priceServiceClient = effectivePriceServiceClient,
         referenceDataClient = effectiveReferenceDataServiceClient,
+        volatilityServiceClient = effectiveVolatilityServiceClient,
         calculator = AnalyticalHedgeCalculator(),
         repository = hedgeRecommendationRepository,
     )
