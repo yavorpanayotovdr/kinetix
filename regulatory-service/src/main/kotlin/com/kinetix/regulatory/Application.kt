@@ -4,9 +4,11 @@ import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.client.PriceServiceClient
 import com.kinetix.regulatory.historical.HistoricalReplayService
 import com.kinetix.regulatory.historical.HistoricalScenarioRepository
 import com.kinetix.regulatory.historical.historicalScenarioPeriodRoutes
+import com.kinetix.regulatory.historical.historicalScenarioRoutes
 import com.kinetix.regulatory.persistence.BacktestResultRepository
 import com.kinetix.regulatory.persistence.DatabaseConfig
 import com.kinetix.regulatory.persistence.DatabaseFactory
@@ -116,6 +118,7 @@ fun Application.module(
     stressTestResultRepository: StressTestResultRepository? = null,
     historicalScenarioRepository: HistoricalScenarioRepository? = null,
     auditPublisher: GovernanceAuditPublisher? = null,
+    priceServiceClient: PriceServiceClient? = null,
 ) {
     module()
     routing {
@@ -127,8 +130,9 @@ fun Application.module(
             stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository, client), client)
         }
         if (historicalScenarioRepository != null) {
-            val replayService = HistoricalReplayService(historicalScenarioRepository, client)
+            val replayService = HistoricalReplayService(historicalScenarioRepository, client, priceServiceClient)
             historicalScenarioPeriodRoutes(historicalScenarioRepository, replayService)
+            historicalScenarioRoutes(replayService)
         }
     }
 }
