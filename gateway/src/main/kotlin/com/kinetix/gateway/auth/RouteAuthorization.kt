@@ -54,3 +54,26 @@ suspend fun ApplicationCall.checkBookAccess(bookId: String, service: BookAccessS
         false
     }
 }
+
+/**
+ * Verifies that the authenticated user has access to all given books.
+ * Denies the entire request if any bookId is not permitted, naming the denied book(s).
+ * Returns false (and responds 403/400) if the check fails so callers can return early.
+ */
+suspend fun ApplicationCall.checkMultiBookAccess(bookIds: List<String>, service: BookAccessService): Boolean {
+    if (bookIds.isEmpty()) {
+        respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to "bookIds must not be empty"))
+        return false
+    }
+    val principal = principal<JwtUserPrincipal>() ?: return true
+    val denied = bookIds.filter { !service.canAccess(principal.user, it) }
+    return if (denied.isEmpty()) {
+        true
+    } else {
+        respond(
+            HttpStatusCode.Forbidden,
+            mapOf("error" to "forbidden", "message" to "Access denied for book(s): ${denied.joinToString(", ")}"),
+        )
+        false
+    }
+}
