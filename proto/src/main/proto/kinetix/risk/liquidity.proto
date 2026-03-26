@@ -32,6 +32,8 @@ message LiquidityInput {
   bool adv_missing = 4;       // true when no ADV record exists
   int32 adv_staleness_days = 5;
   kinetix.common.AssetClass asset_class = 6;
+  double bid_ask_spread_bps = 7;  // bid-ask spread in basis points; 0 means no data
+  string adv_updated_at = 8;      // ISO-8601 timestamp of the ADV data
 }
 
 // ---------------------------------------------------------------------------
@@ -66,10 +68,16 @@ message PositionLiquidityRisk {
 message LiquidityAdjustedVaRResponse {
   kinetix.common.BookId book_id = 1;
   double portfolio_lvar = 2;
-  double data_completeness = 3;    // fraction of portfolio with ADV data (0.0–1.0)
+  double data_completeness = 3;    // fraction of portfolio by notional with ADV data (0.0–1.0)
   repeated PositionLiquidityRisk position_risks = 4;
   string portfolio_concentration_status = 5;  // worst status across positions
   google.protobuf.Timestamp calculated_at = 6;
+  double var_1day = 7;                        // base 1-day VaR before liquidity adjustment
+  double lvar_ratio = 8;                      // portfolio_lvar / var_1day
+  double weighted_avg_horizon = 9;            // notional-weighted average liquidation horizon (days)
+  double max_horizon = 10;                    // longest single-position liquidation horizon (days)
+  int32 concentration_count = 11;             // number of positions with concentration WARNING or BREACHED
+  string adv_data_as_of = 12;                 // ISO-8601 timestamp of most recent ADV data used
 }
 
 // ---------------------------------------------------------------------------
