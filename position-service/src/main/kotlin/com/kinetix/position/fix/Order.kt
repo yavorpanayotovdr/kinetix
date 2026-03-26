@@ -1,9 +1,11 @@
 package com.kinetix.position.fix
 
+import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.Side
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import java.util.Currency
 
 data class Order(
     val orderId: String,
@@ -19,6 +21,8 @@ data class Order(
     val riskCheckResult: String?,
     val riskCheckDetails: String?,
     val fixSessionId: String?,
+    val assetClass: AssetClass = AssetClass.EQUITY,
+    val currency: Currency = Currency.getInstance("USD"),
     val fills: List<ExecutionFill> = emptyList(),
 ) {
     val isTerminal: Boolean

@@ -1,6 +1,5 @@
 package com.kinetix.position.fix
 
-import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
@@ -10,7 +9,6 @@ import com.kinetix.position.service.TradeBookingService
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
-import java.util.Currency
 import java.util.UUID
 
 /**
@@ -32,7 +30,6 @@ class FIXExecutionReportProcessor(
     private val orderRepository: ExecutionOrderRepository,
     private val fillRepository: ExecutionFillRepository,
     private val tradeBookingService: TradeBookingService,
-    private val tradeCurrency: Currency = Currency.getInstance("USD"),
 ) {
 
     private val logger = LoggerFactory.getLogger(FIXExecutionReportProcessor::class.java)
@@ -113,10 +110,10 @@ class FIXExecutionReportProcessor(
             tradeId = TradeId(fillId),
             bookId = BookId(order.bookId),
             instrumentId = InstrumentId(order.instrumentId),
-            assetClass = AssetClass.EQUITY,
+            assetClass = order.assetClass,
             side = order.side,
             quantity = event.lastQty,
-            price = Money(event.lastPrice, tradeCurrency),
+            price = Money(event.lastPrice, order.currency),
             tradedAt = fill.fillTime,
         )
         tradeBookingService.handle(tradeCommand)

@@ -1,5 +1,6 @@
 package com.kinetix.position.fix
 
+import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.Side
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
@@ -9,6 +10,7 @@ import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.Currency
 
 class ExposedExecutionOrderRepository(private val db: Database? = null) : ExecutionOrderRepository {
 
@@ -27,6 +29,8 @@ class ExposedExecutionOrderRepository(private val db: Database? = null) : Execut
             it[riskCheckResult] = order.riskCheckResult
             it[riskCheckDetails] = order.riskCheckDetails
             it[fixSessionId] = order.fixSessionId
+            it[assetClass] = order.assetClass.name
+            it[currency] = order.currency.currencyCode
             it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
@@ -88,5 +92,7 @@ class ExposedExecutionOrderRepository(private val db: Database? = null) : Execut
         riskCheckResult = this[ExecutionOrdersTable.riskCheckResult],
         riskCheckDetails = this[ExecutionOrdersTable.riskCheckDetails],
         fixSessionId = this[ExecutionOrdersTable.fixSessionId],
+        assetClass = runCatching { AssetClass.valueOf(this[ExecutionOrdersTable.assetClass]) }.getOrDefault(AssetClass.EQUITY),
+        currency = runCatching { Currency.getInstance(this[ExecutionOrdersTable.currency]) }.getOrDefault(Currency.getInstance("USD")),
     )
 }

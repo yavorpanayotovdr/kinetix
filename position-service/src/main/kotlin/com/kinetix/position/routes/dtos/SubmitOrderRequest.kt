@@ -12,4 +12,6 @@ data class SubmitOrderRequest(
     val limitPrice: String? = null,
     val arrivalPrice: String,
     val fixSessionId: String? = null,
+    val assetClass: String = "EQUITY",
+    val currency: String = "USD",
 )

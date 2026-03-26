@@ -51,6 +51,8 @@ fun Route.orderRoutes(orderSubmissionService: OrderSubmissionService) {
                 limitPrice = limitPrice,
                 arrivalPrice = arrivalPrice,
                 fixSessionId = request.fixSessionId,
+                assetClass = request.assetClass,
+                currency = request.currency,
             )
 
             call.respond(HttpStatusCode.Created, order.toResponse())

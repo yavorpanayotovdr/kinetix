@@ -1,5 +1,6 @@
 package com.kinetix.position.fix
 
+import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.Side
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.BookTradeResult
@@ -9,12 +10,15 @@ import io.kotest.matchers.shouldBe
 import io.mockk.*
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Currency
 
 private fun makeOrder(
     orderId: String,
     side: Side = Side.BUY,
     quantity: BigDecimal = BigDecimal("100"),
     status: OrderStatus = OrderStatus.SENT,
+    assetClass: AssetClass = AssetClass.EQUITY,
+    currency: Currency = Currency.getInstance("USD"),
 ) = Order(
     orderId = orderId,
     bookId = "book-1",
@@ -29,6 +33,8 @@ private fun makeOrder(
     riskCheckResult = "APPROVED",
     riskCheckDetails = null,
     fixSessionId = "FIX-01",
+    assetClass = assetClass,
+    currency = currency,
 )
 
 private fun fillEvent(
@@ -188,5 +194,38 @@ class FIXExecutionReportProcessorTest : FunSpec({
 
         coVerify(exactly = 1) { orderRepository.updateQuantityAndPrice("ord-8", BigDecimal("80"), BigDecimal("155.00")) }
         coVerify(exactly = 0) { tradeBookingService.handle(any()) }
+    }
+
+    test("fill books trade with asset class from the order, not hardcoded EQUITY") {
+        val order = makeOrder("ord-9", assetClass = AssetClass.FIXED_INCOME, currency = Currency.getInstance("USD"))
+        coEvery { orderRepository.findById("ord-9") } returns order
+        coEvery { fillRepository.existsByFixExecId("exec-fi-1") } returns false
+        coEvery { fillRepository.findByOrderId("ord-9") } returns emptyList()
+
+        processor.process(fillEvent("ord-9", "exec-fi-1", "F",
+            lastQty = BigDecimal("100"),
+            cumulativeQty = BigDecimal("100"),
+        ))
+
+        coVerify(exactly = 1) {
+            tradeBookingService.handle(match { it.assetClass == AssetClass.FIXED_INCOME })
+        }
+    }
+
+    test("fill books trade with currency from the order, not hardcoded USD") {
+        val eur = Currency.getInstance("EUR")
+        val order = makeOrder("ord-10", assetClass = AssetClass.FX, currency = eur)
+        coEvery { orderRepository.findById("ord-10") } returns order
+        coEvery { fillRepository.existsByFixExecId("exec-fx-1") } returns false
+        coEvery { fillRepository.findByOrderId("ord-10") } returns emptyList()
+
+        processor.process(fillEvent("ord-10", "exec-fx-1", "F",
+            lastQty = BigDecimal("100"),
+            cumulativeQty = BigDecimal("100"),
+        ))
+
+        coVerify(exactly = 1) {
+            tradeBookingService.handle(match { it.assetClass == AssetClass.FX && it.price.currency == eur })
+        }
     }
 })

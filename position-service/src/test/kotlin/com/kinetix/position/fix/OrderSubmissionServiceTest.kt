@@ -286,4 +286,22 @@ class OrderSubmissionServiceTest : FunSpec({
         order.riskCheckDetails!! shouldContain "Notional limit exceeded"
         order.riskCheckDetails!! shouldContain "HARD"
     }
+
+    test("stores asset class and currency from submission on the returned order") {
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "BOND-001",
+            side = Side.BUY,
+            quantity = BigDecimal("500000"),
+            orderType = "LIMIT",
+            limitPrice = BigDecimal("99.50"),
+            arrivalPrice = BigDecimal("99.45"),
+            fixSessionId = null,
+            assetClass = "FIXED_INCOME",
+            currency = "EUR",
+        )
+
+        order.assetClass shouldBe com.kinetix.common.model.AssetClass.FIXED_INCOME
+        order.currency shouldBe java.util.Currency.getInstance("EUR")
+    }
 })

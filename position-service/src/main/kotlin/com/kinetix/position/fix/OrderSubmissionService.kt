@@ -53,8 +53,12 @@ class OrderSubmissionService(
         arrivalPrice: BigDecimal,
         fixSessionId: String?,
         assetClass: String = "EQUITY",
+        currency: String = "USD",
     ): Order {
         require(quantity > BigDecimal.ZERO) { "Quantity must be positive" }
+
+        val resolvedAssetClass = resolveAssetClass(assetClass)
+        val resolvedCurrency = resolveCurrency(currency)
 
         val order = Order(
             orderId = UUID.randomUUID().toString(),
@@ -70,6 +74,8 @@ class OrderSubmissionService(
             riskCheckResult = null,
             riskCheckDetails = null,
             fixSessionId = fixSessionId,
+            assetClass = resolvedAssetClass,
+            currency = resolvedCurrency,
         )
         orderRepository.save(order)
         logger.info(
@@ -81,10 +87,10 @@ class OrderSubmissionService(
             tradeId = TradeId(UUID.randomUUID().toString()),
             bookId = BookId(bookId),
             instrumentId = InstrumentId(instrumentId),
-            assetClass = resolveAssetClass(assetClass),
+            assetClass = resolvedAssetClass,
             side = side,
             quantity = quantity,
-            price = Money(arrivalPrice, Currency.getInstance("USD")),
+            price = Money(arrivalPrice, resolvedCurrency),
             tradedAt = order.submittedAt,
         )
 
@@ -151,6 +157,9 @@ class OrderSubmissionService(
 
     private fun resolveAssetClass(assetClass: String): AssetClass =
         runCatching { AssetClass.valueOf(assetClass.uppercase()) }.getOrDefault(AssetClass.EQUITY)
+
+    private fun resolveCurrency(currency: String): Currency =
+        runCatching { Currency.getInstance(currency.uppercase()) }.getOrDefault(Currency.getInstance("USD"))
 
     private fun serializeBreaches(breaches: List<LimitBreach>): String =
         Json.encodeToString(breaches.map { breach ->

@@ -17,6 +17,8 @@ object ExecutionOrdersTable : Table("execution_orders") {
     val riskCheckResult = varchar("risk_check_result", 20).nullable()
     val riskCheckDetails = text("risk_check_details").nullable()
     val fixSessionId = varchar("fix_session_id", 255).nullable()
+    val assetClass = varchar("asset_class", 30)
+    val currency = varchar("currency", 10)
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")
 
