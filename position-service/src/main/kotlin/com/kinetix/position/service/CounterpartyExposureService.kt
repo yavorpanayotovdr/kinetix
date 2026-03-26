@@ -14,6 +14,9 @@ class CounterpartyExposureService(
     private val tradeEventRepository: TradeEventRepository,
     private val nettingSetTradeRepository: NettingSetTradeRepository? = null,
 ) {
+    suspend fun getTradesByCounterparty(counterpartyId: String): List<Trade> =
+        tradeEventRepository.findByCounterpartyId(counterpartyId)
+
     /**
      * Returns a map of instrumentId -> nettingSetId for all trades booked against
      * the given counterparty.  Instruments with no netting-set assignment are excluded.

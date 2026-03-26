@@ -2,6 +2,7 @@ package com.kinetix.risk.client
 
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
+import com.kinetix.risk.client.dtos.CounterpartyTradeDto
 import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.TradeDto
 import java.time.Instant
@@ -18,4 +19,7 @@ interface PositionServiceClient {
      * are absent from the map.
      */
     suspend fun getInstrumentNettingSets(counterpartyId: String): ClientResponse<Map<String, String>>
+
+    /** Returns all trades for a counterparty (for SA-CCR position assembly). */
+    suspend fun getTradesByCounterparty(counterpartyId: String): ClientResponse<List<CounterpartyTradeDto>>
 }

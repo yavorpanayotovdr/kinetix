@@ -40,7 +40,6 @@ fun Route.saCcrRoutes(service: SaCcrService) {
             val result = runCatching {
                 service.calculateSaCcr(
                     counterpartyId = counterpartyId,
-                    positions = emptyList(),
                     collateralNet = collateralNet,
                 )
             }.getOrElse { ex ->

@@ -3,6 +3,7 @@ package com.kinetix.risk.client
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.client.dtos.BookSummaryDto
+import com.kinetix.risk.client.dtos.CounterpartyTradeDto
 import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.PositionDto
 import com.kinetix.risk.client.dtos.TradeDto
@@ -71,5 +72,12 @@ class HttpPositionServiceClient(
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val mapping: Map<String, String> = response.body()
         return ClientResponse.Success(mapping)
+    }
+
+    override suspend fun getTradesByCounterparty(counterpartyId: String): ClientResponse<List<CounterpartyTradeDto>> {
+        val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/trades")
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
+        val trades: List<CounterpartyTradeDto> = response.body()
+        return ClientResponse.Success(trades)
     }
 }
