@@ -13,16 +13,19 @@ class ScheduledBlobRetentionJob(
     private val runAtTime: LocalTime = LocalTime.of(3, 0),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledBlobRetentionJob::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-blob-retention", ttlSeconds = intervalMillis / 1000) {
             try {
                 tick()
             } catch (e: Exception) {
                 logger.error("Unhandled error in blob retention scheduler", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

@@ -16,16 +16,19 @@ class ScheduledSodSnapshotJob(
     private val sodTime: LocalTime = LocalTime.of(6, 0),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledSodSnapshotJob::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-sod-snapshot", ttlSeconds = intervalMillis / 1000) {
             try {
                 tick()
             } catch (e: Exception) {
                 logger.error("Failed to fetch portfolio list for scheduled SOD snapshot", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

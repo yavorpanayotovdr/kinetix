@@ -9,16 +9,19 @@ import kotlin.coroutines.coroutineContext
 class ScheduledHedgeExpiryJob(
     private val repository: HedgeRecommendationRepository,
     private val intervalMillis: Long = 60_000,
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledHedgeExpiryJob::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-hedge-expiry", ttlSeconds = intervalMillis / 1000) {
             try {
                 tick()
             } catch (e: Exception) {
                 logger.error("Unhandled error in hedge expiry scheduler", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

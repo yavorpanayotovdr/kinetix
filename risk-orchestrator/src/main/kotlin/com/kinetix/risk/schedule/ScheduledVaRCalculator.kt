@@ -22,11 +22,13 @@ class ScheduledVaRCalculator(
     private val intervalMillis: Long = 60_000,
     private val factorRiskService: FactorRiskService? = null,
     private val hierarchyRiskService: HierarchyRiskService? = null,
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledVaRCalculator::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-var-calculator", ttlSeconds = intervalMillis / 1000) {
             try {
                 val portfolios = bookIds()
                 for (bookId in portfolios) {
@@ -64,6 +66,7 @@ class ScheduledVaRCalculator(
             } catch (e: Exception) {
                 logger.error("Failed to fetch portfolio list for scheduled VaR calculation", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

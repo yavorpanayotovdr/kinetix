@@ -40,6 +40,7 @@ class ScheduledRegimeDetector(
     private val escalationDebounce: Int = 3,
     private val deEscalationDebounce: Int = 1,
     private val intervalMillis: Long = 15 * 60 * 1000L,
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledRegimeDetector::class.java)
 
@@ -69,11 +70,13 @@ class ScheduledRegimeDetector(
             intervalMillis, escalationDebounce, deEscalationDebounce,
         )
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-regime-detector", ttlSeconds = intervalMillis / 1000) {
             try {
                 detect()
             } catch (e: Exception) {
                 logger.error("Regime detection cycle failed", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

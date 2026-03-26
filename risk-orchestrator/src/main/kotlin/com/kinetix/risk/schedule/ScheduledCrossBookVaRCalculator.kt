@@ -24,11 +24,13 @@ class ScheduledCrossBookVaRCalculator(
     private val crossBookVaRCache: CrossBookVaRCache,
     private val groups: suspend () -> Map<String, List<BookId>>,
     private val intervalMillis: Long = 120_000,
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledCrossBookVaRCalculator::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-cross-book-var", ttlSeconds = intervalMillis / 1000) {
             try {
                 val groupMap = groups()
                 for ((groupId, bookIds) in groupMap) {
@@ -56,6 +58,7 @@ class ScheduledCrossBookVaRCalculator(
             } catch (e: Exception) {
                 logger.error("Failed to fetch group definitions for scheduled cross-book VaR", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

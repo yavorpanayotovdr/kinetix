@@ -13,16 +13,19 @@ class ScheduledManifestRetentionJob(
     private val runAtTime: LocalTime = LocalTime.of(3, 30),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },
+    private val lock: DistributedLock = NoOpDistributedLock(),
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledManifestRetentionJob::class.java)
 
     suspend fun start() {
         while (coroutineContext.isActive) {
+            lock.withLock("scheduled-manifest-retention", ttlSeconds = intervalMillis / 1000) {
             try {
                 tick()
             } catch (e: Exception) {
                 logger.error("Unhandled error in manifest retention scheduler", e)
             }
+            } // end lock
             delay(intervalMillis)
         }
     }

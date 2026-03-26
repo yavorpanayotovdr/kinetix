@@ -77,6 +77,9 @@ import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.persistence.ExposedBlobRetentionRepository
 import com.kinetix.risk.persistence.ExposedManifestRetentionRepository
 import com.kinetix.risk.reconciliation.TradeAuditReconciliationJob
+import com.kinetix.risk.schedule.DistributedLock
+import com.kinetix.risk.schedule.NoOpDistributedLock
+import com.kinetix.risk.schedule.RedisDistributedLock
 import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
 import com.kinetix.risk.schedule.ScheduledCrossBookVaRCalculator
 import com.kinetix.risk.schedule.ScheduledHedgeExpiryJob
@@ -404,6 +407,12 @@ fun Application.moduleWithRoutes() {
         client.connect()
     } else null
 
+    val distributedLock: DistributedLock = if (redisConnection != null) {
+        RedisDistributedLock(redisConnection)
+    } else {
+        NoOpDistributedLock()
+    }
+
     val varCache: VaRCache = if (redisConnection != null) {
         val ttl = environment.config.propertyOrNull("redis.ttlSeconds")?.getString()?.toLongOrNull() ?: 300L
         log.info("Using RedisVaRCache at {}", redisUrl)
@@ -674,6 +683,7 @@ fun Application.moduleWithRoutes() {
             } },
             factorRiskService = factorRiskService,
             hierarchyRiskService = hierarchyRiskService,
+            lock = distributedLock,
         ).start()
     }
     launch {
@@ -683,21 +693,25 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+            lock = distributedLock,
         ).start()
     }
     launch {
         ScheduledBlobRetentionJob(
             blobRetentionRepository = ExposedBlobRetentionRepository(riskDb),
+            lock = distributedLock,
         ).start()
     }
     launch {
         ScheduledManifestRetentionJob(
             manifestRetentionRepository = ExposedManifestRetentionRepository(riskDb),
+            lock = distributedLock,
         ).start()
     }
     launch {
         ScheduledHedgeExpiryJob(
             repository = hedgeRecommendationRepository,
+            lock = distributedLock,
         ).start()
     }
     launch {
@@ -721,6 +735,7 @@ fun Application.moduleWithRoutes() {
                 crossBookVaRService = crossBookVaRService,
                 crossBookVaRCache = crossBookVaRCache,
                 groups = { groupDefs },
+                lock = distributedLock,
             ).start()
         }
     }
