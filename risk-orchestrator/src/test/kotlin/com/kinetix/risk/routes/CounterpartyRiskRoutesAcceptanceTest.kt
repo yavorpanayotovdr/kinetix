@@ -5,8 +5,10 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.CounterpartyRiskClient
 import com.kinetix.risk.client.PFEPositionInput
 import com.kinetix.risk.client.PFEResult
+import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.CounterpartyDto
+import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
@@ -63,15 +65,19 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
 
     val referenceDataClient = mockk<ReferenceDataServiceClient>()
     val counterpartyRiskClient = mockk<CounterpartyRiskClient>()
+    val positionServiceClient = mockk<PositionServiceClient>()
     val repository = mockk<CounterpartyExposureRepository>()
     val service = CounterpartyRiskOrchestrationService(
         referenceDataClient = referenceDataClient,
         counterpartyRiskClient = counterpartyRiskClient,
+        positionServiceClient = positionServiceClient,
         repository = repository,
     )
 
     beforeEach {
         clearMocks(referenceDataClient, counterpartyRiskClient, repository)
+        coEvery { positionServiceClient.getNetCollateral(any()) } returns
+            ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
     }
 
     test("GET /api/v1/counterparty-risk/ returns all latest exposures") {

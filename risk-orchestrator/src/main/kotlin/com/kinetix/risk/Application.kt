@@ -344,6 +344,7 @@ fun Application.moduleWithRoutes() {
     val counterpartyRiskOrchestrationService = CounterpartyRiskOrchestrationService(
         referenceDataClient = effectiveReferenceDataServiceClient,
         counterpartyRiskClient = grpcCounterpartyRiskClient,
+        positionServiceClient = positionServiceClient,
         repository = counterpartyExposureRepository,
     )
 

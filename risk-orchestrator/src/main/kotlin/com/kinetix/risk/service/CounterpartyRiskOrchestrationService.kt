@@ -4,6 +4,7 @@ import com.kinetix.risk.client.CVAResult
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.CounterpartyRiskClient
 import com.kinetix.risk.client.PFEPositionInput
+import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.CounterpartyDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
@@ -17,6 +18,7 @@ import java.time.Instant
 class CounterpartyRiskOrchestrationService(
     private val referenceDataClient: ReferenceDataServiceClient,
     private val counterpartyRiskClient: CounterpartyRiskClient,
+    private val positionServiceClient: PositionServiceClient,
     private val repository: CounterpartyExposureRepository,
 ) {
     private val logger = LoggerFactory.getLogger(CounterpartyRiskOrchestrationService::class.java)
@@ -87,14 +89,37 @@ class CounterpartyRiskOrchestrationService(
             }
         }
 
-        // Collateral: use CSA threshold as an approximation of collateral held.
-        // collateralHeld = min(csaThreshold, netExposure) — we never hold more than the exposure.
-        val csaThreshold = primaryAgreement?.csaThreshold ?: 0.0
-        val collateralHeld = minOf(csaThreshold, pfeResult.netExposure).coerceAtLeast(0.0)
-        val collateralPosted = 0.0 // v1: assume we post no collateral
+        // Collateral: fetch real balances from position-service.
+        // Falls back to CSA threshold approximation when position-service is unreachable.
+        val collateralFetch = try {
+            positionServiceClient.getNetCollateral(counterpartyId)
+        } catch (e: Exception) {
+            logger.warn("Collateral fetch failed for {}, falling back to CSA threshold: {}", counterpartyId, e.message)
+            ClientResponse.NotFound(503)
+        }
 
-        // netNetExposure = netExposure - collateralHeld + collateralPosted (spec invariant)
-        val netNetExposure = pfeResult.netExposure - collateralHeld + collateralPosted
+        val collateralHeld: Double
+        val collateralPosted: Double
+        when (collateralFetch) {
+            is ClientResponse.Success -> {
+                collateralHeld = collateralFetch.value.collateralReceived
+                collateralPosted = collateralFetch.value.collateralPosted
+            }
+            else -> {
+                logger.warn(
+                    "Collateral unavailable for {}, falling back to CSA threshold approximation",
+                    counterpartyId,
+                )
+                val csaThreshold = primaryAgreement?.csaThreshold ?: 0.0
+                collateralHeld = minOf(csaThreshold, pfeResult.netExposure).coerceAtLeast(0.0)
+                collateralPosted = 0.0
+            }
+        }
+
+        // netNetExposure = netExposure - collateralHeld + collateralPosted, floored at 0.
+        // Collateral received reduces exposure; collateral posted increases it.
+        // We floor at zero — collateral cannot flip exposure to a receivable.
+        val netNetExposure = (pfeResult.netExposure - collateralHeld + collateralPosted).coerceAtLeast(0.0)
 
         // Wrong-way risk: financial-sector counterparties create wrong-way risk correlation.
         val wrongWayRiskFlags = computeWrongWayRiskFlags(counterparty)

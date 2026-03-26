@@ -3,13 +3,22 @@ package com.kinetix.risk.client
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.client.dtos.BookSummaryDto
+import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.PositionDto
 import com.kinetix.risk.client.dtos.TradeDto
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.serialization.Serializable
 import java.time.Instant
+
+@Serializable
+private data class NetCollateralResponse(
+    val counterpartyId: String,
+    val collateralReceived: String,
+    val collateralPosted: String,
+)
 
 class HttpPositionServiceClient(
     private val httpClient: HttpClient,
@@ -43,5 +52,17 @@ class HttpPositionServiceClient(
             !tradedAt.isBefore(from) && !tradedAt.isAfter(to)
         }
         return ClientResponse.Success(filtered)
+    }
+
+    override suspend fun getNetCollateral(counterpartyId: String): ClientResponse<NetCollateralDto> {
+        val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/collateral/net")
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
+        val dto: NetCollateralResponse = response.body()
+        return ClientResponse.Success(
+            NetCollateralDto(
+                collateralReceived = dto.collateralReceived.toDouble(),
+                collateralPosted = dto.collateralPosted.toDouble(),
+            )
+        )
     }
 }

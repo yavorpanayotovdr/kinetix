@@ -5,8 +5,10 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.CounterpartyRiskClient
 import com.kinetix.risk.client.PFEPositionInput
 import com.kinetix.risk.client.PFEResult
+import com.kinetix.risk.client.PositionServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.CounterpartyDto
+import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
@@ -65,12 +67,20 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
 
     val referenceDataClient = mockk<ReferenceDataServiceClient>()
     val counterpartyRiskClient = mockk<CounterpartyRiskClient>()
+    val positionServiceClient = mockk<PositionServiceClient>()
     val repository = mockk<CounterpartyExposureRepository>()
     val service = CounterpartyRiskOrchestrationService(
         referenceDataClient = referenceDataClient,
         counterpartyRiskClient = counterpartyRiskClient,
+        positionServiceClient = positionServiceClient,
         repository = repository,
     )
+
+    // Default: position-service returns zero collateral so existing tests are unaffected.
+    beforeEach {
+        coEvery { positionServiceClient.getNetCollateral(any()) } returns
+            ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
+    }
 
     context("computeAndPersistPFE") {
 
@@ -208,6 +218,69 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
 
             result.cva shouldBe 12_000.0
             result.cvaEstimated shouldBe true
+        }
+
+        test("uses real collateral when position-service returns data") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult(netExposure = 2_000_000.0)
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { positionServiceClient.getNetCollateral("CP-GS") } returns
+                ClientResponse.Success(NetCollateralDto(collateralReceived = 800_000.0, collateralPosted = 100_000.0))
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            // collateralHeld = received = 800_000, posted = 100_000
+            // netNetExposure = 2_000_000 - 800_000 + 100_000 = 1_300_000
+            result.collateralHeld shouldBe 800_000.0
+            result.collateralPosted shouldBe 100_000.0
+            result.netNetExposure shouldBe 1_300_000.0
+        }
+
+        test("falls back to CSA threshold when collateral fetch fails") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(
+                NETTING_AGREEMENT.copy(csaThreshold = 500_000.0)
+            ))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult(netExposure = 2_000_000.0)
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { positionServiceClient.getNetCollateral("CP-GS") } returns ClientResponse.NotFound(404)
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            // CSA fallback: collateralHeld = min(csaThreshold=500_000, netExposure=2_000_000) = 500_000
+            result.collateralHeld shouldBe 500_000.0
+            result.collateralPosted shouldBe 0.0
+            result.netNetExposure shouldBe 1_500_000.0
+        }
+
+        test("floors net-net exposure at zero") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult(netExposure = 500_000.0)
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            // Collateral received exceeds exposure — should not produce negative net-net exposure.
+            coEvery { positionServiceClient.getNetCollateral("CP-GS") } returns
+                ClientResponse.Success(NetCollateralDto(collateralReceived = 800_000.0, collateralPosted = 0.0))
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            (result.netNetExposure!! >= 0.0) shouldBe true
         }
     }
 
