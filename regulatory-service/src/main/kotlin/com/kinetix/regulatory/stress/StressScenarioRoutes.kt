@@ -2,6 +2,7 @@ package com.kinetix.regulatory.stress
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.stress.dto.ApproveScenarioRequest
+import com.kinetix.regulatory.stress.dto.CreateCorrelatedScenarioRequest
 import com.kinetix.regulatory.stress.dto.CreateScenarioRequest
 import com.kinetix.regulatory.stress.dto.ReverseStressRequest
 import com.kinetix.regulatory.stress.dto.RunStressTestRequest
@@ -133,6 +134,30 @@ fun Route.stressScenarioRoutes(
             )
             logger.info("Reverse stress complete: bookId={}, converged={}", request.bookId, result.converged)
             call.respond(HttpStatusCode.OK, result)
+        }
+
+        post("/correlated", {
+            summary = "Create a scenario with secondary shocks derived from the correlation matrix"
+            tags = listOf("Stress Testing")
+            request {
+                body<CreateCorrelatedScenarioRequest>()
+            }
+        }) {
+            val request = call.receive<CreateCorrelatedScenarioRequest>()
+            logger.info(
+                "Creating correlated scenario: name={}, primaryAssetClass={}, primaryShock={}",
+                request.name, request.primaryAssetClass, request.primaryShock,
+            )
+            val scenario = service.createCorrelatedScenario(
+                name = request.name,
+                description = request.description,
+                primaryAssetClass = request.primaryAssetClass,
+                primaryShock = request.primaryShock,
+                assetClasses = request.assetClasses,
+                createdBy = request.createdBy,
+            )
+            logger.info("Correlated scenario created: id={}, name={}", scenario.id, scenario.name)
+            call.respond(HttpStatusCode.Created, scenario.toResponse())
         }
 
         put("/{id}", {

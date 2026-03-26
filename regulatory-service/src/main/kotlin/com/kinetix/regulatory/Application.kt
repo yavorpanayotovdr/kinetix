@@ -4,6 +4,7 @@ import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.client.CorrelationServiceClient
 import com.kinetix.regulatory.client.PriceServiceClient
 import com.kinetix.regulatory.historical.HistoricalReplayService
 import com.kinetix.regulatory.historical.HistoricalScenarioRepository
@@ -119,6 +120,7 @@ fun Application.module(
     historicalScenarioRepository: HistoricalScenarioRepository? = null,
     auditPublisher: GovernanceAuditPublisher? = null,
     priceServiceClient: PriceServiceClient? = null,
+    correlationServiceClient: CorrelationServiceClient? = null,
 ) {
     module()
     routing {
@@ -127,7 +129,15 @@ fun Application.module(
             backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository), auditPublisher)
         }
         if (stressScenarioRepository != null) {
-            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository, client), client)
+            stressScenarioRoutes(
+                StressScenarioService(
+                    repository = stressScenarioRepository,
+                    resultRepository = stressTestResultRepository,
+                    riskOrchestratorClient = client,
+                    correlationServiceClient = correlationServiceClient,
+                ),
+                client,
+            )
         }
         if (historicalScenarioRepository != null) {
             val replayService = HistoricalReplayService(historicalScenarioRepository, client, priceServiceClient)

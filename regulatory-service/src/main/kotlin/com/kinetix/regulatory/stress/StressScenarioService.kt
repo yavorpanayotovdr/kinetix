@@ -1,9 +1,13 @@
 package com.kinetix.regulatory.stress
 
+import com.kinetix.regulatory.client.CorrelationServiceClient
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.common.audit.AuditEventType
 import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -13,6 +17,7 @@ class StressScenarioService(
     private val resultRepository: StressTestResultRepository? = null,
     private val riskOrchestratorClient: RiskOrchestratorClient? = null,
     private val auditPublisher: GovernanceAuditPublisher? = null,
+    private val correlationServiceClient: CorrelationServiceClient? = null,
 ) {
 
     suspend fun create(
@@ -185,6 +190,47 @@ class StressScenarioService(
             priceShocks = emptyMap(),
         )
         return runCatching { BigDecimal(result.pnlImpact) }.getOrDefault(BigDecimal.ZERO)
+    }
+
+    /**
+     * Creates a parametric scenario whose secondary shocks are derived from the primary shock
+     * via the correlation matrix fetched from the correlation-service.
+     *
+     * For each asset class i, the implied shock is: corr(primary, i) * primaryShock.
+     * The primary asset class retains its shock unchanged (self-correlation is 1.0).
+     */
+    suspend fun createCorrelatedScenario(
+        name: String,
+        description: String,
+        primaryAssetClass: String,
+        primaryShock: Double,
+        assetClasses: List<String>,
+        createdBy: String,
+    ): StressScenario {
+        require(primaryAssetClass in assetClasses) {
+            "primaryAssetClass '$primaryAssetClass' must be included in assetClasses list"
+        }
+        val client = correlationServiceClient
+            ?: throw IllegalStateException("CorrelationServiceClient not configured")
+        val matrix = client.fetchLatestMatrix(assetClasses)
+            ?: throw IllegalStateException("No approved correlation matrix available for asset classes: $assetClasses")
+
+        val primaryIndex = matrix.labels.indexOf(primaryAssetClass)
+        val n = matrix.labels.size
+        val shocksJson = buildJsonObject {
+            matrix.labels.forEachIndexed { i, label ->
+                val corr = matrix.values[primaryIndex * n + i]
+                put(label, corr * primaryShock)
+            }
+        }
+
+        return create(
+            name = name,
+            description = description,
+            shocks = shocksJson.toString(),
+            createdBy = createdBy,
+            scenarioType = ScenarioType.PARAMETRIC,
+        )
     }
 
     private suspend fun findOrThrow(id: String): StressScenario =
