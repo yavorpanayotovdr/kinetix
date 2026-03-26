@@ -9,6 +9,7 @@ import com.kinetix.risk.service.HierarchyRiskService
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.time.Instant
 
 fun Route.hierarchyRiskRoutes(hierarchyRiskService: HierarchyRiskService) {
     get("/api/v1/risk/hierarchy/{level}/{entityId}") {
@@ -52,6 +53,7 @@ private fun HierarchyNodeRisk.toResponse() = HierarchyNodeRiskResponse(
     childCount = childCount,
     isPartial = isPartial,
     missingBooks = missingBooks,
+    generatedAt = Instant.now().toString(),
 )
 
 private fun RiskContributor.toResponse() = RiskContributorResponse(

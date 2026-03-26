@@ -109,6 +109,21 @@ class CroReportRoutesAcceptanceTest : FunSpec({
         }
     }
 
+    // HIER-08: CRO report includes a generatedAt timestamp so consumers can assess data freshness
+    test("report includes generatedAt timestamp") {
+        coEvery { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") } returns
+            firmNodeWithUtilisation()
+
+        testApp {
+            val response = client.post("/api/v1/risk/reports/cro")
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body.containsKey("generatedAt") shouldBe true
+            body["generatedAt"]?.jsonPrimitive?.content?.isNotBlank() shouldBe true
+        }
+    }
+
     test("POST /api/v1/risk/reports/cro returns 503 when hierarchy aggregation fails") {
         coEvery { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") } throws
             RuntimeException("Cross-book VaR unavailable")

@@ -7,6 +7,7 @@ import com.kinetix.risk.service.HierarchyRiskService
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.time.Instant
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("CroReportRoutes")
@@ -54,6 +55,7 @@ fun Route.croReportRoutes(hierarchyRiskService: HierarchyRiskService) {
             childCount = node.childCount,
             isPartial = node.isPartial,
             missingBooks = node.missingBooks,
+            generatedAt = Instant.now().toString(),
         )
 
         call.respond(HttpStatusCode.OK, response)

@@ -18,4 +18,6 @@ data class HierarchyNodeRiskResponse(
     val childCount: Int,
     val isPartial: Boolean,
     val missingBooks: List<String>,
+    /** ISO-8601 timestamp at which this report was generated. Used by consumers to assess data freshness. */
+    val generatedAt: String,
 )
