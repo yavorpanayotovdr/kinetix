@@ -201,3 +201,68 @@ def test_decompose_factor_risk_internal_error_aborts_context():
     # Either aborted or response is valid (negative var handled gracefully)
     # The servicer should not crash
     assert True  # just verify no exception propagates
+
+
+@pytest.mark.unit
+def test_decompose_factor_risk_populates_pnl_attribution_when_factor_returns_today_provided():
+    """When total_pnl and factor_returns_today are supplied, pnl_attribution on each
+    FactorContribution must be non-zero and idiosyncratic_pnl must be populated."""
+    import random
+    rng = random.Random(42)
+    spx_returns = [rng.gauss(0.0, 0.01) for _ in range(252)]
+
+    # SPX up 1% today; $1M position at beta=1 -> $10k factor P&L
+    request = risk_calculation_pb2.FactorDecompositionRequest(
+        book_id="PNL_BOOK",
+        positions=[_make_position_input("SPY", 1_000_000.0, "EQUITY")],
+        factor_returns=[
+            _make_factor_return_series(risk_calculation_pb2.FACTOR_EQUITY_BETA, spx_returns)
+        ],
+        total_var=15_000.0,
+        total_pnl=12_000.0,
+        factor_returns_today={"EQUITY_BETA": 0.01},
+    )
+
+    ctx = _FakeContext()
+    servicer = FactorDecompositionServicer()
+    response = servicer.DecomposeFactorRisk(request, ctx)
+
+    assert not ctx.aborted
+    equity_contrib = next(
+        (fc for fc in response.factor_contributions
+         if fc.factor == risk_calculation_pb2.FACTOR_EQUITY_BETA),
+        None,
+    )
+    assert equity_contrib is not None
+    # factor_pnl = 1_000_000 * 1.0 (analytical equity beta) * 0.01 = 10_000
+    assert equity_contrib.pnl_attribution == pytest.approx(10_000.0, rel=1e-3)
+    # idiosyncratic_pnl = 12_000 - 10_000 = 2_000
+    assert response.idiosyncratic_pnl == pytest.approx(2_000.0, rel=1e-3)
+
+
+@pytest.mark.unit
+def test_decompose_factor_risk_pnl_attribution_is_zero_when_factor_returns_today_absent():
+    """When factor_returns_today is not supplied, pnl_attribution stays 0.0 and
+    idiosyncratic_pnl is 0.0."""
+    import random
+    rng = random.Random(1)
+    spx_returns = [rng.gauss(0.0, 0.01) for _ in range(252)]
+
+    request = risk_calculation_pb2.FactorDecompositionRequest(
+        book_id="NO_PNL_BOOK",
+        positions=[_make_position_input("SPY", 1_000_000.0, "EQUITY")],
+        factor_returns=[
+            _make_factor_return_series(risk_calculation_pb2.FACTOR_EQUITY_BETA, spx_returns)
+        ],
+        total_var=15_000.0,
+        # total_pnl and factor_returns_today deliberately omitted
+    )
+
+    ctx = _FakeContext()
+    servicer = FactorDecompositionServicer()
+    response = servicer.DecomposeFactorRisk(request, ctx)
+
+    assert not ctx.aborted
+    for fc in response.factor_contributions:
+        assert fc.pnl_attribution == pytest.approx(0.0)
+    assert response.idiosyncratic_pnl == pytest.approx(0.0)

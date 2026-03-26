@@ -377,20 +377,31 @@ class FactorReturnSeries(_message.Message):
     def __init__(self, factor: _Optional[_Union[FactorType, str]] = ..., returns: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class FactorDecompositionRequest(_message.Message):
-    __slots__ = ("book_id", "positions", "factor_returns", "total_var", "decomposition_date", "job_id")
+    __slots__ = ("book_id", "positions", "factor_returns", "total_var", "decomposition_date", "job_id", "total_pnl", "factor_returns_today")
+    class FactorReturnsTodayEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: float
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
     BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     POSITIONS_FIELD_NUMBER: _ClassVar[int]
     FACTOR_RETURNS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_VAR_FIELD_NUMBER: _ClassVar[int]
     DECOMPOSITION_DATE_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_PNL_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_RETURNS_TODAY_FIELD_NUMBER: _ClassVar[int]
     book_id: str
     positions: _containers.RepeatedCompositeFieldContainer[PositionLoadingInput]
     factor_returns: _containers.RepeatedCompositeFieldContainer[FactorReturnSeries]
     total_var: float
     decomposition_date: str
     job_id: str
-    def __init__(self, book_id: _Optional[str] = ..., positions: _Optional[_Iterable[_Union[PositionLoadingInput, _Mapping]]] = ..., factor_returns: _Optional[_Iterable[_Union[FactorReturnSeries, _Mapping]]] = ..., total_var: _Optional[float] = ..., decomposition_date: _Optional[str] = ..., job_id: _Optional[str] = ...) -> None: ...
+    total_pnl: float
+    factor_returns_today: _containers.ScalarMap[str, float]
+    def __init__(self, book_id: _Optional[str] = ..., positions: _Optional[_Iterable[_Union[PositionLoadingInput, _Mapping]]] = ..., factor_returns: _Optional[_Iterable[_Union[FactorReturnSeries, _Mapping]]] = ..., total_var: _Optional[float] = ..., decomposition_date: _Optional[str] = ..., job_id: _Optional[str] = ..., total_pnl: _Optional[float] = ..., factor_returns_today: _Optional[_Mapping[str, float]] = ...) -> None: ...
 
 class FactorContribution(_message.Message):
     __slots__ = ("factor", "factor_exposure", "factor_var", "pnl_attribution", "pct_of_total_var")
@@ -423,7 +434,7 @@ class InstrumentLoadingResult(_message.Message):
     def __init__(self, instrument_id: _Optional[str] = ..., factor: _Optional[_Union[FactorType, str]] = ..., loading: _Optional[float] = ..., r_squared: _Optional[float] = ..., has_r_squared: bool = ..., method: _Optional[_Union[LoadingMethod, str]] = ...) -> None: ...
 
 class FactorDecompositionResponse(_message.Message):
-    __slots__ = ("book_id", "decomposition_date", "total_var", "systematic_var", "idiosyncratic_var", "r_squared", "factor_contributions", "loadings", "job_id")
+    __slots__ = ("book_id", "decomposition_date", "total_var", "systematic_var", "idiosyncratic_var", "r_squared", "factor_contributions", "loadings", "job_id", "idiosyncratic_pnl")
     BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     DECOMPOSITION_DATE_FIELD_NUMBER: _ClassVar[int]
     TOTAL_VAR_FIELD_NUMBER: _ClassVar[int]
@@ -433,6 +444,7 @@ class FactorDecompositionResponse(_message.Message):
     FACTOR_CONTRIBUTIONS_FIELD_NUMBER: _ClassVar[int]
     LOADINGS_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    IDIOSYNCRATIC_PNL_FIELD_NUMBER: _ClassVar[int]
     book_id: str
     decomposition_date: str
     total_var: float
@@ -442,7 +454,8 @@ class FactorDecompositionResponse(_message.Message):
     factor_contributions: _containers.RepeatedCompositeFieldContainer[FactorContribution]
     loadings: _containers.RepeatedCompositeFieldContainer[InstrumentLoadingResult]
     job_id: str
-    def __init__(self, book_id: _Optional[str] = ..., decomposition_date: _Optional[str] = ..., total_var: _Optional[float] = ..., systematic_var: _Optional[float] = ..., idiosyncratic_var: _Optional[float] = ..., r_squared: _Optional[float] = ..., factor_contributions: _Optional[_Iterable[_Union[FactorContribution, _Mapping]]] = ..., loadings: _Optional[_Iterable[_Union[InstrumentLoadingResult, _Mapping]]] = ..., job_id: _Optional[str] = ...) -> None: ...
+    idiosyncratic_pnl: float
+    def __init__(self, book_id: _Optional[str] = ..., decomposition_date: _Optional[str] = ..., total_var: _Optional[float] = ..., systematic_var: _Optional[float] = ..., idiosyncratic_var: _Optional[float] = ..., r_squared: _Optional[float] = ..., factor_contributions: _Optional[_Iterable[_Union[FactorContribution, _Mapping]]] = ..., loadings: _Optional[_Iterable[_Union[InstrumentLoadingResult, _Mapping]]] = ..., job_id: _Optional[str] = ..., idiosyncratic_pnl: _Optional[float] = ...) -> None: ...
 
 class HedgeCandidateGreeks(_message.Message):
     __slots__ = ("delta_per_unit", "gamma_per_unit", "vega_per_unit", "theta_per_unit", "rho_per_unit")

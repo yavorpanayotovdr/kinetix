@@ -215,13 +215,42 @@ class FactorDecompositionServicer:
             job_id=job_id or None,
         )
 
+        # P&L attribution: computed when total_pnl and factor_returns_today are supplied.
+        total_pnl = request.total_pnl
+        factor_returns_today_proto = dict(request.factor_returns_today)
+        idiosyncratic_pnl = 0.0
+        pnl_attribution_by_factor: dict[FactorType, float] = {}
+
+        if total_pnl != 0.0 and factor_returns_today_proto:
+            factor_returns_today_domain: dict[FactorType, float] = {}
+            for name, ret in factor_returns_today_proto.items():
+                try:
+                    domain_factor = FactorType(name)
+                    factor_returns_today_domain[domain_factor] = ret
+                except ValueError:
+                    logger.warning("Unknown factor name in factor_returns_today: %s", name)
+
+            if factor_returns_today_domain:
+                pnl_result = compute_factor_pnl_attribution(
+                    book_id=book_id,
+                    positions=positions,
+                    loadings=all_loadings,
+                    factor_returns_today=factor_returns_today_domain,
+                    total_pnl=total_pnl,
+                    attribution_date=decomposition_date,
+                )
+                idiosyncratic_pnl = pnl_result.idiosyncratic_pnl
+                pnl_attribution_by_factor = {
+                    fc.factor: fc.pnl_attribution for fc in pnl_result.factor_pnl
+                }
+
         # Build response
         proto_contributions = [
             risk_calculation_pb2.FactorContribution(
                 factor=_DOMAIN_FACTOR_TO_PROTO.get(fc.factor, 0),
                 factor_exposure=fc.factor_exposure,
                 factor_var=fc.factor_var,
-                pnl_attribution=fc.pnl_attribution,
+                pnl_attribution=pnl_attribution_by_factor.get(fc.factor, 0.0),
                 pct_of_total_var=fc.pct_of_total_var,
             )
             for fc in result.factor_contributions
@@ -249,4 +278,5 @@ class FactorDecompositionServicer:
             factor_contributions=proto_contributions,
             loadings=proto_loadings,
             job_id=job_id,
+            idiosyncratic_pnl=idiosyncratic_pnl,
         )
