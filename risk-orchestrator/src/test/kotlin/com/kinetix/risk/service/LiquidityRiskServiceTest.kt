@@ -13,6 +13,7 @@ import com.kinetix.risk.client.LiquidityInputRequest
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
+import com.kinetix.risk.kafka.LiquidityConcentrationAlertPublisher
 import com.kinetix.risk.persistence.LiquidityRiskSnapshotRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.shouldBeExactly
@@ -193,6 +194,49 @@ class LiquidityRiskServiceTest : FunSpec({
         service.calculateAndSave(bookId, baseVar = 50_000.0)
 
         coVerify { repository.save(expectedResult) }
+    }
+
+    test("publishes LIQUIDITY_CONCENTRATION alert when concentrationCount is greater than zero") {
+        val alertPublisher = mockk<LiquidityConcentrationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = LiquidityRiskService(
+            positionProvider = positionProvider,
+            referenceDataClient = referenceDataClient,
+            grpcLiquidityClient = grpcClient,
+            repository = repository,
+            concentrationAlertPublisher = alertPublisher,
+        )
+        val positions = listOf(position())
+        coEvery { positionProvider.getPositions(bookId) } returns positions
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf("AAPL" to liquidityDto())
+        val concentratedResult = sampleLiquidityResult().copy(
+            concentrationCount = 2,
+            portfolioConcentrationStatus = "BREACHED",
+        )
+        coEvery { grpcClient.calculateLiquidityAdjustedVaR(any(), any(), any(), any(), any(), any()) } returns concentratedResult
+
+        serviceWithPublisher.calculateAndSave(bookId, baseVar = 50_000.0)
+
+        coVerify(exactly = 1) { alertPublisher.publishConcentrationAlert(concentratedResult) }
+    }
+
+    test("does not publish LIQUIDITY_CONCENTRATION alert when concentrationCount is zero") {
+        val alertPublisher = mockk<LiquidityConcentrationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = LiquidityRiskService(
+            positionProvider = positionProvider,
+            referenceDataClient = referenceDataClient,
+            grpcLiquidityClient = grpcClient,
+            repository = repository,
+            concentrationAlertPublisher = alertPublisher,
+        )
+        val positions = listOf(position())
+        coEvery { positionProvider.getPositions(bookId) } returns positions
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf("AAPL" to liquidityDto())
+        val okResult = sampleLiquidityResult().copy(concentrationCount = 0, portfolioConcentrationStatus = "OK")
+        coEvery { grpcClient.calculateLiquidityAdjustedVaR(any(), any(), any(), any(), any(), any()) } returns okResult
+
+        serviceWithPublisher.calculateAndSave(bookId, baseVar = 50_000.0)
+
+        coVerify(exactly = 0) { alertPublisher.publishConcentrationAlert(any()) }
     }
 
     test("returns the LiquidityRiskResult from the gRPC client") {

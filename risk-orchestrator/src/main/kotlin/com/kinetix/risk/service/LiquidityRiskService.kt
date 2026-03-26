@@ -6,6 +6,7 @@ import com.kinetix.risk.client.GrpcLiquidityClient
 import com.kinetix.risk.client.LiquidityInputRequest
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.kafka.LiquidityConcentrationAlertPublisher
 import com.kinetix.risk.persistence.LiquidityRiskSnapshotRepository
 import org.slf4j.LoggerFactory
 
@@ -17,6 +18,7 @@ class LiquidityRiskService(
     private val baseHoldingPeriod: Int = 1,
     private val portfolioDailyVol: Double = 0.015,
     private val stressFactors: Map<String, Double> = emptyMap(),
+    private val concentrationAlertPublisher: LiquidityConcentrationAlertPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(LiquidityRiskService::class.java)
 
@@ -64,6 +66,17 @@ class LiquidityRiskService(
             "Liquidity risk calculated for book {}: LVaR={}, dataCompleteness={}, concentrationStatus={}",
             bookId.value, result.portfolioLvar, result.dataCompleteness, result.portfolioConcentrationStatus,
         )
+
+        if (result.concentrationCount > 0) {
+            try {
+                concentrationAlertPublisher?.publishConcentrationAlert(result)
+            } catch (e: Exception) {
+                logger.warn(
+                    "Failed to publish LIQUIDITY_CONCENTRATION alert for book {}: {}",
+                    bookId.value, e.message,
+                )
+            }
+        }
 
         return result
     }
