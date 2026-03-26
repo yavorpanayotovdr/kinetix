@@ -11,8 +11,8 @@ export async function fetchIntradayVaRTimeline(
     `/api/v1/risk/var/${encodeURIComponent(bookId)}/intraday?${params}`,
   )
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}))
-    const message = body.error || `Failed to fetch intraday VaR timeline: ${response.status}`
+    const body = await response.json().catch(() => null)
+    const message = body?.error || `Failed to fetch intraday VaR timeline: ${response.status}`
     throw new Error(message)
   }
   return response.json()

@@ -425,7 +425,16 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  // Intraday VaR timeline endpoint — return empty points by default
+  // Catch-all for remaining risk endpoints (registered FIRST — Playwright uses last-match-wins)
+  await page.route('**/api/v1/risk/**', (route: Route) => {
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify(null),
+    })
+  })
+
+  // Specific risk routes registered AFTER catch-all so they take priority
   await page.route('**/api/v1/risk/var/*/intraday*', (route: Route) => {
     route.fulfill({
       status: 200,
@@ -434,7 +443,6 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  // Regime current — return NORMAL by default
   await page.route('**/api/v1/risk/regime/current', (route: Route) => {
     route.fulfill({
       status: 200,
@@ -443,21 +451,11 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     })
   })
 
-  // Regime history — return empty list by default
   await page.route('**/api/v1/risk/regime/history*', (route: Route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ items: [], total: 0 }),
-    })
-  })
-
-  // Catch-all for remaining risk endpoints
-  await page.route('**/api/v1/risk/**', (route: Route) => {
-    route.fulfill({
-      status: 404,
-      contentType: 'application/json',
-      body: JSON.stringify(null),
     })
   })
 

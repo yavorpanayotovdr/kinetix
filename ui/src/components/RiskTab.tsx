@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { useCrossBookVaR } from '../hooks/useCrossBookVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
@@ -29,9 +29,11 @@ import { RunComparisonContainer } from './RunComparisonContainer'
 import { CorrelationHeatmap } from './CorrelationHeatmap'
 import { HedgeRecommendationPanel } from './HedgeRecommendationPanel'
 import { useHedgeRecommendation } from '../hooks/useHedgeRecommendation'
+import { useIntradayVaRTimeline } from '../hooks/useIntradayVaRTimeline'
 import { VolSurfacePanel } from './VolSurfacePanel'
+import { IntradayVaRChart } from './IntradayVaRChart'
 
-type RiskSubTab = 'dashboard' | 'run-compare' | 'market-data'
+type RiskSubTab = 'dashboard' | 'run-compare' | 'market-data' | 'intraday'
 
 interface RiskTabProps {
   bookId: string | null
@@ -67,6 +69,19 @@ export function RiskTab({
   const [pendingJobCompare, setPendingJobCompare] = useState<{ baseJobId: string; targetJobId: string } | null>(null)
   const [hedgePanelOpen, setHedgePanelOpen] = useState(false)
   const { recommendation: hedgeRec, loading: hedgeLoading, error: hedgeError, suggest: suggestHedge } = useHedgeRecommendation(bookId)
+
+  // Intraday VaR: default to today's trading window (07:00 UTC to now)
+  const todayFrom = useMemo(() => {
+    const d = new Date()
+    d.setUTCHours(7, 0, 0, 0)
+    return d.toISOString()
+  }, [])
+  const todayTo = useMemo(() => new Date().toISOString(), [])
+  const { varPoints: intradayVarPoints, tradeAnnotations: intradayTradeAnnotations, loading: intradayVarLoading, error: intradayVarError } = useIntradayVaRTimeline(
+    subTab === 'intraday' ? bookId : null,
+    todayFrom,
+    todayTo,
+  )
 
   const handleCompareJobs = useCallback((baseJobId: string, targetJobId: string) => {
     setPendingJobCompare({ baseJobId, targetJobId })
@@ -174,6 +189,7 @@ export function RiskTab({
 
   const subTabs: { key: RiskSubTab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'intraday', label: 'Intraday' },
     { key: 'run-compare', label: 'Run Compare' },
     { key: 'market-data', label: 'Market Data' },
   ]
@@ -329,6 +345,16 @@ export function RiskTab({
 
       {subTab === 'market-data' && (
         <VolSurfacePanel instruments={instrumentIds} />
+      )}
+
+      {subTab === 'intraday' && (
+        <div data-testid="intraday-var-panel" className="space-y-4">
+          {intradayVarLoading && <p className="text-sm text-slate-500">Loading intraday VaR data...</p>}
+          {intradayVarError && <p className="text-sm text-red-600">{intradayVarError}</p>}
+          {!intradayVarLoading && !intradayVarError && (
+            <IntradayVaRChart varPoints={intradayVarPoints} tradeAnnotations={intradayTradeAnnotations} />
+          )}
+        </div>
       )}
 
       <HedgeRecommendationPanel
