@@ -41,12 +41,16 @@ class JdbcReportQueryExecutor(private val readOnlyDataSource: DataSource) : Repo
     }
 
     override suspend fun executeStressTestSummary(bookId: String, date: String?): JsonArray {
-        // stress_test_results is not a TimescaleDB hypertable — plain table query.
+        // NOTE: stress_test_results lives in the regulatory-service database, not risk.
+        // This query works only when the report executor's DataSource points at the
+        // regulatory DB or a cross-database view exists. The column names match the
+        // post-V13 rename schema: book_id (was portfolio_id), scenario_id (FK),
+        // base_pv, stressed_pv, pnl_impact.
         val sql = buildString {
             append("""
                 SELECT
-                    book_id, scenario_name,
-                    base_var, stressed_var, pnl_impact,
+                    book_id, scenario_id,
+                    base_pv, stressed_pv, pnl_impact,
                     calculated_at
                 FROM stress_test_results
                 WHERE book_id = ?
