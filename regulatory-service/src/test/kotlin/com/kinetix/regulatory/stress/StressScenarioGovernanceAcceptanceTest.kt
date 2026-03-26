@@ -163,7 +163,7 @@ class StressScenarioGovernanceAcceptanceTest : BehaviorSpec({
 
     given("a DRAFT scenario for invalid transition") {
         `when`("PATCH /{id}/approve directly") {
-            then("returns 500 for invalid state transition") {
+            then("returns 400 for invalid state transition") {
                 testApplication {
                     application {
                         module(frtbRepo, riskClient, stressScenarioRepository = stressScenarioRepo)
@@ -186,7 +186,7 @@ class StressScenarioGovernanceAcceptanceTest : BehaviorSpec({
                         contentType(ContentType.Application.Json)
                         setBody("""{"approvedBy":"manager@kinetix.com"}""")
                     }
-                    approveResponse.status shouldBe HttpStatusCode.InternalServerError
+                    approveResponse.status shouldBe HttpStatusCode.BadRequest
                 }
             }
         }

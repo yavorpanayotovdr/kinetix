@@ -528,7 +528,7 @@ function App() {
             whatIf.updateTrade(0, 'assetClass', largest.assetClass)
             whatIf.updateTrade(0, 'side', Number(largest.quantity) > 0 ? 'SELL' : 'BUY')
             whatIf.updateTrade(0, 'quantity', reduceQty)
-            whatIf.updateTrade(0, 'price', largest.marketPrice.amount)
+            whatIf.updateTrade(0, 'priceAmount', largest.marketPrice.amount)
           } else if (preset === 'FLATTEN_DELTA') {
             // Use the first position as a proxy — in practice this needs the net delta
             const firstEquity = positions.find((p) => p.assetClass === 'EQUITY')
@@ -539,7 +539,7 @@ function App() {
             whatIf.updateTrade(0, 'assetClass', 'EQUITY')
             whatIf.updateTrade(0, 'side', Number(firstEquity.quantity) > 0 ? 'SELL' : 'BUY')
             whatIf.updateTrade(0, 'quantity', Math.abs(Number(firstEquity.quantity)).toFixed(0))
-            whatIf.updateTrade(0, 'price', firstEquity.marketPrice.amount)
+            whatIf.updateTrade(0, 'priceAmount', firstEquity.marketPrice.amount)
           }
         }}
       />

@@ -92,7 +92,7 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
 
     given("a DRAFT scenario") {
         `when`("POST /{id}/run is called") {
-            then("returns 500 because scenario is not APPROVED") {
+            then("returns 400 because scenario is not APPROVED") {
                 testApplication {
                     application {
                         module(
@@ -122,7 +122,7 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
                         setBody("""{"bookId":"portfolio-1"}""")
                     }
 
-                    runResponse.status shouldBe HttpStatusCode.InternalServerError
+                    runResponse.status shouldBe HttpStatusCode.BadRequest
                 }
             }
         }
