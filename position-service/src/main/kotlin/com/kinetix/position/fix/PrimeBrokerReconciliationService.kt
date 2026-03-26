@@ -1,5 +1,6 @@
 package com.kinetix.position.fix
 
+import com.kinetix.position.kafka.ReconciliationAlertPublisher
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
@@ -10,8 +11,13 @@ import java.time.Instant
  *
  * Auto-resolve threshold: breaks < 1 unit are treated as rounding artifacts.
  * Material breaks (>= 1 unit) are included in the result for investigation.
+ *
+ * After reconciliation, if any critical breaks (notional > $10,000) are found,
+ * a RECONCILIATION_BREAK alert is published via [alertPublisher].
  */
-class PrimeBrokerReconciliationService {
+class PrimeBrokerReconciliationService(
+    private val alertPublisher: ReconciliationAlertPublisher? = null,
+) {
 
     private val logger = LoggerFactory.getLogger(PrimeBrokerReconciliationService::class.java)
 
@@ -20,7 +26,7 @@ class PrimeBrokerReconciliationService {
         private val CRITICAL_NOTIONAL_THRESHOLD = BigDecimal("10000")
     }
 
-    fun reconcile(
+    suspend fun reconcile(
         bookId: String,
         date: String,
         internalPositions: Map<String, BigDecimal>,
@@ -70,7 +76,7 @@ class PrimeBrokerReconciliationService {
         val totalPositions = internalPositions.size
         val matchedCount = totalPositions - materialBreaks.count { internalPositions.containsKey(it.instrumentId) }
 
-        return PrimeBrokerReconciliation(
+        val reconciliation = PrimeBrokerReconciliation(
             reconciliationDate = date,
             bookId = bookId,
             status = status,
@@ -80,5 +86,12 @@ class PrimeBrokerReconciliationService {
             breaks = materialBreaks,
             reconciledAt = reconciledAt,
         )
+
+        val criticalBreaks = materialBreaks.filter { it.severity == ReconciliationBreakSeverity.CRITICAL }
+        if (criticalBreaks.isNotEmpty()) {
+            alertPublisher?.publishBreakAlert(reconciliation)
+        }
+
+        return reconciliation
     }
 }

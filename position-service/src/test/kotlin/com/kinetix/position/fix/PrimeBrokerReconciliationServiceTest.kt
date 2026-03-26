@@ -1,19 +1,22 @@
 package com.kinetix.position.fix
 
+import com.kinetix.position.kafka.ReconciliationAlertPublisher
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.mockk.coVerify
+import io.mockk.mockk
 import java.math.BigDecimal
 import java.time.Instant
-import io.kotest.matchers.collections.shouldContainExactly
 
 private fun pbPos(instrumentId: String, qty: String, price: String) =
     PrimeBrokerPosition(instrumentId, BigDecimal(qty), BigDecimal(price))
 
 class PrimeBrokerReconciliationServiceTest : FunSpec({
 
-    val service = PrimeBrokerReconciliationService()
+    val service = PrimeBrokerReconciliationService(alertPublisher = null)
     val reconciledAt = Instant.parse("2026-03-24T18:00:00Z")
 
     test("all positions match prime broker — status is CLEAN with no breaks") {
@@ -168,5 +171,41 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
     test("ReconciliationBreakStatus has three states") {
         ReconciliationBreakStatus.entries.map { it.name } shouldBe
             listOf("OPEN", "INVESTIGATING", "RESOLVED")
+    }
+
+    // EXEC-05: alert publishing on critical breaks
+    test("publishes RECONCILIATION_BREAK alert when critical break (notional > 10000) is found") {
+        val alertPublisher = mockk<ReconciliationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = PrimeBrokerReconciliationService(alertPublisher = alertPublisher)
+
+        // 100 units at $200 = $20,000 notional → CRITICAL
+        val internal = mapOf("AAPL" to BigDecimal("200"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "200.00"))
+        serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
+
+        coVerify(exactly = 1) { alertPublisher.publishBreakAlert(any()) }
+    }
+
+    test("does not publish alert when all breaks are below 10000 notional") {
+        val alertPublisher = mockk<ReconciliationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = PrimeBrokerReconciliationService(alertPublisher = alertPublisher)
+
+        // 5 units at $100 = $500 notional → NORMAL, no alert
+        val internal = mapOf("AAPL" to BigDecimal("105"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "100.00"))
+        serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
+
+        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any()) }
+    }
+
+    test("does not publish alert when reconciliation is clean") {
+        val alertPublisher = mockk<ReconciliationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = PrimeBrokerReconciliationService(alertPublisher = alertPublisher)
+
+        val internal = mapOf("AAPL" to BigDecimal("100"))
+        val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "150.00"))
+        serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
+
+        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any()) }
     }
 })
