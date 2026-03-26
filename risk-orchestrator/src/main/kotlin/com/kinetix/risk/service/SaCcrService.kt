@@ -7,6 +7,7 @@ import com.kinetix.risk.client.SaCcrClient
 import com.kinetix.risk.client.SaCcrPositionInput
 import com.kinetix.risk.client.SaCcrResult
 import com.kinetix.risk.client.dtos.CounterpartyTradeDto
+import com.kinetix.risk.persistence.SaCcrResultRepository
 import org.slf4j.LoggerFactory
 
 /**
@@ -19,6 +20,7 @@ class SaCcrService(
     private val referenceDataClient: ReferenceDataServiceClient,
     private val saCcrClient: SaCcrClient,
     private val positionServiceClient: PositionServiceClient? = null,
+    private val resultRepository: SaCcrResultRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(SaCcrService::class.java)
 
@@ -41,12 +43,21 @@ class SaCcrService(
 
         val nettingSetId = "$counterpartyId-SA-CCR"
 
-        return saCcrClient.calculateSaCcr(
+        val result = saCcrClient.calculateSaCcr(
             nettingSetId = nettingSetId,
             counterpartyId = counterpartyId,
             positions = effectivePositions,
             collateralNet = collateralNet,
         )
+
+        // Persist result for regulatory audit trail and historical reporting
+        try {
+            resultRepository?.save(result, effectivePositions.size, collateralNet)
+        } catch (e: Exception) {
+            logger.error("Failed to persist SA-CCR result for counterparty {}: {}", counterpartyId, e.message)
+        }
+
+        return result
     }
 
     private suspend fun fetchPositionsForCounterparty(counterpartyId: String): List<SaCcrPositionInput> {
