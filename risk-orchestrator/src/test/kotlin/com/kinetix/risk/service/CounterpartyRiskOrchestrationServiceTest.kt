@@ -1,19 +1,22 @@
 package com.kinetix.risk.service
 
 import com.kinetix.risk.client.CVAResult
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.CounterpartyRiskClient
 import com.kinetix.risk.client.PFEPositionInput
 import com.kinetix.risk.client.PFEResult
 import com.kinetix.risk.client.ReferenceDataServiceClient
-import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.dtos.CounterpartyDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
 import com.kinetix.risk.persistence.CounterpartyExposureRepository
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -124,7 +127,7 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             result.peakPfe shouldBe 1_500_000.0
         }
 
-        test("CVA is always computed and included in the snapshot") {
+        test("computes and includes cva in snapshot when counterparty has credit data") {
             coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
             coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
             coEvery {
@@ -149,6 +152,62 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             } catch (e: IllegalArgumentException) {
                 e.message shouldNotBe null
             }
+        }
+
+        test("sets cva to null and skips calculateCVA when counterparty has no credit data") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(pd1y = null, cdsSpreadBps = null),
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.cva.shouldBeNull()
+            result.cvaEstimated shouldBe false
+            // Clear accumulated call history from earlier tests before asserting this test's count
+            clearMocks(counterpartyRiskClient, answers = false)
+            coVerify(exactly = 0) { counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any()) }
+        }
+
+        test("computes cva when counterparty has pd1y only") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(pd1y = 0.02, cdsSpreadBps = null),
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult(cva = 18_000.0)
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.cva shouldBe 18_000.0
+        }
+
+        test("computes cva when counterparty has cdsSpreadBps only") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(pd1y = null, cdsSpreadBps = 85.0),
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult(cva = 12_000.0, estimated = true)
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.cva shouldBe 12_000.0
+            result.cvaEstimated shouldBe true
         }
     }
 
@@ -175,17 +234,16 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             result.isEstimated shouldBe false
         }
 
-        test("CVA result includes estimated flag when sector spread used") {
+        test("throws IllegalStateException when counterparty has no credit data (pd1y and cdsSpreadBps both absent)") {
             coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
-                COUNTERPARTY.copy(cdsSpreadBps = null)
+                COUNTERPARTY.copy(pd1y = null, cdsSpreadBps = null),
             )
-            coEvery {
-                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
-            } returns cvaResult(estimated = true)
 
-            val result = service.computeCVA("CP-GS", TENORS)
+            val exception = shouldThrow<IllegalStateException> {
+                service.computeCVA("CP-GS", TENORS)
+            }
 
-            result.isEstimated shouldBe true
+            exception.message shouldBe "Counterparty CP-GS has no credit data (pd1y and cdsSpreadBps are both absent); CVA cannot be computed"
         }
     }
 

@@ -20,6 +20,7 @@ class CounterpartyRiskOrchestrationService(
     private val repository: CounterpartyExposureRepository,
 ) {
     private val logger = LoggerFactory.getLogger(CounterpartyRiskOrchestrationService::class.java)
+
     /**
      * Fetches netting set data for the counterparty, runs PFE via Monte Carlo for each
      * netting set, and persists the combined snapshot.
@@ -59,21 +60,31 @@ class CounterpartyRiskOrchestrationService(
         val peakPfe = if (pfeResult.exposureProfile.isEmpty()) 0.0
         else pfeResult.exposureProfile.maxOf { it.pfe95 }
 
-        // CVA is always computed and persisted — never left null.
-        val cvaResult = try {
-            counterpartyRiskClient.calculateCVA(
-                counterpartyId = counterpartyId,
-                exposureProfile = pfeResult.exposureProfile,
-                lgd = counterparty.lgd,
-                pd1y = counterparty.pd1y ?: 0.0,
-                cdsSpreadssBps = counterparty.cdsSpreadBps ?: 0.0,
-                rating = counterparty.ratingSp ?: "",
-                sector = counterparty.sector ?: "",
-                riskFreeRate = 0.0,
+        // CVA requires credit data (pd1y or cdsSpreadBps). Without it the result would be
+        // a misleading zero rather than a meaningful figure, so we skip the calculation
+        // and leave cva null to signal "unknown" rather than "zero risk".
+        val cvaResult = if (!hasCreditData(counterparty)) {
+            logger.warn(
+                "Skipping CVA for counterparty {} — no credit data (pd1y and cdsSpreadBps are both absent)",
+                counterpartyId,
             )
-        } catch (e: Exception) {
-            logger.warn("CVA calculation failed for {}: {}", counterpartyId, e.message)
             null
+        } else {
+            try {
+                counterpartyRiskClient.calculateCVA(
+                    counterpartyId = counterpartyId,
+                    exposureProfile = pfeResult.exposureProfile,
+                    lgd = counterparty.lgd,
+                    pd1y = counterparty.pd1y ?: 0.0,
+                    cdsSpreadssBps = counterparty.cdsSpreadBps ?: 0.0,
+                    rating = counterparty.ratingSp ?: "",
+                    sector = counterparty.sector ?: "",
+                    riskFreeRate = 0.0,
+                )
+            } catch (e: Exception) {
+                logger.warn("CVA calculation failed for {}: {}", counterpartyId, e.message)
+                null
+            }
         }
 
         // Collateral: use CSA threshold as an approximation of collateral held.
@@ -136,6 +147,10 @@ class CounterpartyRiskOrchestrationService(
     /**
      * Computes CVA for the counterparty using its credit data from reference data service
      * and a pre-computed exposure profile (typically from a PFE run).
+     *
+     * Throws [IllegalStateException] if the counterparty has no credit data (both pd1y and
+     * cdsSpreadBps are absent), because computing CVA without credit data would silently
+     * return zero — which looks like "no risk" rather than "risk unknown".
      */
     suspend fun computeCVA(
         counterpartyId: String,
@@ -144,6 +159,12 @@ class CounterpartyRiskOrchestrationService(
         val counterparty = when (val resp = referenceDataClient.getCounterparty(counterpartyId)) {
             is ClientResponse.Success -> resp.value
             else -> throw IllegalArgumentException("Counterparty not found: $counterpartyId")
+        }
+
+        if (!hasCreditData(counterparty)) {
+            throw IllegalStateException(
+                "Counterparty $counterpartyId has no credit data (pd1y and cdsSpreadBps are both absent); CVA cannot be computed"
+            )
         }
 
         return counterpartyRiskClient.calculateCVA(
@@ -157,6 +178,14 @@ class CounterpartyRiskOrchestrationService(
             riskFreeRate = 0.0,
         )
     }
+
+    /**
+     * Returns true when the counterparty has at least one source of credit data.
+     * CVA is only meaningful when credit data is available; without it the calculation
+     * would return zero, which is indistinguishable from "genuinely zero credit risk".
+     */
+    private fun hasCreditData(counterparty: CounterpartyDto): Boolean =
+        counterparty.pd1y != null || counterparty.cdsSpreadBps != null
 
     suspend fun getLatestExposure(counterpartyId: String): CounterpartyExposureSnapshot? =
         repository.findLatestByCounterpartyId(counterpartyId)
