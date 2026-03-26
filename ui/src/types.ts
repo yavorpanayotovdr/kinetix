@@ -1146,3 +1146,13 @@ export interface KeyRateDurationResponseDto {
   instruments: InstrumentKrdResultDto[]
   aggregated: KrdBucketDto[]
 }
+
+export interface SaCcrResultDto {
+  nettingSetId: string
+  counterpartyId: string
+  replacementCost: number
+  pfeAddon: number
+  multiplier: number
+  ead: number
+  alpha: number
+}

@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Users, AlertTriangle, RefreshCw, Activity } from 'lucide-react'
 import { useCounterpartyRisk } from '../hooks/useCounterpartyRisk'
 import type { CounterpartyExposureDto, ExposureAtTenorDto } from '../api/counterpartyRisk'
+import { fetchSaCcr } from '../api/saCcr'
+import type { SaCcrResultDto } from '../types'
 import { formatCurrency } from '../utils/format'
 import { Spinner } from './ui'
+import { SaCcrPanel } from './SaCcrPanel'
 
 // ---------------------------------------------------------------------------
 // PFE profile chart (SVG, no external chart library)
@@ -308,6 +311,32 @@ export function CounterpartyRiskDashboard() {
   } = useCounterpartyRisk()
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [saCcrResult, setSaCcrResult] = useState<SaCcrResultDto | null>(null)
+  const [saCcrLoading, setSaCcrLoading] = useState(false)
+  const [saCcrError, setSaCcrError] = useState<string | null>(null)
+  const [prevSaCcrId, setPrevSaCcrId] = useState<string | null>(null)
+
+  if (selectedId !== prevSaCcrId) {
+    setPrevSaCcrId(selectedId)
+    if (!selectedId) {
+      setSaCcrResult(null)
+      setSaCcrLoading(false)
+      setSaCcrError(null)
+    } else {
+      setSaCcrLoading(true)
+      setSaCcrError(null)
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedId) return
+    let cancelled = false
+    fetchSaCcr(selectedId)
+      .then((data) => { if (!cancelled) setSaCcrResult(data) })
+      .catch((err: unknown) => { if (!cancelled) setSaCcrError(err instanceof Error ? err.message : String(err)) })
+      .finally(() => { if (!cancelled) setSaCcrLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedId])
 
   const handleSelect = (id: string) => {
     setSelectedId(id)
@@ -370,6 +399,7 @@ export function CounterpartyRiskDashboard() {
 
       {/* Content */}
       {exposures.length > 0 && (
+        <>
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
           {/* Counterparty list */}
           <div className="xl:col-span-2">
@@ -434,6 +464,13 @@ export function CounterpartyRiskDashboard() {
             )}
           </div>
         </div>
+
+        {selectedId && (
+          <div className="mt-4">
+            <SaCcrPanel result={saCcrResult} loading={saCcrLoading} error={saCcrError} />
+          </div>
+        )}
+        </>
       )}
     </div>
   )
