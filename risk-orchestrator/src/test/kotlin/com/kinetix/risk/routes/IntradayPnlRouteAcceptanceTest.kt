@@ -1,6 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.BookId
+import com.kinetix.risk.model.InstrumentPnlBreakdown
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.model.PnlTrigger
 import com.kinetix.risk.persistence.IntradayPnlRepository
@@ -36,6 +37,11 @@ private fun snapshot(
     highWaterMark: String = "1200.00",
     trigger: PnlTrigger = PnlTrigger.POSITION_CHANGE,
     correlationId: String? = null,
+    vannaPnl: String = "0",
+    volgaPnl: String = "0",
+    charmPnl: String = "0",
+    crossGammaPnl: String = "0",
+    instrumentPnl: List<InstrumentPnlBreakdown> = emptyList(),
 ): IntradayPnlSnapshot = IntradayPnlSnapshot(
     bookId = bookId,
     snapshotAt = snapshotAt,
@@ -49,9 +55,14 @@ private fun snapshot(
     vegaPnl = bd("30.00"),
     thetaPnl = bd("-10.00"),
     rhoPnl = bd("5.00"),
+    vannaPnl = bd(vannaPnl),
+    volgaPnl = bd(volgaPnl),
+    charmPnl = bd(charmPnl),
+    crossGammaPnl = bd(crossGammaPnl),
     unexplainedPnl = bd("125.00"),
     highWaterMark = bd(highWaterMark),
     correlationId = correlationId,
+    instrumentPnl = instrumentPnl,
 )
 
 class IntradayPnlRouteAcceptanceTest : FunSpec({
@@ -102,7 +113,7 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/pnl/intraday/{bookId} returns all attribution fields") {
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns all attribution fields including cross-Greeks") {
         val t = Instant.parse("2026-03-24T09:30:00Z")
         coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
             snapshot(snapshotAt = t, correlationId = "corr-1"),
@@ -127,9 +138,85 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             snap.vegaPnl shouldBe "30.00"
             snap.thetaPnl shouldBe "-10.00"
             snap.rhoPnl shouldBe "5.00"
+            snap.vannaPnl shouldBe "0"
+            snap.volgaPnl shouldBe "0"
+            snap.charmPnl shouldBe "0"
+            snap.crossGammaPnl shouldBe "0"
             snap.unexplainedPnl shouldBe "125.00"
             snap.highWaterMark shouldBe "1200.00"
             snap.correlationId shouldBe "corr-1"
+        }
+    }
+
+    test("GET /api/v1/risk/pnl/intraday/{bookId} surfaces non-zero cross-Greek P&L fields") {
+        val t = Instant.parse("2026-03-24T10:00:00Z")
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
+            snapshot(
+                snapshotAt = t,
+                vannaPnl = "12.50",
+                volgaPnl = "7.30",
+                charmPnl = "-3.10",
+                crossGammaPnl = "5.00",
+            ),
+        )
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val snap = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText()).snapshots[0]
+            snap.vannaPnl shouldBe "12.50"
+            snap.volgaPnl shouldBe "7.30"
+            snap.charmPnl shouldBe "-3.10"
+            snap.crossGammaPnl shouldBe "5.00"
+        }
+    }
+
+    test("GET /api/v1/risk/pnl/intraday/{bookId} surfaces cross-Greek fields in per-instrument breakdown") {
+        val t = Instant.parse("2026-03-24T11:00:00Z")
+        val breakdown = InstrumentPnlBreakdown(
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            totalPnl = "500.00",
+            deltaPnl = "420.00",
+            gammaPnl = "30.00",
+            vegaPnl = "0.00",
+            thetaPnl = "-5.00",
+            rhoPnl = "2.00",
+            vannaPnl = "8.00",
+            volgaPnl = "4.50",
+            charmPnl = "-1.20",
+            crossGammaPnl = "3.00",
+            unexplainedPnl = "38.70",
+        )
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
+            snapshot(snapshotAt = t, instrumentPnl = listOf(breakdown)),
+        )
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val snap = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText()).snapshots[0]
+            snap.instrumentPnl shouldHaveSize 1
+            val item = snap.instrumentPnl[0]
+            item.instrumentId shouldBe "AAPL"
+            item.vannaPnl shouldBe "8.00"
+            item.volgaPnl shouldBe "4.50"
+            item.charmPnl shouldBe "-1.20"
+            item.crossGammaPnl shouldBe "3.00"
         }
     }
 

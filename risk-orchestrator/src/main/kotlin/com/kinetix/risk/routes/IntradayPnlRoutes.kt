@@ -77,6 +77,10 @@ private fun IntradayPnlSnapshot.toDto(): IntradayPnlSnapshotDto = IntradayPnlSna
     vegaPnl = vegaPnl.toPlainString(),
     thetaPnl = thetaPnl.toPlainString(),
     rhoPnl = rhoPnl.toPlainString(),
+    vannaPnl = vannaPnl.toPlainString(),
+    volgaPnl = volgaPnl.toPlainString(),
+    charmPnl = charmPnl.toPlainString(),
+    crossGammaPnl = crossGammaPnl.toPlainString(),
     unexplainedPnl = unexplainedPnl.toPlainString(),
     highWaterMark = highWaterMark.toPlainString(),
     instrumentPnl = instrumentPnl.map { pos ->
@@ -89,6 +93,10 @@ private fun IntradayPnlSnapshot.toDto(): IntradayPnlSnapshotDto = IntradayPnlSna
             vegaPnl = pos.vegaPnl,
             thetaPnl = pos.thetaPnl,
             rhoPnl = pos.rhoPnl,
+            vannaPnl = pos.vannaPnl,
+            volgaPnl = pos.volgaPnl,
+            charmPnl = pos.charmPnl,
+            crossGammaPnl = pos.crossGammaPnl,
             unexplainedPnl = pos.unexplainedPnl,
         )
     },

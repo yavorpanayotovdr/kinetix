@@ -12,7 +12,9 @@ import kotlinx.serialization.Serializable
  * derived from Greek attribution. Greek components are an analytical overlay using
  * frozen SOD Greeks. unexplained_pnl absorbs the residual.
  *
- * Invariant: total_pnl == delta_pnl + gamma_pnl + vega_pnl + theta_pnl + rho_pnl + unexplained_pnl
+ * Invariant: total_pnl == delta_pnl + gamma_pnl + vega_pnl + theta_pnl + rho_pnl
+ *                       + vanna_pnl + volga_pnl + charm_pnl + cross_gamma_pnl
+ *                       + unexplained_pnl
  */
 @Serializable
 data class IntradayPnlEvent(
@@ -26,12 +28,19 @@ data class IntradayPnlEvent(
     val realisedPnl: String,
     val unrealisedPnl: String,
 
-    // Greek attribution (analytical overlay, uses frozen SOD Greeks)
+    // First-order Greek attribution (analytical overlay, uses frozen SOD Greeks)
     val deltaPnl: String,
     val gammaPnl: String,
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+
+    // Cross-Greek attribution (second-order mixed terms); defaulted for backward compatibility
+    val vannaPnl: String = "0",
+    val volgaPnl: String = "0",
+    val charmPnl: String = "0",
+    val crossGammaPnl: String = "0",
+
     val unexplainedPnl: String,
 
     // High-water mark: monotonically non-decreasing within a trading day
@@ -53,5 +62,10 @@ data class InstrumentPnlItem(
     val vegaPnl: String,
     val thetaPnl: String,
     val rhoPnl: String,
+    // Cross-Greek attribution; defaulted for backward compatibility
+    val vannaPnl: String = "0",
+    val volgaPnl: String = "0",
+    val charmPnl: String = "0",
+    val crossGammaPnl: String = "0",
     val unexplainedPnl: String,
 )

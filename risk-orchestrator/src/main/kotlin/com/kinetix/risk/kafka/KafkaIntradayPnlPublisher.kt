@@ -33,6 +33,10 @@ class KafkaIntradayPnlPublisher(
             vegaPnl = snapshot.vegaPnl.toPlainString(),
             thetaPnl = snapshot.thetaPnl.toPlainString(),
             rhoPnl = snapshot.rhoPnl.toPlainString(),
+            vannaPnl = snapshot.vannaPnl.toPlainString(),
+            volgaPnl = snapshot.volgaPnl.toPlainString(),
+            charmPnl = snapshot.charmPnl.toPlainString(),
+            crossGammaPnl = snapshot.crossGammaPnl.toPlainString(),
             unexplainedPnl = snapshot.unexplainedPnl.toPlainString(),
             highWaterMark = snapshot.highWaterMark.toPlainString(),
             instrumentPnl = snapshot.instrumentPnl.map { pos ->
@@ -45,6 +49,10 @@ class KafkaIntradayPnlPublisher(
                     vegaPnl = pos.vegaPnl,
                     thetaPnl = pos.thetaPnl,
                     rhoPnl = pos.rhoPnl,
+                    vannaPnl = pos.vannaPnl,
+                    volgaPnl = pos.volgaPnl,
+                    charmPnl = pos.charmPnl,
+                    crossGammaPnl = pos.crossGammaPnl,
                     unexplainedPnl = pos.unexplainedPnl,
                 )
             }.ifEmpty { null },
