@@ -240,6 +240,22 @@ class RegimeDetector:
         degraded = signals.credit_spread_bps is None or signals.pnl_volatility is None
         early_warnings = detect_early_warnings(signals, self._thresholds)
 
+        if degraded:
+            # Hold confirmed regime — do not escalate or de-escalate on incomplete signals.
+            # Reset pending transition to prevent deferred transitions from carrying over.
+            self._pending_regime = None
+            self._pending_count = 0
+            confidence = _classify_confidence(self._confirmed_regime, signals, self._thresholds)
+            return RegimeClassification(
+                regime=self._confirmed_regime,
+                confidence=confidence,
+                signals=signals,
+                consecutive_observations=0,
+                is_confirmed=True,
+                degraded_inputs=True,
+                early_warnings=early_warnings,
+            )
+
         if classified == self._confirmed_regime:
             # Same regime — reset any pending escalation/de-escalation counter
             self._pending_regime = None

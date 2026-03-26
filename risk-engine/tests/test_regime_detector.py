@@ -32,24 +32,32 @@ def normal_signals() -> RegimeSignals:
     return RegimeSignals(
         realised_vol_20d=0.10,
         cross_asset_correlation=0.40,
+        credit_spread_bps=40.0,
+        pnl_volatility=0.02,
     )
 
 def elevated_vol_signals() -> RegimeSignals:
     return RegimeSignals(
         realised_vol_20d=0.20,
         cross_asset_correlation=0.50,
+        credit_spread_bps=80.0,
+        pnl_volatility=0.06,
     )
 
 def crisis_signals() -> RegimeSignals:
     return RegimeSignals(
         realised_vol_20d=0.30,
         cross_asset_correlation=0.80,
+        credit_spread_bps=150.0,
+        pnl_volatility=0.12,
     )
 
 def crisis_vol_only_signals() -> RegimeSignals:
     return RegimeSignals(
         realised_vol_20d=0.30,  # > elevated_vol_ceiling
         cross_asset_correlation=0.50,  # < crisis_correlation_floor -> not crisis
+        credit_spread_bps=100.0,
+        pnl_volatility=0.08,
     )
 
 
@@ -221,6 +229,8 @@ def test_crisis_confidence_is_well_above_neutral_for_extreme_crisis_signals():
     extreme_signals = RegimeSignals(
         realised_vol_20d=0.60,  # 2.4x elevated ceiling — very extreme
         cross_asset_correlation=0.95,  # well above crisis floor
+        credit_spread_bps=300.0,
+        pnl_volatility=0.20,
     )
     detector = RegimeDetector(THRESHOLDS)
     for _ in range(3):
@@ -370,6 +380,154 @@ def test_default_thresholds_values_are_calibrated():
     assert DEFAULT_THRESHOLDS.normal_vol_ceiling > 0
     assert DEFAULT_THRESHOLDS.elevated_vol_ceiling > DEFAULT_THRESHOLDS.normal_vol_ceiling
     assert 0 < DEFAULT_THRESHOLDS.crisis_correlation_floor < 1
+
+
+# ── Degraded-input regime hold (REG_D-08) ─────────────────────────────────────
+
+@pytest.mark.unit
+def test_holds_normal_regime_when_degraded_signals_would_classify_as_crisis():
+    """Detector in NORMAL: crisis-level vol/corr but credit_spread_bps=None.
+    Regime must stay NORMAL; degraded_inputs must be True."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    degraded_crisis_signals = RegimeSignals(
+        realised_vol_20d=0.30,       # > elevated_vol_ceiling
+        cross_asset_correlation=0.80, # > crisis_correlation_floor
+        credit_spread_bps=None,       # degraded
+        pnl_volatility=0.05,
+    )
+
+    result = detector.observe(degraded_crisis_signals)
+
+    assert result.regime == MarketRegime.NORMAL
+    assert result.degraded_inputs is True
+    assert result.is_confirmed is True
+
+
+@pytest.mark.unit
+def test_holds_crisis_regime_when_degraded_signals_would_classify_as_normal():
+    """Detector confirmed in CRISIS: normal-level signals arrive but pnl_volatility=None.
+    Regime must stay CRISIS — no de-escalation on degraded data."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    # Escalate to CRISIS with clean signals
+    for _ in range(3):
+        detector.observe(crisis_signals())
+
+    degraded_normal_signals = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=50.0,
+        pnl_volatility=None,  # degraded
+    )
+
+    result = detector.observe(degraded_normal_signals)
+
+    assert result.regime == MarketRegime.CRISIS
+    assert result.degraded_inputs is True
+    assert result.is_confirmed is True
+
+
+@pytest.mark.unit
+def test_resets_pending_escalation_count_when_degraded_observation_interrupts():
+    """Two non-degraded CRISIS observations build pending count to 2.
+    A degraded observation must reset the counter.
+    After recovery, 3 fresh CRISIS observations are required to escalate."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    # Build pending count to 2
+    detector.observe(crisis_signals())  # pending_count=1
+    detector.observe(crisis_signals())  # pending_count=2
+
+    # Degraded interruption — should reset pending count
+    degraded = RegimeSignals(
+        realised_vol_20d=0.30,
+        cross_asset_correlation=0.80,
+        credit_spread_bps=None,
+        pnl_volatility=None,
+    )
+    detector.observe(degraded)
+
+    # Two more CRISIS observations are not enough — debounce not met
+    result_after_2 = None
+    for _ in range(2):
+        result_after_2 = detector.observe(crisis_signals())
+    assert result_after_2.regime == MarketRegime.NORMAL
+    assert result_after_2.is_confirmed is False
+
+    # Third fresh observation tips it over
+    result_after_3 = detector.observe(crisis_signals())
+    assert result_after_3.regime == MarketRegime.CRISIS
+    assert result_after_3.is_confirmed is True
+
+
+@pytest.mark.unit
+def test_multiple_consecutive_degraded_observations_hold_regime_unchanged():
+    """Five degraded observations in a row must not change the regime."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    degraded = RegimeSignals(
+        realised_vol_20d=0.30,
+        cross_asset_correlation=0.80,
+        credit_spread_bps=None,
+        pnl_volatility=None,
+    )
+
+    for _ in range(5):
+        result = detector.observe(degraded)
+        assert result.regime == MarketRegime.NORMAL
+        assert result.degraded_inputs is True
+
+
+@pytest.mark.unit
+def test_allows_normal_transition_after_degraded_period_ends():
+    """After a degraded period, clean signals resume and normal debounce applies."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    # Degrade for 3 observations — regime stays NORMAL
+    degraded = RegimeSignals(
+        realised_vol_20d=0.30,
+        cross_asset_correlation=0.80,
+        credit_spread_bps=None,
+        pnl_volatility=None,
+    )
+    for _ in range(3):
+        detector.observe(degraded)
+
+    # Recovery: 3 clean CRISIS observations (all optional fields present) should escalate normally
+    clean_crisis = RegimeSignals(
+        realised_vol_20d=0.30,
+        cross_asset_correlation=0.80,
+        credit_spread_bps=150.0,
+        pnl_volatility=0.12,
+    )
+    for _ in range(3):
+        result = detector.observe(clean_crisis)
+
+    assert result.regime == MarketRegime.CRISIS
+    assert result.is_confirmed is True
+    assert result.degraded_inputs is False
+
+
+@pytest.mark.unit
+def test_returns_early_warnings_even_on_degraded_inputs():
+    """Early warnings are still computed and returned when inputs are degraded."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    # Vol approaching normal ceiling + degraded credit spread
+    degraded_warning_signals = RegimeSignals(
+        realised_vol_20d=0.13,        # 86.7% of normal_vol_ceiling — triggers warning
+        cross_asset_correlation=0.65, # 86.7% of crisis_correlation_floor — triggers warning
+        credit_spread_bps=None,       # degraded
+        pnl_volatility=None,          # degraded
+    )
+
+    result = detector.observe(degraded_warning_signals)
+
+    assert result.degraded_inputs is True
+    assert len(result.early_warnings) > 0
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "realised_vol" in signal_names
 
 
 # ── RegimeClassification structure ────────────────────────────────────────────
