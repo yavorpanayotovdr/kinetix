@@ -221,7 +221,7 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
             acceptedBy = "trader-1",
             acceptedAt = Instant.parse("2026-03-24T10:05:00Z"),
         )
-        coEvery { service.acceptRecommendation(id, "trader-1") } returns accepted
+        coEvery { service.acceptRecommendation(id, "trader-1", null) } returns accepted
 
         testApp {
             val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept") {
@@ -239,7 +239,7 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
 
     test("rejects acceptance of an expired recommendation with HTTP 409") {
         val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        coEvery { service.acceptRecommendation(id, "trader-1") } throws
+        coEvery { service.acceptRecommendation(id, "trader-1", null) } throws
             IllegalStateException("Recommendation has expired and cannot be accepted")
 
         testApp {
@@ -254,7 +254,7 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
 
     test("rejects acceptance of an already-accepted recommendation with HTTP 409") {
         val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        coEvery { service.acceptRecommendation(id, "trader-1") } throws
+        coEvery { service.acceptRecommendation(id, "trader-1", null) } throws
             IllegalStateException("Recommendation is not PENDING (current status: ACCEPTED)")
 
         testApp {
@@ -264,6 +264,27 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
             }
 
             response.status shouldBe HttpStatusCode.Conflict
+        }
+    }
+
+    test("accept with suggestion_indices passes only those indices to the service") {
+        val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val accepted = sampleRecommendation.copy(
+            status = HedgeStatus.ACCEPTED,
+            acceptedBy = "trader-1",
+            acceptedAt = Instant.parse("2026-03-24T10:05:00Z"),
+        )
+        coEvery { service.acceptRecommendation(id, "trader-1", listOf(0)) } returns accepted
+
+        testApp {
+            val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader-1","suggestionIndices":[0]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["status"]?.jsonPrimitive?.content shouldBe "ACCEPTED"
         }
     }
 

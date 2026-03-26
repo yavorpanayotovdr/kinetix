@@ -486,6 +486,88 @@ class HedgeRecommendationServiceTest : FunSpec({
         rec.suggestions.first().warnings.any { it.contains("limit") } shouldBe true
     }
 
+    // ------------------------------------------------------------------ suggestion_indices on accept (HDG-02)
+
+    test("acceptRecommendation with null suggestionIndices returns all suggestions unchanged") {
+        val suggestion1 = sampleSuggestion(notional = 10_000.0).copy(instrumentId = "INST-A")
+        val suggestion2 = sampleSuggestion(notional = 20_000.0).copy(instrumentId = "INST-B")
+        val pending = com.kinetix.risk.model.HedgeRecommendation(
+            id = java.util.UUID.randomUUID(),
+            bookId = "BOOK-1",
+            targetMetric = HedgeTarget.DELTA,
+            targetReductionPct = 0.5,
+            requestedAt = Instant.now(),
+            status = HedgeStatus.PENDING,
+            constraints = defaultConstraints,
+            suggestions = listOf(suggestion1, suggestion2),
+            preHedgeGreeks = GreekImpact(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            sourceJobId = null,
+            acceptedBy = null,
+            acceptedAt = null,
+            expiresAt = Instant.now().plusSeconds(300),
+        )
+        coEvery { repository.findById(pending.id) } returns pending
+
+        val accepted = service.acceptRecommendation(pending.id, "trader-1", suggestionIndices = null)
+
+        accepted.suggestions shouldHaveSize 2
+        accepted.suggestions[0].instrumentId shouldBe "INST-A"
+        accepted.suggestions[1].instrumentId shouldBe "INST-B"
+    }
+
+    test("acceptRecommendation with suggestionIndices keeps only the specified suggestions") {
+        val suggestion0 = sampleSuggestion(notional = 10_000.0).copy(instrumentId = "INST-A")
+        val suggestion1 = sampleSuggestion(notional = 20_000.0).copy(instrumentId = "INST-B")
+        val suggestion2 = sampleSuggestion(notional = 30_000.0).copy(instrumentId = "INST-C")
+        val pending = com.kinetix.risk.model.HedgeRecommendation(
+            id = java.util.UUID.randomUUID(),
+            bookId = "BOOK-1",
+            targetMetric = HedgeTarget.DELTA,
+            targetReductionPct = 0.5,
+            requestedAt = Instant.now(),
+            status = HedgeStatus.PENDING,
+            constraints = defaultConstraints,
+            suggestions = listOf(suggestion0, suggestion1, suggestion2),
+            preHedgeGreeks = GreekImpact(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            sourceJobId = null,
+            acceptedBy = null,
+            acceptedAt = null,
+            expiresAt = Instant.now().plusSeconds(300),
+        )
+        coEvery { repository.findById(pending.id) } returns pending
+
+        val accepted = service.acceptRecommendation(pending.id, "trader-1", suggestionIndices = listOf(0, 2))
+
+        accepted.suggestions shouldHaveSize 2
+        accepted.suggestions[0].instrumentId shouldBe "INST-A"
+        accepted.suggestions[1].instrumentId shouldBe "INST-C"
+    }
+
+    test("acceptRecommendation throws when a suggestionIndex is out of bounds") {
+        val suggestion0 = sampleSuggestion(notional = 10_000.0).copy(instrumentId = "INST-A")
+        val pending = com.kinetix.risk.model.HedgeRecommendation(
+            id = java.util.UUID.randomUUID(),
+            bookId = "BOOK-1",
+            targetMetric = HedgeTarget.DELTA,
+            targetReductionPct = 0.5,
+            requestedAt = Instant.now(),
+            status = HedgeStatus.PENDING,
+            constraints = defaultConstraints,
+            suggestions = listOf(suggestion0),
+            preHedgeGreeks = GreekImpact(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            sourceJobId = null,
+            acceptedBy = null,
+            acceptedAt = null,
+            expiresAt = Instant.now().plusSeconds(300),
+        )
+        coEvery { repository.findById(pending.id) } returns pending
+
+        val ex = shouldThrow<IllegalArgumentException> {
+            service.acceptRecommendation(pending.id, "trader-1", suggestionIndices = listOf(0, 5))
+        }
+        ex.message shouldContain "out of bounds"
+    }
+
     test("does not call limit service when respectPositionLimits is false") {
         val constraints = defaultConstraints.copy(respectPositionLimits = false)
         coEvery { varCache.get("BOOK-1") } returns varResult()

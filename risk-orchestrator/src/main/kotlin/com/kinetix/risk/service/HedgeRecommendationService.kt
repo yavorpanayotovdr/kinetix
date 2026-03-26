@@ -129,7 +129,11 @@ class HedgeRecommendationService(
         return recommendation
     }
 
-    suspend fun acceptRecommendation(id: UUID, acceptedBy: String): HedgeRecommendation {
+    suspend fun acceptRecommendation(
+        id: UUID,
+        acceptedBy: String,
+        suggestionIndices: List<Int>? = null,
+    ): HedgeRecommendation {
         val recommendation = repository.findById(id)
             ?: throw NoSuchElementException("Hedge recommendation $id not found")
 
@@ -140,11 +144,28 @@ class HedgeRecommendationService(
             throw IllegalStateException("Recommendation is not PENDING (current status: ${recommendation.status})")
         }
 
+        val acceptedSuggestions = if (suggestionIndices != null) {
+            val outOfBounds = suggestionIndices.filter { it < 0 || it >= recommendation.suggestions.size }
+            if (outOfBounds.isNotEmpty()) {
+                throw IllegalArgumentException(
+                    "suggestion_indices out of bounds: $outOfBounds (recommendation has ${recommendation.suggestions.size} suggestions)"
+                )
+            }
+            suggestionIndices.map { recommendation.suggestions[it] }
+        } else {
+            recommendation.suggestions
+        }
+
         val now = Instant.now()
         repository.updateStatus(id, HedgeStatus.ACCEPTED, acceptedBy = acceptedBy, acceptedAt = now)
 
-        logger.info("Hedge recommendation {} accepted by {}", id, acceptedBy)
-        return recommendation.copy(status = HedgeStatus.ACCEPTED, acceptedBy = acceptedBy, acceptedAt = now)
+        logger.info("Hedge recommendation {} accepted by {} ({} suggestions)", id, acceptedBy, acceptedSuggestions.size)
+        return recommendation.copy(
+            status = HedgeStatus.ACCEPTED,
+            acceptedBy = acceptedBy,
+            acceptedAt = now,
+            suggestions = acceptedSuggestions,
+        )
     }
 
     suspend fun rejectRecommendation(id: UUID): HedgeRecommendation {

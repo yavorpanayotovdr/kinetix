@@ -88,9 +88,12 @@ fun Route.hedgeRecommendationRoutes(service: HedgeRecommendationService) {
         val body = call.receive<AcceptHedgeRequestBody>()
 
         val recommendation = try {
-            service.acceptRecommendation(id, body.acceptedBy)
+            service.acceptRecommendation(id, body.acceptedBy, body.suggestionIndices)
         } catch (e: NoSuchElementException) {
             call.respond(HttpStatusCode.NotFound, mapOf("error" to "not_found", "message" to (e.message ?: "Not found")))
+            return@post
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid_request", "message" to (e.message ?: "Bad request")))
             return@post
         } catch (e: IllegalStateException) {
             call.respond(HttpStatusCode.Conflict, mapOf("error" to "conflict", "message" to (e.message ?: "Conflict")))
