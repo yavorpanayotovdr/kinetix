@@ -1,5 +1,7 @@
 package com.kinetix.notification.engine
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.notification.audit.GovernanceAuditPublisher
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.model.AlertEvent
 import com.kinetix.notification.model.AlertStatus
@@ -12,6 +14,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import java.time.Instant
 
 class AlertEscalationServiceTest : FunSpec({
@@ -173,6 +176,31 @@ class AlertEscalationServiceTest : FunSpec({
 
         coVerify(exactly = 1) {
             router.route(any(), listOf(DeliveryChannel.EMAIL))
+        }
+    }
+
+    test("publishes an ALERT_ESCALATED audit event when an alert is escalated") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val auditPublisher = mockk<GovernanceAuditPublisher>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = warningAlert("alert-audit", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30, auditPublisher = auditPublisher)
+        service.processEscalations(now)
+
+        verify(exactly = 1) {
+            auditPublisher.publish(
+                match { event ->
+                    event.eventType == AuditEventType.ALERT_ESCALATED &&
+                        event.bookId == "book-1" &&
+                        event.details?.contains("alert-audit") == true &&
+                        event.details?.contains("desk-head") == true
+                },
+            )
         }
     }
 

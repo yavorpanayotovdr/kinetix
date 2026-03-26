@@ -16,4 +16,5 @@ enum class AuditEventType {
     RBAC_ACCESS_DENIED,
     BOOK_ACCESS_DENIED,
     REPORT_GENERATED,
+    ALERT_ESCALATED,
 }

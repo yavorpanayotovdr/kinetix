@@ -3,6 +3,7 @@ package com.kinetix.notification
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.common.kafka.RetryableConsumer
+import com.kinetix.notification.audit.KafkaGovernanceAuditPublisher
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
@@ -202,9 +203,17 @@ fun Application.moduleWithRoutes() {
     launch { riskResultConsumer.start() }
     launch { anomalyEventConsumer.start() }
 
+    val auditProducerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val auditPublisher = KafkaGovernanceAuditPublisher(KafkaProducer(auditProducerProps))
+
     val escalationTimeoutMinutes = environment.config.propertyOrNull("escalation.timeoutMinutes")
         ?.getString()?.toLongOrNull() ?: 30L
-    val escalationService = AlertEscalationService(eventRepository, deliveryRouter, escalationTimeoutMinutes)
+    val escalationService = AlertEscalationService(eventRepository, deliveryRouter, escalationTimeoutMinutes, auditPublisher)
     val escalationScheduler = ScheduledAlertEscalation(escalationService)
     launch {
         while (true) {
