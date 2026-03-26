@@ -228,6 +228,10 @@ message FactorDecompositionRequest {
   double total_var = 4;
   string decomposition_date = 5;
   string job_id = 6;
+  // Optional: supply today's P&L and per-factor returns to enable P&L attribution.
+  // factor_returns_today keys are FactorType enum names (e.g. "EQUITY_BETA").
+  double total_pnl = 7;
+  map<string, double> factor_returns_today = 8;
 }
 
 message FactorContribution {
@@ -257,6 +261,8 @@ message FactorDecompositionResponse {
   repeated FactorContribution factor_contributions = 7;
   repeated InstrumentLoadingResult loadings = 8;
   string job_id = 9;
+  // Populated when factor_returns_today was supplied in the request.
+  double idiosyncratic_pnl = 10;
 }
 
 enum HedgeTargetMetric {
