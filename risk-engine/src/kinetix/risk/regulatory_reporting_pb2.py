@@ -26,7 +26,7 @@ from kinetix.common import types_pb2 as kinetix_dot_common_dot_types__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'kinetix/risk/regulatory_reporting.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"c\n\x0b\x46rtbRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12+\n\tpositions\x18\x02 \x03(\x0b\x32\x18.kinetix.common.Position\"\x9d\x01\n\x0fRiskClassCharge\x12/\n\nrisk_class\x18\x01 \x01(\x0e\x32\x1b.kinetix.risk.FrtbRiskClass\x12\x14\n\x0c\x64\x65lta_charge\x18\x02 \x01(\x01\x12\x13\n\x0bvega_charge\x18\x03 \x01(\x01\x12\x18\n\x10\x63urvature_charge\x18\x04 \x01(\x01\x12\x14\n\x0ctotal_charge\x18\x05 \x01(\x01\"`\n\tSbmResult\x12\x39\n\x12risk_class_charges\x18\x01 \x03(\x0b\x32\x1d.kinetix.risk.RiskClassCharge\x12\x18\n\x10total_sbm_charge\x18\x02 \x01(\x01\"F\n\tDrcResult\x12\x11\n\tgross_jtd\x18\x01 \x01(\x01\x12\x15\n\rhedge_benefit\x18\x02 \x01(\x01\x12\x0f\n\x07net_drc\x18\x03 \x01(\x01\"Q\n\nRraoResult\x12\x17\n\x0f\x65xotic_notional\x18\x01 \x01(\x01\x12\x16\n\x0eother_notional\x18\x02 \x01(\x01\x12\x12\n\ntotal_rrao\x18\x03 \x01(\x01\"\xe4\x01\n\x0c\x46rtbResponse\x12\x0f\n\x07\x62ook_id\x18\x01 \x01(\t\x12$\n\x03sbm\x18\x02 \x01(\x0b\x32\x17.kinetix.risk.SbmResult\x12$\n\x03\x64rc\x18\x03 \x01(\x0b\x32\x17.kinetix.risk.DrcResult\x12&\n\x04rrao\x18\x04 \x01(\x0b\x32\x18.kinetix.risk.RraoResult\x12\x1c\n\x14total_capital_charge\x18\x05 \x01(\x01\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x99\x01\n\x15GenerateReportRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12+\n\tpositions\x18\x02 \x03(\x0b\x32\x18.kinetix.common.Position\x12*\n\x06\x66ormat\x18\x03 \x01(\x0e\x32\x1a.kinetix.risk.ReportFormat\"\x98\x01\n\x16GenerateReportResponse\x12\x0f\n\x07\x62ook_id\x18\x01 \x01(\t\x12*\n\x06\x66ormat\x18\x02 \x01(\x0e\x32\x1a.kinetix.risk.ReportFormat\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x30\n\x0cgenerated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp*\xa3\x01\n\rFrtbRiskClass\x12\x1f\n\x1b\x46RTB_RISK_CLASS_UNSPECIFIED\x10\x00\x12\x08\n\x04GIRR\x10\x01\x12\x0f\n\x0b\x43SR_NON_SEC\x10\x02\x12\x0f\n\x0b\x43SR_SEC_CTP\x10\x03\x12\x13\n\x0f\x43SR_SEC_NON_CTP\x10\x04\x12\x0f\n\x0b\x46RTB_EQUITY\x10\x05\x12\x12\n\x0e\x46RTB_COMMODITY\x10\x06\x12\x0b\n\x07\x46RTB_FX\x10\x07*@\n\x0cReportFormat\x12\x1d\n\x19REPORT_FORMAT_UNSPECIFIED\x10\x00\x12\x07\n\x03\x43SV\x10\x01\x12\x08\n\x04XBRL\x10\x02\x32\xc1\x01\n\x1aRegulatoryReportingService\x12\x46\n\rCalculateFrtb\x12\x19.kinetix.risk.FrtbRequest\x1a\x1a.kinetix.risk.FrtbResponse\x12[\n\x0eGenerateReport\x12#.kinetix.risk.GenerateReportRequest\x1a$.kinetix.risk.GenerateReportResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'kinetix/risk/regulatory_reporting.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"c\n\x0b\x46rtbRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12+\n\tpositions\x18\x02 \x03(\x0b\x32\x18.kinetix.common.Position\"j\n\x0bTenorCharge\x12\x13\n\x0btenor_label\x18\x01 \x01(\t\x12\x13\n\x0bsensitivity\x18\x02 \x01(\x01\x12\x13\n\x0brisk_weight\x18\x03 \x01(\x01\x12\x1c\n\x14weighted_sensitivity\x18\x04 \x01(\x01\"\xcf\x01\n\x0fRiskClassCharge\x12/\n\nrisk_class\x18\x01 \x01(\x0e\x32\x1b.kinetix.risk.FrtbRiskClass\x12\x14\n\x0c\x64\x65lta_charge\x18\x02 \x01(\x01\x12\x13\n\x0bvega_charge\x18\x03 \x01(\x01\x12\x18\n\x10\x63urvature_charge\x18\x04 \x01(\x01\x12\x14\n\x0ctotal_charge\x18\x05 \x01(\x01\x12\x30\n\rtenor_charges\x18\x06 \x03(\x0b\x32\x19.kinetix.risk.TenorCharge\"`\n\tSbmResult\x12\x39\n\x12risk_class_charges\x18\x01 \x03(\x0b\x32\x1d.kinetix.risk.RiskClassCharge\x12\x18\n\x10total_sbm_charge\x18\x02 \x01(\x01\"F\n\tDrcResult\x12\x11\n\tgross_jtd\x18\x01 \x01(\x01\x12\x15\n\rhedge_benefit\x18\x02 \x01(\x01\x12\x0f\n\x07net_drc\x18\x03 \x01(\x01\"Q\n\nRraoResult\x12\x17\n\x0f\x65xotic_notional\x18\x01 \x01(\x01\x12\x16\n\x0eother_notional\x18\x02 \x01(\x01\x12\x12\n\ntotal_rrao\x18\x03 \x01(\x01\"\xe4\x01\n\x0c\x46rtbResponse\x12\x0f\n\x07\x62ook_id\x18\x01 \x01(\t\x12$\n\x03sbm\x18\x02 \x01(\x0b\x32\x17.kinetix.risk.SbmResult\x12$\n\x03\x64rc\x18\x03 \x01(\x0b\x32\x17.kinetix.risk.DrcResult\x12&\n\x04rrao\x18\x04 \x01(\x0b\x32\x18.kinetix.risk.RraoResult\x12\x1c\n\x14total_capital_charge\x18\x05 \x01(\x01\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x99\x01\n\x15GenerateReportRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12+\n\tpositions\x18\x02 \x03(\x0b\x32\x18.kinetix.common.Position\x12*\n\x06\x66ormat\x18\x03 \x01(\x0e\x32\x1a.kinetix.risk.ReportFormat\"\x98\x01\n\x16GenerateReportResponse\x12\x0f\n\x07\x62ook_id\x18\x01 \x01(\t\x12*\n\x06\x66ormat\x18\x02 \x01(\x0e\x32\x1a.kinetix.risk.ReportFormat\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x30\n\x0cgenerated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp*\xa3\x01\n\rFrtbRiskClass\x12\x1f\n\x1b\x46RTB_RISK_CLASS_UNSPECIFIED\x10\x00\x12\x08\n\x04GIRR\x10\x01\x12\x0f\n\x0b\x43SR_NON_SEC\x10\x02\x12\x0f\n\x0b\x43SR_SEC_CTP\x10\x03\x12\x13\n\x0f\x43SR_SEC_NON_CTP\x10\x04\x12\x0f\n\x0b\x46RTB_EQUITY\x10\x05\x12\x12\n\x0e\x46RTB_COMMODITY\x10\x06\x12\x0b\n\x07\x46RTB_FX\x10\x07*@\n\x0cReportFormat\x12\x1d\n\x19REPORT_FORMAT_UNSPECIFIED\x10\x00\x12\x07\n\x03\x43SV\x10\x01\x12\x08\n\x04XBRL\x10\x02\x32\xc1\x01\n\x1aRegulatoryReportingService\x12\x46\n\rCalculateFrtb\x12\x19.kinetix.risk.FrtbRequest\x1a\x1a.kinetix.risk.FrtbResponse\x12[\n\x0eGenerateReport\x12#.kinetix.risk.GenerateReportRequest\x1a$.kinetix.risk.GenerateReportResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,26 +34,28 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kinetix.risk.regulatory_rep
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\026com.kinetix.proto.riskP\001'
-  _globals['_FRTBRISKCLASS']._serialized_start=1175
-  _globals['_FRTBRISKCLASS']._serialized_end=1338
-  _globals['_REPORTFORMAT']._serialized_start=1340
-  _globals['_REPORTFORMAT']._serialized_end=1404
+  _globals['_FRTBRISKCLASS']._serialized_start=1333
+  _globals['_FRTBRISKCLASS']._serialized_end=1496
+  _globals['_REPORTFORMAT']._serialized_start=1498
+  _globals['_REPORTFORMAT']._serialized_end=1562
   _globals['_FRTBREQUEST']._serialized_start=118
   _globals['_FRTBREQUEST']._serialized_end=217
-  _globals['_RISKCLASSCHARGE']._serialized_start=220
-  _globals['_RISKCLASSCHARGE']._serialized_end=377
-  _globals['_SBMRESULT']._serialized_start=379
-  _globals['_SBMRESULT']._serialized_end=475
-  _globals['_DRCRESULT']._serialized_start=477
-  _globals['_DRCRESULT']._serialized_end=547
-  _globals['_RRAORESULT']._serialized_start=549
-  _globals['_RRAORESULT']._serialized_end=630
-  _globals['_FRTBRESPONSE']._serialized_start=633
-  _globals['_FRTBRESPONSE']._serialized_end=861
-  _globals['_GENERATEREPORTREQUEST']._serialized_start=864
-  _globals['_GENERATEREPORTREQUEST']._serialized_end=1017
-  _globals['_GENERATEREPORTRESPONSE']._serialized_start=1020
-  _globals['_GENERATEREPORTRESPONSE']._serialized_end=1172
-  _globals['_REGULATORYREPORTINGSERVICE']._serialized_start=1407
-  _globals['_REGULATORYREPORTINGSERVICE']._serialized_end=1600
+  _globals['_TENORCHARGE']._serialized_start=219
+  _globals['_TENORCHARGE']._serialized_end=325
+  _globals['_RISKCLASSCHARGE']._serialized_start=328
+  _globals['_RISKCLASSCHARGE']._serialized_end=535
+  _globals['_SBMRESULT']._serialized_start=537
+  _globals['_SBMRESULT']._serialized_end=633
+  _globals['_DRCRESULT']._serialized_start=635
+  _globals['_DRCRESULT']._serialized_end=705
+  _globals['_RRAORESULT']._serialized_start=707
+  _globals['_RRAORESULT']._serialized_end=788
+  _globals['_FRTBRESPONSE']._serialized_start=791
+  _globals['_FRTBRESPONSE']._serialized_end=1019
+  _globals['_GENERATEREPORTREQUEST']._serialized_start=1022
+  _globals['_GENERATEREPORTREQUEST']._serialized_end=1175
+  _globals['_GENERATEREPORTRESPONSE']._serialized_start=1178
+  _globals['_GENERATEREPORTRESPONSE']._serialized_end=1330
+  _globals['_REGULATORYREPORTINGSERVICE']._serialized_start=1565
+  _globals['_REGULATORYREPORTINGSERVICE']._serialized_end=1758
 # @@protoc_insertion_point(module_scope)

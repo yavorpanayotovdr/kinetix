@@ -88,7 +88,7 @@ class TestStressTestGrpc:
         assert "COVID_2020" in response.scenario_names
         assert "TAPER_TANTRUM_2013" in response.scenario_names
         assert "EURO_CRISIS_2011" in response.scenario_names
-        assert len(response.scenario_names) == 4
+        assert len(response.scenario_names) == 15
 
     def test_unknown_scenario_returns_error(self, stub):
         request = stress_testing_pb2.StressTestRequest(

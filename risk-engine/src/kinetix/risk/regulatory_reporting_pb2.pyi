@@ -47,19 +47,33 @@ class FrtbRequest(_message.Message):
     positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
     def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ...) -> None: ...
 
+class TenorCharge(_message.Message):
+    __slots__ = ("tenor_label", "sensitivity", "risk_weight", "weighted_sensitivity")
+    TENOR_LABEL_FIELD_NUMBER: _ClassVar[int]
+    SENSITIVITY_FIELD_NUMBER: _ClassVar[int]
+    RISK_WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    WEIGHTED_SENSITIVITY_FIELD_NUMBER: _ClassVar[int]
+    tenor_label: str
+    sensitivity: float
+    risk_weight: float
+    weighted_sensitivity: float
+    def __init__(self, tenor_label: _Optional[str] = ..., sensitivity: _Optional[float] = ..., risk_weight: _Optional[float] = ..., weighted_sensitivity: _Optional[float] = ...) -> None: ...
+
 class RiskClassCharge(_message.Message):
-    __slots__ = ("risk_class", "delta_charge", "vega_charge", "curvature_charge", "total_charge")
+    __slots__ = ("risk_class", "delta_charge", "vega_charge", "curvature_charge", "total_charge", "tenor_charges")
     RISK_CLASS_FIELD_NUMBER: _ClassVar[int]
     DELTA_CHARGE_FIELD_NUMBER: _ClassVar[int]
     VEGA_CHARGE_FIELD_NUMBER: _ClassVar[int]
     CURVATURE_CHARGE_FIELD_NUMBER: _ClassVar[int]
     TOTAL_CHARGE_FIELD_NUMBER: _ClassVar[int]
+    TENOR_CHARGES_FIELD_NUMBER: _ClassVar[int]
     risk_class: FrtbRiskClass
     delta_charge: float
     vega_charge: float
     curvature_charge: float
     total_charge: float
-    def __init__(self, risk_class: _Optional[_Union[FrtbRiskClass, str]] = ..., delta_charge: _Optional[float] = ..., vega_charge: _Optional[float] = ..., curvature_charge: _Optional[float] = ..., total_charge: _Optional[float] = ...) -> None: ...
+    tenor_charges: _containers.RepeatedCompositeFieldContainer[TenorCharge]
+    def __init__(self, risk_class: _Optional[_Union[FrtbRiskClass, str]] = ..., delta_charge: _Optional[float] = ..., vega_charge: _Optional[float] = ..., curvature_charge: _Optional[float] = ..., total_charge: _Optional[float] = ..., tenor_charges: _Optional[_Iterable[_Union[TenorCharge, _Mapping]]] = ...) -> None: ...
 
 class SbmResult(_message.Message):
     __slots__ = ("risk_class_charges", "total_sbm_charge")

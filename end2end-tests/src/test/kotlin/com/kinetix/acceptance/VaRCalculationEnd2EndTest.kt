@@ -46,6 +46,33 @@ private class RepositoryBackedPositionServiceClient(
 
     override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> =
         ClientResponse.Success(repository.findDistinctBookIds())
+
+    override suspend fun getTradesInRange(
+        bookId: BookId,
+        from: java.time.Instant,
+        to: java.time.Instant,
+    ): ClientResponse<List<com.kinetix.risk.client.dtos.TradeDto>> =
+        ClientResponse.Success(emptyList())
+
+    override suspend fun getNetCollateral(
+        counterpartyId: String,
+    ): ClientResponse<com.kinetix.risk.client.dtos.NetCollateralDto> =
+        ClientResponse.Success(
+            com.kinetix.risk.client.dtos.NetCollateralDto(
+                collateralReceived = 0.0,
+                collateralPosted = 0.0,
+            )
+        )
+
+    override suspend fun getInstrumentNettingSets(
+        counterpartyId: String,
+    ): ClientResponse<Map<String, String>> =
+        ClientResponse.Success(emptyMap())
+
+    override suspend fun getTradesByCounterparty(
+        counterpartyId: String,
+    ): ClientResponse<List<com.kinetix.risk.client.dtos.CounterpartyTradeDto>> =
+        ClientResponse.Success(emptyList())
 }
 
 private class StubRiskEngineClient : RiskEngineClient {
