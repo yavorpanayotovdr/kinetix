@@ -122,6 +122,37 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
         }
     }
 
+    test("body createdBy is ignored when JWT principal is present (identity spoofing prevention)") {
+        val capturedParams = slot<CreateScenarioParams>()
+        coEvery { regulatoryClient.createScenario(capture(capturedParams)) } returns StressScenarioItem(
+            id = "sc-2",
+            name = "Spoofed",
+            description = "desc",
+            shocks = "{}",
+            status = "DRAFT",
+            createdBy = "risk-mgr-1",
+            approvedBy = null,
+            approvedAt = null,
+            createdAt = "2026-01-01T00:00:00Z",
+        )
+
+        val token = TestJwtHelper.generateToken(userId = "risk-mgr-1", roles = listOf(Role.RISK_MANAGER))
+
+        testApplication {
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
+
+            val response = client.post("/api/v1/stress-scenarios") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+                contentType(ContentType.Application.Json)
+                // Body sends a DIFFERENT createdBy — this must be ignored
+                setBody("""{"name":"Spoofed","description":"desc","shocks":"{}","createdBy":"attacker-id"}""")
+            }
+            response.status shouldBe HttpStatusCode.Created
+            // createdBy must come from JWT (risk-mgr-1), not from body (attacker-id)
+            capturedParams.captured.createdBy shouldBe "risk-mgr-1"
+        }
+    }
+
     test("unauthenticated request to audit routes returns 401") {
         val mockHttpClient = HttpClient(MockEngine { respond("[]", HttpStatusCode.OK) }) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }

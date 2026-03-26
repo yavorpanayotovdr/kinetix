@@ -1,6 +1,6 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.gateway.auth.JwtUserPrincipal
+import com.kinetix.gateway.auth.requireUserId
 import com.kinetix.gateway.client.ApproveScenarioParams
 import com.kinetix.gateway.client.CreateScenarioParams
 import com.kinetix.gateway.client.RegulatoryServiceClient
@@ -10,7 +10,6 @@ import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -38,8 +37,7 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             tags = listOf("Stress Scenarios")
         }) {
             val request = call.receive<CreateScenarioRequest>()
-            val principal = call.principal<JwtUserPrincipal>()
-            val createdBy = principal?.user?.userId ?: request.createdBy
+            val createdBy = call.requireUserId()
             val params = CreateScenarioParams(
                 name = request.name,
                 description = request.description,
@@ -70,9 +68,7 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             }
         }) {
             val id = call.requirePathParam("id")
-            val principal = call.principal<JwtUserPrincipal>()
-            val approvedBy = principal?.user?.userId
-                ?: throw IllegalArgumentException("Approver identity must come from authenticated session")
+            val approvedBy = call.requireUserId()
             val params = ApproveScenarioParams(approvedBy = approvedBy)
             val scenario = client.approve(id, params)
             call.respond(scenario.toResponse())
