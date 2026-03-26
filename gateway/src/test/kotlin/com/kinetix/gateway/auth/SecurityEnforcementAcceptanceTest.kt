@@ -19,12 +19,13 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
 
     val regulatoryClient = mockk<RegulatoryServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
 
     beforeEach { clearMocks(regulatoryClient) }
 
     test("unauthenticated request to stress-scenarios returns 401") {
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
 
             val response = client.get("/api/v1/stress-scenarios")
             response.status shouldBe HttpStatusCode.Unauthorized
@@ -35,7 +36,7 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(roles = listOf(Role.VIEWER))
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
 
             val response = client.post("/api/v1/stress-scenarios") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -50,7 +51,7 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(roles = listOf(Role.COMPLIANCE))
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
 
             val response = client.post("/api/v1/stress-scenarios") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -78,7 +79,7 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "risk-mgr-1", roles = listOf(Role.RISK_MANAGER))
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
 
             val response = client.post("/api/v1/stress-scenarios") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -108,7 +109,7 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "risk-mgr-1", roles = listOf(Role.RISK_MANAGER))
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
 
             val response = client.patch("/api/v1/stress-scenarios/sc-1/approve") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -133,6 +134,7 @@ class SecurityEnforcementAcceptanceTest : FunSpec({
                     regulatoryClient = regulatoryClient,
                     httpClient = mockHttpClient,
                     auditBaseUrl = "http://audit-service",
+                    jwkProvider = jwkProvider,
                 )
             }
             val response = client.get("/api/v1/audit/events")

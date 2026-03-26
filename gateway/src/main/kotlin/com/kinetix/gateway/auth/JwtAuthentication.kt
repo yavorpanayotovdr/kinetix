@@ -1,7 +1,7 @@
 package com.kinetix.gateway.auth
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwk.JwkProvider
+import com.auth0.jwk.JwkProviderBuilder
 import com.kinetix.common.security.Role
 import com.kinetix.common.security.UserPrincipal
 import io.ktor.http.*
@@ -9,19 +9,26 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
+import java.net.URI
+import java.util.concurrent.TimeUnit
 
 data class JwtUserPrincipal(val user: UserPrincipal) : Principal
 
-fun Application.configureJwtAuth(config: JwtConfig) {
+fun Application.configureJwtAuth(config: JwtConfig, jwkProvider: JwkProvider? = null) {
+    val provider = jwkProvider ?: config.jwksUrl?.let { url ->
+        JwkProviderBuilder(URI(url).toURL())
+            .cached(10, 10, TimeUnit.HOURS)
+            .rateLimited(10, 1, TimeUnit.MINUTES)
+            .build()
+    } ?: throw IllegalStateException("JwtConfig must have either a jwksUrl or a JwkProvider must be supplied")
+
     install(Authentication) {
         jwt("auth-jwt") {
             realm = config.realm
-            verifier(
-                JWT.require(Algorithm.HMAC256(config.secret))
-                    .withAudience(config.audience)
-                    .withIssuer(config.issuer)
-                    .build()
-            )
+            verifier(provider, config.issuer) {
+                acceptLeeway(3)
+                withAudience(config.audience)
+            }
             validate { credential ->
                 if (credential.payload.audience.contains(config.audience)) {
                     val userId = credential.payload.subject ?: return@validate null

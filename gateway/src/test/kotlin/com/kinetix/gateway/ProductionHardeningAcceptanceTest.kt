@@ -1,12 +1,10 @@
 package com.kinetix.gateway
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.kinetix.common.model.*
 import com.kinetix.common.persistence.ConnectionPoolConfig
 import com.kinetix.common.security.Role
 import com.kinetix.gateway.auth.InMemoryBookAccessService
-import com.kinetix.gateway.auth.JwtConfig
+import com.kinetix.gateway.auth.TestJwtHelper
 import com.kinetix.gateway.client.*
 import com.kinetix.gateway.ratelimit.RateLimit
 import com.kinetix.gateway.ratelimit.RateLimiterConfig
@@ -24,30 +22,17 @@ import io.mockk.*
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
-import java.util.Date
 
-private const val TEST_SECRET = "test-secret-that-is-at-least-256-bits-long-for-hmac"
-private const val TEST_ISSUER = "kinetix-test"
-private const val TEST_AUDIENCE = "kinetix-api"
-
-private fun testJwtConfig() = JwtConfig(
-    issuer = TEST_ISSUER, audience = TEST_AUDIENCE, realm = "kinetix-test", secret = TEST_SECRET,
-)
-
-private fun generateToken(roles: List<Role>): String = JWT.create()
-    .withSubject("user-1")
-    .withAudience(TEST_AUDIENCE)
-    .withIssuer(TEST_ISSUER)
-    .withClaim("preferred_username", "testuser")
-    .withClaim("roles", roles.map { it.name })
-    .withExpiresAt(Date(System.currentTimeMillis() + 3_600_000))
-    .sign(Algorithm.HMAC256(TEST_SECRET))
+private fun testJwtConfig() = TestJwtHelper.testJwtConfig()
+private fun testJwkProvider() = TestJwtHelper.testJwkProvider()
+private fun generateToken(roles: List<Role>): String = TestJwtHelper.generateToken(roles = roles)
 
 class ProductionHardeningAcceptanceTest : BehaviorSpec({
 
     val positionClient = mockk<PositionServiceClient>()
     val riskClient = mockk<RiskServiceClient>()
     val jwtConfig = testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
 
     beforeEach { clearMocks(positionClient, riskClient) }
 
@@ -82,6 +67,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
                             jwtConfig,
                             positionClient = positionClient,
                             bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
+                            jwkProvider = jwkProvider,
                         )
                     }
                     val response = client.post("/api/v1/books/port-1/trades") {
@@ -99,7 +85,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
                 val token = generateToken(listOf(Role.VIEWER))
 
                 testApplication {
-                    application { module(jwtConfig, positionClient = positionClient) }
+                    application { module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider) }
                     val response = client.post("/api/v1/books/port-1/trades") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                         contentType(ContentType.Application.Json)
@@ -128,7 +114,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
                 val token = generateToken(listOf(Role.COMPLIANCE))
 
                 testApplication {
-                    application { module(jwtConfig, riskClient = riskClient) }
+                    application { module(jwtConfig, riskClient = riskClient, jwkProvider = jwkProvider) }
                     val response = client.post("/api/v1/regulatory/frtb/port-1") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                         contentType(ContentType.Application.Json)

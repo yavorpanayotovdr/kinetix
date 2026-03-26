@@ -17,6 +17,7 @@ class GatewayStressScenarioContractAcceptanceTest : BehaviorSpec({
 
     val regulatoryClient = mockk<RegulatoryServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
     val riskManagerToken = TestJwtHelper.generateToken(userId = "manager@kinetix.com", roles = listOf(Role.RISK_MANAGER))
 
     beforeEach { clearMocks(regulatoryClient) }
@@ -40,7 +41,7 @@ class GatewayStressScenarioContractAcceptanceTest : BehaviorSpec({
                 )
 
                 testApplication {
-                    application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+                    application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
                     val response = client.get("/api/v1/stress-scenarios") {
                         header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                     }
@@ -76,7 +77,7 @@ class GatewayStressScenarioContractAcceptanceTest : BehaviorSpec({
                 )
 
                 testApplication {
-                    application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+                    application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
                     val response = client.post("/api/v1/stress-scenarios") {
                         header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                         contentType(ContentType.Application.Json)
@@ -114,7 +115,7 @@ class GatewayStressScenarioContractAcceptanceTest : BehaviorSpec({
                 )
 
                 testApplication {
-                    application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+                    application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
                     val response = client.patch("/api/v1/stress-scenarios/sc-1/approve") {
                         header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                         contentType(ContentType.Application.Json)
@@ -144,7 +145,7 @@ class GatewayStressScenarioContractAcceptanceTest : BehaviorSpec({
                 )
 
                 testApplication {
-                    application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+                    application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
                     val response = client.patch("/api/v1/stress-scenarios/sc-1/retire") {
                         header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                     }

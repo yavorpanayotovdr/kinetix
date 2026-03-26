@@ -340,7 +340,7 @@ fun Application.devModule() {
         issuer = jwtCfg.property("issuer").getString(),
         audience = jwtCfg.property("audience").getString(),
         realm = jwtCfg.property("realm").getString(),
-        secret = jwtCfg.property("secret").getString(),
+        jwksUrl = jwtCfg.property("jwksUrl").getString(),
     )
 
     val jsonConfig = Json { ignoreUnknownKeys = true }
@@ -366,10 +366,14 @@ fun Application.devModule() {
     module()
     configureJwtAuth(jwtConfig)
     routing {
-        // WebSocket routes validate JWT via query parameter
-        priceWebSocket(priceBroadcaster, jwtConfig)
-        pnlWebSocket(pnlBroadcaster, jwtConfig)
-        alertWebSocket(alertBroadcaster, jwtConfig)
+        // WebSocket routes validate JWT via query parameter — JwkProvider built internally by configureJwtAuth
+        val wsJwkProvider = com.auth0.jwk.JwkProviderBuilder(java.net.URI(jwtConfig.jwksUrl!!).toURL())
+            .cached(10, 10, java.util.concurrent.TimeUnit.HOURS)
+            .rateLimited(10, 1, java.util.concurrent.TimeUnit.MINUTES)
+            .build()
+        priceWebSocket(priceBroadcaster, jwtConfig, wsJwkProvider)
+        pnlWebSocket(pnlBroadcaster, jwtConfig, wsJwkProvider)
+        alertWebSocket(alertBroadcaster, jwtConfig, wsJwkProvider)
 
         // All HTTP API routes require a valid JWT
         authenticate("auth-jwt") {
@@ -480,27 +484,27 @@ fun Application.devModule() {
     launch { KafkaIntradayPnlConsumer(pnlKafkaConsumer, pnlBroadcaster).start() }
 }
 
-fun Application.module(jwtConfig: JwtConfig, broadcaster: PriceBroadcaster) {
+fun Application.module(jwtConfig: JwtConfig, broadcaster: PriceBroadcaster, jwkProvider: com.auth0.jwk.JwkProvider? = null) {
     module()
-    configureJwtAuth(jwtConfig)
+    configureJwtAuth(jwtConfig, jwkProvider)
     routing {
-        priceWebSocket(broadcaster, jwtConfig)
+        priceWebSocket(broadcaster, jwtConfig, jwkProvider)
     }
 }
 
-fun Application.module(jwtConfig: JwtConfig, broadcaster: PnlBroadcaster) {
+fun Application.module(jwtConfig: JwtConfig, broadcaster: PnlBroadcaster, jwkProvider: com.auth0.jwk.JwkProvider? = null) {
     module()
-    configureJwtAuth(jwtConfig)
+    configureJwtAuth(jwtConfig, jwkProvider)
     routing {
-        pnlWebSocket(broadcaster, jwtConfig)
+        pnlWebSocket(broadcaster, jwtConfig, jwkProvider)
     }
 }
 
-fun Application.module(jwtConfig: JwtConfig, broadcaster: AlertBroadcaster) {
+fun Application.module(jwtConfig: JwtConfig, broadcaster: AlertBroadcaster, jwkProvider: com.auth0.jwk.JwkProvider? = null) {
     module()
-    configureJwtAuth(jwtConfig)
+    configureJwtAuth(jwtConfig, jwkProvider)
     routing {
-        alertWebSocket(broadcaster, jwtConfig)
+        alertWebSocket(broadcaster, jwtConfig, jwkProvider)
     }
 }
 
@@ -514,9 +518,10 @@ fun Application.module(
     auditBaseUrl: String? = null,
     bookAccessService: BookAccessService = InMemoryBookAccessService(),
     auditPublisher: GovernanceAuditPublisher? = null,
+    jwkProvider: com.auth0.jwk.JwkProvider? = null,
 ) {
     module()
-    configureJwtAuth(jwtConfig)
+    configureJwtAuth(jwtConfig, jwkProvider)
     routing {
         authenticate("auth-jwt") {
             if (positionClient != null) {

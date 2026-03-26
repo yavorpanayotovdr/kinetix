@@ -23,6 +23,7 @@ class RbacAuditTest : FunSpec({
     val positionClient = mockk<PositionServiceClient>()
     val riskClient = mockk<RiskServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
     val producer = mockk<KafkaProducer<String, String>>()
     val auditPublisher = GovernanceAuditPublisher(producer, topic = "governance.audit")
 
@@ -40,7 +41,7 @@ class RbacAuditTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient, auditPublisher = auditPublisher)
+                module(jwtConfig, positionClient = positionClient, auditPublisher = auditPublisher, jwkProvider = jwkProvider)
             }
             val response = client.post("/api/v1/books/port-1/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -64,7 +65,7 @@ class RbacAuditTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, riskClient = riskClient, auditPublisher = auditPublisher)
+                module(jwtConfig, riskClient = riskClient, auditPublisher = auditPublisher, jwkProvider = jwkProvider)
             }
             val response = client.post("/api/v1/risk/var/port-1") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -80,7 +81,7 @@ class RbacAuditTest : FunSpec({
     test("does not publish audit event for unauthenticated requests (401 path is not RBAC denial)") {
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient, auditPublisher = auditPublisher)
+                module(jwtConfig, positionClient = positionClient, auditPublisher = auditPublisher, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books")
             response.status shouldBe HttpStatusCode.Unauthorized

@@ -29,6 +29,7 @@ class StressScenarioRoutesTest : FunSpec({
 
     val regulatoryClient = mockk<RegulatoryServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
     val riskManagerToken = TestJwtHelper.generateToken(userId = "head@kinetix.com", roles = listOf(Role.RISK_MANAGER))
     val analystToken = TestJwtHelper.generateToken(userId = "analyst@kinetix.com", roles = listOf(Role.RISK_MANAGER))
 
@@ -40,7 +41,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.listScenarios() } returns listOf(sampleScenario)
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.get("/api/v1/stress-scenarios") {
                 header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
             }
@@ -58,7 +59,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.listApprovedScenarios() } returns listOf(approved)
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.get("/api/v1/stress-scenarios/approved") {
                 header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
             }
@@ -74,7 +75,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.createScenario(capture(capturedParams)) } returns sampleScenario
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.post("/api/v1/stress-scenarios") {
                 header(HttpHeaders.Authorization, "Bearer $analystToken")
                 contentType(ContentType.Application.Json)
@@ -93,7 +94,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.submitForApproval("scenario-1") } returns submitted
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.patch("/api/v1/stress-scenarios/scenario-1/submit") {
                 header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
             }
@@ -109,7 +110,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.approve("scenario-1", capture(capturedParams)) } returns approved
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.patch("/api/v1/stress-scenarios/scenario-1/approve") {
                 header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                 contentType(ContentType.Application.Json)
@@ -128,7 +129,7 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.retire("scenario-1") } returns retired
 
         testApplication {
-            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient, jwkProvider = jwkProvider) }
             val response = client.patch("/api/v1/stress-scenarios/scenario-1/retire") {
                 header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
             }

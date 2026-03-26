@@ -27,13 +27,14 @@ class JwtAuthenticationTest : FunSpec({
     val riskClient = mockk<RiskServiceClient>()
     val notificationClient = mockk<NotificationServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
 
     beforeEach { clearMocks(positionClient, riskClient, notificationClient) }
 
     test("unauthenticated request to protected route returns 401") {
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books")
             response.status shouldBe HttpStatusCode.Unauthorized
@@ -48,7 +49,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -62,7 +63,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -76,12 +77,68 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             response.status shouldBe HttpStatusCode.Unauthorized
+        }
+    }
+
+    test("token with unknown kid returns 401") {
+        val token = TestJwtHelper.generateTokenWithUnknownKid()
+
+        testApplication {
+            application {
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
+            }
+            val response = client.get("/api/v1/books") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+    }
+
+    test("token with wrong issuer returns 401") {
+        val token = TestJwtHelper.generateTokenWithWrongIssuer()
+
+        testApplication {
+            application {
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
+            }
+            val response = client.get("/api/v1/books") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+    }
+
+    test("token with wrong audience returns 401") {
+        val token = TestJwtHelper.generateTokenWithWrongAudience()
+
+        testApplication {
+            application {
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
+            }
+            val response = client.get("/api/v1/books") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+    }
+
+    test("token without roles claim authenticates but gets 403 on permission-gated routes") {
+        val token = TestJwtHelper.generateTokenWithoutRolesClaim()
+
+        testApplication {
+            application {
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
+            }
+            val response = client.get("/api/v1/books") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            response.status shouldBe HttpStatusCode.Forbidden
         }
     }
 
@@ -113,6 +170,7 @@ class JwtAuthenticationTest : FunSpec({
                     jwtConfig,
                     positionClient = positionClient,
                     bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
+                    jwkProvider = jwkProvider,
                 )
             }
             val response = client.post("/api/v1/books/port-1/trades") {
@@ -140,7 +198,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.post("/api/v1/books/port-1/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -176,7 +234,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, riskClient = riskClient)
+                module(jwtConfig, riskClient = riskClient, jwkProvider = jwkProvider)
             }
             val response = client.post("/api/v1/risk/var/port-1") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -205,7 +263,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, riskClient = riskClient)
+                module(jwtConfig, riskClient = riskClient, jwkProvider = jwkProvider)
             }
             val response = client.post("/api/v1/regulatory/frtb/port-1") {
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -219,7 +277,7 @@ class JwtAuthenticationTest : FunSpec({
     test("health and metrics endpoints do not require authentication") {
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             client.get("/health").status shouldBe HttpStatusCode.OK
             client.get("/metrics").status shouldBe HttpStatusCode.OK
@@ -236,7 +294,7 @@ class JwtAuthenticationTest : FunSpec({
 
         testApplication {
             application {
-                module(jwtConfig, positionClient = positionClient)
+                module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider)
             }
             val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")

@@ -1,5 +1,6 @@
 package com.kinetix.gateway.websocket
 
+import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
@@ -8,27 +9,35 @@ import com.kinetix.common.security.UserPrincipal
 import com.kinetix.gateway.auth.JwtConfig
 import io.ktor.server.application.*
 import io.ktor.websocket.*
+import java.security.interfaces.RSAPublicKey
 
 /**
  * Validates the JWT token passed as the `?token=` query parameter on a WebSocket
  * upgrade request. Returns the decoded [UserPrincipal] on success, or null if the
  * token is absent, expired, or has an invalid signature.
  */
-fun ApplicationCall.validateWebSocketToken(config: JwtConfig): UserPrincipal? {
+fun ApplicationCall.validateWebSocketToken(config: JwtConfig, jwkProvider: JwkProvider): UserPrincipal? {
     val rawToken = request.queryParameters["token"] ?: return null
     return try {
-        val verifier = JWT.require(Algorithm.HMAC256(config.secret))
+        val decoded = JWT.decode(rawToken)
+        val kid = decoded.keyId ?: return null
+        val jwk = jwkProvider.get(kid)
+        val publicKey = jwk.publicKey as? RSAPublicKey ?: return null
+        val verifier = JWT.require(Algorithm.RSA256(publicKey, null))
             .withAudience(config.audience)
             .withIssuer(config.issuer)
+            .acceptLeeway(3)
             .build()
-        val decoded = verifier.verify(rawToken)
-        if (!decoded.audience.contains(config.audience)) return null
-        val userId = decoded.subject ?: return null
-        val username = decoded.getClaim("preferred_username")?.asString() ?: userId
-        val rolesClaim = decoded.getClaim("roles")?.asList(String::class.java) ?: emptyList()
+        val verified = verifier.verify(rawToken)
+        if (!verified.audience.contains(config.audience)) return null
+        val userId = verified.subject ?: return null
+        val username = verified.getClaim("preferred_username")?.asString() ?: userId
+        val rolesClaim = verified.getClaim("roles")?.asList(String::class.java) ?: emptyList()
         val roles = rolesClaim.mapNotNull { runCatching { Role.valueOf(it) }.getOrNull() }.toSet()
         UserPrincipal(userId, username, roles)
     } catch (_: JWTVerificationException) {
+        null
+    } catch (_: com.auth0.jwk.SigningKeyNotFoundException) {
         null
     }
 }

@@ -20,6 +20,7 @@ class BookAccessAcceptanceTest : FunSpec({
 
     val positionClient = mockk<PositionServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
+    val jwkProvider = TestJwtHelper.testJwkProvider()
 
     val bookAccessService = InMemoryBookAccessService(
         traderBooks = mapOf("trader-1" to setOf("book-A")),
@@ -42,7 +43,7 @@ class BookAccessAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
         testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService) }
+            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
             val response = client.get("/api/v1/books/book-A/positions") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
@@ -54,7 +55,7 @@ class BookAccessAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
         testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService) }
+            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
             val response = client.get("/api/v1/books/book-B/positions") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
@@ -68,7 +69,7 @@ class BookAccessAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
 
         testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService) }
+            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
             val response = client.get("/api/v1/books/book-B/positions") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
@@ -80,7 +81,7 @@ class BookAccessAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
         testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService) }
+            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
             val response = client.post("/api/v1/books/book-B/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
                 contentType(ContentType.Application.Json)
@@ -125,7 +126,7 @@ class BookAccessAcceptanceTest : FunSpec({
         val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
         testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService) }
+            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
             val response = client.post("/api/v1/books/book-A/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
                 contentType(ContentType.Application.Json)
