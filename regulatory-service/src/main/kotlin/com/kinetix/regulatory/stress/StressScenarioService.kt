@@ -233,6 +233,58 @@ class StressScenarioService(
         )
     }
 
+    /**
+     * Runs a 2D parametric sweep across all combinations of two shock axes.
+     *
+     * For each cell in the cartesian product of [primaryRange] x [secondaryRange],
+     * the combined shock is passed to the risk orchestrator and the P&L impact
+     * is recorded. The result contains a flat list of cells and identifies the
+     * worst (most negative) P&L impact across the entire grid.
+     */
+    suspend fun runParametricGrid(
+        bookId: String,
+        primaryAxis: String,
+        primaryRange: List<Double>,
+        secondaryAxis: String,
+        secondaryRange: List<Double>,
+    ): ParametricGridResult {
+        val client = riskOrchestratorClient
+            ?: throw IllegalStateException("RiskOrchestratorClient not configured")
+
+        val cells = mutableListOf<GridCell>()
+        for (primaryShock in primaryRange) {
+            for (secondaryShock in secondaryRange) {
+                val shocks = mapOf(primaryAxis to primaryShock, secondaryAxis to secondaryShock)
+                val cellName = "grid:$primaryAxis=$primaryShock:$secondaryAxis=$secondaryShock"
+                val dto = client.runStressTest(
+                    bookId = bookId,
+                    scenarioName = cellName,
+                    priceShocks = shocks,
+                )
+                cells.add(
+                    GridCell(
+                        primaryAxis = primaryAxis,
+                        primaryShock = primaryShock,
+                        secondaryAxis = secondaryAxis,
+                        secondaryShock = secondaryShock,
+                        pnlImpact = dto.pnlImpact,
+                    )
+                )
+            }
+        }
+
+        val worstPnlImpact = cells
+            .minByOrNull { runCatching { it.pnlImpact.toDouble() }.getOrElse { Double.MAX_VALUE } }
+            ?.pnlImpact
+
+        return ParametricGridResult(
+            primaryAxis = primaryAxis,
+            secondaryAxis = secondaryAxis,
+            cells = cells,
+            worstPnlImpact = worstPnlImpact,
+        )
+    }
+
     private suspend fun findOrThrow(id: String): StressScenario =
         repository.findById(id) ?: throw NoSuchElementException("Stress scenario not found: $id")
 }

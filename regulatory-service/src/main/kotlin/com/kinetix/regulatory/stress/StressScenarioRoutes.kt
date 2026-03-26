@@ -4,6 +4,9 @@ import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.stress.dto.ApproveScenarioRequest
 import com.kinetix.regulatory.stress.dto.CreateCorrelatedScenarioRequest
 import com.kinetix.regulatory.stress.dto.CreateScenarioRequest
+import com.kinetix.regulatory.stress.dto.GridCellResponse
+import com.kinetix.regulatory.stress.dto.ParametricGridRequest
+import com.kinetix.regulatory.stress.dto.ParametricGridResponse
 import com.kinetix.regulatory.stress.dto.ReverseStressRequest
 import com.kinetix.regulatory.stress.dto.RunStressTestRequest
 import com.kinetix.regulatory.stress.dto.StressScenarioResponse
@@ -160,6 +163,33 @@ fun Route.stressScenarioRoutes(
             call.respond(HttpStatusCode.Created, scenario.toResponse())
         }
 
+        post("/parametric-grid", {
+            summary = "Run a 2D parametric sweep and return a matrix of P&L impacts"
+            tags = listOf("Stress Testing")
+            request {
+                body<ParametricGridRequest>()
+            }
+        }) {
+            val request = call.receive<ParametricGridRequest>()
+            logger.info(
+                "Running parametric grid: bookId={}, primaryAxis={}, secondaryAxis={}, cells={}",
+                request.bookId, request.primaryAxis, request.secondaryAxis,
+                request.primaryRange.size * request.secondaryRange.size,
+            )
+            val result = service.runParametricGrid(
+                bookId = request.bookId,
+                primaryAxis = request.primaryAxis,
+                primaryRange = request.primaryRange,
+                secondaryAxis = request.secondaryAxis,
+                secondaryRange = request.secondaryRange,
+            )
+            logger.info(
+                "Parametric grid complete: bookId={}, cells={}, worstPnlImpact={}",
+                request.bookId, result.cells.size, result.worstPnlImpact,
+            )
+            call.respond(HttpStatusCode.OK, result.toResponse())
+        }
+
         put("/{id}", {
             summary = "Update a stress scenario"
             tags = listOf("Stress Testing")
@@ -230,4 +260,19 @@ private fun StressTestResult.toResponse() = StressTestResultResponse(
     varImpact = varImpact?.toString(),
     positionImpacts = positionImpacts,
     modelVersion = modelVersion,
+)
+
+private fun ParametricGridResult.toResponse() = ParametricGridResponse(
+    primaryAxis = primaryAxis,
+    secondaryAxis = secondaryAxis,
+    cells = cells.map { cell ->
+        GridCellResponse(
+            primaryAxis = cell.primaryAxis,
+            primaryShock = cell.primaryShock,
+            secondaryAxis = cell.secondaryAxis,
+            secondaryShock = cell.secondaryShock,
+            pnlImpact = cell.pnlImpact,
+        )
+    },
+    worstPnlImpact = worstPnlImpact,
 )
