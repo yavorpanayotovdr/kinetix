@@ -185,3 +185,126 @@ class TestLiquidityAdjustedVaRServicer:
         with pytest.raises(grpc.RpcError) as exc_info:
             stub.CalculateLiquidityAdjustedVaR(request)
         assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+    def test_response_contains_var_1day_equal_to_base_var(self, stub):
+        request = _make_request(base_var=100_000.0)
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        assert abs(response.var_1day - 100_000.0) < 1e-6
+
+    def test_lvar_ratio_is_lvar_over_var_1day(self, stub):
+        """Illiquid position: lvar = var * sqrt(10), ratio ≈ sqrt(10)."""
+        request = _make_request(
+            base_var=100_000.0,
+            inputs=[
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="ILLIQ",
+                    market_value=6_000_000.0,
+                    adv=10_000_000.0,
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                )
+            ],
+        )
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        assert abs(response.lvar_ratio - math.sqrt(10)) < 0.01
+
+    def test_weighted_avg_horizon_is_notional_weighted(self, stub):
+        """Two positions: $1M at 1-day, $9M at 10-day -> avg ≈ 9.1 days."""
+        request = _make_request(
+            base_var=100_000.0,
+            inputs=[
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="LIQ",
+                    market_value=1_000_000.0,
+                    adv=100_000_000.0,  # 1% -> HIGH_LIQUID, 1-day
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="ILLIQ",
+                    market_value=9_000_000.0,
+                    adv=10_000_000.0,  # 90% -> ILLIQUID, 10-day
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+            ],
+        )
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        expected_avg = (1_000_000 * 1 + 9_000_000 * 10) / 10_000_000  # 9.1
+        assert abs(response.weighted_avg_horizon - expected_avg) < 0.1
+
+    def test_max_horizon_is_largest_across_positions(self, stub):
+        request = _make_request(
+            base_var=100_000.0,
+            inputs=[
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="LIQ",
+                    market_value=500_000.0,
+                    adv=100_000_000.0,  # HIGH_LIQUID, 1-day
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="ILLIQ",
+                    market_value=6_000_000.0,
+                    adv=10_000_000.0,  # ILLIQUID, 10-day
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+            ],
+        )
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        assert response.max_horizon == 10.0
+
+    def test_concentration_count_is_count_of_non_ok_positions(self, stub):
+        """One OK (3% ADV), one BREACHED (no ADV) -> concentration_count=1."""
+        request = _make_request(
+            inputs=[
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="OK-POS",
+                    market_value=300_000.0,
+                    adv=10_000_000.0,  # 3% -> OK
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="BAD-POS",
+                    market_value=1_000_000.0,
+                    adv=0.0,
+                    adv_missing=True,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                ),
+            ]
+        )
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        assert response.concentration_count == 1
+
+    def test_lvar_includes_spread_cost_when_spread_provided(self, stub):
+        """With bid-ask spread, LVaR should exceed pure sqrt(T) scaling."""
+        request = _make_request(
+            base_var=100_000.0,
+            inputs=[
+                liquidity_pb2.LiquidityInput(
+                    instrument_id="SPREAD-POS",
+                    market_value=5_000_000.0,
+                    adv=100_000_000.0,  # 5% -> HIGH_LIQUID, 1-day
+                    adv_missing=False,
+                    adv_staleness_days=0,
+                    asset_class=types_pb2.EQUITY,
+                    bid_ask_spread_bps=20.0,
+                ),
+            ],
+        )
+        response = stub.CalculateLiquidityAdjustedVaR(request)
+        # spread_cost = 0.5 * 20/10000 * 5_000_000 = 5000
+        # scaled_var = 100_000 * sqrt(1) = 100_000
+        # total = 105_000
+        assert response.portfolio_lvar > 100_000.0
+        assert abs(response.portfolio_lvar - 105_000.0) < 1.0

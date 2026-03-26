@@ -25,20 +25,24 @@ SEMI_LIQUID: LiquidityTier
 ILLIQUID: LiquidityTier
 
 class LiquidityInput(_message.Message):
-    __slots__ = ("instrument_id", "market_value", "adv", "adv_missing", "adv_staleness_days", "asset_class")
+    __slots__ = ("instrument_id", "market_value", "adv", "adv_missing", "adv_staleness_days", "asset_class", "bid_ask_spread_bps", "adv_updated_at")
     INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
     MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
     ADV_FIELD_NUMBER: _ClassVar[int]
     ADV_MISSING_FIELD_NUMBER: _ClassVar[int]
     ADV_STALENESS_DAYS_FIELD_NUMBER: _ClassVar[int]
     ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
+    BID_ASK_SPREAD_BPS_FIELD_NUMBER: _ClassVar[int]
+    ADV_UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     instrument_id: str
     market_value: float
     adv: float
     adv_missing: bool
     adv_staleness_days: int
     asset_class: _types_pb2.AssetClass
-    def __init__(self, instrument_id: _Optional[str] = ..., market_value: _Optional[float] = ..., adv: _Optional[float] = ..., adv_missing: bool = ..., adv_staleness_days: _Optional[int] = ..., asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ...) -> None: ...
+    bid_ask_spread_bps: float
+    adv_updated_at: str
+    def __init__(self, instrument_id: _Optional[str] = ..., market_value: _Optional[float] = ..., adv: _Optional[float] = ..., adv_missing: bool = ..., adv_staleness_days: _Optional[int] = ..., asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., bid_ask_spread_bps: _Optional[float] = ..., adv_updated_at: _Optional[str] = ...) -> None: ...
 
 class LiquidityAdjustedVaRRequest(_message.Message):
     __slots__ = ("book_id", "base_var", "base_holding_period", "inputs", "stress_factors", "portfolio_daily_vol")
@@ -90,17 +94,29 @@ class PositionLiquidityRisk(_message.Message):
     def __init__(self, instrument_id: _Optional[str] = ..., asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., market_value: _Optional[float] = ..., tier: _Optional[_Union[LiquidityTier, str]] = ..., horizon_days: _Optional[int] = ..., adv: _Optional[float] = ..., adv_missing: bool = ..., adv_stale: bool = ..., lvar_contribution: _Optional[float] = ..., stressed_liquidation_value: _Optional[float] = ..., concentration_status: _Optional[str] = ...) -> None: ...
 
 class LiquidityAdjustedVaRResponse(_message.Message):
-    __slots__ = ("book_id", "portfolio_lvar", "data_completeness", "position_risks", "portfolio_concentration_status", "calculated_at")
+    __slots__ = ("book_id", "portfolio_lvar", "data_completeness", "position_risks", "portfolio_concentration_status", "calculated_at", "var_1day", "lvar_ratio", "weighted_avg_horizon", "max_horizon", "concentration_count", "adv_data_as_of")
     BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     PORTFOLIO_LVAR_FIELD_NUMBER: _ClassVar[int]
     DATA_COMPLETENESS_FIELD_NUMBER: _ClassVar[int]
     POSITION_RISKS_FIELD_NUMBER: _ClassVar[int]
     PORTFOLIO_CONCENTRATION_STATUS_FIELD_NUMBER: _ClassVar[int]
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
+    VAR_1DAY_FIELD_NUMBER: _ClassVar[int]
+    LVAR_RATIO_FIELD_NUMBER: _ClassVar[int]
+    WEIGHTED_AVG_HORIZON_FIELD_NUMBER: _ClassVar[int]
+    MAX_HORIZON_FIELD_NUMBER: _ClassVar[int]
+    CONCENTRATION_COUNT_FIELD_NUMBER: _ClassVar[int]
+    ADV_DATA_AS_OF_FIELD_NUMBER: _ClassVar[int]
     book_id: _types_pb2.BookId
     portfolio_lvar: float
     data_completeness: float
     position_risks: _containers.RepeatedCompositeFieldContainer[PositionLiquidityRisk]
     portfolio_concentration_status: str
     calculated_at: _timestamp_pb2.Timestamp
-    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., portfolio_lvar: _Optional[float] = ..., data_completeness: _Optional[float] = ..., position_risks: _Optional[_Iterable[_Union[PositionLiquidityRisk, _Mapping]]] = ..., portfolio_concentration_status: _Optional[str] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    var_1day: float
+    lvar_ratio: float
+    weighted_avg_horizon: float
+    max_horizon: float
+    concentration_count: int
+    adv_data_as_of: str
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., portfolio_lvar: _Optional[float] = ..., data_completeness: _Optional[float] = ..., position_risks: _Optional[_Iterable[_Union[PositionLiquidityRisk, _Mapping]]] = ..., portfolio_concentration_status: _Optional[str] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., var_1day: _Optional[float] = ..., lvar_ratio: _Optional[float] = ..., weighted_avg_horizon: _Optional[float] = ..., max_horizon: _Optional[float] = ..., concentration_count: _Optional[int] = ..., adv_data_as_of: _Optional[str] = ...) -> None: ...

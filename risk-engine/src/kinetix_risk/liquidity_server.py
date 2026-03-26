@@ -86,8 +86,16 @@ class LiquidityAdjustedVaRServicer(
                     adv=None if inp.adv_missing else inp.adv,
                     adv_staleness_days=inp.adv_staleness_days,
                     asset_class=_proto_to_domain_asset_class(inp.asset_class),
+                    bid_ask_spread_bps=inp.bid_ask_spread_bps if inp.bid_ask_spread_bps > 0 else None,
                 )
                 for inp in request.inputs
+            ]
+
+            # Collect adv_updated_at timestamps for adv_data_as_of computation
+            adv_timestamps = [
+                inp.adv_updated_at
+                for inp in request.inputs
+                if inp.adv_updated_at
             ]
 
             # Determine the worst liquidation horizon across all positions
@@ -171,6 +179,17 @@ class LiquidityAdjustedVaRServicer(
 
             portfolio_status = _worst_status(concentration_statuses)
 
+            # Compute 6 summary fields for the response
+            var_1day = request.base_var
+            lvar_ratio = lvar_result.lvar_value / var_1day if var_1day > 0 else 0.0
+            weighted_avg_horizon = (
+                sum(h.horizon_days * abs(inp.market_value) for h, inp in zip(horizon_results, domain_inputs))
+                / total_mv
+                if total_mv > 0 else 0.0
+            )
+            concentration_count = sum(1 for s in concentration_statuses if s != "OK")
+            adv_data_as_of = max(adv_timestamps) if adv_timestamps else ""
+
             return liquidity_pb2.LiquidityAdjustedVaRResponse(
                 book_id=request.book_id,
                 portfolio_lvar=lvar_result.lvar_value,
@@ -178,6 +197,12 @@ class LiquidityAdjustedVaRServicer(
                 position_risks=position_risks,
                 portfolio_concentration_status=portfolio_status,
                 calculated_at=_now_timestamp(),
+                var_1day=var_1day,
+                lvar_ratio=lvar_ratio,
+                weighted_avg_horizon=weighted_avg_horizon,
+                max_horizon=float(max_horizon),
+                concentration_count=concentration_count,
+                adv_data_as_of=adv_data_as_of,
             )
 
         except ValueError as e:

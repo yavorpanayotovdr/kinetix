@@ -26,7 +26,7 @@ from kinetix.common import types_pb2 as kinetix_dot_common_dot_types__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1ckinetix/risk/liquidity.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x01\n\x0eLiquidityInput\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12\x14\n\x0cmarket_value\x18\x02 \x01(\x01\x12\x0b\n\x03\x61\x64v\x18\x03 \x01(\x01\x12\x13\n\x0b\x61\x64v_missing\x18\x04 \x01(\x08\x12\x1a\n\x12\x61\x64v_staleness_days\x18\x05 \x01(\x05\x12/\n\x0b\x61sset_class\x18\x06 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\"\xcc\x02\n\x1bLiquidityAdjustedVaRRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x10\n\x08\x62\x61se_var\x18\x02 \x01(\x01\x12\x1b\n\x13\x62\x61se_holding_period\x18\x03 \x01(\x05\x12,\n\x06inputs\x18\x04 \x03(\x0b\x32\x1c.kinetix.risk.LiquidityInput\x12T\n\x0estress_factors\x18\x05 \x03(\x0b\x32<.kinetix.risk.LiquidityAdjustedVaRRequest.StressFactorsEntry\x12\x1b\n\x13portfolio_daily_vol\x18\x06 \x01(\x01\x1a\x34\n\x12StressFactorsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\xc8\x02\n\x15PositionLiquidityRisk\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12/\n\x0b\x61sset_class\x18\x02 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x14\n\x0cmarket_value\x18\x03 \x01(\x01\x12)\n\x04tier\x18\x04 \x01(\x0e\x32\x1b.kinetix.risk.LiquidityTier\x12\x14\n\x0chorizon_days\x18\x05 \x01(\x05\x12\x0b\n\x03\x61\x64v\x18\x06 \x01(\x01\x12\x13\n\x0b\x61\x64v_missing\x18\x07 \x01(\x08\x12\x11\n\tadv_stale\x18\x08 \x01(\x08\x12\x19\n\x11lvar_contribution\x18\t \x01(\x01\x12\"\n\x1astressed_liquidation_value\x18\n \x01(\x01\x12\x1c\n\x14\x63oncentration_status\x18\x0b \x01(\t\"\x92\x02\n\x1cLiquidityAdjustedVaRResponse\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x16\n\x0eportfolio_lvar\x18\x02 \x01(\x01\x12\x19\n\x11\x64\x61ta_completeness\x18\x03 \x01(\x01\x12;\n\x0eposition_risks\x18\x04 \x03(\x0b\x32#.kinetix.risk.PositionLiquidityRisk\x12&\n\x1eportfolio_concentration_status\x18\x05 \x01(\t\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp*k\n\rLiquidityTier\x12\x1e\n\x1aLIQUIDITY_TIER_UNSPECIFIED\x10\x00\x12\x0f\n\x0bHIGH_LIQUID\x10\x01\x12\n\n\x06LIQUID\x10\x02\x12\x0f\n\x0bSEMI_LIQUID\x10\x03\x12\x0c\n\x08ILLIQUID\x10\x04\x32\x8e\x01\n\x14LiquidityRiskService\x12v\n\x1d\x43\x61lculateLiquidityAdjustedVaR\x12).kinetix.risk.LiquidityAdjustedVaRRequest\x1a*.kinetix.risk.LiquidityAdjustedVaRResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1ckinetix/risk/liquidity.proto\x12\x0ckinetix.risk\x1a\x1akinetix/common/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe0\x01\n\x0eLiquidityInput\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12\x14\n\x0cmarket_value\x18\x02 \x01(\x01\x12\x0b\n\x03\x61\x64v\x18\x03 \x01(\x01\x12\x13\n\x0b\x61\x64v_missing\x18\x04 \x01(\x08\x12\x1a\n\x12\x61\x64v_staleness_days\x18\x05 \x01(\x05\x12/\n\x0b\x61sset_class\x18\x06 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x1a\n\x12\x62id_ask_spread_bps\x18\x07 \x01(\x01\x12\x16\n\x0e\x61\x64v_updated_at\x18\x08 \x01(\t\"\xcc\x02\n\x1bLiquidityAdjustedVaRRequest\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x10\n\x08\x62\x61se_var\x18\x02 \x01(\x01\x12\x1b\n\x13\x62\x61se_holding_period\x18\x03 \x01(\x05\x12,\n\x06inputs\x18\x04 \x03(\x0b\x32\x1c.kinetix.risk.LiquidityInput\x12T\n\x0estress_factors\x18\x05 \x03(\x0b\x32<.kinetix.risk.LiquidityAdjustedVaRRequest.StressFactorsEntry\x12\x1b\n\x13portfolio_daily_vol\x18\x06 \x01(\x01\x1a\x34\n\x12StressFactorsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01:\x02\x38\x01\"\xc8\x02\n\x15PositionLiquidityRisk\x12\x15\n\rinstrument_id\x18\x01 \x01(\t\x12/\n\x0b\x61sset_class\x18\x02 \x01(\x0e\x32\x1a.kinetix.common.AssetClass\x12\x14\n\x0cmarket_value\x18\x03 \x01(\x01\x12)\n\x04tier\x18\x04 \x01(\x0e\x32\x1b.kinetix.risk.LiquidityTier\x12\x14\n\x0chorizon_days\x18\x05 \x01(\x05\x12\x0b\n\x03\x61\x64v\x18\x06 \x01(\x01\x12\x13\n\x0b\x61\x64v_missing\x18\x07 \x01(\x08\x12\x11\n\tadv_stale\x18\x08 \x01(\x08\x12\x19\n\x11lvar_contribution\x18\t \x01(\x01\x12\"\n\x1astressed_liquidation_value\x18\n \x01(\x01\x12\x1c\n\x14\x63oncentration_status\x18\x0b \x01(\t\"\xa0\x03\n\x1cLiquidityAdjustedVaRResponse\x12\'\n\x07\x62ook_id\x18\x01 \x01(\x0b\x32\x16.kinetix.common.BookId\x12\x16\n\x0eportfolio_lvar\x18\x02 \x01(\x01\x12\x19\n\x11\x64\x61ta_completeness\x18\x03 \x01(\x01\x12;\n\x0eposition_risks\x18\x04 \x03(\x0b\x32#.kinetix.risk.PositionLiquidityRisk\x12&\n\x1eportfolio_concentration_status\x18\x05 \x01(\t\x12\x31\n\rcalculated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x10\n\x08var_1day\x18\x07 \x01(\x01\x12\x12\n\nlvar_ratio\x18\x08 \x01(\x01\x12\x1c\n\x14weighted_avg_horizon\x18\t \x01(\x01\x12\x13\n\x0bmax_horizon\x18\n \x01(\x01\x12\x1b\n\x13\x63oncentration_count\x18\x0b \x01(\x05\x12\x16\n\x0e\x61\x64v_data_as_of\x18\x0c \x01(\t*k\n\rLiquidityTier\x12\x1e\n\x1aLIQUIDITY_TIER_UNSPECIFIED\x10\x00\x12\x0f\n\x0bHIGH_LIQUID\x10\x01\x12\n\n\x06LIQUID\x10\x02\x12\x0f\n\x0bSEMI_LIQUID\x10\x03\x12\x0c\n\x08ILLIQUID\x10\x04\x32\x8e\x01\n\x14LiquidityRiskService\x12v\n\x1d\x43\x61lculateLiquidityAdjustedVaR\x12).kinetix.risk.LiquidityAdjustedVaRRequest\x1a*.kinetix.risk.LiquidityAdjustedVaRResponseB\x1a\n\x16\x63om.kinetix.proto.riskP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,18 +36,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\026com.kinetix.proto.riskP\001'
   _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._loaded_options = None
   _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._serialized_options = b'8\001'
-  _globals['_LIQUIDITYTIER']._serialized_start=1225
-  _globals['_LIQUIDITYTIER']._serialized_end=1332
+  _globals['_LIQUIDITYTIER']._serialized_start=1419
+  _globals['_LIQUIDITYTIER']._serialized_end=1526
   _globals['_LIQUIDITYINPUT']._serialized_start=108
-  _globals['_LIQUIDITYINPUT']._serialized_end=280
-  _globals['_LIQUIDITYADJUSTEDVARREQUEST']._serialized_start=283
-  _globals['_LIQUIDITYADJUSTEDVARREQUEST']._serialized_end=615
-  _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._serialized_start=563
-  _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._serialized_end=615
-  _globals['_POSITIONLIQUIDITYRISK']._serialized_start=618
-  _globals['_POSITIONLIQUIDITYRISK']._serialized_end=946
-  _globals['_LIQUIDITYADJUSTEDVARRESPONSE']._serialized_start=949
-  _globals['_LIQUIDITYADJUSTEDVARRESPONSE']._serialized_end=1223
-  _globals['_LIQUIDITYRISKSERVICE']._serialized_start=1335
-  _globals['_LIQUIDITYRISKSERVICE']._serialized_end=1477
+  _globals['_LIQUIDITYINPUT']._serialized_end=332
+  _globals['_LIQUIDITYADJUSTEDVARREQUEST']._serialized_start=335
+  _globals['_LIQUIDITYADJUSTEDVARREQUEST']._serialized_end=667
+  _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._serialized_start=615
+  _globals['_LIQUIDITYADJUSTEDVARREQUEST_STRESSFACTORSENTRY']._serialized_end=667
+  _globals['_POSITIONLIQUIDITYRISK']._serialized_start=670
+  _globals['_POSITIONLIQUIDITYRISK']._serialized_end=998
+  _globals['_LIQUIDITYADJUSTEDVARRESPONSE']._serialized_start=1001
+  _globals['_LIQUIDITYADJUSTEDVARRESPONSE']._serialized_end=1417
+  _globals['_LIQUIDITYRISKSERVICE']._serialized_start=1529
+  _globals['_LIQUIDITYRISKSERVICE']._serialized_end=1671
 # @@protoc_insertion_point(module_scope)
