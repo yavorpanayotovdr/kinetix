@@ -12,6 +12,18 @@ interface ScenarioComparisonTableProps {
   scenarioMetadata?: StressScenarioDto[]
 }
 
+const CATEGORY_BADGE_STYLES: Record<string, string> = {
+  REGULATORY_MANDATED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  INTERNAL_APPROVED: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+  SUPERVISORY_REQUESTED: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  REGULATORY_MANDATED: 'Regulatory',
+  INTERNAL_APPROVED: 'Internal',
+  SUPERVISORY_REQUESTED: 'Supervisory',
+}
+
 function formatMultiplier(baseVar: string, stressedVar: string): string {
   const base = Number(baseVar)
   const stressed = Number(stressedVar)
@@ -67,6 +79,7 @@ export function ScenarioComparisonTable({
             {showCheckboxes && <th className="py-2 w-8"></th>}
             <th className="py-2 w-8"></th>
             <th className="py-2">Scenario</th>
+            <th className="py-2">Category</th>
             <th className="py-2 text-right">Base VaR</th>
             <th className="py-2 text-right">Stressed VaR</th>
             <th className="py-2 text-right">VaR Multiplier</th>
@@ -132,6 +145,20 @@ export function ScenarioComparisonTable({
                       />
                     ) : (
                       r.scenarioName.replace(/_/g, ' ')
+                    )
+                  })()}
+                </td>
+                <td className="py-1.5" data-testid="scenario-category">
+                  {(() => {
+                    const meta = scenarioMetadata?.find(
+                      (s) => s.name === r.scenarioName || s.name.replace(/_/g, ' ') === r.scenarioName.replace(/_/g, ' '),
+                    )
+                    const cat = meta?.scenarioCategory
+                    if (!cat) return null
+                    return (
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${CATEGORY_BADGE_STYLES[cat] ?? 'bg-slate-100 text-slate-600'}`}>
+                        {CATEGORY_LABELS[cat] ?? cat}
+                      </span>
                     )
                   })()}
                 </td>

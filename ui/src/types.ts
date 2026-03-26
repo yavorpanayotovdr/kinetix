@@ -589,6 +589,7 @@ export interface StressScenarioDto {
   approvedAt: string | null
   createdAt: string
   scenarioType?: string
+  scenarioCategory?: string
 }
 
 export interface CreateScenarioRequestDto {
