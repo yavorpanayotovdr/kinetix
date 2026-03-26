@@ -1,14 +1,17 @@
 package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaseline
+import com.kinetix.risk.model.SodGreekSnapshot
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -34,9 +37,14 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val repository: SodBaselineRepository = ExposedSodBaselineRepository(db)
+    val greekSnapshotRepository: SodGreekSnapshotRepository = ExposedSodGreekSnapshotRepository(db)
 
     beforeEach {
-        newSuspendedTransaction(db = db) { SodBaselinesTable.deleteAll() }
+        // Delete baselines first (FK child), then greek snapshots (FK parent)
+        newSuspendedTransaction(db = db) {
+            SodBaselinesTable.deleteAll()
+            SodGreekSnapshotsTable.deleteAll()
+        }
     }
 
     test("saves and retrieves a baseline by portfolio and date") {
@@ -113,5 +121,63 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
         found.shouldNotBeNull()
         found.sourceJobId shouldBe null
         found.calculationType shouldBe null
+    }
+
+    test("greekSnapshotId is null when not set") {
+        repository.save(baseline())
+
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        found.shouldNotBeNull()
+        found.greekSnapshotId shouldBe null
+    }
+
+    test("saves and retrieves baseline with a greek snapshot ID") {
+        // Insert a greek snapshot row to satisfy the FK constraint
+        val greekSnapshot = SodGreekSnapshot(
+            bookId = PORTFOLIO,
+            snapshotDate = TODAY,
+            instrumentId = InstrumentId("AAPL"),
+            sodPrice = BigDecimal("185.50"),
+            delta = 0.55,
+            createdAt = NOW,
+        )
+        greekSnapshotRepository.saveAll(listOf(greekSnapshot))
+        val savedSnapshot = greekSnapshotRepository.findByInstrumentAndDate(PORTFOLIO, InstrumentId("AAPL"), TODAY)
+        val greekSnapshotId = savedSnapshot!!.id!!
+
+        val bl = baseline().copy(greekSnapshotId = greekSnapshotId)
+        repository.save(bl)
+
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        found.shouldNotBeNull()
+        found.greekSnapshotId shouldBe greekSnapshotId
+    }
+
+    test("upsert overwrites greekSnapshotId when updated") {
+        // Insert a greek snapshot to satisfy the FK
+        val greekSnapshot = SodGreekSnapshot(
+            bookId = PORTFOLIO,
+            snapshotDate = TODAY,
+            instrumentId = InstrumentId("MSFT"),
+            sodPrice = BigDecimal("420.00"),
+            delta = 0.60,
+            createdAt = NOW,
+        )
+        greekSnapshotRepository.saveAll(listOf(greekSnapshot))
+        val savedSnapshot = greekSnapshotRepository.findByInstrumentAndDate(PORTFOLIO, InstrumentId("MSFT"), TODAY)
+        val greekSnapshotId = savedSnapshot!!.id!!
+
+        // First save without a greek snapshot ID
+        repository.save(baseline())
+        val beforeUpsert = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        beforeUpsert.shouldNotBeNull()
+        beforeUpsert.greekSnapshotId shouldBe null
+
+        // Upsert with the greek snapshot ID now linked
+        repository.save(baseline().copy(greekSnapshotId = greekSnapshotId))
+
+        val afterUpsert = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
+        afterUpsert.shouldNotBeNull()
+        afterUpsert.greekSnapshotId shouldBe greekSnapshotId
     }
 })

@@ -15,4 +15,6 @@ data class SodBaseline(
     val calculationType: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
+    /** FK to sod_greek_snapshots.id — null until the SOD Greek snapshot job completes. */
+    val greekSnapshotId: Long? = null,
 )

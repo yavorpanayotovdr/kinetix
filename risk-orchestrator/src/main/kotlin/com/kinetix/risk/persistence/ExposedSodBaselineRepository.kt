@@ -30,6 +30,7 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
             it[calculationType] = baseline.calculationType
             it[varValue] = baseline.varValue
             it[expectedShortfall] = baseline.expectedShortfall
+            it[greekSnapshotId] = baseline.greekSnapshotId
         }
     }
 
@@ -67,5 +68,6 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
         calculationType = this[SodBaselinesTable.calculationType],
         varValue = this[SodBaselinesTable.varValue],
         expectedShortfall = this[SodBaselinesTable.expectedShortfall],
+        greekSnapshotId = this[SodBaselinesTable.greekSnapshotId],
     )
 }
