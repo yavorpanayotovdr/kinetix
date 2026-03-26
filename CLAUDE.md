@@ -65,6 +65,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Run linting before pushing UI changes.** Always run `cd ui && npm run lint` before committing UI code. ESLint catches errors (e.g. `react-hooks/set-state-in-effect`) that unit tests do not.
 - **Validate Flyway migrations locally.** Flyway migrations run inside transactions — never use `CREATE INDEX CONCURRENTLY` or other transaction-incompatible statements. Review new migrations for this before committing.
 - **Every change needs test coverage.** New functionality must have tests that verify it works. Bug fixes must have a test that reproduces the bug before the fix. Refactors must not reduce existing test coverage. If changing behaviour that existing tests cover, update those tests to match — do not leave them failing.
+- **Every feature needs acceptance criteria verified by tests.** Before a feature is considered complete, define its acceptance criteria and ensure they are covered by at least one of: acceptance tests (`*AcceptanceTest`), end-to-end tests (`*End2EndTest`), or Playwright browser tests (`ui/e2e/`). Unit tests alone are not sufficient — higher-level tests prove the feature works as a user or consumer would experience it. This applies equally to new features and changes to existing ones: if you touch behaviour, verify it still works end-to-end. Regressions are unacceptable.
 
 ## Project Conventions
 
