@@ -552,14 +552,11 @@ interface RiskServiceClient {
     suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getKeyRateDurations(bookId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getIntradayVaRTimeline(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject?
-<<<<<<< HEAD
     // SA-CCR (BCBS 279) — regulatory capital model, distinct from MC PFE
     suspend fun getCounterpartySaCcr(counterpartyId: String, collateral: Double = 0.0): kotlinx.serialization.json.JsonObject?
     suspend fun listReportTemplates(): kotlinx.serialization.json.JsonArray
     suspend fun generateReport(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun getReportOutput(outputId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getReportOutputCsv(outputId: String): String?
-=======
     suspend fun getBrinsonAttribution(bookId: String, benchmarkId: String, asOfDate: String?): kotlinx.serialization.json.JsonObject?
->>>>>>> worktree-agent-a4317527
 }

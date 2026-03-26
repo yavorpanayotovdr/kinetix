@@ -649,7 +649,6 @@ fun Application.moduleWithRoutes() {
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
-<<<<<<< HEAD
         saCcrRoutes(saCcrService)
 
         val reportRepository = ExposedReportRepository(riskDb)

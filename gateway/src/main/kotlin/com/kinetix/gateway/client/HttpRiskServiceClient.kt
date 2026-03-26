@@ -737,7 +737,6 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
-<<<<<<< HEAD
     override suspend fun getCounterpartySaCcr(
         counterpartyId: String,
         collateral: Double,
@@ -748,7 +747,10 @@ class HttpRiskServiceClient(
             }
         }
         if (response.status == HttpStatusCode.NotFound) return null
-=======
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
     override suspend fun getBrinsonAttribution(bookId: String, benchmarkId: String, asOfDate: String?): kotlinx.serialization.json.JsonObject? {
         val response = httpClient.get("$baseUrl/api/v1/books/$bookId/attribution") {
             url {
@@ -761,7 +763,6 @@ class HttpRiskServiceClient(
             val body = try { response.bodyAsText() } catch (_: Exception) { "" }
             throw IllegalArgumentException(body)
         }
->>>>>>> worktree-agent-a4317527
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }

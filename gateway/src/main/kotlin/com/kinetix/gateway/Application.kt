@@ -283,11 +283,8 @@ fun Application.module(
         hedgeRecommendationRoutes(riskClient)
         counterpartyRiskRoutes(riskClient)
         keyRateDurationRoutes(riskClient)
-<<<<<<< HEAD
         saCcrRoutes(riskClient)
-=======
         benchmarkAttributionRoutes(riskClient)
->>>>>>> worktree-agent-a4317527
     }
 }
 
