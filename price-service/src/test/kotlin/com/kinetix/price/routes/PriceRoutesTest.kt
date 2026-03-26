@@ -169,6 +169,19 @@ class PriceRoutesTest : FunSpec({
         }
     }
 
+    test("POST /api/v1/prices/ingest returns 400 for negative price amount") {
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.post("/api/v1/prices/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"instrumentId":"AAPL","priceAmount":"-1.00","priceCurrency":"USD","source":"EXCHANGE"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
     test("GET /api/v1/prices/{id}/history returns 400 for missing query params") {
         testApplication {
             application { module(repository, ingestionService) }
