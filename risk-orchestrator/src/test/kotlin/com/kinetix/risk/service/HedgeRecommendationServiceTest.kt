@@ -668,6 +668,9 @@ class HedgeRecommendationServiceTest : FunSpec({
 
     context("vega hedge candidate filtering with vol surface client") {
         val volatilityServiceClient = mockk<VolatilityServiceClient>()
+
+        beforeEach { clearMocks(volatilityServiceClient) }
+
         val serviceWithVol = HedgeRecommendationService(
             varCache = varCache,
             instrumentServiceClient = instrumentServiceClient,
