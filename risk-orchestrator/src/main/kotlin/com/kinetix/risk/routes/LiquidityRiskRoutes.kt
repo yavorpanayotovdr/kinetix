@@ -53,8 +53,14 @@ fun Route.liquidityRiskRoutes(
 
 private fun LiquidityRiskResult.toResponse() = LiquidityRiskResponse(
     bookId = bookId,
+    var1day = var1day,
     portfolioLvar = portfolioLvar,
+    lvarRatio = lvarRatio,
+    weightedAvgHorizon = weightedAvgHorizon,
+    maxHorizon = maxHorizon,
+    concentrationCount = concentrationCount,
     dataCompleteness = dataCompleteness,
+    advDataAsOf = advDataAsOf,
     portfolioConcentrationStatus = portfolioConcentrationStatus,
     calculatedAt = calculatedAt,
     positionRisks = positionRisks.map { pos ->

@@ -55,6 +55,10 @@ class ExposedLiquidityRiskSnapshotRepository(
             OffsetDateTime.now(ZoneOffset.UTC)
         }
 
+        val advAsOf = result.advDataAsOf?.let {
+            try { Instant.parse(it).atOffset(ZoneOffset.UTC) } catch (_: Exception) { null }
+        }
+
         LiquidityRiskSnapshotsTable.insert {
             it[bookId] = result.bookId
             it[this.calculatedAt] = calculatedAt
@@ -62,6 +66,12 @@ class ExposedLiquidityRiskSnapshotRepository(
             it[dataCompleteness] = BigDecimal.valueOf(result.dataCompleteness)
             it[portfolioConcentrationStatus] = result.portfolioConcentrationStatus
             it[positionRisksJson] = positionsJson
+            it[var1day] = BigDecimal.valueOf(result.var1day)
+            it[lvarRatio] = BigDecimal.valueOf(result.lvarRatio)
+            it[weightedAvgHorizon] = BigDecimal.valueOf(result.weightedAvgHorizon)
+            it[maxHorizon] = BigDecimal.valueOf(result.maxHorizon)
+            it[concentrationCount] = result.concentrationCount
+            it[advDataAsOf] = advAsOf
         }
     }
 
@@ -74,14 +84,7 @@ class ExposedLiquidityRiskSnapshotRepository(
                 .limit(1)
                 .singleOrNull()
                 ?.let { row ->
-                    LiquidityRiskResult(
-                        bookId = row[LiquidityRiskSnapshotsTable.bookId],
-                        portfolioLvar = row[LiquidityRiskSnapshotsTable.portfolioLvar].toDouble(),
-                        dataCompleteness = row[LiquidityRiskSnapshotsTable.dataCompleteness].toDouble(),
-                        portfolioConcentrationStatus = row[LiquidityRiskSnapshotsTable.portfolioConcentrationStatus],
-                        positionRisks = parsePositionRisks(row[LiquidityRiskSnapshotsTable.positionRisksJson]),
-                        calculatedAt = row[LiquidityRiskSnapshotsTable.calculatedAt].toInstant().toString(),
-                    )
+                    row.toLiquidityRiskResult()
                 }
         }
 
@@ -93,16 +96,24 @@ class ExposedLiquidityRiskSnapshotRepository(
                 .orderBy(LiquidityRiskSnapshotsTable.calculatedAt, SortOrder.DESC)
                 .limit(limit)
                 .map { row ->
-                    LiquidityRiskResult(
-                        bookId = row[LiquidityRiskSnapshotsTable.bookId],
-                        portfolioLvar = row[LiquidityRiskSnapshotsTable.portfolioLvar].toDouble(),
-                        dataCompleteness = row[LiquidityRiskSnapshotsTable.dataCompleteness].toDouble(),
-                        portfolioConcentrationStatus = row[LiquidityRiskSnapshotsTable.portfolioConcentrationStatus],
-                        positionRisks = parsePositionRisks(row[LiquidityRiskSnapshotsTable.positionRisksJson]),
-                        calculatedAt = row[LiquidityRiskSnapshotsTable.calculatedAt].toInstant().toString(),
-                    )
+                    row.toLiquidityRiskResult()
                 }
         }
+
+    private fun org.jetbrains.exposed.sql.ResultRow.toLiquidityRiskResult() = LiquidityRiskResult(
+        bookId = this[LiquidityRiskSnapshotsTable.bookId],
+        var1day = this[LiquidityRiskSnapshotsTable.var1day].toDouble(),
+        portfolioLvar = this[LiquidityRiskSnapshotsTable.portfolioLvar].toDouble(),
+        lvarRatio = this[LiquidityRiskSnapshotsTable.lvarRatio].toDouble(),
+        weightedAvgHorizon = this[LiquidityRiskSnapshotsTable.weightedAvgHorizon].toDouble(),
+        maxHorizon = this[LiquidityRiskSnapshotsTable.maxHorizon].toDouble(),
+        concentrationCount = this[LiquidityRiskSnapshotsTable.concentrationCount],
+        dataCompleteness = this[LiquidityRiskSnapshotsTable.dataCompleteness].toDouble(),
+        advDataAsOf = this[LiquidityRiskSnapshotsTable.advDataAsOf]?.toInstant()?.toString(),
+        portfolioConcentrationStatus = this[LiquidityRiskSnapshotsTable.portfolioConcentrationStatus],
+        positionRisks = parsePositionRisks(this[LiquidityRiskSnapshotsTable.positionRisksJson]),
+        calculatedAt = this[LiquidityRiskSnapshotsTable.calculatedAt].toInstant().toString(),
+    )
 
     private fun parsePositionRisks(json: kotlinx.serialization.json.JsonElement): List<PositionLiquidityRisk> {
         val arr = json as? JsonArray ?: return emptyList()
