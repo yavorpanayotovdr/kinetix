@@ -43,6 +43,8 @@ class GrpcLiquidityClient(
                 .setAdvMissing(dto == null)
                 .setAdvStalenessDays(dto?.advStalenessDays ?: 0)
                 .setAssetClass(protoAc)
+                .setBidAskSpreadBps(dto?.bidAskSpreadBps ?: 0.0)
+                .setAdvUpdatedAt(dto?.advUpdatedAt ?: "")
                 .build()
         }
 
@@ -60,8 +62,14 @@ class GrpcLiquidityClient(
 
         return LiquidityRiskResult(
             bookId = response.bookId.value,
+            var1day = response.var1Day,
             portfolioLvar = response.portfolioLvar,
+            lvarRatio = response.lvarRatio,
+            weightedAvgHorizon = response.weightedAvgHorizon,
+            maxHorizon = response.maxHorizon,
+            concentrationCount = response.concentrationCount,
             dataCompleteness = response.dataCompleteness,
+            advDataAsOf = response.advDataAsOf.ifEmpty { null },
             positionRisks = response.positionRisksList.map { it.toDomain() },
             portfolioConcentrationStatus = response.portfolioConcentrationStatus,
             calculatedAt = response.calculatedAt.toString(),

@@ -9,8 +9,14 @@ package com.kinetix.common.model
  */
 data class LiquidityRiskResult(
     val bookId: String,
+    val var1day: Double = 0.0,
     val portfolioLvar: Double,
+    val lvarRatio: Double = 0.0,
+    val weightedAvgHorizon: Double = 0.0,
+    val maxHorizon: Double = 0.0,
+    val concentrationCount: Int = 0,
     val dataCompleteness: Double,
+    val advDataAsOf: String? = null,
     val positionRisks: List<PositionLiquidityRisk>,
     val portfolioConcentrationStatus: String,
     val calculatedAt: String,
