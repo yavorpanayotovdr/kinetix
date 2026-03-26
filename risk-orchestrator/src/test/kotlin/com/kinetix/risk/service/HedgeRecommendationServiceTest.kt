@@ -9,10 +9,12 @@ import com.kinetix.common.model.PriceSource
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.InstrumentServiceClient
+import com.kinetix.risk.client.LimitServiceClient
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
+import com.kinetix.risk.client.dtos.LimitDefinitionDto
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.GreekImpact
@@ -115,12 +117,56 @@ private val defaultConstraints = HedgeConstraints(
     allowedSides = null,
 )
 
+/**
+ * Builds a minimal HedgeSuggestion where [notional] represents estimatedCost
+ * (crossingCost = 0, so notional = quantity * price).
+ */
+private fun sampleSuggestion(notional: Double = 10_000.0) = HedgeSuggestion(
+    instrumentId = "HEDGE-PUT",
+    instrumentType = "OPTION",
+    side = "BUY",
+    quantity = notional / 100.0, // price per unit = 100 in tests
+    estimatedCost = notional,
+    crossingCost = 0.0,
+    carrycostPerDay = null,
+    targetReduction = 500.0,
+    targetReductionPct = 0.50,
+    residualMetric = 500.0,
+    greekImpact = GreekImpact(
+        deltaBefore = 1000.0, deltaAfter = 500.0,
+        gammaBefore = 0.0, gammaAfter = 0.0,
+        vegaBefore = 0.0, vegaAfter = 0.0,
+        thetaBefore = 0.0, thetaAfter = 0.0,
+        rhoBefore = 0.0, rhoAfter = 0.0,
+    ),
+    liquidityTier = "TIER_1",
+    dataQuality = "FRESH",
+)
+
+private fun limitDefinitionDto(
+    limitType: String = "NOTIONAL",
+    limitValue: String = "100000",
+    level: String = "FIRM",
+    entityId: String = "FIRM",
+    active: Boolean = true,
+) = LimitDefinitionDto(
+    id = "limit-1",
+    level = level,
+    entityId = entityId,
+    limitType = limitType,
+    limitValue = limitValue,
+    intradayLimit = null,
+    overnightLimit = null,
+    active = active,
+)
+
 class HedgeRecommendationServiceTest : FunSpec({
 
     val varCache = mockk<VaRCache>()
     val instrumentServiceClient = mockk<InstrumentServiceClient>()
     val priceServiceClient = mockk<PriceServiceClient>()
     val referenceDataClient = mockk<ReferenceDataServiceClient>()
+    val limitServiceClient = mockk<LimitServiceClient>()
     val calculator = mockk<AnalyticalHedgeCalculator>()
     val repository = mockk<HedgeRecommendationRepository>(relaxed = true)
 
@@ -129,6 +175,7 @@ class HedgeRecommendationServiceTest : FunSpec({
         instrumentServiceClient = instrumentServiceClient,
         priceServiceClient = priceServiceClient,
         referenceDataClient = referenceDataClient,
+        limitServiceClient = limitServiceClient,
         calculator = calculator,
         repository = repository,
         maxGreekStaleness = Duration.ofHours(2),
@@ -138,7 +185,7 @@ class HedgeRecommendationServiceTest : FunSpec({
     val bookId = BookId("BOOK-1")
 
     beforeEach {
-        clearMocks(varCache, instrumentServiceClient, priceServiceClient, referenceDataClient, calculator, repository)
+        clearMocks(varCache, instrumentServiceClient, priceServiceClient, referenceDataClient, limitServiceClient, calculator, repository)
     }
 
     test("throws when no VaR result is cached for the book") {
@@ -369,5 +416,112 @@ class HedgeRecommendationServiceTest : FunSpec({
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
 
         rec.status shouldBe HedgeStatus.REJECTED
+    }
+
+    // ------------------------------------------------------------------ position limit enforcement
+
+    test("excludes suggestions that would breach an active NOTIONAL limit when respectPositionLimits is true") {
+        val constraints = defaultConstraints.copy(respectPositionLimits = true)
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-PUT" to liquidityDto("HEDGE-PUT"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-PUT"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-PUT", amount = 100.0))
+
+        // The suggestion has estimatedCost 50_000 (notional = 500 units * $100), which exceeds the limit of 10_000
+        val suggestion = sampleSuggestion(notional = 50_000.0)
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns listOf(suggestion)
+
+        // NOTIONAL limit: 10_000 — should exclude the suggestion
+        coEvery { limitServiceClient.getLimits() } returns ClientResponse.Success(
+            listOf(limitDefinitionDto(limitType = "NOTIONAL", limitValue = "10000"))
+        )
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, constraints)
+
+        rec.suggestions shouldHaveSize 0
+    }
+
+    test("includes suggestions that stay within the active NOTIONAL limit when respectPositionLimits is true") {
+        val constraints = defaultConstraints.copy(respectPositionLimits = true)
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-PUT" to liquidityDto("HEDGE-PUT"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-PUT"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-PUT", amount = 100.0))
+
+        // Suggestion notional = 5_000, limit = 10_000 — should pass
+        val suggestion = sampleSuggestion(notional = 5_000.0)
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns listOf(suggestion)
+
+        coEvery { limitServiceClient.getLimits() } returns ClientResponse.Success(
+            listOf(limitDefinitionDto(limitType = "NOTIONAL", limitValue = "10000"))
+        )
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, constraints)
+
+        rec.suggestions shouldHaveSize 1
+        rec.suggestions.first().warnings shouldBe emptyList()
+    }
+
+    test("includes suggestions with a warning when limit service is unavailable and respectPositionLimits is true") {
+        val constraints = defaultConstraints.copy(respectPositionLimits = true)
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-PUT" to liquidityDto("HEDGE-PUT"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-PUT"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-PUT", amount = 100.0))
+
+        val suggestion = sampleSuggestion(notional = 50_000.0)
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns listOf(suggestion)
+
+        coEvery { limitServiceClient.getLimits() } throws RuntimeException("limit service down")
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, constraints)
+
+        rec.suggestions shouldHaveSize 1
+        rec.suggestions.first().warnings.any { it.contains("limit") } shouldBe true
+    }
+
+    test("does not call limit service when respectPositionLimits is false") {
+        val constraints = defaultConstraints.copy(respectPositionLimits = false)
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-PUT" to liquidityDto("HEDGE-PUT"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-PUT"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-PUT", amount = 100.0))
+
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
+
+        service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, constraints)
+
+        coVerify(exactly = 0) { limitServiceClient.getLimits() }
+    }
+
+    test("includes suggestions without warnings when no NOTIONAL limits are defined and respectPositionLimits is true") {
+        val constraints = defaultConstraints.copy(respectPositionLimits = true)
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-PUT" to liquidityDto("HEDGE-PUT"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-PUT"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-PUT", amount = 100.0))
+
+        val suggestion = sampleSuggestion(notional = 50_000.0)
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns listOf(suggestion)
+
+        // Only VAR limits defined — no NOTIONAL limits — suggestion should pass through
+        coEvery { limitServiceClient.getLimits() } returns ClientResponse.Success(
+            listOf(limitDefinitionDto(limitType = "VAR", limitValue = "1000000"))
+        )
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, constraints)
+
+        rec.suggestions shouldHaveSize 1
+        rec.suggestions.first().warnings shouldBe emptyList()
     }
 })

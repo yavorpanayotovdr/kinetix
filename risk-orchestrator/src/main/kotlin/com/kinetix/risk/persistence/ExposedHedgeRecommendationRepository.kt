@@ -17,6 +17,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.put
 import org.jetbrains.exposed.sql.and
 import kotlinx.serialization.json.putJsonArray
@@ -154,6 +155,9 @@ class ExposedHedgeRecommendationRepository(
                 put("residualMetric", s.residualMetric)
                 put("liquidityTier", s.liquidityTier)
                 put("dataQuality", s.dataQuality)
+                if (s.warnings.isNotEmpty()) {
+                    putJsonArray("warnings") { s.warnings.forEach { add(JsonPrimitive(it)) } }
+                }
                 putJsonObject("greekImpact") {
                     put("deltaBefore", s.greekImpact.deltaBefore)
                     put("deltaAfter", s.greekImpact.deltaAfter)
@@ -186,6 +190,7 @@ class ExposedHedgeRecommendationRepository(
             residualMetric = obj["residualMetric"]?.jsonPrimitive?.double ?: 0.0,
             liquidityTier = obj["liquidityTier"]?.jsonPrimitive?.content ?: "TIER_1",
             dataQuality = obj["dataQuality"]?.jsonPrimitive?.content ?: "FRESH",
+            warnings = obj["warnings"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
             greekImpact = GreekImpact(
                 deltaBefore = greekObj["deltaBefore"]?.jsonPrimitive?.double ?: 0.0,
                 deltaAfter = greekObj["deltaAfter"]?.jsonPrimitive?.double ?: 0.0,

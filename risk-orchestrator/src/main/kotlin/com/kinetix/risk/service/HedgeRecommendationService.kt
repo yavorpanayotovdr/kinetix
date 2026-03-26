@@ -5,17 +5,21 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.InstrumentServiceClient
+import com.kinetix.risk.client.LimitServiceClient
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.dtos.LimitDefinitionDto
 import com.kinetix.risk.model.CandidateInstrument
 import com.kinetix.risk.model.GreekImpact
 import com.kinetix.risk.model.HedgeConstraints
 import com.kinetix.risk.model.HedgeRecommendation
 import com.kinetix.risk.model.HedgeStatus
+import com.kinetix.risk.model.HedgeSuggestion
 import com.kinetix.risk.model.HedgeTarget
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.persistence.HedgeRecommendationRepository
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -28,6 +32,7 @@ class HedgeRecommendationService(
     private val instrumentServiceClient: InstrumentServiceClient,
     private val priceServiceClient: PriceServiceClient,
     private val referenceDataClient: ReferenceDataServiceClient,
+    private val limitServiceClient: LimitServiceClient? = null,
     private val calculator: AnalyticalHedgeCalculator,
     private val repository: HedgeRecommendationRepository,
     private val maxGreekStaleness: Duration = Duration.ofHours(2),
@@ -83,13 +88,19 @@ class HedgeRecommendationService(
             return recommendation
         }
 
-        val suggestions = calculator.suggest(
+        val rawSuggestions = calculator.suggest(
             currentGreeks = currentGreeks,
             target = target,
             targetReductionPct = targetReductionPct,
             candidates = candidates,
             constraints = constraints,
         )
+
+        val suggestions = if (constraints.respectPositionLimits) {
+            applyPositionLimitFilter(rawSuggestions)
+        } else {
+            rawSuggestions
+        }
 
         val now = Instant.now()
         val recommendation = HedgeRecommendation(
@@ -258,6 +269,45 @@ class HedgeRecommendationService(
         advNotional >= 1_000_000 -> "TIER_3"
         else -> "ILLIQUID"
     }
+
+    /**
+     * When [respectPositionLimits] is true, fetches active NOTIONAL limits from position-service
+     * and filters out any suggestion whose notional would exceed the tightest applicable limit.
+     *
+     * Behaviour on failure:
+     * - If [limitServiceClient] is null or the call throws, every suggestion is preserved but
+     *   annotated with a warning so the caller knows limit data was unavailable.
+     * - If no NOTIONAL limits are defined, all suggestions pass through without warnings.
+     */
+    private suspend fun applyPositionLimitFilter(suggestions: List<HedgeSuggestion>): List<HedgeSuggestion> {
+        val limits = fetchNotionalLimits() ?: return suggestions.map { it.withLimitUnavailableWarning() }
+        if (limits.isEmpty()) return suggestions
+
+        val tightestLimit = limits.mapNotNull { BigDecimal(it.limitValue).takeIf { v -> v > BigDecimal.ZERO } }.minOrNull()
+            ?: return suggestions
+
+        return suggestions.filter { suggestion ->
+            val notional = BigDecimal.valueOf(suggestion.estimatedCost - suggestion.crossingCost)
+            notional <= tightestLimit
+        }
+    }
+
+    /** Returns active NOTIONAL limit definitions, or null if unavailable. */
+    private suspend fun fetchNotionalLimits(): List<LimitDefinitionDto>? {
+        if (limitServiceClient == null) return null
+        return try {
+            when (val response = limitServiceClient.getLimits()) {
+                is ClientResponse.Success -> response.value.filter { it.active && it.limitType == "NOTIONAL" }
+                is ClientResponse.NotFound -> emptyList()
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch position limits for hedge filter: {}", e.message)
+            null
+        }
+    }
+
+    private fun HedgeSuggestion.withLimitUnavailableWarning() =
+        copy(warnings = warnings + "Position limit data unavailable — limit check skipped")
 
     /** Approximate per-unit Greek sensitivity based on instrument type. */
     private fun greekPerUnitForInstrumentType(

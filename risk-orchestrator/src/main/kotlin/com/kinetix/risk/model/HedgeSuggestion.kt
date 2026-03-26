@@ -14,4 +14,5 @@ data class HedgeSuggestion(
     val greekImpact: GreekImpact,
     val liquidityTier: String,
     val dataQuality: String,
+    val warnings: List<String> = emptyList(),
 )

@@ -36,6 +36,7 @@ data class HedgeSuggestionDto(
     val greekImpact: GreekImpactDto,
     val liquidityTier: String,
     val dataQuality: String,
+    val warnings: List<String> = emptyList(),
 )
 
 @Serializable

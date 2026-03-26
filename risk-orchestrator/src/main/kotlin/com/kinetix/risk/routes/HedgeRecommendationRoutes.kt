@@ -154,6 +154,7 @@ private fun HedgeSuggestion.toDto() = HedgeSuggestionDto(
     greekImpact = greekImpact.toDto(),
     liquidityTier = liquidityTier,
     dataQuality = dataQuality,
+    warnings = warnings,
 )
 
 private fun GreekImpact.toDto() = GreekImpactDto(
