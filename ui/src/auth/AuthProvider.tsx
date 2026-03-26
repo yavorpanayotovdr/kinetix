@@ -11,7 +11,7 @@ const keycloakConfig = {
 
 // Allow E2E tests to inject a mock Keycloak constructor via window.Keycloak
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Keycloak: typeof KeycloakReal = (window as any).Keycloak ?? KeycloakReal
+const Keycloak = ((window as any).Keycloak ?? KeycloakReal) as typeof KeycloakReal
 
 interface AuthProviderProps {
   children: ReactNode
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout: () => {},
   })
 
-  const keycloakRef = useRef<Keycloak | null>(null)
+  const keycloakRef = useRef<InstanceType<typeof Keycloak> | null>(null)
   const initCalled = useRef(false)
 
   useEffect(() => {
