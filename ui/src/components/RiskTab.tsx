@@ -30,8 +30,10 @@ import { CorrelationHeatmap } from './CorrelationHeatmap'
 import { HedgeRecommendationPanel } from './HedgeRecommendationPanel'
 import { useHedgeRecommendation } from '../hooks/useHedgeRecommendation'
 import { useIntradayVaRTimeline } from '../hooks/useIntradayVaRTimeline'
+import { useKrd } from '../hooks/useKrd'
 import { VolSurfacePanel } from './VolSurfacePanel'
 import { IntradayVaRChart } from './IntradayVaRChart'
+import { KrdPanel } from './KrdPanel'
 
 type RiskSubTab = 'dashboard' | 'run-compare' | 'market-data' | 'intraday'
 
@@ -69,6 +71,7 @@ export function RiskTab({
   const [pendingJobCompare, setPendingJobCompare] = useState<{ baseJobId: string; targetJobId: string } | null>(null)
   const [hedgePanelOpen, setHedgePanelOpen] = useState(false)
   const { recommendation: hedgeRec, loading: hedgeLoading, error: hedgeError, suggest: suggestHedge } = useHedgeRecommendation(bookId)
+  const { aggregated: krdAggregated, instruments: krdInstruments, loading: krdLoading, error: krdError } = useKrd(bookId)
 
   // Intraday VaR: default to today's trading window (07:00 UTC to now)
   const todayFrom = useMemo(() => {
@@ -296,6 +299,9 @@ export function RiskTab({
           )}
           <div className="mt-4">
             <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
+          </div>
+          <div className="mt-4">
+            <KrdPanel aggregated={krdAggregated} instruments={krdInstruments} loading={krdLoading} error={krdError} />
           </div>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <PnlSummaryCard
