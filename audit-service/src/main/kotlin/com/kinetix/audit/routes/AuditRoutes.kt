@@ -4,10 +4,13 @@ import com.kinetix.audit.dto.toResponse
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.AuditHasher
 import com.kinetix.audit.persistence.ChainVerificationResult
+import com.kinetix.audit.persistence.VerificationCheckpoint
+import com.kinetix.audit.persistence.VerificationCheckpointRepository
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("com.kinetix.audit.routes.AuditRoutes")
 
@@ -15,7 +18,10 @@ private const val DEFAULT_PAGE_LIMIT = 1000
 private const val MAX_PAGE_LIMIT = 10000
 private const val VERIFY_BATCH_SIZE = 10000
 
-fun Route.auditRoutes(repository: AuditEventRepository) {
+fun Route.auditRoutes(
+    repository: AuditEventRepository,
+    checkpointRepository: VerificationCheckpointRepository? = null,
+) {
     route("/api/v1/audit") {
         get("/events", {
             summary = "List audit events"
@@ -54,9 +60,11 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
         }) {
             logger.info("Starting audit chain verification")
 
-            var lastId = 0L
-            var previousHash: String? = null
-            var totalVerified = 0L
+            // Resume from the last saved checkpoint if available, scanning only new events.
+            val latestCheckpoint = checkpointRepository?.findLatest()
+            var lastId = latestCheckpoint?.lastEventId ?: 0L
+            var previousHash: String? = latestCheckpoint?.lastHash
+            var totalVerified = latestCheckpoint?.eventCount ?: 0L
             var valid = true
 
             do {
@@ -73,6 +81,19 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
                 lastId = batch.last().id
                 totalVerified += result.eventsVerified
             } while (batch.size == VERIFY_BATCH_SIZE)
+
+            // Persist a checkpoint only on success so the next call can resume from here.
+            if (valid && checkpointRepository != null && previousHash != null) {
+                checkpointRepository.save(
+                    VerificationCheckpoint(
+                        id = 0L, // auto-assigned by database
+                        lastEventId = lastId,
+                        lastHash = previousHash,
+                        eventCount = totalVerified,
+                        verifiedAt = Instant.now(),
+                    )
+                )
+            }
 
             val result = ChainVerificationResult(valid = valid, eventCount = totalVerified.toInt())
             logger.info("Audit chain verification complete: valid={}, eventCount={}", result.valid, result.eventCount)

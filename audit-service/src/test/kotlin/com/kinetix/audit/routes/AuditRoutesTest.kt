@@ -4,6 +4,8 @@ import com.kinetix.audit.model.AuditEvent
 import com.kinetix.audit.module
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.AuditHasher
+import com.kinetix.audit.persistence.VerificationCheckpoint
+import com.kinetix.audit.persistence.VerificationCheckpointRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -17,8 +19,9 @@ import java.time.Instant
 class AuditRoutesTest : FunSpec({
 
     val repository = mockk<AuditEventRepository>()
+    val checkpointRepository = mockk<VerificationCheckpointRepository>(relaxed = true)
 
-    beforeEach { clearMocks(repository) }
+    beforeEach { clearMocks(repository, checkpointRepository) }
 
     test("GET /api/v1/audit/events returns 200 with event list") {
         val events = listOf(
@@ -168,5 +171,111 @@ class AuditRoutesTest : FunSpec({
             val response = client.get("/health")
             response.status shouldBe HttpStatusCode.OK
         }
+    }
+
+    // ------------------------------------------------------------------ checkpoint persistence (AUD-04)
+
+    test("verify persists a checkpoint after successful full verification") {
+        val event1 = AuditEvent(
+            id = 1,
+            tradeId = "t-1",
+            bookId = "port-1",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+            receivedAt = Instant.parse("2025-01-15T10:00:01Z"),
+        )
+        val hash1 = AuditHasher.computeHash(event1, null)
+        val chained1 = event1.copy(previousHash = null, recordHash = hash1)
+
+        coEvery { checkpointRepository.findLatest() } returns null
+        coEvery { repository.findPage(0L, 10000) } returns listOf(chained1)
+
+        testApplication {
+            application { module(repository, checkpointRepository) }
+            client.get("/api/v1/audit/verify")
+        }
+
+        val saved = slot<VerificationCheckpoint>()
+        coVerify { checkpointRepository.save(capture(saved)) }
+        saved.captured.lastEventId shouldBe 1L
+        saved.captured.lastHash shouldBe hash1
+        saved.captured.eventCount shouldBe 1L
+    }
+
+    test("verify resumes from last checkpoint on subsequent calls") {
+        val event1 = AuditEvent(
+            id = 1,
+            tradeId = "t-1",
+            bookId = "port-1",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+            receivedAt = Instant.parse("2025-01-15T10:00:01Z"),
+        )
+        val hash1 = AuditHasher.computeHash(event1, null)
+
+        val checkpoint = VerificationCheckpoint(
+            id = 1L,
+            lastEventId = 1L,
+            lastHash = hash1,
+            eventCount = 1L,
+            verifiedAt = Instant.parse("2026-03-26T09:00:00Z"),
+        )
+        coEvery { checkpointRepository.findLatest() } returns checkpoint
+        // No new events since the checkpoint
+        coEvery { repository.findPage(1L, 10000) } returns emptyList()
+
+        testApplication {
+            application { module(repository, checkpointRepository) }
+            val response = client.get("/api/v1/audit/verify")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["valid"]?.jsonPrimitive?.boolean shouldBe true
+            // 1 event already verified by checkpoint
+            body["eventCount"]?.jsonPrimitive?.int shouldBe 1
+        }
+
+        // Verify scan started after checkpoint, not from id=0
+        coVerify { repository.findPage(1L, 10000) }
+        coVerify(exactly = 0) { repository.findPage(0L, 10000) }
+    }
+
+    test("verify does not persist checkpoint when chain is invalid") {
+        val event1 = AuditEvent(
+            id = 1,
+            tradeId = "t-1",
+            bookId = "port-1",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "100",
+            priceAmount = "150.00",
+            priceCurrency = "USD",
+            tradedAt = "2025-01-15T10:00:00Z",
+            receivedAt = Instant.parse("2025-01-15T10:00:01Z"),
+            previousHash = null,
+            recordHash = "WRONG-HASH",
+        )
+        coEvery { checkpointRepository.findLatest() } returns null
+        coEvery { repository.findPage(0L, 10000) } returns listOf(event1)
+
+        testApplication {
+            application { module(repository, checkpointRepository) }
+            val response = client.get("/api/v1/audit/verify")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["valid"]?.jsonPrimitive?.boolean shouldBe false
+        }
+
+        coVerify(exactly = 0) { checkpointRepository.save(any()) }
     }
 })

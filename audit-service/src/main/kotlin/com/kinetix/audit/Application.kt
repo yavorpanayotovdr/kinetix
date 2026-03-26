@@ -6,6 +6,8 @@ import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.DatabaseConfig
 import com.kinetix.audit.persistence.DatabaseFactory
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
+import com.kinetix.audit.persistence.ExposedVerificationCheckpointRepository
+import com.kinetix.audit.persistence.VerificationCheckpointRepository
 import com.kinetix.audit.routes.auditRoutes
 import com.kinetix.audit.routes.internalRoutes
 import com.kinetix.audit.seed.DevDataSeeder
@@ -91,10 +93,13 @@ fun Application.module() {
     }
 }
 
-fun Application.module(repository: AuditEventRepository) {
+fun Application.module(
+    repository: AuditEventRepository,
+    checkpointRepository: VerificationCheckpointRepository? = null,
+) {
     module()
     routing {
-        auditRoutes(repository)
+        auditRoutes(repository, checkpointRepository)
         internalRoutes(repository)
     }
 }
@@ -109,6 +114,7 @@ fun Application.moduleWithRoutes() {
         )
     )
     val repository = ExposedAuditEventRepository(db)
+    val checkpointRepository = ExposedVerificationCheckpointRepository(db)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
@@ -161,7 +167,7 @@ fun Application.moduleWithRoutes() {
     }
 
     routing {
-        auditRoutes(repository)
+        auditRoutes(repository, checkpointRepository)
         internalRoutes(repository)
     }
 
