@@ -39,6 +39,7 @@ private fun sampleAttribution(
 ) = PnlAttribution(
     bookId = bookId,
     date = date,
+    currency = "USD",
     totalPnl = bd("10.00"),
     deltaPnl = bd("3.00"),
     gammaPnl = bd("1.50"),

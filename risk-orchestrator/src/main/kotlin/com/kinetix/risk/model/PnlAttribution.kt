@@ -8,7 +8,7 @@ import java.time.LocalDate
 data class PnlAttribution(
     val bookId: BookId,
     val date: LocalDate,
-    val currency: String = "USD",
+    val currency: String,
     val totalPnl: BigDecimal,
     // First-order Greek attribution
     val deltaPnl: BigDecimal,

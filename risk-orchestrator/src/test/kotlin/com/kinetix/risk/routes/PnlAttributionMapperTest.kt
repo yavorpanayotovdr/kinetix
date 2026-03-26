@@ -22,6 +22,7 @@ private fun sampleAttribution(
 ) = PnlAttribution(
     bookId = bookId,
     date = date,
+    currency = "USD",
     totalPnl = bd("10.00"),
     deltaPnl = bd("3.00"),
     gammaPnl = bd("1.50"),
@@ -102,6 +103,7 @@ class PnlAttributionMapperTest : FunSpec({
         val attribution = PnlAttribution(
             bookId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
+            currency = "USD",
             totalPnl = bd("0.00"),
             deltaPnl = bd("0.00"),
             gammaPnl = bd("0.00"),

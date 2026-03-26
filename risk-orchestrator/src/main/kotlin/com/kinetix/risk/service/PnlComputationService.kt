@@ -89,7 +89,12 @@ class PnlComputationService(
         }
 
         val correlations = fetchCorrelations(inputs.map { it.instrumentId.value }.distinct())
-        val attribution = pnlAttributionService.attribute(bookId, inputs, date, correlations)
+        val baseCurrency = currentPositions
+            .groupingBy { it.currency.currencyCode }
+            .eachCount()
+            .maxByOrNull { it.value }?.key ?: "USD"
+
+        val attribution = pnlAttributionService.attribute(bookId, inputs, date, correlations, baseCurrency)
         pnlAttributionRepository.save(attribution)
 
         logger.info(

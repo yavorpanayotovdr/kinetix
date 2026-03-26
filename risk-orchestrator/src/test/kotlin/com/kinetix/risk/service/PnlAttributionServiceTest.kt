@@ -16,6 +16,53 @@ class PnlAttributionServiceTest : FunSpec({
 
     val service = PnlAttributionService()
 
+    test("currency is derived from the supplied currency argument") {
+        val input = PositionPnlInput(
+            instrumentId = InstrumentId("EURSTOCK"),
+            assetClass = AssetClass.EQUITY,
+            totalPnl = bd("1.0"),
+            delta = bd("0.5"),
+            gamma = BigDecimal.ZERO,
+            vega = BigDecimal.ZERO,
+            theta = BigDecimal.ZERO,
+            rho = BigDecimal.ZERO,
+            priceChange = bd("2.0"),
+            volChange = BigDecimal.ZERO,
+            rateChange = BigDecimal.ZERO,
+        )
+
+        val result = service.attribute(
+            bookId = BookId("port-EUR"),
+            positions = listOf(input),
+            currency = "EUR",
+        )
+
+        result.currency shouldBe "EUR"
+    }
+
+    test("currency defaults to USD when not supplied") {
+        val input = PositionPnlInput(
+            instrumentId = InstrumentId("SPY"),
+            assetClass = AssetClass.EQUITY,
+            totalPnl = bd("1.0"),
+            delta = bd("0.5"),
+            gamma = BigDecimal.ZERO,
+            vega = BigDecimal.ZERO,
+            theta = BigDecimal.ZERO,
+            rho = BigDecimal.ZERO,
+            priceChange = bd("2.0"),
+            volChange = BigDecimal.ZERO,
+            rateChange = BigDecimal.ZERO,
+        )
+
+        val result = service.attribute(
+            bookId = BookId("port-1"),
+            positions = listOf(input),
+        )
+
+        result.currency shouldBe "USD"
+    }
+
     test("computes Taylor expansion decomposition with known inputs") {
         // Position: delta=0.5, gamma=0.1, vega=200, theta=-50, rho=30
         // Market moves: priceChange=2.0, volChange=0.01, rateChange=0.005

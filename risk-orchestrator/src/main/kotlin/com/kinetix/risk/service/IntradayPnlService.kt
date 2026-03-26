@@ -97,7 +97,7 @@ class IntradayPnlService(
 
         // Greek attribution: analytical overlay against frozen SOD state.
         val pnlInputs = buildAttributionInputs(positions, sodSnapshots, baseCurrency, fxRates, currentVolMap, currentRateMap)
-        val attribution = pnlAttributionService.attribute(bookId, pnlInputs, date)
+        val attribution = pnlAttributionService.attribute(bookId, pnlInputs, date, baseCurrency)
 
         // High-water mark is monotonically non-decreasing within the trading day.
         val previousHwm = lastSnapshot?.highWaterMark ?: totalPnl

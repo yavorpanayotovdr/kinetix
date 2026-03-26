@@ -21,6 +21,7 @@ class PnlAttributionService {
         positions: List<PositionPnlInput>,
         date: LocalDate = LocalDate.now(),
         correlations: Map<Pair<String, String>, Double> = emptyMap(),
+        currency: String = "USD",
     ): PnlAttribution {
         val dt = BigDecimal.ONE.divide(tradingDaysPerYear, mc)
 
@@ -81,6 +82,7 @@ class PnlAttributionService {
         return PnlAttribution(
             bookId = bookId,
             date = date,
+            currency = currency,
             totalPnl = totalPnl,
             deltaPnl = deltaPnl,
             gammaPnl = gammaPnl,
