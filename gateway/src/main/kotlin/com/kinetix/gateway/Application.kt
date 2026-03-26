@@ -6,7 +6,9 @@ import com.kinetix.gateway.auth.BookAccessService
 import com.kinetix.gateway.auth.InMemoryBookAccessService
 import com.kinetix.gateway.auth.JwtConfig
 import com.kinetix.gateway.auth.checkBookAccess
+import com.kinetix.gateway.auth.checkMultiBookAccess
 import com.kinetix.gateway.auth.configureJwtAuth
+import com.kinetix.gateway.auth.requireBookAccess
 import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.HttpNotificationServiceClient
 import com.kinetix.gateway.client.HttpPositionServiceClient
@@ -363,6 +365,11 @@ fun Application.devModule() {
     val pnlBroadcaster = PnlBroadcaster()
     val alertBroadcaster = AlertBroadcaster()
 
+    // Dev user book assignments matching Keycloak realm-export.json users
+    val bookAccessService = InMemoryBookAccessService(
+        traderBooks = mapOf("a0000000-0000-0000-0000-000000000002" to setOf("port-1", "port-2"))
+    )
+
     module()
     configureJwtAuth(jwtConfig)
     routing {
@@ -378,39 +385,50 @@ fun Application.devModule() {
         // All HTTP API routes require a valid JWT
         authenticate("auth-jwt") {
             requirePermission(Permission.READ_PORTFOLIOS) {
-                positionRoutes(positionClient)
-                strategyProxyRoutes(httpClient, positionUrl)
+                requireBookAccess(bookAccessService) {
+                    positionRoutes(positionClient)
+                    strategyProxyRoutes(httpClient, positionUrl)
+                }
                 priceRoutes(priceClient)
             }
             requirePermission(Permission.CALCULATE_RISK) {
-                varRoutes(riskClient)
-                crossBookVaRRoutes(riskClient)
+                requireBookAccess(bookAccessService) {
+                    varRoutes(riskClient)
+                    liquidityRiskRoutes(riskClient)
+                    factorRiskRoutes(riskClient)
+                    whatIfRoutes(riskClient)
+                    positionRiskRoutes(riskClient)
+                    dependenciesRoutes(riskClient)
+                    sodSnapshotRoutes(riskClient)
+                    runComparisonRoutes(riskClient)
+                    intradayPnlProxyRoutes(riskClient)
+                    intradayVaRTimelineProxyRoutes(riskClient)
+                    reportProxyRoutes(riskClient)
+                    benchmarkAttributionRoutes(riskClient)
+                }
+                // Cross-book routes use checkMultiBookAccess() inside handler (bookIds in body)
+                crossBookVaRRoutes(riskClient, bookAccessService)
+                // Non-bookId routes pass through without book access check
                 hierarchyRiskRoutes(riskClient)
                 riskBudgetRoutes(riskClient)
                 croReportRoutes(riskClient)
-                liquidityRiskRoutes(riskClient)
-                factorRiskRoutes(riskClient)
-                whatIfRoutes(riskClient)
-                positionRiskRoutes(riskClient)
-                dependenciesRoutes(riskClient)
-                sodSnapshotRoutes(riskClient)
-                runComparisonRoutes(riskClient)
-                intradayPnlProxyRoutes(riskClient)
-                intradayVaRTimelineProxyRoutes(riskClient)
-                reportProxyRoutes(riskClient)
-                benchmarkAttributionRoutes(riskClient)
             }
             requirePermission(Permission.READ_RISK) {
-                stressTestRoutes(riskClient)
-                jobHistoryRoutes(riskClient)
+                requireBookAccess(bookAccessService) {
+                    stressTestRoutes(riskClient)
+                    jobHistoryRoutes(riskClient)
+                    hedgeRecommendationRoutes(riskClient)
+                }
+                // Non-bookId routes
                 marketRegimeRoutes(riskClient)
-                hedgeRecommendationRoutes(riskClient)
                 counterpartyRiskRoutes(riskClient)
                 volSurfaceRoutes(volatilityClient)
             }
             requirePermission(Permission.READ_REGULATORY) {
-                regulatoryRoutes(riskClient)
-                eodTimelineRoutes(riskClient)
+                requireBookAccess(bookAccessService) {
+                    regulatoryRoutes(riskClient)
+                    eodTimelineRoutes(riskClient)
+                }
             }
             requirePermission(Permission.READ_ALERTS) {
                 notificationRoutes(notificationClient)
@@ -420,8 +438,10 @@ fun Application.devModule() {
                 backtestProxyRoutes(regulatoryClient)
             }
             requirePermission(Permission.READ_POSITIONS) {
+                requireBookAccess(bookAccessService) {
+                    executionProxyRoutes(httpClient, positionUrl)
+                }
                 instrumentRoutes(httpClient, referenceDataUrl)
-                executionProxyRoutes(httpClient, positionUrl)
                 dataQualityRoutes(httpClient, positionUrl)
             }
             requirePermission(Permission.READ_AUDIT) {
@@ -532,44 +552,50 @@ fun Application.module(
                     }
                 }
                 route("/api/v1/books/{bookId}") {
-                    requirePermission(Permission.WRITE_TRADES, auditPublisher) {
-                        post("/trades") {
-                            val rawBookId = call.requirePathParam("bookId")
-                            if (!call.checkBookAccess(rawBookId, bookAccessService)) return@post
-                            val bookId = BookId(rawBookId)
-                            val request = call.receive<BookTradeRequest>()
-                            val command = request.toCommand(bookId)
-                            val result = positionClient.bookTrade(command)
-                            call.respond(HttpStatusCode.Created, result.toResponse())
+                    requireBookAccess(bookAccessService, auditPublisher) {
+                        requirePermission(Permission.WRITE_TRADES, auditPublisher) {
+                            post("/trades") {
+                                val rawBookId = call.requirePathParam("bookId")
+                                val bookId = BookId(rawBookId)
+                                val request = call.receive<BookTradeRequest>()
+                                val command = request.toCommand(bookId)
+                                val result = positionClient.bookTrade(command)
+                                call.respond(HttpStatusCode.Created, result.toResponse())
+                            }
                         }
-                    }
-                    requirePermission(Permission.READ_POSITIONS, auditPublisher) {
-                        get("/positions") {
-                            val rawBookId = call.requirePathParam("bookId")
-                            if (!call.checkBookAccess(rawBookId, bookAccessService)) return@get
-                            val bookId = BookId(rawBookId)
-                            val positions = positionClient.getPositions(bookId)
-                            call.respond(positions.map { it.toResponse() })
+                        requirePermission(Permission.READ_POSITIONS, auditPublisher) {
+                            get("/positions") {
+                                val rawBookId = call.requirePathParam("bookId")
+                                val bookId = BookId(rawBookId)
+                                val positions = positionClient.getPositions(bookId)
+                                call.respond(positions.map { it.toResponse() })
+                            }
                         }
                     }
                 }
             }
             if (riskClient != null) {
                 requirePermission(Permission.CALCULATE_RISK, auditPublisher) {
-                    varRoutes(riskClient)
-                    crossBookVaRRoutes(riskClient)
-                    whatIfRoutes(riskClient)
-                    positionRiskRoutes(riskClient)
-                    dependenciesRoutes(riskClient)
-                    sodSnapshotRoutes(riskClient)
+                    requireBookAccess(bookAccessService, auditPublisher) {
+                        varRoutes(riskClient)
+                        whatIfRoutes(riskClient)
+                        positionRiskRoutes(riskClient)
+                        dependenciesRoutes(riskClient)
+                        sodSnapshotRoutes(riskClient)
+                    }
+                    crossBookVaRRoutes(riskClient, bookAccessService)
                 }
                 requirePermission(Permission.READ_RISK, auditPublisher) {
-                    stressTestRoutes(riskClient)
-                    jobHistoryRoutes(riskClient)
+                    requireBookAccess(bookAccessService, auditPublisher) {
+                        stressTestRoutes(riskClient)
+                        jobHistoryRoutes(riskClient)
+                    }
                     marketRegimeRoutes(riskClient)
                 }
                 requirePermission(Permission.READ_REGULATORY, auditPublisher) {
-                    regulatoryRoutes(riskClient)
+                    requireBookAccess(bookAccessService, auditPublisher) {
+                        regulatoryRoutes(riskClient)
+                    }
                 }
             }
             if (notificationClient != null) {

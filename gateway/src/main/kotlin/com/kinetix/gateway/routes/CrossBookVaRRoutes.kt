@@ -1,5 +1,7 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.gateway.auth.BookAccessService
+import com.kinetix.gateway.auth.checkMultiBookAccess
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.CrossBookVaRRequestDto
 import com.kinetix.gateway.dto.CrossBookVaRResponseDto
@@ -14,7 +16,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.crossBookVaRRoutes(client: RiskServiceClient) {
+fun Route.crossBookVaRRoutes(client: RiskServiceClient, bookAccessService: BookAccessService? = null) {
     route("/api/v1/risk/var/cross-book") {
 
         post({
@@ -30,6 +32,7 @@ fun Route.crossBookVaRRoutes(client: RiskServiceClient) {
             }
         }) {
             val request = call.receive<CrossBookVaRRequestDto>()
+            if (bookAccessService != null && !call.checkMultiBookAccess(request.bookIds, bookAccessService)) return@post
             val params = request.toParams()
             val result = client.calculateCrossBookVaR(params)
             if (result != null) {
@@ -74,6 +77,7 @@ fun Route.crossBookVaRRoutes(client: RiskServiceClient) {
             }
         }) {
             val request = call.receive<StressedCrossBookVaRRequestDto>()
+            if (bookAccessService != null && !call.checkMultiBookAccess(request.bookIds, bookAccessService)) return@post
             val params = request.toParams()
             val result = client.calculateStressedCrossBookVaR(params)
             if (result != null) {
