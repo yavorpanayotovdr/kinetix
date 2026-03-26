@@ -1,6 +1,7 @@
 package com.kinetix.regulatory
 
 import com.kinetix.common.health.ReadinessChecker
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
 import com.kinetix.regulatory.historical.HistoricalReplayService
@@ -114,12 +115,13 @@ fun Application.module(
     stressScenarioRepository: StressScenarioRepository? = null,
     stressTestResultRepository: StressTestResultRepository? = null,
     historicalScenarioRepository: HistoricalScenarioRepository? = null,
+    auditPublisher: GovernanceAuditPublisher? = null,
 ) {
     module()
     routing {
-        regulatoryRoutes(repository, client)
+        regulatoryRoutes(repository, client, auditPublisher)
         if (backtestRepository != null) {
-            backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository))
+            backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository), auditPublisher)
         }
         if (stressScenarioRepository != null) {
             stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository, client), client)

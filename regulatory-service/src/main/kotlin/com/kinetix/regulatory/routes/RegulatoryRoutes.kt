@@ -1,5 +1,8 @@
 package com.kinetix.regulatory.routes
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.FrtbCalculationResponse
 import com.kinetix.regulatory.dto.FrtbHistoryResponse
@@ -22,6 +25,7 @@ private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.routes.Regu
 fun Route.regulatoryRoutes(
     repository: FrtbCalculationRepository,
     client: RiskOrchestratorClient,
+    auditPublisher: GovernanceAuditPublisher? = null,
 ) {
     route("/api/v1/regulatory/frtb/{bookId}") {
         route("/calculate") {
@@ -64,6 +68,15 @@ fun Route.regulatoryRoutes(
 
                 repository.save(record)
                 logger.info("FRTB calculation completed for book={}, totalCapitalCharge={}", bookId, record.totalCapitalCharge)
+                auditPublisher?.publish(
+                    GovernanceAuditEvent(
+                        eventType = AuditEventType.REPORT_GENERATED,
+                        userId = "SYSTEM",
+                        userRole = "SYSTEM",
+                        bookId = bookId,
+                        details = "FRTB",
+                    )
+                )
                 call.respond(HttpStatusCode.Created, record.toResponse())
             }
         }

@@ -1,5 +1,8 @@
 package com.kinetix.regulatory.routes
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.dto.BacktestComparisonResponse
 import com.kinetix.regulatory.dto.BacktestHistoryResponse
 import com.kinetix.regulatory.dto.BacktestRequest
@@ -27,6 +30,7 @@ private val backtestLogger = LoggerFactory.getLogger("com.kinetix.regulatory.rou
 fun Route.backtestRoutes(
     repository: BacktestResultRepository,
     comparisonService: BacktestComparisonService? = null,
+    auditPublisher: GovernanceAuditPublisher? = null,
 ) {
     route("/api/v1/regulatory/backtest/{bookId}") {
         post({
@@ -76,6 +80,15 @@ fun Route.backtestRoutes(
 
             repository.save(record)
             backtestLogger.info("Backtest completed for book={}, violations={}/{}, zone={}", bookId, record.violationCount, record.totalDays, record.trafficLightZone)
+            auditPublisher?.publish(
+                GovernanceAuditEvent(
+                    eventType = AuditEventType.REPORT_GENERATED,
+                    userId = "SYSTEM",
+                    userRole = "SYSTEM",
+                    bookId = bookId,
+                    details = "BACKTEST",
+                )
+            )
             call.respond(HttpStatusCode.Created, record.toResponse())
         }
 
