@@ -52,6 +52,7 @@ class PositionRisk:
     asset_class: AssetClass
     market_value: float
     currency: str
+    credit_subtype: str | None = None  # "CREDIT_IG" or "CREDIT_HY" for SA-CCR supervisory factor lookup
 
 
 @dataclass(frozen=True)

@@ -388,3 +388,57 @@ class TestEdgeCases:
         assert hasattr(result, "pfe_addon")   # SA-CCR regulatory add-on
         assert hasattr(result, "replacement_cost")
         assert hasattr(result, "ead")
+
+
+# ---------------------------------------------------------------------------
+# Credit subtype supervisory factor tests (BCBS 279 Table 2)
+# ---------------------------------------------------------------------------
+
+class TestCreditSubtypeSupervisoryFactor:
+    """Verify CREDIT_IG and CREDIT_HY positions use the correct supervisory
+    factors (0.0038 and 0.05) instead of the IR factor (0.005)."""
+
+    def test_credit_ig_uses_correct_supervisory_factor(self):
+        """CREDIT_IG SF = 0.0038, not IR SF = 0.005."""
+        from kinetix_risk.sa_ccr import classify_trade
+        pos = PositionRisk(
+            instrument_id="CDS-IG-001",
+            asset_class=AssetClass.FIXED_INCOME,
+            market_value=100_000.0,
+            currency="USD",
+            credit_subtype="CREDIT_IG",
+        )
+        classification = classify_trade(pos, None)
+        assert classification.supervisory_factor == 0.0038, (
+            f"CREDIT_IG should use SF=0.0038, got {classification.supervisory_factor}"
+        )
+        assert classification.asset_class == "CREDIT_IG"
+
+    def test_credit_hy_uses_correct_supervisory_factor(self):
+        """CREDIT_HY SF = 0.05, which is 10x the IR SF of 0.005."""
+        from kinetix_risk.sa_ccr import classify_trade
+        pos = PositionRisk(
+            instrument_id="CDS-HY-001",
+            asset_class=AssetClass.FIXED_INCOME,
+            market_value=100_000.0,
+            currency="USD",
+            credit_subtype="CREDIT_HY",
+        )
+        classification = classify_trade(pos, None)
+        assert classification.supervisory_factor == 0.05, (
+            f"CREDIT_HY should use SF=0.05, got {classification.supervisory_factor}"
+        )
+        assert classification.asset_class == "CREDIT_HY"
+
+    def test_ir_position_without_credit_subtype_uses_ir_factor(self):
+        """A plain FIXED_INCOME position without credit_subtype uses IR SF=0.005."""
+        from kinetix_risk.sa_ccr import classify_trade
+        pos = PositionRisk(
+            instrument_id="SWAP-001",
+            asset_class=AssetClass.FIXED_INCOME,
+            market_value=100_000.0,
+            currency="USD",
+        )
+        classification = classify_trade(pos, None)
+        assert classification.supervisory_factor == 0.005
+        assert classification.asset_class == "IR"

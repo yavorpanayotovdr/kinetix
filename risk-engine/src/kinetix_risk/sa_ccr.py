@@ -114,7 +114,14 @@ class SaCcrResult:
 
 
 def _asset_class_key(position: PositionRisk | OptionPosition) -> str:
-    """Map domain AssetClass to SA-CCR asset class string."""
+    """Map domain AssetClass to SA-CCR asset class string.
+
+    Credit positions use the credit_subtype field to distinguish
+    CREDIT_IG (SF=0.0038) from CREDIT_HY (SF=0.05) per BCBS 279 Table 2.
+    """
+    # Check credit subtype first — CREDIT_IG/CREDIT_HY have distinct supervisory factors
+    if hasattr(position, "credit_subtype") and position.credit_subtype in ("CREDIT_IG", "CREDIT_HY"):
+        return position.credit_subtype
     ac = position.asset_class
     if ac == AssetClass.FIXED_INCOME:
         return "IR"
@@ -124,7 +131,6 @@ def _asset_class_key(position: PositionRisk | OptionPosition) -> str:
         return "EQUITY"
     if ac == AssetClass.COMMODITY:
         return "COMMODITY"
-    # Derivatives with no more specific asset class default to EQUITY
     return "EQUITY"
 
 

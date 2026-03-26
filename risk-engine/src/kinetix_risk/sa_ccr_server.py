@@ -86,11 +86,15 @@ def _proto_position_to_domain(
             quote_currency=quote_currency,
         )
 
+    # Preserve credit subtype for SA-CCR supervisory factor lookup (BCBS 279 Table 2)
+    credit_subtype = proto.asset_class.upper() if proto.asset_class.upper() in ("CREDIT_IG", "CREDIT_HY") else None
+
     return PositionRisk(
         instrument_id=proto.instrument_id,
         asset_class=ac,
         market_value=proto.market_value,
         currency=proto.currency or "USD",
+        credit_subtype=credit_subtype,
     )
 
 
