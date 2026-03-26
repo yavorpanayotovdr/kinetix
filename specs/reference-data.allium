@@ -188,7 +188,7 @@ entity Counterparty {
     is_financial: Boolean
     pd_1y: Decimal?
     lgd: Decimal
-    cds_spreads_bps: Decimal?
+    cds_spread_bps: Decimal?
     created_at: Timestamp
     updated_at: Timestamp
 
@@ -297,7 +297,7 @@ rule IngestCreditSpread {
 -- Counterparty management
 
 rule UpsertCounterparty {
-    when: UpsertCounterpartyRequested(counterparty_id, legal_name, short_name, lei, rating_sp, rating_moodys, rating_fitch, sector, country, is_financial, pd_1y, lgd, cds_spreads_bps)
+    when: UpsertCounterpartyRequested(counterparty_id, legal_name, short_name, lei, rating_sp, rating_moodys, rating_fitch, sector, country, is_financial, pd_1y, lgd, cds_spread_bps)
     requires: counterparty_id != ""
     requires: legal_name != ""
     requires: lgd > 0 and lgd <= 1.0
@@ -315,7 +315,7 @@ rule UpsertCounterparty {
         is_financial: is_financial,
         pd_1y: pd_1y,
         lgd: lgd,
-        cds_spreads_bps: cds_spreads_bps,
+        cds_spread_bps: cds_spread_bps,
         created_at: now,
         updated_at: now
     )

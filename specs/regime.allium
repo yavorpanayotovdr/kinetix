@@ -81,6 +81,7 @@ entity RegimeState {
     early_warnings: List<EarlyWarning>
     consecutive_observations: Integer
     is_confirmed: Boolean
+    degraded_inputs: Boolean = false
 
     @guidance
         -- One active RegimeState at any time.

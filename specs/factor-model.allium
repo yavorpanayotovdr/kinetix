@@ -95,15 +95,14 @@ entity InstrumentFactorLoading {
         -- Re-estimated weekly. Stale after 5 business days.
 }
 
-entity FactorDecomposition {
+entity FactorDecompositionSnapshot {
     book_id: String
-    decomposition_date: String
-    job_id: String?
+    calculated_at: Timestamp
     total_var: Decimal
     systematic_var: Decimal
     idiosyncratic_var: Decimal
     r_squared: Decimal
-    factor_contributions: List<FactorContribution>
+    factors: List<FactorContribution>
 
     -- Derived
     systematic_pct: systematic_var / total_var
@@ -223,7 +222,7 @@ rule DecomposeFactorRisk {
         -- factor_covariance_matrix: estimated from factor_returns using
         --   Ledoit-Wolf shrinkage (reuses existing correlation.py).
         --
-        -- Persists FactorDecomposition.
+        -- Persists FactorDecompositionSnapshot.
 
 -- Factor P&L attribution
 
@@ -259,7 +258,7 @@ rule ComputeFactorPnlAttribution {
 
 rule WarnOnFactorConcentration {
     when: FactorDecompositionCompleted(decomposition)
-    for contribution in decomposition.factor_contributions:
+    for contribution in decomposition.factors:
         requires: contribution.pct_of_total_var > config.concentration_warning_pct
 
         @guidance
@@ -289,7 +288,7 @@ rule ScheduledFactorDecomposition {
 ------------------------------------------------------------
 
 invariant DecompositionSumsToTotal {
-    for d in FactorDecompositions:
+    for d in FactorDecompositionSnapshots:
         d.systematic_var + d.idiosyncratic_var = d.total_var
 
     @guidance
@@ -304,7 +303,7 @@ invariant FactorPnlResidualIsReal {
 }
 
 invariant RSquaredRange {
-    for d in FactorDecompositions:
+    for d in FactorDecompositionSnapshots:
         d.r_squared >= 0.0 and d.r_squared <= 1.0
 }
 

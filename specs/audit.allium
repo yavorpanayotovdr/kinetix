@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Hash-chained, immutable audit trail for all significant system events:
 -- trade lifecycle, risk calculations, model governance, limit changes,
 -- scenario approvals, regulatory submissions, and access denials.

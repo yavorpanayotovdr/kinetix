@@ -39,6 +39,7 @@ value HedgeSuggestion {
     greek_impact: GreekImpact
     liquidity_tier: liquidity/LiquidityTier
     data_quality: String
+    warnings: List<String> = []
 
     @guidance
         -- estimated_cost: total cost including premium + crossing cost.
