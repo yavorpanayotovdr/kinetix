@@ -14,37 +14,25 @@
 -- yield_curve_tenors and forward_curve_points rows become unreachable once
 -- their parent chunk is dropped by TimescaleDB.
 
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- Only apply TimescaleDB retention when the extension is available.
+-- Plain PostgreSQL environments (e.g. integration test containers) skip gracefully.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
+        CREATE EXTENSION IF NOT EXISTS timescaledb;
 
--- Step 1: Drop FK constraints that block hypertable conversion.
-ALTER TABLE yield_curve_tenors
-    DROP CONSTRAINT IF EXISTS fk_yield_curve_tenors_curve;
+        ALTER TABLE yield_curve_tenors
+            DROP CONSTRAINT IF EXISTS fk_yield_curve_tenors_curve;
 
-ALTER TABLE forward_curve_points
-    DROP CONSTRAINT IF EXISTS fk_forward_curve_points_curve;
+        ALTER TABLE forward_curve_points
+            DROP CONSTRAINT IF EXISTS fk_forward_curve_points_curve;
 
--- Step 2a: Convert yield_curves to a hypertable.
-SELECT create_hypertable(
-    'yield_curves',
-    'as_of_date',
-    migrate_data => true
-);
+        PERFORM create_hypertable('yield_curves', 'as_of_date', migrate_data => true);
+        PERFORM create_hypertable('forward_curves', 'as_of_date', migrate_data => true);
+        PERFORM create_hypertable('risk_free_rates', 'as_of_date', migrate_data => true);
 
--- Step 2b: Convert forward_curves to a hypertable.
-SELECT create_hypertable(
-    'forward_curves',
-    'as_of_date',
-    migrate_data => true
-);
-
--- Step 2c: Convert risk_free_rates to a hypertable.
-SELECT create_hypertable(
-    'risk_free_rates',
-    'as_of_date',
-    migrate_data => true
-);
-
--- Step 3: Enforce 7-year retention (2555 days) on all three hypertables.
-SELECT add_retention_policy('yield_curves', INTERVAL '2555 days');
-SELECT add_retention_policy('forward_curves', INTERVAL '2555 days');
-SELECT add_retention_policy('risk_free_rates', INTERVAL '2555 days');
+        PERFORM add_retention_policy('yield_curves', INTERVAL '2555 days');
+        PERFORM add_retention_policy('forward_curves', INTERVAL '2555 days');
+        PERFORM add_retention_policy('risk_free_rates', INTERVAL '2555 days');
+    END IF;
+END $$;

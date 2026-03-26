@@ -15,18 +15,22 @@
 -- chunk is dropped. A companion cleanup function is provided for use by an
 -- external scheduler if point-level orphan cleanup is required.
 
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- Only apply TimescaleDB retention when the extension is available.
+-- Plain PostgreSQL environments (e.g. integration test containers) skip gracefully.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
+        CREATE EXTENSION IF NOT EXISTS timescaledb;
 
--- Step 1: Remove the FK constraint so the parent table can become a hypertable.
-ALTER TABLE volatility_surface_points
-    DROP CONSTRAINT IF EXISTS volatility_surface_points_instrument_id_as_of_date_fkey;
+        ALTER TABLE volatility_surface_points
+            DROP CONSTRAINT IF EXISTS volatility_surface_points_instrument_id_as_of_date_fkey;
 
--- Step 2: Convert volatility_surfaces to a hypertable.
-SELECT create_hypertable(
-    'volatility_surfaces',
-    'as_of_date',
-    migrate_data => true
-);
+        PERFORM create_hypertable(
+            'volatility_surfaces',
+            'as_of_date',
+            migrate_data => true
+        );
 
--- Step 3: Enforce 2-year retention (730 days).
-SELECT add_retention_policy('volatility_surfaces', INTERVAL '730 days');
+        PERFORM add_retention_policy('volatility_surfaces', INTERVAL '730 days');
+    END IF;
+END $$;
