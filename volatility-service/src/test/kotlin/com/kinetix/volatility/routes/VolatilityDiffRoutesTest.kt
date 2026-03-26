@@ -134,4 +134,74 @@ class VolatilityDiffRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.BadRequest
         }
     }
+
+    // Union-grid interpolation: when the two surfaces have different strike grids, the diff
+    // must cover the union of both grids. Missing points are filled via nearest-neighbour
+    // interpolation before differencing.
+    test("diff uses union of both strike grids and fills missing points via nearest-neighbour") {
+        // Base has strikes 100, 110, 120 at maturity 30
+        val baseSurfaceUnionGrid = VolSurface(
+            instrumentId = InstrumentId("AAPL"),
+            asOf = BASE_DATE,
+            points = listOf(
+                VolPoint(BigDecimal("100"), 30, BigDecimal("0.2000")),
+                VolPoint(BigDecimal("110"), 30, BigDecimal("0.2200")),
+                VolPoint(BigDecimal("120"), 30, BigDecimal("0.2500")),
+            ),
+            source = VolatilitySource.BLOOMBERG,
+        )
+        // Compare has only strikes 100 and 115 at maturity 30 — missing 110 and 120
+        val compareSurfaceUnionGrid = VolSurface(
+            instrumentId = InstrumentId("AAPL"),
+            asOf = COMPARE_DATE,
+            points = listOf(
+                VolPoint(BigDecimal("100"), 30, BigDecimal("0.1900")),
+                VolPoint(BigDecimal("115"), 30, BigDecimal("0.2100")),
+            ),
+            source = VolatilitySource.BLOOMBERG,
+        )
+
+        coEvery { volSurfaceRepo.findLatest(InstrumentId("AAPL")) } returns baseSurfaceUnionGrid
+        coEvery {
+            volSurfaceRepo.findAtOrBefore(InstrumentId("AAPL"), COMPARE_DATE)
+        } returns compareSurfaceUnionGrid
+
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.get(
+                "/api/v1/volatility/AAPL/surface/diff?compareDate=${COMPARE_DATE}"
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val diffs = body["diffs"]!!.jsonArray
+
+            // Union of {100,110,120} and {100,115} is {100,110,115,120}
+            diffs.size shouldBe 4
+
+            val byStrike = diffs.associate {
+                it.jsonObject["strike"]!!.jsonPrimitive.double to it.jsonObject
+            }
+
+            // Strike 100 — exact match in both: 0.2000 - 0.1900 = 0.0100
+            val diff100 = byStrike[100.0]!!["diff"]!!.jsonPrimitive.double
+            (diff100 > 0.009 && diff100 < 0.011) shouldBe true
+
+            // Strike 110 — missing in compare; nearest neighbour is 115 (dist=5 < dist to 100=10)
+            // compare vol for 110 = 0.2100 (from 115), diff = 0.2200 - 0.2100 = 0.0100
+            val diff110 = byStrike[110.0]!!["diff"]!!.jsonPrimitive.double
+            (diff110 > 0.009 && diff110 < 0.011) shouldBe true
+
+            // Strike 115 — present in compare (0.2100); missing in base; nearest neighbour in base
+            // is 110 (dist=5 < dist to 120=5 — tie broken by first found, 110 is first)
+            // Presence confirms the union includes 115
+            byStrike.containsKey(115.0) shouldBe true
+
+            // Strike 120 — missing in compare; nearest is 115 (dist=5 < dist to 100=20)
+            // diff = 0.2500 - 0.2100 = 0.0400
+            val diff120 = byStrike[120.0]!!["diff"]!!.jsonPrimitive.double
+            (diff120 > 0.039 && diff120 < 0.041) shouldBe true
+        }
+    }
 })
