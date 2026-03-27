@@ -447,9 +447,9 @@ fun Application.devModule() {
             requirePermission(Permission.READ_AUDIT) {
                 auditProxyRoutes(httpClient, auditUrl)
             }
-            // System health is admin-only as it reveals internal service topology
-            requirePermission(Permission.READ_PORTFOLIOS) {
-                get("/api/v1/system/health") {
+            // System health is public so infrastructure probes (CI, k8s) can reach it
+            // without authentication. It reveals service names and ready status only.
+            get("/api/v1/system/health") {
                     val serviceUrls = mapOf(
                         "position-service" to positionUrl,
                         "price-service" to priceUrl,
@@ -488,7 +488,6 @@ fun Application.devModule() {
                     }
                     call.respond(response)
                 }
-            }
         }
     }
 
