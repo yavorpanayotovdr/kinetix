@@ -228,7 +228,7 @@ fun Application.moduleWithRoutes() {
     val priceServiceBaseUrl = environment.config
         .propertyOrNull("priceService.baseUrl")?.getString() ?: "http://localhost:8082"
     val priceHttpClient = HttpClient(CIO) {
-        install(ClientContentNegotiation) { json() }
+        install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     }
     val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
     val ratesServiceBaseUrl = environment.config

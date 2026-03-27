@@ -154,7 +154,7 @@ fun Application.moduleWithRoutes() {
 
     val referenceDataBaseUrl = environment.config.config("referenceData").property("baseUrl").getString()
     val referenceDataHttpClient = HttpClient(CIO) {
-        install(ClientContentNegotiation) { json() }
+        install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     }
     val referenceDataClient = HttpReferenceDataServiceClient(referenceDataHttpClient, referenceDataBaseUrl)
 
