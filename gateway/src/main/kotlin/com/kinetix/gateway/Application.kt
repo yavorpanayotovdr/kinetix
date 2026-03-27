@@ -325,6 +325,7 @@ fun Application.moduleWithDataQuality(
 }
 
 fun Application.devModule() {
+    val authEnabled = System.getenv("GATEWAY_AUTH_ENABLED")?.toBoolean() ?: true
     val servicesConfig = environment.config.config("services")
     val positionUrl = servicesConfig.property("position.url").getString()
     val priceUrl = servicesConfig.property("price.url").getString()
@@ -423,8 +424,8 @@ fun Application.devModule() {
             call.respond(response)
         }
 
-        // All HTTP API routes require a valid JWT
-        authenticate("auth-jwt") {
+        // All HTTP API routes require a valid JWT (unless auth is disabled for smoke tests)
+        val apiRoutes: Route.() -> Unit = {
             requirePermission(Permission.READ_PORTFOLIOS) {
                 requireBookAccess(bookAccessService) {
                     positionRoutes(positionClient)
@@ -488,6 +489,12 @@ fun Application.devModule() {
             requirePermission(Permission.READ_AUDIT) {
                 auditProxyRoutes(httpClient, auditUrl)
             }
+        }
+        if (authEnabled) {
+            authenticate("auth-jwt") { apiRoutes() }
+        } else {
+            log.warn("GATEWAY_AUTH_ENABLED=false — JWT authentication is DISABLED (smoke/dev mode)")
+            apiRoutes()
         }
     }
 
