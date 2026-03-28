@@ -195,10 +195,10 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             bundle = consume_market_data(market_data_dicts)
 
             # Group positions by book_id
-            book_ids = list(request.book_ids)
+            book_ids = [bid.value for bid in request.book_ids]
             books: dict[str, list] = {bid: [] for bid in book_ids}
             for pos, proto_pos in zip(positions, request.positions):
-                bid = proto_pos.book_id if proto_pos.book_id else ""
+                bid = proto_pos.book_id.value if proto_pos.book_id else ""
                 if bid in books:
                     books[bid].append(pos)
                 else:

@@ -113,6 +113,75 @@ class TestCalculateVaRUnary:
         assert resp_99.var_value > resp_95.var_value
 
 
+class TestCalculateCrossBookVaR:
+    def test_cross_book_var_returns_diversification_benefit(self, stub):
+        positions = [
+            types_pb2.Position(
+                book_id=types_pb2.BookId(value="desk-a"),
+                instrument_id=types_pb2.InstrumentId(value="AAPL"),
+                asset_class=types_pb2.EQUITY,
+                quantity=100.0,
+                market_value=types_pb2.Money(amount="150000.00", currency="USD"),
+            ),
+            types_pb2.Position(
+                book_id=types_pb2.BookId(value="desk-b"),
+                instrument_id=types_pb2.InstrumentId(value="MSFT"),
+                asset_class=types_pb2.EQUITY,
+                quantity=200.0,
+                market_value=types_pb2.Money(amount="300000.00", currency="USD"),
+            ),
+        ]
+        request = risk_calculation_pb2.CrossBookVaRRequest(
+            book_ids=[types_pb2.BookId(value="desk-a"), types_pb2.BookId(value="desk-b")],
+            calculation_type=risk_calculation_pb2.PARAMETRIC,
+            confidence_level=risk_calculation_pb2.CL_95,
+            time_horizon_days=1,
+            num_simulations=1000,
+            positions=positions,
+            portfolio_group_id="firm-wide",
+        )
+        response = stub.CalculateCrossBookVaR(request)
+
+        assert response.var_value > 0
+        assert response.expected_shortfall > response.var_value
+        assert response.diversification_benefit >= 0
+        assert response.total_standalone_var >= response.var_value
+        assert len(response.book_contributions) == 2
+        book_ids = {c.book_id.value for c in response.book_contributions}
+        assert book_ids == {"desk-a", "desk-b"}
+
+    def test_cross_book_var_each_book_has_standalone_var(self, stub):
+        positions = [
+            types_pb2.Position(
+                book_id=types_pb2.BookId(value="book-1"),
+                instrument_id=types_pb2.InstrumentId(value="GOOG"),
+                asset_class=types_pb2.EQUITY,
+                quantity=50.0,
+                market_value=types_pb2.Money(amount="100000.00", currency="USD"),
+            ),
+            types_pb2.Position(
+                book_id=types_pb2.BookId(value="book-2"),
+                instrument_id=types_pb2.InstrumentId(value="AMZN"),
+                asset_class=types_pb2.EQUITY,
+                quantity=75.0,
+                market_value=types_pb2.Money(amount="200000.00", currency="USD"),
+            ),
+        ]
+        request = risk_calculation_pb2.CrossBookVaRRequest(
+            book_ids=[types_pb2.BookId(value="book-1"), types_pb2.BookId(value="book-2")],
+            calculation_type=risk_calculation_pb2.PARAMETRIC,
+            confidence_level=risk_calculation_pb2.CL_95,
+            time_horizon_days=1,
+            num_simulations=1000,
+            positions=positions,
+        )
+        response = stub.CalculateCrossBookVaR(request)
+
+        for contribution in response.book_contributions:
+            assert contribution.standalone_var > 0
+            assert contribution.var_contribution > 0
+
+
 class TestCalculateVaRStream:
     def test_streaming_returns_responses_for_each_request(self, stub):
         requests = [

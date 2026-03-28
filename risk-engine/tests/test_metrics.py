@@ -1,8 +1,17 @@
 from prometheus_client import REGISTRY
 
 from kinetix_risk.metrics import (
+    cross_book_diversification_benefit,
+    greeks_delta,
+    greeks_gamma,
+    greeks_rho,
+    greeks_theta,
+    greeks_vega,
+    pnl_attribution_total_pnl,
+    pnl_attribution_unexplained_pnl,
     risk_var_calculation_duration_seconds,
     risk_var_calculation_total,
+    risk_var_expected_shortfall,
     risk_var_value,
 )
 from kinetix_risk.models import (
@@ -60,3 +69,50 @@ class TestMetrics:
 
         risk_var_value.labels(book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_95").set(result.var_value)
         assert risk_var_value.labels(book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_95")._value.get() == result.var_value
+
+    def test_expected_shortfall_gauge_accepts_three_labels(self):
+        risk_var_expected_shortfall.labels(
+            book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_99",
+        ).set(42000.0)
+        val = risk_var_expected_shortfall.labels(
+            book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_99",
+        )._value.get()
+        assert val == 42000.0
+
+
+class TestGreeksGauges:
+    def test_delta_gauge_accepts_book_and_asset_class(self):
+        greeks_delta.labels(book_id="book-1", asset_class="EQUITY").set(0.75)
+        assert greeks_delta.labels(book_id="book-1", asset_class="EQUITY")._value.get() == 0.75
+
+    def test_gamma_gauge_accepts_book_and_asset_class(self):
+        greeks_gamma.labels(book_id="book-1", asset_class="FX").set(0.02)
+        assert greeks_gamma.labels(book_id="book-1", asset_class="FX")._value.get() == 0.02
+
+    def test_vega_gauge_accepts_book_and_asset_class(self):
+        greeks_vega.labels(book_id="book-1", asset_class="EQUITY").set(5000.0)
+        assert greeks_vega.labels(book_id="book-1", asset_class="EQUITY")._value.get() == 5000.0
+
+    def test_theta_gauge_accepts_book_id(self):
+        greeks_theta.labels(book_id="book-1").set(-1200.0)
+        assert greeks_theta.labels(book_id="book-1")._value.get() == -1200.0
+
+    def test_rho_gauge_accepts_book_id(self):
+        greeks_rho.labels(book_id="book-1").set(3500.0)
+        assert greeks_rho.labels(book_id="book-1")._value.get() == 3500.0
+
+
+class TestPnlGauges:
+    def test_total_pnl_gauge_accepts_book_id(self):
+        pnl_attribution_total_pnl.labels(book_id="desk-a").set(150000.0)
+        assert pnl_attribution_total_pnl.labels(book_id="desk-a")._value.get() == 150000.0
+
+    def test_unexplained_pnl_gauge_accepts_book_id(self):
+        pnl_attribution_unexplained_pnl.labels(book_id="desk-a").set(3200.0)
+        assert pnl_attribution_unexplained_pnl.labels(book_id="desk-a")._value.get() == 3200.0
+
+
+class TestCrossBookGauges:
+    def test_diversification_benefit_gauge_accepts_portfolio_group_id(self):
+        cross_book_diversification_benefit.labels(portfolio_group_id="firm-wide").set(25000.0)
+        assert cross_book_diversification_benefit.labels(portfolio_group_id="firm-wide")._value.get() == 25000.0
