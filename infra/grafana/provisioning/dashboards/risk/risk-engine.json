@@ -17,6 +17,45 @@
     { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
   ],
+  "templating": {
+    "list": [
+      {
+        "name": "book_id",
+        "type": "query",
+        "label": "Book",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, book_id)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "multi": true,
+        "sort": 1
+      },
+      {
+        "name": "calculation_type",
+        "type": "query",
+        "label": "Method",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, calculation_type)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      },
+      {
+        "name": "confidence_level",
+        "type": "query",
+        "label": "Confidence",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, confidence_level)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
     {
       "title": "VaR Calculation Rate",
@@ -65,7 +104,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "targets": [
         {
-          "expr": "risk_var_value",
+          "expr": "risk_var_value{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
           "legendFormat": "{{book_id}}"
         }
       ],
@@ -83,7 +122,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "risk_var_expected_shortfall",
+          "expr": "risk_var_expected_shortfall{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
           "legendFormat": "{{book_id}}"
         }
       ],
@@ -101,7 +140,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
       "targets": [
         {
-          "expr": "risk_var_component_contribution",
+          "expr": "risk_var_component_contribution{book_id=~\"$book_id\"}",
           "legendFormat": "{{book_id}} / {{asset_class}}"
         }
       ],

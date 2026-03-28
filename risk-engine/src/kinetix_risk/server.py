@@ -25,7 +25,16 @@ from kinetix_risk.version import get_model_version
 from kinetix_risk.key_rate_duration import STANDARD_TENOR_BUCKETS, calculate_krd
 from kinetix_risk.market_data_consumer import consume_market_data
 from kinetix_risk.market_data_models import YieldCurveData
-from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expected_shortfall, risk_var_value
+from kinetix_risk.metrics import (
+    greeks_delta,
+    greeks_gamma,
+    greeks_rho,
+    greeks_theta,
+    greeks_vega,
+    risk_var_component_contribution,
+    risk_var_expected_shortfall,
+    risk_var_value,
+)
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.cross_book_var import calculate_cross_book_var
@@ -64,8 +73,10 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             )
 
             book_id = request.book_id.value
-            risk_var_value.labels(book_id=book_id).set(result.var_value)
-            risk_var_expected_shortfall.labels(book_id=book_id).set(result.expected_shortfall)
+            ct = calc_type.value if hasattr(calc_type, "value") else str(calc_type)
+            cl = str(confidence)
+            risk_var_value.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.var_value)
+            risk_var_expected_shortfall.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.expected_shortfall)
             for component in result.component_breakdown:
                 risk_var_component_contribution.labels(
                     book_id=book_id,
@@ -112,15 +123,29 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 market_data_bundle=bundle,
             )
 
+            book_id = request.book_id.value
+            ct = calc_type.value if hasattr(calc_type, "value") else str(calc_type)
+            cl = str(confidence)
+
             if result.var_result is not None:
-                book_id = request.book_id.value
-                risk_var_value.labels(book_id=book_id).set(result.var_result.var_value)
-                risk_var_expected_shortfall.labels(book_id=book_id).set(result.var_result.expected_shortfall)
+                risk_var_value.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.var_result.var_value)
+                risk_var_expected_shortfall.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.var_result.expected_shortfall)
                 for component in result.var_result.component_breakdown:
                     risk_var_component_contribution.labels(
                         book_id=book_id,
                         asset_class=component.asset_class.value,
                     ).set(component.var_contribution)
+
+            if result.greeks_result is not None:
+                gr = result.greeks_result
+                for asset_class, val in gr.delta.items():
+                    greeks_delta.labels(book_id=book_id, asset_class=asset_class.value).set(val)
+                for asset_class, val in gr.gamma.items():
+                    greeks_gamma.labels(book_id=book_id, asset_class=asset_class.value).set(val)
+                for asset_class, val in gr.vega.items():
+                    greeks_vega.labels(book_id=book_id, asset_class=asset_class.value).set(val)
+                greeks_theta.labels(book_id=book_id).set(gr.theta)
+                greeks_rho.labels(book_id=book_id).set(gr.rho)
 
             return valuation_result_to_proto_response(
                 result,

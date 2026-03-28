@@ -1,0 +1,161 @@
+{
+  "uid": "kinetix-greeks",
+  "title": "Greeks",
+  "tags": ["kinetix", "risk", "greeks"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "links": [
+    { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
+    { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
+    { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
+    { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "book_id",
+        "type": "query",
+        "label": "Book",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(greeks_delta, book_id)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "multi": true,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Net Delta by Asset Class",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "greeks_delta{book_id=~\"$book_id\"}",
+          "legendFormat": "{{book_id}} / {{asset_class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Net Gamma by Asset Class",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "greeks_gamma{book_id=~\"$book_id\"}",
+          "legendFormat": "{{book_id}} / {{asset_class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Net Vega by Asset Class",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "greeks_vega{book_id=~\"$book_id\"}",
+          "legendFormat": "{{book_id}} / {{asset_class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Net Theta",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "greeks_theta{book_id=~\"$book_id\"}",
+          "legendFormat": "{{book_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Net Rho",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "greeks_rho{book_id=~\"$book_id\"}",
+          "legendFormat": "{{book_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Greeks Calculation Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(greeks_calculation_total[5m])",
+          "legendFormat": "Calcs/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Greeks Calculation Duration (P95)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 16 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(greeks_calculation_duration_seconds_bucket[5m]))",
+          "legendFormat": "P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

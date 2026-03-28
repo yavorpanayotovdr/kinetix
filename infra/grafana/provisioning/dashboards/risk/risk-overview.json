@@ -22,6 +22,45 @@
     { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
   ],
+  "templating": {
+    "list": [
+      {
+        "name": "book_id",
+        "type": "query",
+        "label": "Book",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, book_id)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "multi": true,
+        "sort": 1
+      },
+      {
+        "name": "calculation_type",
+        "type": "query",
+        "label": "Method",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, calculation_type)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      },
+      {
+        "name": "confidence_level",
+        "type": "query",
+        "label": "Confidence",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, confidence_level)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
@@ -35,8 +74,8 @@
       },
       "targets": [
         {
-          "expr": "risk_var_value",
-          "legendFormat": "{{book_id}}",
+          "expr": "risk_var_value{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
+          "legendFormat": "{{book_id}} ({{calculation_type}} @ {{confidence_level}})",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -82,7 +121,7 @@
       },
       "targets": [
         {
-          "expr": "risk_var_value",
+          "expr": "risk_var_value{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
           "legendFormat": "{{book_id}}",
           "refId": "A",
           "datasource": {
@@ -103,7 +142,7 @@
     },
     {
       "id": 3,
-      "title": "Expected Shortfall",
+      "title": "Expected Shortfall (CVaR)",
       "type": "stat",
       "gridPos": {
         "h": 8,
@@ -113,7 +152,7 @@
       },
       "targets": [
         {
-          "expr": "risk_var_expected_shortfall",
+          "expr": "risk_var_expected_shortfall{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
           "legendFormat": "{{book_id}}",
           "refId": "A",
           "datasource": {
@@ -144,7 +183,7 @@
       },
       "targets": [
         {
-          "expr": "risk_var_component_contribution",
+          "expr": "risk_var_component_contribution{book_id=~\"$book_id\"}",
           "legendFormat": "{{asset_class}}",
           "refId": "A",
           "datasource": {
@@ -175,7 +214,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(var_calculation_count_total[5m]))",
+          "expr": "sum(rate(risk_var_calculation_total[5m]))",
           "legendFormat": "Calculations/s",
           "refId": "A",
           "datasource": {

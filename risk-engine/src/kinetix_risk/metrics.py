@@ -14,13 +14,13 @@ risk_var_calculation_total = Counter(
 risk_var_value = Gauge(
     "risk_var_value",
     "Current VaR value for a portfolio",
-    ["book_id"],
+    ["book_id", "calculation_type", "confidence_level"],
 )
 
 risk_var_expected_shortfall = Gauge(
     "risk_var_expected_shortfall",
     "Current Expected Shortfall (CVaR) value for a portfolio",
-    ["book_id"],
+    ["book_id", "calculation_type", "confidence_level"],
 )
 
 risk_var_component_contribution = Gauge(
@@ -57,6 +57,36 @@ stress_test_total = Counter(
     "stress_test_total",
     "Total number of stress tests run",
     ["scenario_name"],
+)
+
+greeks_delta = Gauge(
+    "greeks_delta",
+    "Current net delta by book and asset class",
+    ["book_id", "asset_class"],
+)
+
+greeks_gamma = Gauge(
+    "greeks_gamma",
+    "Current net gamma by book and asset class",
+    ["book_id", "asset_class"],
+)
+
+greeks_vega = Gauge(
+    "greeks_vega",
+    "Current net vega by book and asset class",
+    ["book_id", "asset_class"],
+)
+
+greeks_theta = Gauge(
+    "greeks_theta",
+    "Current net theta by book",
+    ["book_id"],
+)
+
+greeks_rho = Gauge(
+    "greeks_rho",
+    "Current net rho by book",
+    ["book_id"],
 )
 
 greeks_calculation_duration_seconds = Histogram(

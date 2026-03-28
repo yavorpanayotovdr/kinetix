@@ -58,5 +58,5 @@ class TestMetrics:
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
 
-        risk_var_value.labels(book_id="test-port").set(result.var_value)
-        assert risk_var_value.labels(book_id="test-port")._value.get() == result.var_value
+        risk_var_value.labels(book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_95").set(result.var_value)
+        assert risk_var_value.labels(book_id="test-port", calculation_type="PARAMETRIC", confidence_level="CL_95")._value.get() == result.var_value

@@ -1,0 +1,184 @@
+{
+  "uid": "kinetix-limit-utilisation",
+  "title": "Limit Utilisation",
+  "tags": ["kinetix", "risk", "limits"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1d",
+    "to": "now"
+  },
+  "links": [
+    { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
+    { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
+    { "title": "Greeks", "type": "link", "url": "/d/kinetix-greeks", "icon": "dashboard" },
+    { "title": "P&L", "type": "link", "url": "/d/kinetix-pnl", "icon": "dashboard" },
+    { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "book_id",
+        "type": "query",
+        "label": "Book",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, book_id)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "multi": true,
+        "sort": 1
+      },
+      {
+        "name": "calculation_type",
+        "type": "query",
+        "label": "Method",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, calculation_type)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      },
+      {
+        "name": "confidence_level",
+        "type": "query",
+        "label": "Confidence",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(risk_var_value, confidence_level)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "VaR vs Limit",
+      "description": "Current VaR value against VaR limit by book. Requires risk_var_limit gauge to be emitted by the limit management service.",
+      "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "risk_var_value{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
+          "legendFormat": "{{book_id}} VaR"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500000 },
+              { "color": "red", "value": 1000000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 2,
+      "title": "VaR Utilisation Trend",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "risk_var_value{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
+          "legendFormat": "{{book_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Pre-Trade Limit Check Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(ktor_http_server_requests_seconds_count{job=\"position-service\", uri=~\".*limit.*\"}[5m])",
+          "legendFormat": "Limit checks/s"
+        },
+        {
+          "expr": "rate(ktor_http_server_requests_seconds_count{job=\"position-service\", uri=~\".*limit.*\", status=~\"4..\"}[5m])",
+          "legendFormat": "Breaches/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Trade Rejection Rate (Limit Breaches)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(ktor_http_server_requests_seconds_count{job=\"position-service\", uri=~\".*trades.*\", method=\"POST\", status=\"422\"}[5m])",
+          "legendFormat": "Rejections/s (422)"
+        },
+        {
+          "expr": "rate(ktor_http_server_requests_seconds_count{job=\"position-service\", uri=~\".*trades.*\", method=\"POST\", status=\"201\"}[5m])",
+          "legendFormat": "Accepted/s (201)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Expected Shortfall by Book",
+      "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "risk_var_expected_shortfall{book_id=~\"$book_id\", calculation_type=\"$calculation_type\", confidence_level=\"$confidence_level\"}",
+          "legendFormat": "{{book_id}} ES"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 750000 },
+              { "color": "red", "value": 1500000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

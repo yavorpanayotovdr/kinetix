@@ -24,6 +24,103 @@
   ],
   "panels": [
     {
+      "id": 7,
+      "title": "Error Rate (current)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(ktor_http_server_requests_seconds_count{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx/s",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "links": [
+        {
+          "title": "View Logs",
+          "type": "link",
+          "url": "/d/kinetix-service-logs?from=${__from}&to=${__to}",
+          "targetBlank": false
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "P95 Latency (current)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "max(histogram_quantile(0.95, sum by (job, le) (rate(ktor_http_server_requests_seconds_bucket[5m]))))",
+          "legendFormat": "Max P95",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Max Kafka Consumer Lag",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "max(kafka_consumergroup_lag)",
+          "legendFormat": "Max lag",
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1000 },
+              { "color": "red", "value": 10000 }
+            ]
+          }
+        }
+      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
       "id": 1,
       "title": "Request Rate",
       "type": "timeseries",
@@ -31,7 +128,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -62,7 +159,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -93,7 +190,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -124,7 +221,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 12
       },
       "targets": [
         {
@@ -155,7 +252,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 12
       },
       "targets": [
         {
@@ -186,7 +283,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 20
       },
       "targets": [
         {
