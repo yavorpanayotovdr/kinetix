@@ -12,8 +12,8 @@
   },
   "links": [
     { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
-    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
-    { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview?var-book_id=${book_id}", "icon": "dashboard" },
+    { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine?var-book_id=${book_id}", "icon": "dashboard" },
     { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
     { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }

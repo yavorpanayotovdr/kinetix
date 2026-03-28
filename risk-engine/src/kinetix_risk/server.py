@@ -25,7 +25,9 @@ from kinetix_risk.version import get_model_version
 from kinetix_risk.key_rate_duration import STANDARD_TENOR_BUCKETS, calculate_krd
 from kinetix_risk.market_data_consumer import consume_market_data
 from kinetix_risk.market_data_models import YieldCurveData
+from kinetix_risk.greeks import calculate_greeks
 from kinetix_risk.metrics import (
+    cross_book_diversification_benefit,
     greeks_delta,
     greeks_gamma,
     greeks_rho,
@@ -82,6 +84,28 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                     book_id=book_id,
                     asset_class=component.asset_class.value,
                 ).set(component.var_contribution)
+
+            # Calculate and publish Greeks alongside VaR so the Greeks
+            # dashboard stays current regardless of which RPC path is used.
+            try:
+                gr = calculate_greeks(
+                    positions=positions,
+                    calculation_type=calc_type,
+                    confidence_level=confidence,
+                    time_horizon_days=request.time_horizon_days or 1,
+                    book_id=book_id,
+                    base_var_value=result.var_value,
+                )
+                for ac, val in gr.delta.items():
+                    greeks_delta.labels(book_id=book_id, asset_class=ac.value).set(val)
+                for ac, val in gr.gamma.items():
+                    greeks_gamma.labels(book_id=book_id, asset_class=ac.value).set(val)
+                for ac, val in gr.vega.items():
+                    greeks_vega.labels(book_id=book_id, asset_class=ac.value).set(val)
+                greeks_theta.labels(book_id=book_id).set(gr.theta)
+                greeks_rho.labels(book_id=book_id).set(gr.rho)
+            except Exception:
+                logger.debug("Greeks calculation failed in CalculateVaR for book %s", book_id, exc_info=True)
 
             return var_result_to_proto_response(
                 result,
@@ -192,6 +216,16 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 correlation_matrix=bundle.correlation_matrix,
                 seed=seed,
             )
+
+            ct = calc_type.value if hasattr(calc_type, "value") else str(calc_type)
+            cl = confidence.name
+            for contrib in result.book_contributions:
+                risk_var_value.labels(
+                    book_id=contrib.book_id, calculation_type=ct, confidence_level=cl,
+                ).set(contrib.standalone_var)
+            cross_book_diversification_benefit.labels(
+                portfolio_group_id=request.portfolio_group_id or "default",
+            ).set(result.diversification_benefit)
 
             return cross_book_var_result_to_proto_response(
                 result,

@@ -30,6 +30,7 @@ from kinetix_risk.factor_model import (
     estimate_loading,
     estimate_ols_loading,
 )
+from kinetix_risk.metrics import pnl_attribution_total_pnl, pnl_attribution_unexplained_pnl
 from kinetix_risk.models import (
     AssetClass,
     BondPosition,
@@ -243,6 +244,8 @@ class FactorDecompositionServicer:
                 pnl_attribution_by_factor = {
                     fc.factor: fc.pnl_attribution for fc in pnl_result.factor_pnl
                 }
+                pnl_attribution_total_pnl.labels(book_id=book_id).set(total_pnl)
+                pnl_attribution_unexplained_pnl.labels(book_id=book_id).set(idiosyncratic_pnl)
 
         # Build response
         proto_contributions = [

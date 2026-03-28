@@ -13,8 +13,8 @@
   "links": [
     { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
     { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
-    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
-    { "title": "Greeks", "type": "link", "url": "/d/kinetix-greeks", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview?var-book_id=${book_id}", "icon": "dashboard" },
+    { "title": "Greeks", "type": "link", "url": "/d/kinetix-greeks?var-book_id=${book_id}", "icon": "dashboard" },
     { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
   ],

@@ -109,6 +109,24 @@ frtb_calculation_total = Counter(
     "Total number of FRTB calculations",
 )
 
+pnl_attribution_total_pnl = Gauge(
+    "pnl_attribution_total_pnl",
+    "Total P&L for a book from factor attribution",
+    ["book_id"],
+)
+
+pnl_attribution_unexplained_pnl = Gauge(
+    "pnl_attribution_unexplained_pnl",
+    "Unexplained (idiosyncratic) P&L for a book from factor attribution",
+    ["book_id"],
+)
+
+cross_book_diversification_benefit = Gauge(
+    "cross_book_diversification_benefit",
+    "VaR diversification benefit across books (total standalone VaR minus portfolio VaR)",
+    ["portfolio_group_id"],
+)
+
 regulatory_report_total = Counter(
     "regulatory_report_total",
     "Total number of regulatory reports generated",
