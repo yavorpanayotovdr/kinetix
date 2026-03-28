@@ -372,16 +372,14 @@ fun Application.devModule() {
     )
 
     module()
-    configureJwtAuth(jwtConfig)
+    val sharedJwkProvider = configureJwtAuth(jwtConfig)
+    // When auth is disabled, skip WebSocket token validation too
+    val wsJwtConfig = if (authEnabled) jwtConfig else null
+    val wsJwkProvider = if (authEnabled) sharedJwkProvider else null
     routing {
-        // WebSocket routes validate JWT via query parameter — JwkProvider built internally by configureJwtAuth
-        val wsJwkProvider = com.auth0.jwk.JwkProviderBuilder(java.net.URI(jwtConfig.jwksUrl!!).toURL())
-            .cached(10, 10, java.util.concurrent.TimeUnit.HOURS)
-            .rateLimited(10, 1, java.util.concurrent.TimeUnit.MINUTES)
-            .build()
-        priceWebSocket(priceBroadcaster, jwtConfig, wsJwkProvider)
-        pnlWebSocket(pnlBroadcaster, jwtConfig, wsJwkProvider)
-        alertWebSocket(alertBroadcaster, jwtConfig, wsJwkProvider)
+        priceWebSocket(priceBroadcaster, wsJwtConfig, wsJwkProvider)
+        pnlWebSocket(pnlBroadcaster, wsJwtConfig, wsJwkProvider)
+        alertWebSocket(alertBroadcaster, wsJwtConfig, wsJwkProvider)
 
         // System health is public so CI/k8s probes can reach it without a JWT.
         get("/api/v1/system/health") {

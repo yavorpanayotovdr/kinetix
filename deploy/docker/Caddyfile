@@ -11,7 +11,7 @@ api.kinetixrisk.ai {
 }
 
 auth.kinetixrisk.ai {
-    reverse_proxy keycloak:8180
+    reverse_proxy keycloak:8080
 }
 
 alerts.kinetixrisk.ai {

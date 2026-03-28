@@ -4,7 +4,7 @@ import { AuthContext, type AuthState } from './useAuth'
 import { setAuthToken } from './authFetch'
 
 const keycloakConfig = {
-  url: '/auth',
+  url: 'https://auth.kinetixrisk.ai',
   realm: 'kinetix',
   clientId: 'kinetix-api',
 }

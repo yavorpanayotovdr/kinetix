@@ -435,8 +435,8 @@ services:
       CORRELATION_SERVICE_URL: http://correlation-service:8091
       REGULATORY_SERVICE_URL: http://regulatory-service:8085
       AUDIT_SERVICE_URL: http://audit-service:8084
-      JWT_ISSUER: http://keycloak:8180/realms/kinetix
-      JWT_JWKS_URL: http://keycloak:8180/realms/kinetix/protocol/openid-connect/certs
+      JWT_ISSUER: https://auth.kinetixrisk.ai/realms/kinetix
+      JWT_JWKS_URL: http://keycloak:8080/realms/kinetix/protocol/openid-connect/certs
       JWT_AUDIENCE: kinetix-api
       GATEWAY_AUTH_ENABLED: "false"
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092

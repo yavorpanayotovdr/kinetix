@@ -10,6 +10,9 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: kinetix
       KC_DB_PASSWORD: kinetix
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_URL: https://auth.kinetixrisk.ai
+      KC_HOSTNAME_STRICT: "false"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:

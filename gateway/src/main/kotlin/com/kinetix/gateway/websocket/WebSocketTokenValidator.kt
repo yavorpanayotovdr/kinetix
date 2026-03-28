@@ -39,6 +39,8 @@ fun ApplicationCall.validateWebSocketToken(config: JwtConfig, jwkProvider: JwkPr
         null
     } catch (_: com.auth0.jwk.SigningKeyNotFoundException) {
         null
+    } catch (_: com.auth0.jwk.RateLimitReachedException) {
+        null
     }
 }
 

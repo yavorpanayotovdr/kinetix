@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 data class JwtUserPrincipal(val user: UserPrincipal) : Principal
 
-fun Application.configureJwtAuth(config: JwtConfig, jwkProvider: JwkProvider? = null) {
+fun Application.configureJwtAuth(config: JwtConfig, jwkProvider: JwkProvider? = null): JwkProvider {
     val provider = jwkProvider ?: config.jwksUrl?.let { url ->
         JwkProviderBuilder(URI(url).toURL())
             .cached(10, 10, TimeUnit.HOURS)
@@ -47,4 +47,5 @@ fun Application.configureJwtAuth(config: JwtConfig, jwkProvider: JwkProvider? = 
             }
         }
     }
+    return provider
 }
