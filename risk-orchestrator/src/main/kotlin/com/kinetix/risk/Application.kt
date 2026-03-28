@@ -118,6 +118,9 @@ import com.kinetix.risk.service.BenchmarkAttributionService
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
 import com.kinetix.risk.service.SaCcrService
 import com.kinetix.risk.routes.saCcrRoutes
+import com.kinetix.risk.routes.keyRateDurationRoutes
+import com.kinetix.risk.client.GrpcRiskEngineKrdClient
+import com.kinetix.risk.service.KeyRateDurationService
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
@@ -665,6 +668,16 @@ fun Application.moduleWithRoutes() {
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
         saCcrRoutes(saCcrService)
+        keyRateDurationRoutes(
+            KeyRateDurationService(
+                positionProvider = effectivePositionProvider,
+                ratesServiceClient = effectiveRatesServiceClient,
+                grpcKrdClient = GrpcRiskEngineKrdClient(
+                    RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
+                ),
+                instrumentServiceClient = instrumentServiceClient,
+            )
+        )
 
         val reportRepository = ExposedReportRepository(riskDb)
         val reportQueryExecutor = JdbcReportQueryExecutor(RiskDatabaseFactory.dataSource)
