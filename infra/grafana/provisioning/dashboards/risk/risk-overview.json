@@ -16,6 +16,8 @@
     { "title": "Service Overview", "type": "link", "url": "/d/kinetix-service-overview", "icon": "dashboard" },
     { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
     { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Risk Orchestrator", "type": "link", "url": "/d/kinetix-risk-orchestrator", "icon": "dashboard" },
+    { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
     { "title": "Kafka Health", "type": "link", "url": "/d/kinetix-kafka-health", "icon": "dashboard" },
     { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
@@ -34,7 +36,7 @@
       "targets": [
         {
           "expr": "risk_var_value",
-          "legendFormat": "{{portfolio_id}}",
+          "legendFormat": "{{book_id}}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -81,7 +83,7 @@
       "targets": [
         {
           "expr": "risk_var_value",
-          "legendFormat": "{{portfolio_id}}",
+          "legendFormat": "{{book_id}}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -112,7 +114,7 @@
       "targets": [
         {
           "expr": "risk_var_expected_shortfall",
-          "legendFormat": "{{portfolio_id}}",
+          "legendFormat": "{{book_id}}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",

@@ -24,6 +24,7 @@ class EodPromotionService(
     private val governanceAuditPublisher: GovernanceAuditPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(EodPromotionService::class.java)
+    private val lastPromotionTimestamps = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>()
 
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, force: Boolean = false): ValuationJob {
         val sample = Timer.start(meterRegistry)
@@ -122,13 +123,16 @@ class EodPromotionService(
 
             sample.stop(meterRegistry.timer("eod.promotion.duration"))
             meterRegistry.counter("eod.promotion.requests", "result", "success").increment()
-            meterRegistry.gauge(
-                "eod.promotion.last_timestamp",
-                listOf(
-                    io.micrometer.core.instrument.Tag.of("book_id", promoted.bookId),
-                ),
-                promoted.promotedAt!!.epochSecond.toDouble(),
-            )
+            val lastTs = lastPromotionTimestamps.computeIfAbsent(promoted.bookId) { bookId ->
+                val ref = java.util.concurrent.atomic.AtomicLong()
+                meterRegistry.gauge(
+                    "eod.promotion.last_timestamp",
+                    listOf(io.micrometer.core.instrument.Tag.of("book_id", bookId)),
+                    ref,
+                ) { it.get().toDouble() }
+                ref
+            }
+            lastTs.set(promoted.promotedAt!!.epochSecond)
             return promoted
         } catch (e: Exception) {
             sample.stop(meterRegistry.timer("eod.promotion.duration"))

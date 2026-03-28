@@ -7,8 +7,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "VaR breached threshold for portfolio {{ $labels.portfolio_id }}"
-          description: "VaR value {{ $value }} exceeds 1,000,000 for portfolio {{ $labels.portfolio_id }}"
+          summary: "VaR breached threshold for portfolio {{ $labels.book_id }}"
+          description: "VaR value {{ $value }} exceeds 1,000,000 for portfolio {{ $labels.book_id }}"
 
       - alert: RiskCalculationSlow
         expr: histogram_quantile(0.95, rate(var_calculation_duration_seconds_bucket[5m])) > 30
@@ -33,13 +33,13 @@ groups:
   - name: kinetix-kafka
     rules:
       - alert: KafkaConsumerLag
-        expr: kafka_consumer_group_lag > 10000
+        expr: kafka_consumergroup_lag > 10000
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "Kafka consumer lag is high for {{ $labels.group }}"
-          description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
+          summary: "Kafka consumer lag is high for {{ $labels.consumergroup }}"
+          description: "Consumer group {{ $labels.consumergroup }} has lag of {{ $value }} on topic {{ $labels.topic }}"
 
       - alert: DLQMessagesPresent
         expr: sum by (topic) (kafka_topic_partition_current_offset{topic=~".*\\.dlq"}) > 0
@@ -149,8 +149,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Replay digest mismatch for portfolio {{ $labels.portfolio_id }}"
-          description: "A replay produced a different input digest than the original run for portfolio {{ $labels.portfolio_id }}. Investigate model version or data changes."
+          summary: "Replay digest mismatch for portfolio {{ $labels.book_id }}"
+          description: "A replay produced a different input digest than the original run for portfolio {{ $labels.book_id }}. Investigate model version or data changes."
 
       - alert: ManifestPartialRateElevated
         expr: >

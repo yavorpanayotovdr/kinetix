@@ -9,8 +9,10 @@
   "links": [
     { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
     { "title": "Service Overview", "type": "link", "url": "/d/kinetix-service-overview", "icon": "dashboard" },
-    { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
     { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Risk Orchestrator", "type": "link", "url": "/d/kinetix-risk-orchestrator", "icon": "dashboard" },
+    { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
     { "title": "Kafka Health", "type": "link", "url": "/d/kinetix-kafka-health", "icon": "dashboard" },
     { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
@@ -123,8 +125,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "kafka_consumer_records_lag{topic=\"trades.lifecycle\"}",
-          "legendFormat": "{{group}} partition={{partition}}"
+          "expr": "kafka_consumergroup_lag{topic=\"trades.lifecycle\"}",
+          "legendFormat": "{{consumergroup}} partition={{partition}}"
         }
       ],
       "fieldConfig": {

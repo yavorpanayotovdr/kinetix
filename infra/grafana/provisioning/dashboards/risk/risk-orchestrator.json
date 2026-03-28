@@ -15,7 +15,9 @@
     { "title": "System Health", "type": "link", "url": "/d/kinetix-system-health", "icon": "dashboard" },
     { "title": "Service Overview", "type": "link", "url": "/d/kinetix-service-overview", "icon": "dashboard" },
     { "title": "Trade Flow", "type": "link", "url": "/d/kinetix-trade-flow", "icon": "dashboard" },
+    { "title": "Risk Overview", "type": "link", "url": "/d/kinetix-risk-overview", "icon": "dashboard" },
     { "title": "Risk Engine", "type": "link", "url": "/d/kinetix-risk-engine", "icon": "dashboard" },
+    { "title": "Price", "type": "link", "url": "/d/kinetix-prices", "icon": "dashboard" },
     { "title": "Kafka Health", "type": "link", "url": "/d/kinetix-kafka-health", "icon": "dashboard" },
     { "title": "Database Health", "type": "link", "url": "/d/kinetix-database-health", "icon": "dashboard" },
     { "title": "Service Logs", "type": "link", "url": "/d/kinetix-service-logs", "icon": "dashboard" }
@@ -33,8 +35,8 @@
       },
       "targets": [
         {
-          "expr": "sum by (calculationType) (rate(var_calculation_count_total{job=\"risk-orchestrator\"}[5m]))",
-          "legendFormat": "{{calculationType}}",
+          "expr": "sum by (calculation_type) (rate(var_calculation_count_total{job=\"risk-orchestrator\"}[5m]))",
+          "legendFormat": "{{calculation_type}}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -54,7 +56,7 @@
     },
     {
       "id": 2,
-      "title": "VaR Calculation Duration (p95)",
+      "title": "VaR Calculation Duration (P95)",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -65,7 +67,7 @@
       "targets": [
         {
           "expr": "histogram_quantile(0.95, rate(var_calculation_duration_seconds_bucket{job=\"risk-orchestrator\"}[5m]))",
-          "legendFormat": "p95",
+          "legendFormat": "P95",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
@@ -74,7 +76,7 @@
         },
         {
           "expr": "histogram_quantile(0.50, rate(var_calculation_duration_seconds_bucket{job=\"risk-orchestrator\"}[5m]))",
-          "legendFormat": "p50",
+          "legendFormat": "P50",
           "refId": "B",
           "datasource": {
             "type": "prometheus",
