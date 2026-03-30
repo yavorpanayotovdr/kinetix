@@ -701,7 +701,11 @@ fun Application.moduleWithRoutes() {
         seedCacheFromDb(varCache, jobRecorder)
     }
 
+    val schedulerEnabled = environment.config
+        .propertyOrNull("scheduler.enabled")?.getString()?.toBoolean() ?: true
+
     launch { tradeEventConsumer.start() }
+    if (schedulerEnabled) {
     launch { priceEventConsumer.start() }
     launch {
         ScheduledVaRCalculator(
@@ -782,6 +786,9 @@ fun Application.moduleWithRoutes() {
                 lock = distributedLock,
             ).start()
         }
+    }
+    } else {
+        log.info("Scheduler DISABLED — no scheduled or price-event VaR jobs will run")
     }
 }
 

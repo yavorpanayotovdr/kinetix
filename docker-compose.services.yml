@@ -342,6 +342,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
       DEMO_RESET_TOKEN: "${DEMO_RESET_TOKEN:-kinetix-demo-reset-dev}"
+      SCHEDULER_ENABLED: "${SCHEDULER_ENABLED:-false}"
       RISK_ENGINE_HOST: risk-engine
       POSITION_SERVICE_URL: http://position-service:8081
       PRICE_SERVICE_URL: http://price-service:8082
