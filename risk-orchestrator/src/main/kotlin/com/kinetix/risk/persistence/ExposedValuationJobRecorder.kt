@@ -633,6 +633,15 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         }
     }
 
+    override suspend fun findByTriggeredBy(triggeredBy: String, limit: Int): List<ValuationJob> =
+        newSuspendedTransaction(db = db) {
+            ValuationJobsTable
+                .selectAll()
+                .where { ValuationJobsTable.triggeredBy eq triggeredBy }
+                .limit(limit)
+                .map { it.toValuationJob() }
+        }
+
     companion object {
         fun bucketInterval(from: Instant, to: Instant): String {
             val durationMs = Duration.between(from, to).toMillis()

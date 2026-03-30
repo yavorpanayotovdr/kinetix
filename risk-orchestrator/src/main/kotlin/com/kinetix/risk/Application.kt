@@ -690,6 +690,7 @@ fun Application.moduleWithRoutes() {
     }
 
     launch {
+        com.kinetix.risk.seed.DevDataSeeder(jobRecorder).seed()
         seedCacheFromDb(varCache, jobRecorder)
     }
 

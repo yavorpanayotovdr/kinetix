@@ -40,4 +40,5 @@ interface ValuationJobRecorder {
     suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob
     suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow>
     suspend fun resetOrphanedRunningJobs(): Int
+    suspend fun findByTriggeredBy(triggeredBy: String, limit: Int = 1): List<ValuationJob>
 }

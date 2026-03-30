@@ -29,4 +29,5 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
         throw UnsupportedOperationException("No-op recorder does not support EOD supersession")
     override suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
     override suspend fun resetOrphanedRunningJobs(): Int = 0
+    override suspend fun findByTriggeredBy(triggeredBy: String, limit: Int): List<ValuationJob> = emptyList()
 }
