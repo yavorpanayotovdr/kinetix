@@ -25,6 +25,7 @@ import com.kinetix.gateway.client.VolatilityServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
+import com.kinetix.gateway.routes.demoAdminRoutes
 import com.kinetix.gateway.routes.intradayPnlProxyRoutes
 import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
 import com.kinetix.gateway.routes.volSurfaceRoutes
@@ -498,6 +499,14 @@ fun Application.devModule() {
         } else {
             log.warn("GATEWAY_AUTH_ENABLED=false — JWT authentication is DISABLED (smoke/dev mode)")
             apiRoutes()
+        }
+    }
+
+    val demoAdminKey = System.getenv("DEMO_ADMIN_KEY")
+    val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
+    if (demoAdminKey != null && demoResetToken != null) {
+        routing {
+            demoAdminRoutes(httpClient, positionUrl, auditUrl, riskUrl, demoAdminKey, demoResetToken)
         }
     }
 
