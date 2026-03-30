@@ -40,6 +40,13 @@ export interface RunAllParams {
   timeHorizonDays?: string
 }
 
+export interface BatchStressRunResult {
+  results: StressTestResultDto[]
+  failedScenarios: { scenarioName: string; error: string }[]
+  worstScenarioName: string | null
+  worstPnlImpact: string | null
+}
+
 export async function runAllStressTests(
   bookId: string,
   scenarioNames: string[],
@@ -61,5 +68,6 @@ export async function runAllStressTests(
       `Failed to run batch stress tests: ${response.status} ${response.statusText}`,
     )
   }
-  return response.json()
+  const body: BatchStressRunResult = await response.json()
+  return body.results
 }
