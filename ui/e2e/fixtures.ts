@@ -300,9 +300,7 @@ export async function mockKeycloakAuth(page: Page, opts: MockAuthOptions = {}): 
   `)
 }
 
-export async function mockAllApiRoutes(page: Page): Promise<void> {
-  await mockKeycloakAuth(page)
-
+export async function mockBackendApiRoutes(page: Page): Promise<void> {
   await page.route('**/api/v1/divisions', (route: Route) => {
     route.fulfill({
       status: 200,
@@ -597,6 +595,11 @@ export function generatePositions(count: number): PositionFixture[] {
       unrealizedPnl: { amount: pnl.toFixed(2), currency: 'USD' },
     }
   })
+}
+
+export async function mockAllApiRoutes(page: Page): Promise<void> {
+  await mockKeycloakAuth(page)
+  await mockBackendApiRoutes(page)
 }
 
 /**
