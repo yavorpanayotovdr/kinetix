@@ -12,17 +12,20 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
     await page.goto('/')
     await page.waitForSelector('[data-testid="dark-mode-toggle"]')
 
-    // Start tabbing from the top of the page
+    // Start tabbing from the top of the page.
+    // Use cycle-detection instead of a fixed iteration count so the test
+    // does not break when new focusable elements are added to the header.
     await page.keyboard.press('Tab')
 
-    // Keep tabbing until we reach hierarchy-selector-toggle, save-workspace-button,
-    // or dark-mode-toggle. Collect test IDs of focused elements.
     const visitedTestIds = new Set<string>()
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 200; i++) {
       const testId = await page.evaluate(() =>
         document.activeElement?.getAttribute('data-testid'),
       )
-      if (testId) visitedTestIds.add(testId)
+      if (testId) {
+        if (visitedTestIds.has(testId) && visitedTestIds.size > 5) break
+        visitedTestIds.add(testId)
+      }
       await page.keyboard.press('Tab')
     }
 
@@ -114,14 +117,17 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
     await page.goto('/')
     await page.waitForSelector('[data-testid="dark-mode-toggle"]')
 
-    // Tab through all interactive elements and collect data-testid values
+    // Tab through all interactive elements using cycle-detection
     const visitedTestIds = new Set<string>()
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 200; i++) {
       await page.keyboard.press('Tab')
       const testId = await page.evaluate(() =>
         document.activeElement?.getAttribute('data-testid'),
       )
-      if (testId) visitedTestIds.add(testId)
+      if (testId) {
+        if (visitedTestIds.has(testId) && visitedTestIds.size > 5) break
+        visitedTestIds.add(testId)
+      }
     }
 
     // Verify key interactive controls are reachable
@@ -149,7 +155,7 @@ test.describe('Keyboard Navigation - Tab Traversal and Focus Management', () => 
     let previousTestId: string | null = null
     let stuckCount = 0
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 200; i++) {
       await page.keyboard.press('Tab')
       const currentTestId = await page.evaluate(() =>
         document.activeElement?.getAttribute('data-testid') ??
