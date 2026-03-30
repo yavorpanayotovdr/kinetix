@@ -7,7 +7,6 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 echo "==> Stopping all services..."
 docker compose \
   -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
-  -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
   -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
   -f "$ROOT_DIR/docker-compose.services.yml" \
   down
@@ -42,16 +41,14 @@ docker exec kinetix-postgres psql -U kinetix -f /docker-entrypoint-initdb.d/01-c
 echo "==> Rebuilding all service images (this may take several minutes)..."
 docker compose \
   -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
-  -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
   -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
   -f "$ROOT_DIR/docker-compose.services.yml" \
   build --no-cache
 
-# ── Start the full stack ────────────────────────────────────────────────────
-echo "==> Starting all services..."
+# ── Start the full stack (demo mode — no Keycloak) ──────────────────────────
+echo "==> Starting all services in demo mode..."
 docker compose \
   -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
-  -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
   -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
   -f "$ROOT_DIR/docker-compose.services.yml" \
   up -d --wait
@@ -59,7 +56,7 @@ docker compose \
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "=============================================="
-echo "  Kinetix is running (full rebuild)"
+echo "  Kinetix is running (full rebuild, demo mode)"
 echo "=============================================="
 echo ""
 printf "  %-22s %s\n" "Service" "URL"
@@ -67,7 +64,7 @@ printf "  %-22s %s\n" "───────────────────
 printf "  %-22s %s\n" "UI"                   "https://kinetixrisk.ai"
 printf "  %-22s %s\n" "Gateway API"          "https://api.kinetixrisk.ai"
 printf "  %-22s %s\n" "Grafana"              "https://grafana.kinetixrisk.ai"
-printf "  %-22s %s\n" "Keycloak"             "https://auth.kinetixrisk.ai"
 echo ""
+echo "  Demo mode: no login required, persona switcher in header"
 echo "  Stop: ./deploy/deploy-down.sh"
 echo ""

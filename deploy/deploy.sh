@@ -22,11 +22,10 @@ docker compose \
 echo "==> Ensuring databases exist..."
 docker exec kinetix-postgres psql -U kinetix -f /docker-entrypoint-initdb.d/01-create-databases.sql 2>/dev/null || true
 
-# ── Start the full stack ────────────────────────────────────────────────────
-echo "==> Starting all services (this may take a few minutes on first build)..."
+# ── Start the full stack (demo mode — no Keycloak) ──────────────────────────
+echo "==> Starting all services in demo mode (this may take a few minutes on first build)..."
 docker compose \
   -f "$ROOT_DIR/infra/docker-compose.infra.yml" \
-  -f "$ROOT_DIR/infra/docker-compose.auth.yml" \
   -f "$ROOT_DIR/infra/docker-compose.observability.yml" \
   -f "$ROOT_DIR/docker-compose.services.yml" \
   up -d --build --wait
@@ -34,7 +33,7 @@ docker compose \
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "=============================================="
-echo "  Kinetix is running"
+echo "  Kinetix is running (demo mode)"
 echo "=============================================="
 echo ""
 printf "  %-22s %s\n" "Service" "URL"
@@ -42,7 +41,7 @@ printf "  %-22s %s\n" "───────────────────
 printf "  %-22s %s\n" "UI"                   "https://kinetixrisk.ai"
 printf "  %-22s %s\n" "Gateway API"          "https://api.kinetixrisk.ai"
 printf "  %-22s %s\n" "Grafana"              "https://grafana.kinetixrisk.ai"
-printf "  %-22s %s\n" "Keycloak"             "https://auth.kinetixrisk.ai"
 echo ""
+echo "  Demo mode: no login required, persona switcher in header"
 echo "  Stop: ./deploy/deploy-down.sh"
 echo ""

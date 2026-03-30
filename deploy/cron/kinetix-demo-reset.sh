@@ -9,7 +9,7 @@
 #   0 2 * * * /path/to/kinetix-demo-reset.sh >> /var/log/kinetix-demo-reset.log 2>&1
 #
 # Required environment variables:
-#   DEMO_ADMIN_KEY  - matches the gateway's DEMO_ADMIN_KEY
+#   DEMO_ADMIN_KEY  - matches the gateway's DEMO_ADMIN_KEY (default in compose: kinetix-demo-admin-dev)
 #   GATEWAY_URL     - defaults to http://localhost:8080
 
 set -e

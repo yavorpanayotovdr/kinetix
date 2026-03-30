@@ -52,6 +52,7 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_position
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SEED_DATA: "true"
+      DEMO_RESET_TOKEN: "${DEMO_RESET_TOKEN:-kinetix-demo-reset-dev}"
       OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
       OTEL_SERVICE_NAME: position-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
@@ -271,6 +272,7 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_audit
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SEED_DATA: "true"  # Local dev only — creates synthetic audit records that corrupt hash chain in prod
+      DEMO_RESET_TOKEN: "${DEMO_RESET_TOKEN:-kinetix-demo-reset-dev}"
       OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
       OTEL_SERVICE_NAME: audit-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
@@ -339,6 +341,7 @@ services:
       RISK_DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_risk
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
+      DEMO_RESET_TOKEN: "${DEMO_RESET_TOKEN:-kinetix-demo-reset-dev}"
       RISK_ENGINE_HOST: risk-engine
       POSITION_SERVICE_URL: http://position-service:8081
       PRICE_SERVICE_URL: http://price-service:8082
@@ -439,6 +442,8 @@ services:
       JWT_JWKS_URL: http://keycloak:8080/realms/kinetix/protocol/openid-connect/certs
       JWT_AUDIENCE: kinetix-api
       GATEWAY_AUTH_ENABLED: "false"
+      DEMO_ADMIN_KEY: "${DEMO_ADMIN_KEY:-kinetix-demo-admin-dev}"
+      DEMO_RESET_TOKEN: "${DEMO_RESET_TOKEN:-kinetix-demo-reset-dev}"
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
       OTEL_SERVICE_NAME: gateway
@@ -466,6 +471,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/Dockerfile.ui
+      args:
+        VITE_DEMO_MODE: "true"
     expose:
       - "80"
     healthcheck:
