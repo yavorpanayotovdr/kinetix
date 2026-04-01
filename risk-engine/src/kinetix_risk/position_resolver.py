@@ -2,6 +2,8 @@
 
 Options need delta-adjusted exposure instead of raw premium (market_value),
 because the option premium dramatically understates the actual directional risk.
+Swaps need DV01-based exposure because swap PV at inception is near zero,
+which dramatically understates interest-rate sensitivity.
 Other position types pass through unchanged — their market_value is already
 a reasonable linear exposure measure.
 """
@@ -10,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from kinetix_risk.models import OptionPosition, PositionRisk
+from kinetix_risk.models import OptionPosition, PositionRisk, SwapPosition
 
 if TYPE_CHECKING:
     from kinetix_risk.market_data_consumer import MarketDataBundle
@@ -43,6 +45,8 @@ def resolve_positions(
                 ))
             else:
                 resolved.append(pos)
+        elif isinstance(pos, SwapPosition):
+            resolved.append(_resolve_swap(pos, bundle))
         else:
             resolved.append(pos)
     return resolved
@@ -90,4 +94,27 @@ def _enrich_option(pos: OptionPosition, bundle: "MarketDataBundle | None") -> Op
         dividend_yield=pos.dividend_yield,
         contract_multiplier=pos.contract_multiplier,
         asset_class=pos.asset_class,
+    )
+
+
+def _resolve_swap(pos: SwapPosition, bundle: "MarketDataBundle | None") -> PositionRisk:
+    """Convert a swap to DV01-based effective exposure for VaR.
+
+    If no yield curve is available for the swap's currency, the swap passes
+    through unchanged (graceful degradation to market_value).
+    """
+    if bundle is None:
+        return pos
+
+    yield_curve = bundle.yield_curves.get(pos.currency)
+    if yield_curve is None:
+        return pos
+
+    from kinetix_risk.swap_pricing import swap_dv01
+    dv01 = swap_dv01(pos, yield_curve)
+    return PositionRisk(
+        instrument_id=pos.instrument_id,
+        asset_class=pos.asset_class,
+        market_value=dv01,
+        currency=pos.currency,
     )
