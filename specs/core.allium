@@ -133,7 +133,7 @@ enum ExerciseStyle { american | european }
     @guidance
         -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
-enum BondSeniority { senior_secured | unsecured | subordinated | equity_seniority }
+enum BondSeniority { senior_secured | senior_unsecured | subordinated }
     @guidance
         -- Currently implemented as plain String in Kotlin, Python, and Proto.
 

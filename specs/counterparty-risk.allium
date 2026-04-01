@@ -206,7 +206,7 @@ entity CounterpartyExposureSnapshot {
 ------------------------------------------------------------
 
 config {
-    default_lgd: Decimal = 0.40
+    default_lgd: Decimal = 0.60
     pfe_num_simulations: Integer = 10000
     pfe_tenors: List<String> = ["1M", "3M", "6M", "1Y", "2Y", "5Y"]
     pfe_confidence: Decimal = 0.95

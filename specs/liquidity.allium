@@ -75,7 +75,7 @@ value LiquidityRiskSummary {
 -- Enumerations
 ------------------------------------------------------------
 
-enum LiquidityTier { tier_1 | tier_2 | tier_3 | illiquid }
+enum LiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
 
 ------------------------------------------------------------
 -- External Entities
@@ -179,11 +179,11 @@ config {
     default_no_adv_horizon: Decimal = 10.0
 
     -- Tier classification thresholds
-    tier_1_adv_floor: Decimal = 50000000
-    tier_1_spread_cap: Decimal = 5.0
-    tier_2_adv_floor: Decimal = 10000000
-    tier_2_spread_cap: Decimal = 20.0
-    tier_3_adv_floor: Decimal = 1000000
+    high_liquid_adv_floor: Decimal = 50000000
+    high_liquid_spread_cap: Decimal = 5.0
+    liquid_adv_floor: Decimal = 10000000
+    liquid_spread_cap: Decimal = 20.0
+    semi_liquid_adv_floor: Decimal = 1000000
 
     -- LVaR base holding period (for scaling formula)
     base_holding_period: Decimal = 1.0
@@ -223,9 +223,9 @@ rule IngestInstrumentLiquidity {
         -- Upserts: if instrument_id already exists, fields are updated
         -- and updated_at is set to now.
         -- classify_tier uses the config thresholds:
-        --   adv >= tier_1_adv_floor AND spread <= tier_1_spread_cap → TIER_1
-        --   adv >= tier_2_adv_floor AND spread <= tier_2_spread_cap → TIER_2
-        --   adv >= tier_3_adv_floor → TIER_3
+        --   adv >= high_liquid_adv_floor AND spread <= high_liquid_spread_cap → HIGH_LIQUID
+        --   adv >= liquid_adv_floor AND spread <= liquid_spread_cap → LIQUID
+        --   adv >= semi_liquid_adv_floor → SEMI_LIQUID
         --   else → ILLIQUID
         -- No ADV data → ILLIQUID.
 }
@@ -481,6 +481,6 @@ invariant FailSafeOnMissingADV {
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Should the participation rate be configurable per instrument tier (e.g., 25% for TIER_1, 15% for TIER_3) or a single global rate?"
+open question "Should the participation rate be configurable per instrument tier (e.g., 25% for HIGH_LIQUID, 15% for SEMI_LIQUID) or a single global rate?"
 
 open question "When Direction 5 (FIX integration) ships, should the pre-trade ADV check run on FIX-originated orders with the same latency budget (<100ms)?"

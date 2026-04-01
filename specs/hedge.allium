@@ -177,7 +177,7 @@ deferred eligible_instruments
     --
     -- Criteria:
     --   1. Instrument is marked hedging_eligible in reference-data.
-    --   2. Liquidity tier is TIER_1 or TIER_2 (excludes illiquid and TIER_3).
+    --   2. Liquidity tier is HIGH_LIQUID or LIQUID (excludes illiquid and SEMI_LIQUID).
     --   3. Stale-priced candidates (price older than config.candidate_price_staleness)
     --      are included but flagged with data_quality = "STALE". Fresh candidates
     --      are flagged data_quality = "FRESH".

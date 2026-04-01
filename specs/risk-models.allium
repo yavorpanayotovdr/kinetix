@@ -476,7 +476,7 @@ rule CalculateFrtb {
         --
         -- Enhanced DRC:
         --   21 credit ratings (AAA-D, UNRATED) with BCBS calibrated PDs.
-        --   Seniority LGD: SENIOR_SECURED 25%, UNSECURED 45%, SUBORDINATED 75%, EQUITY 100%.
+        --   Seniority LGD: SENIOR_SECURED 25%, SENIOR_UNSECURED 45%, SUBORDINATED 75%.
         --   Maturity weight: max(0.25, min(maturity_years/5, 1.0)).
         --   Sector concentration: 5% surcharge if sector > 50% of gross JTD.
         --
