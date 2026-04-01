@@ -90,7 +90,7 @@ enum LimitCheckStatus { ok | warning | breached }
 
 enum RunStatus { running | completed | failed }
 
-enum TriggerType { on_demand | trade_event | price_event | scheduled | model_comparison }
+enum TriggerType { on_demand | trade_event | price_event | scheduled | model_comparison | auto_close }
 
 enum RunLabel { adhoc | sod | intraday | overnight | pre_close | official_eod | superseded_eod }
 

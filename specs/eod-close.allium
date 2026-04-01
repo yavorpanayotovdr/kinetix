@@ -1,0 +1,236 @@
+-- allium: 3
+-- Automatic End-of-Day (EOD) Run & Promotion: scheduled trigger at market
+-- close, idempotent per-book VaR calculation, and automatic promotion to
+-- OFFICIAL_EOD with full audit trail.
+
+use "./core.allium" as core
+use "./risk.allium" as risk
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    -- Wall-clock time (local) after which the auto-close trigger fires.
+    -- Overridable via AUTO_CLOSE_TIME environment variable.
+    auto_close_time: Time = 17:30
+
+    -- Master toggle for all scheduled jobs (VaR, price-event, auto-close).
+    -- When false, the auto-close loop still runs but the tick is never reached
+    -- because the job is not launched.
+    scheduler_enabled: Boolean = true
+
+    -- Polling interval for the auto-close loop.
+    auto_close_interval: core/Duration = 60.seconds
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- The top-level scheduling loop: polls every auto_close_interval,
+-- acquires a distributed lock, and delegates to the tick logic.
+
+rule AutoCloseSchedulerLoop {
+    when: AutoCloseIntervalElapsed()
+    requires: scheduler_enabled = true
+
+    ensures: AutoCloseTick()
+
+    @guidance
+        -- Runs inside a coroutine loop with delay(auto_close_interval).
+        -- Acquires a Redis distributed lock ("scheduled-auto-close") with
+        -- TTL = auto_close_interval to prevent duplicate execution across
+        -- replicas. If the lock is held, the tick is skipped silently.
+        -- Errors during tick are caught and logged; the loop continues.
+}
+
+-- The core tick: evaluates time and day-of-week guards, then iterates
+-- all books to produce an EOD run for each.
+
+rule AutoCloseTick {
+    when: AutoCloseTick()
+    requires: now_time >= auto_close_time
+    requires: today is weekday  -- skip Saturday and Sunday
+
+    for book_id in all_book_ids:
+        ensures: AutoCloseBookEvaluation(book_id: book_id, date: today)
+
+    @guidance
+        -- now_time is a LocalTime; auto_close_time is parsed from config.
+        -- The tick exits early (no-op) before close time or on weekends.
+        -- Book IDs are fetched from position-service via HTTP.
+        -- Each book is processed independently; failure on one book does
+        -- not prevent processing of the remaining books.
+}
+
+-- Per-book evaluation: idempotency check, VaR calculation, and promotion.
+
+rule AutoCloseBookEvaluation {
+    when: AutoCloseBookEvaluation(book_id, date)
+
+    -- Idempotency: if an OFFICIAL_EOD already exists for this book and
+    -- date, skip entirely. This makes the auto-close safe to re-run if
+    -- it fires multiple times (e.g. across restarts within the same evening).
+    requires: no existing ValuationJob where
+        book_id = book_id and
+        valuation_date = date and
+        run_label = official_eod
+
+    -- 1. Fire a VaR calculation with PRE_CLOSE label and full output set.
+    let job = risk/CalculateVaR(
+        book_id: book_id,
+        calculation_type: parametric,
+        confidence_level: cl_99,
+        trigger_type: auto_close,
+        run_label: pre_close,
+        triggered_by: "AUTO_CLOSE",
+        requested_outputs: { var, expected_shortfall, greeks, pv }
+    )
+
+    -- 2. If the calculation succeeded, promote to OFFICIAL_EOD immediately.
+    requires: job != null
+
+    ensures: AutoClosePromoted(job_id: job.job_id, book_id: book_id, date: date)
+
+    @guidance
+        -- The VaR request uses PARAMETRIC at 99% confidence level with all
+        -- four output types (VaR, ES, Greeks, PV) to produce a complete
+        -- risk snapshot suitable for regulatory reporting.
+        --
+        -- If calculateVaR returns null (e.g. no positions), a warning is
+        -- logged and promotion is skipped for that book.
+        --
+        -- On exception, the error is logged and the loop continues to
+        -- the next book.
+}
+
+-- Automatic promotion: bypasses the four-eyes check because the trigger
+-- and promoter are both AUTO_CLOSE (self-promotion guard is relaxed).
+
+rule AutoClosePromotion {
+    when: AutoClosePromoted(job_id, book_id, date)
+    let job = risk/ValuationJob{job_id: job_id}
+
+    requires: job.status = completed
+    requires: job.promoted_at = null
+
+    -- Supersede any existing Official EOD for the same book and date.
+    -- (Handles the case where a manual promotion preceded the auto-close.)
+    ensures: existing_eod_superseded_if_present(book_id, date)
+
+    ensures: job.run_label = official_eod
+    ensures: job.promoted_at = now
+    ensures: job.promoted_by = "AUTO_CLOSE"
+    ensures: OfficialEodPromoted(
+        job_id: job_id,
+        book_id: book_id,
+        valuation_date: date,
+        promoted_by: "AUTO_CLOSE"
+    )
+
+    @guidance
+        -- Delegates to EodPromotionService.promoteToOfficialEodAutomatically().
+        -- Unlike manual promotion (PromoteToOfficialEod in risk.allium):
+        --   - No four-eyes / self-promotion check: both triggered_by and
+        --     promoted_by are "AUTO_CLOSE", which is permitted because the
+        --     automatic path calls promoteCore() directly without the
+        --     triggered_by != promoted_by guard.
+        --   - force=false: market data completeness gate still applies.
+        --     If any manifest market data ref has status=MISSING, promotion
+        --     is rejected (the job remains PRE_CLOSE).
+        --
+        -- Post-promotion side-effects (same as manual promotion):
+        --   - Publishes OfficialEodPromotedEvent to Kafka.
+        --   - Publishes GovernanceAuditEvent (eventType=EOD_PROMOTED,
+        --     userRole="AUTO_CLOSE").
+        --   - Publishes RISK_RUN_EOD_PROMOTED audit event.
+        --   - Refreshes daily_official_eod_summary materialized view
+        --     with retry (2 attempts, 5s delay).
+        --   - Updates eod.promotion.last_timestamp gauge per book.
+}
+
+------------------------------------------------------------
+-- RunLabel State Machine
+------------------------------------------------------------
+
+-- RunLabel tracks the lifecycle stage of a ValuationJob. The auto-close
+-- workflow exercises the PRE_CLOSE -> OFFICIAL_EOD transition.
+
+@guidance
+    -- The full RunLabel state machine (defined in core.allium as an enum):
+    --
+    --   adhoc          Manually triggered ad-hoc calculation.
+    --   sod            Start-of-day baseline snapshot.
+    --   intraday       Scheduled or event-driven recalculation during the day.
+    --   overnight      Batch run outside trading hours.
+    --   pre_close      Auto-close VaR run before promotion. Transient label.
+    --   official_eod   Promoted end-of-day run. Immutable once set.
+    --   superseded_eod Previously official EOD that was replaced.
+    --
+    -- Transitions relevant to EOD close:
+    --
+    --   pre_close ----promote----> official_eod
+    --   official_eod --supersede-> superseded_eod   (when a new EOD replaces it)
+    --   official_eod --demote----> (run_label cleared, promoted_at cleared)
+    --
+    -- Constraints:
+    --   - Only COMPLETED jobs can be promoted.
+    --   - A job that is already promoted (promoted_at != null) cannot be
+    --     promoted again.
+    --   - At most one OFFICIAL_EOD per (book_id, valuation_date) at any time.
+    --     Promoting a new one supersedes the existing one.
+    --   - Once promoted, the job is immutable (PromotedJobsImmutable invariant
+    --     from risk.allium).
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant AtMostOneOfficialEodPerBookPerDate {
+    for all book_id, date:
+        count(ValuationJob where
+            book_id = book_id and
+            valuation_date = date and
+            run_label = official_eod
+        ) <= 1
+
+    @guidance
+        -- Enforced by EodPromotionService.promoteCore(): before promoting,
+        -- it queries findOfficialEodByDate() and supersedes any existing
+        -- OFFICIAL_EOD for the same (book_id, valuation_date).
+}
+
+invariant AutoCloseIdempotent {
+    @guidance
+        -- If the auto-close tick fires multiple times for the same book
+        -- and date (e.g. scheduler restart, clock skew), the second and
+        -- subsequent invocations are no-ops because:
+        --   1. findOfficialEodByDate() returns the already-promoted job.
+        --   2. The book is skipped with a `continue`.
+        -- No duplicate VaR calculations or promotions occur.
+}
+
+invariant AutoCloseWeekdaysOnly {
+    @guidance
+        -- The auto-close tick exits early on Saturday and Sunday.
+        -- No VaR calculations or promotions are triggered on weekends.
+        -- This is a hard guard in tick(), not a config toggle.
+}
+
+invariant MarketDataCompletenessGate {
+    @guidance
+        -- Automatic promotion enforces market data completeness (force=false).
+        -- If the RunManifest contains any MarketDataRef with status=MISSING,
+        -- the promotion is rejected with IncompleteMarketDataException.
+        -- The job remains in PRE_CLOSE state.
+        -- Only manual promotion with force=true can override this gate.
+}
+
+invariant AutoCloseOutputCompleteness {
+    @guidance
+        -- The auto-close VaR request always includes all four output types:
+        -- VaR, Expected Shortfall, Greeks, and PV. This ensures the
+        -- resulting OFFICIAL_EOD job has a complete risk snapshot suitable
+        -- for regulatory reporting and P&L attribution.
+}
