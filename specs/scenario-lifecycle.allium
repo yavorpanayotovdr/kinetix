@@ -1,0 +1,528 @@
+-- allium: 3
+-- Scenario lifecycle: status state machine, approval workflow, governance
+-- audit events, versioning, and update semantics for stress scenarios.
+--
+-- Scope: The full lifecycle of a SavedScenario from creation through
+--         approval to retirement, including the four-eyes principle,
+--         version management, status reset on update, and audit trail.
+-- Excludes:
+--   - Scenario execution mechanics (see scenarios.allium RunSavedScenario)
+--   - Scenario type definitions and result structures (see scenarios.allium)
+--   - Parametric grid sweeps (see scenarios.allium)
+--   - Reverse stress test solver (see scenarios.allium)
+--   - Model governance (see regulatory.allium)
+--   - Regulatory submissions (see regulatory.allium)
+-- Dependencies: core.allium, scenarios.allium, regulatory.allium
+
+use "./core.allium" as core
+use "./scenarios.allium" as scenarios
+
+------------------------------------------------------------
+-- Entities (cross-references)
+------------------------------------------------------------
+
+-- SavedScenario is the authoritative entity (declared in scenarios.allium).
+-- This spec defines the lifecycle rules that govern its status field.
+
+external entity SavedScenario {
+    id: String
+    name: String
+    status: core/ScenarioStatus
+    created_by: String
+    approved_by: String?
+    approved_at: Timestamp?
+    version: Integer
+    shocks: String?
+    correlation_override: String?
+    liquidity_stress_factors: String?
+    parent_scenario_id: String?
+    category: core/ScenarioCategory
+    scenario_type: scenarios/ScenarioType
+    historical_period_id: String?
+    target_loss: Decimal?
+}
+
+------------------------------------------------------------
+-- State Machine
+------------------------------------------------------------
+
+-- The scenario status state machine. Each transition is enforced by
+-- a dedicated rule below. Invalid transitions throw IllegalStateException.
+--
+--   DRAFT ──submit──> PENDING_APPROVAL ──approve──> APPROVED ──retire──> RETIRED
+--     ^                                                  │
+--     └───────────────── update ──────────────────────────┘
+--
+-- RETIRED is terminal: no transitions out.
+-- Update from APPROVED or PENDING_APPROVAL resets to DRAFT (see UpdateScenario).
+
+------------------------------------------------------------
+-- Rules — Creation
+------------------------------------------------------------
+
+rule CreateScenario {
+    when: CreateScenarioRequested(
+        name, description, shocks, created_by,
+        scenario_type?, category?, parent_scenario_id?,
+        correlation_override?, liquidity_stress_factors?,
+        historical_period_id?, target_loss?
+    )
+
+    ensures: SavedScenario.created(
+        status: draft,
+        version: 1,
+        approved_by: null,
+        approved_at: null,
+        scenario_type: scenario_type or parametric,
+        category: category or internal_approved,
+        created_by: created_by,
+        name: name,
+        shocks: shocks
+    )
+
+    @guidance
+        -- Implementation: StressScenarioService.create().
+        -- Generates a UUID id and sets createdAt = Instant.now().
+        -- All optional fields (parent_scenario_id, correlation_override,
+        -- liquidity_stress_factors, historical_period_id, target_loss)
+        -- are stored as provided (nullable).
+        -- scenario_type defaults to PARAMETRIC when not specified or unparseable.
+        -- category defaults to INTERNAL_APPROVED when not specified or unparseable.
+        -- The scenario is immediately persisted via StressScenarioRepository.save().
+}
+
+------------------------------------------------------------
+-- Rules — Status Transitions
+------------------------------------------------------------
+
+rule SubmitForApproval {
+    when: SubmitForApprovalRequested(scenario_id)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = draft
+
+    ensures: scenario.status = pending_approval
+
+    @guidance
+        -- Implementation: StressScenarioService.submitForApproval().
+        -- HTTP: PATCH /api/v1/stress-scenarios/{id}/submit
+        -- Throws IllegalStateException if current status is not DRAFT.
+        -- No audit event is published on submission (only on approval/retirement).
+}
+
+rule ApproveScenario {
+    when: ApproveScenarioRequested(scenario_id, approved_by)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = pending_approval
+
+    ensures: scenario.status = approved
+    ensures: scenario.approved_by = approved_by
+    ensures: scenario.approved_at = now
+
+    emits: GovernanceAuditEvent(
+        event_type: scenario_approved,
+        user_id: approved_by,
+        user_role: "APPROVER",
+        scenario_id: scenario_id,
+        details: scenario.name
+    )
+
+    @guidance
+        -- Implementation: StressScenarioService.approve().
+        -- HTTP: PATCH /api/v1/stress-scenarios/{id}/approve
+        --       Body: { "approvedBy": "<user>" }
+        -- Throws IllegalStateException if current status is not PENDING_APPROVAL.
+        -- Publishes SCENARIO_APPROVED governance audit event to Kafka topic
+        -- "governance.audit" via GovernanceAuditPublisher.
+        --
+        -- IMPORTANT: The current implementation does NOT enforce the four-eyes
+        -- principle (approved_by != scenario.created_by). The submission workflow
+        -- (SubmissionService) does enforce this, but StressScenarioService.approve()
+        -- does not check. This is a known gap. See open question below.
+}
+
+rule RetireScenario {
+    when: RetireScenarioRequested(scenario_id)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = approved
+
+    ensures: scenario.status = retired
+
+    emits: GovernanceAuditEvent(
+        event_type: scenario_retired,
+        user_id: "SYSTEM",
+        user_role: "SYSTEM",
+        scenario_id: scenario_id,
+        details: scenario.name
+    )
+
+    @guidance
+        -- Implementation: StressScenarioService.retire().
+        -- HTTP: PATCH /api/v1/stress-scenarios/{id}/retire
+        -- Throws IllegalStateException if current status is not APPROVED.
+        -- Publishes SCENARIO_RETIRED governance audit event.
+        -- The userId is currently hardcoded to "SYSTEM" — the actual retiring
+        -- user identity is not captured. See open question below.
+}
+
+------------------------------------------------------------
+-- Rules — Invalid Transitions
+------------------------------------------------------------
+
+rule RejectApprovalFromDraft {
+    when: ApproveScenarioRequested(scenario_id, approved_by)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = draft
+
+    @guidance
+        -- Throws IllegalStateException:
+        -- "Can only approve from PENDING_APPROVAL status, current: DRAFT"
+        -- A scenario must pass through SubmitForApproval before it can be approved.
+}
+
+rule RejectRetireFromNonApproved {
+    when: RetireScenarioRequested(scenario_id)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status != approved
+
+    @guidance
+        -- Throws IllegalStateException:
+        -- "Can only retire from APPROVED status, current: <status>"
+        -- Only approved scenarios can be retired. DRAFT and PENDING_APPROVAL
+        -- scenarios cannot be retired directly.
+}
+
+rule RejectTransitionFromRetired {
+    when: any transition on scenario_id
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = retired
+
+    @guidance
+        -- RETIRED is a terminal state. No transitions are permitted.
+        -- submit, approve, and retire all check status preconditions and will
+        -- throw IllegalStateException. Update explicitly rejects RETIRED scenarios.
+}
+
+------------------------------------------------------------
+-- Rules — Update and Versioning
+------------------------------------------------------------
+
+rule UpdateScenario {
+    when: UpdateScenarioRequested(scenario_id, shocks?, correlation_override?, liquidity_stress_factors?)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status != retired
+
+    ensures: scenario.version = scenario.version + 1
+    ensures: scenario.shocks = shocks or scenario.shocks
+    ensures: scenario.correlation_override = correlation_override or scenario.correlation_override
+    ensures: scenario.liquidity_stress_factors = liquidity_stress_factors or scenario.liquidity_stress_factors
+
+    -- Status reset: if the scenario was APPROVED or PENDING_APPROVAL, it reverts to DRAFT
+    ensures: scenario.status = draft when scenario.status in {approved, pending_approval}
+    ensures: scenario.approved_by = null when scenario.status in {approved, pending_approval}
+    ensures: scenario.approved_at = null when scenario.status in {approved, pending_approval}
+
+    @guidance
+        -- Implementation: StressScenarioService.update().
+        -- HTTP: PUT /api/v1/stress-scenarios/{id}
+        --       Body: { "shocks"?: "...", "correlationOverride"?: "...", "liquidityStressFactors"?: "..." }
+        --
+        -- All update parameters are optional; unchanged fields retain their current values.
+        -- Version always increments by 1 regardless of which fields changed.
+        --
+        -- The key governance invariant: any material change to an approved or pending
+        -- scenario forces re-approval by resetting status to DRAFT and clearing the
+        -- approval metadata. This prevents running modified scenarios without oversight.
+        --
+        -- RETIRED scenarios cannot be updated — throws IllegalStateException:
+        -- "Cannot update a RETIRED scenario".
+        --
+        -- No audit event is published on update. The version increment and status
+        -- reset provide an implicit audit trail via the database record.
+}
+
+------------------------------------------------------------
+-- Rules — Execution Gate
+------------------------------------------------------------
+
+rule RunScenarioRequiresApproval {
+    when: RunScenarioRequested(scenario_id, book_id, model_version?)
+    let scenario = SavedScenario{id: scenario_id}
+    requires: scenario.status = approved
+
+    emits: GovernanceAuditEvent(
+        event_type: stress_test_run,
+        user_id: "SYSTEM",
+        user_role: "SYSTEM",
+        scenario_id: scenario_id,
+        book_id: book_id,
+        details: "modelVersion=<model_version>"
+    )
+
+    @guidance
+        -- Implementation: StressScenarioService.runScenario().
+        -- HTTP: POST /api/v1/stress-scenarios/{id}/run
+        --       Body: { "bookId": "...", "modelVersion"?: "..." }
+        -- Only APPROVED scenarios can be executed. DRAFT, PENDING_APPROVAL, and
+        -- RETIRED scenarios are rejected with IllegalStateException:
+        -- "Can only run APPROVED scenarios, current: <status>"
+        --
+        -- P&L impact is delegated to the risk-orchestrator client via
+        -- computePnlImpact() — the scenario name is passed to the risk engine
+        -- which resolves the scenario and performs full position repricing.
+        -- Shock values from the stored JSON are never re-interpreted locally
+        -- (SCEN-06 invariant from scenarios.allium).
+        --
+        -- The result is persisted as a StressTestResult and a STRESS_TEST_RUN
+        -- governance audit event is published.
+}
+
+------------------------------------------------------------
+-- Rules — Correlated Scenario Creation
+------------------------------------------------------------
+
+rule CreateCorrelatedScenario {
+    when: CreateCorrelatedScenarioRequested(
+        name, description, primary_asset_class, primary_shock, asset_classes, created_by
+    )
+    requires: primary_asset_class in asset_classes
+
+    let matrix = fetch_correlation_matrix(asset_classes)
+    requires: matrix exists
+
+    ensures: SavedScenario.created(
+        name: name,
+        description: description,
+        scenario_type: parametric,
+        status: draft,
+        version: 1,
+        shocks: derive_shocks(matrix, primary_asset_class, primary_shock)
+    )
+
+    @guidance
+        -- Implementation: StressScenarioService.createCorrelatedScenario().
+        -- HTTP: POST /api/v1/stress-scenarios/correlated
+        --
+        -- Fetches the latest correlation matrix from CorrelationServiceClient
+        -- for the given asset classes. Requires that primary_asset_class is
+        -- included in the asset_classes list (precondition check via require()).
+        --
+        -- For each asset class i, the implied shock is:
+        --   shock[i] = correlation(primary, i) * primary_shock
+        -- The primary asset class retains its full shock (self-correlation = 1.0).
+        --
+        -- If no approved correlation matrix is available:
+        --   throws IllegalStateException("No approved correlation matrix available")
+        -- If CorrelationServiceClient is not configured:
+        --   throws IllegalStateException("CorrelationServiceClient not configured")
+        --
+        -- The resulting scenario enters the standard lifecycle (DRAFT),
+        -- requiring the full approval workflow before execution.
+}
+
+------------------------------------------------------------
+-- Rules — Query
+------------------------------------------------------------
+
+rule ListAllScenarios {
+    when: ListAllScenariosRequested()
+
+    @guidance
+        -- Implementation: StressScenarioService.listAll().
+        -- HTTP: GET /api/v1/stress-scenarios
+        -- Returns all scenarios ordered by createdAt DESC.
+        -- No status filtering — includes DRAFT, PENDING_APPROVAL, APPROVED, RETIRED.
+}
+
+rule ListApprovedScenarios {
+    when: ListApprovedScenariosRequested()
+
+    @guidance
+        -- Implementation: StressScenarioService.listApproved().
+        -- HTTP: GET /api/v1/stress-scenarios/approved
+        -- Returns only scenarios with status = APPROVED.
+        -- Used by batch stress test runs (RunBatchStressTest in scenarios.allium)
+        -- to enumerate the executable scenario set.
+}
+
+rule FindScenarioById {
+    when: FindScenarioByIdRequested(scenario_id)
+
+    @guidance
+        -- Implementation: StressScenarioService.findById().
+        -- Returns null if no scenario exists with the given id.
+        -- Internal methods (approve, retire, update, etc.) use findOrThrow()
+        -- which raises NoSuchElementException when not found.
+}
+
+------------------------------------------------------------
+-- Governance Audit Events
+------------------------------------------------------------
+
+-- Three governance audit events are published during the scenario lifecycle:
+--
+--   SCENARIO_APPROVED  — on successful approval transition
+--   SCENARIO_RETIRED   — on successful retirement transition
+--   STRESS_TEST_RUN    — on successful scenario execution
+--
+-- All events are published to the "governance.audit" Kafka topic
+-- via GovernanceAuditPublisher. The event payload is GovernanceAuditEvent
+-- from common/audit, containing: eventType, userId, userRole, scenarioId,
+-- bookId (for execution events), and details.
+--
+-- No governance audit events are published for:
+--   - Scenario creation
+--   - Scenario submission for approval
+--   - Scenario update (version increment serves as implicit audit)
+--
+-- The audit publisher is optional (nullable injection). When absent,
+-- lifecycle transitions proceed without publishing events.
+
+------------------------------------------------------------
+-- Scenario Categories
+------------------------------------------------------------
+
+-- ScenarioCategory governs the regulatory origin of a scenario.
+-- Declared in core.allium as: regulatory_mandated | internal_approved | supervisory_requested
+--
+--   REGULATORY_MANDATED    — mandated by prudential regulation (Basel III / FRTB)
+--   INTERNAL_APPROVED      — designed and approved internally by the risk committee
+--   SUPERVISORY_REQUESTED  — requested by a supervisory authority (SREP exercise)
+--
+-- Category is set at creation time and does not change during the lifecycle.
+-- Default: INTERNAL_APPROVED (when not specified or unparseable).
+-- Category does not affect the approval workflow — all categories follow
+-- the same state machine. It is a classification label for reporting.
+
+------------------------------------------------------------
+-- Version Semantics
+------------------------------------------------------------
+
+-- Version is a monotonically increasing integer starting at 1.
+-- It increments by exactly 1 on every call to UpdateScenario,
+-- regardless of how many fields changed.
+--
+-- The repository uses upsert semantics (insert-or-update by id).
+-- Previous parameter values are overwritten in-place — the database
+-- does NOT retain a full version history as separate rows.
+-- This means "version N" is the count of updates, not a retrievable
+-- historical snapshot.
+--
+-- parent_scenario_id links derived scenarios to their origin
+-- ("GFC with extra credit stress" → parent: "GFC base").
+-- This is set at creation time and is immutable thereafter.
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant ScenarioLifecycleStateMachine {
+    for s in SavedScenarios:
+        s.status in {draft, pending_approval, approved, retired}
+
+    @guidance
+        -- Valid forward transitions:
+        --   draft -> pending_approval  (SubmitForApproval)
+        --   pending_approval -> approved  (ApproveScenario)
+        --   approved -> retired  (RetireScenario)
+        -- Reset transitions (via UpdateScenario):
+        --   approved -> draft
+        --   pending_approval -> draft
+        -- Terminal state: retired (no outbound transitions).
+        -- All other transitions are rejected with IllegalStateException.
+}
+
+invariant ApprovalMetadataConsistency {
+    for s in SavedScenarios:
+        (s.status = approved implies s.approved_by != null and s.approved_at != null)
+        and
+        (s.status = draft implies s.approved_by = null and s.approved_at = null)
+        and
+        (s.status = pending_approval implies s.approved_by = null and s.approved_at = null)
+
+    @guidance
+        -- approved_by and approved_at are set atomically when transitioning to APPROVED.
+        -- They are cleared atomically when UpdateScenario resets status to DRAFT.
+        -- They are never set for DRAFT or PENDING_APPROVAL scenarios.
+        -- For RETIRED scenarios, the values from the prior APPROVED state are retained
+        -- (retirement does not clear them).
+}
+
+invariant VersionMonotonicallyIncreasing {
+    for s in SavedScenarios:
+        s.version >= 1
+
+    @guidance
+        -- Version starts at 1 on creation.
+        -- Every update increments by exactly 1.
+        -- Version never decreases.
+}
+
+invariant RetiredIsTerminal {
+    for s in SavedScenarios where s.status = retired:
+        no transition is valid
+
+    @guidance
+        -- A retired scenario cannot be submitted, approved, retired again,
+        -- or updated. Any attempt throws IllegalStateException.
+        -- To re-use a retired scenario, create a new scenario with
+        -- parent_scenario_id pointing to the retired one.
+}
+
+invariant OnlyApprovedScenariosExecutable {
+    for s in SavedScenarios:
+        run(s) requires s.status = approved
+
+    @guidance
+        -- StressScenarioService.runScenario() checks status == APPROVED
+        -- before delegating to the risk engine.
+        -- This gate ensures that only scenarios that have passed the
+        -- governance review can produce official stress test results.
+}
+
+invariant UpdateResetsApproval {
+    @guidance
+        -- Any material change (shocks, correlation_override, liquidity_stress_factors)
+        -- to an APPROVED or PENDING_APPROVAL scenario resets its status to DRAFT
+        -- and clears approved_by / approved_at. This forces the full approval
+        -- workflow to be repeated, ensuring no unapproved changes are executable.
+        -- This is the core governance safety net for scenario integrity.
+}
+
+invariant AuditEventOnApprovalAndRetirement {
+    @guidance
+        -- Every successful approval transition publishes a SCENARIO_APPROVED
+        -- governance audit event. Every successful retirement publishes a
+        -- SCENARIO_RETIRED event. These events are consumed by the audit-service
+        -- for the immutable hash-chained audit trail.
+        -- If the audit publisher is unavailable, the transition still succeeds
+        -- (fire-and-forget publishing). This is a known trade-off: availability
+        -- over strict audit consistency. See open question below.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Should scenario approval enforce the four-eyes principle (approved_by != created_by)?"
+-- The submission workflow (SubmissionService) enforces four-eyes:
+-- approver_id != preparer_id, throwing IllegalArgumentException on violation.
+-- The scenario workflow (StressScenarioService) does NOT enforce this.
+-- The regulatory.allium spec declares a ScenarioApprovalFourEyes invariant
+-- (via the GovernedStressScenario entity's rules), but the implementation
+-- does not check created_by against approved_by in the approve() method.
+-- Resolution: This should be added to StressScenarioService.approve() for
+-- consistency with the submission workflow and regulatory intent.
+
+open question "Should the retire action capture the actual user identity instead of hardcoding 'SYSTEM'?"
+-- Currently, StressScenarioService.retire() publishes the audit event with
+-- userId="SYSTEM" and userRole="SYSTEM". The HTTP route does not accept a
+-- request body with the retiring user's identity. For full accountability,
+-- the retire endpoint should accept a userId (or extract it from the auth
+-- context) and pass it to the audit event.
+
+open question "Should governance audit event publishing be mandatory (fail the transition if publish fails) or remain fire-and-forget?"
+-- Currently, GovernanceAuditPublisher.publish() catches exceptions from
+-- producer.send() and logs them, but the transition still completes.
+-- This means a Kafka outage could cause audit gaps. For regulatory
+-- compliance, consider making the publish synchronous with the transition
+-- (i.e., rollback the status change if the audit event cannot be published).

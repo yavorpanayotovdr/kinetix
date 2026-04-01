@@ -119,6 +119,8 @@ config {
     max_candidate_instruments: Integer = 50
     candidate_price_staleness: Duration = 15.minutes
     recommendation_retention: Duration = 90.days
+    expiry_job_interval: Duration = 60.seconds
+    expiry_job_lock_key: String = "scheduled-hedge-expiry"
 }
 
 ------------------------------------------------------------
@@ -258,7 +260,7 @@ rule RejectHedgeRecommendation {
     ensures: rec.status = rejected
 }
 
--- Expire stale recommendations
+-- Expire stale recommendations (reactive)
 
 rule ExpireHedgeRecommendations {
     when: rec: HedgeRecommendation.expires_at <= now
@@ -266,6 +268,42 @@ rule ExpireHedgeRecommendations {
 
     ensures: rec.status = expired
 }
+
+-- Scheduled hedge expiry job (proactive batch sweep)
+
+rule ScheduledHedgeExpiryJob {
+    when: HedgeExpiryTickTriggered()
+
+    let expired_count = expire_all_pending_past_deadline()
+
+    @guidance
+        -- The ScheduledHedgeExpiryJob runs on a configurable polling interval
+        -- (default: 60 seconds). Each tick calls repository.expirePending()
+        -- which atomically transitions all PENDING recommendations whose
+        -- expires_at <= now to EXPIRED status in a single batch update.
+        --
+        -- The job returns the count of expired recommendations (for logging).
+        -- If the count is 0, the tick is a no-op.
+        --
+        -- Distributed lock: in multi-instance deployments, only one replica
+        -- executes each tick. The lock is acquired via DistributedLock.withLock
+        -- with key "scheduled-hedge-expiry" and a TTL equal to the polling
+        -- interval. If the lock is held by another instance, the tick is skipped.
+        --
+        -- The lock implementation defaults to NoOpDistributedLock (always
+        -- executes) when Redis is unavailable (single-instance dev mode).
+        -- In production, RedisDistributedLock uses SET NX EX for mutual
+        -- exclusion with automatic TTL-based release on crash.
+        --
+        -- Errors during tick() are caught and logged but do not stop the
+        -- polling loop. The job continues retrying on the next interval.
+}
+
+deferred expire_all_pending_past_deadline
+    -- Batch-expires all PENDING hedge recommendations whose expires_at <= now.
+    --
+    -- Implementation: single UPDATE ... WHERE status = 'PENDING' AND expires_at <= now
+    -- Returns: count of rows transitioned to EXPIRED.
 
 -- No candidates found
 
@@ -300,6 +338,16 @@ invariant HedgeRespectsLimits {
 invariant ExpiredRecommendationsNotAcceptable {
     for rec in HedgeRecommendations:
         rec.is_expired implies rec.status != pending
+}
+
+invariant ExpiryJobSingleExecution {
+    @guidance
+        -- At most one instance of ScheduledHedgeExpiryJob executes per
+        -- tick interval across all replicas. The distributed lock (Redis
+        -- SET NX EX) ensures mutual exclusion. If the lock holder crashes,
+        -- the TTL expires and the next replica acquires on the following tick.
+        -- The lock key is config.expiry_job_lock_key with TTL =
+        -- config.expiry_job_interval.
 }
 
 invariant FullGreekImpactShown {

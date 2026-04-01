@@ -1,0 +1,277 @@
+-- allium: 3
+-- Alert escalation workflow: timeout-driven promotion, severity escalation,
+-- multi-channel delivery routing, scheduled polling, audit trail, and
+-- debounce semantics for the notification-service escalation pipeline.
+--
+-- This spec extends alerts.allium with the escalation lifecycle details.
+-- alerts.allium defines the state machine, EscalateAlert trigger, and
+-- entities; this spec captures the internal mechanics of HOW escalation
+-- proceeds once the timeout fires.
+
+use "./alerts.allium" as alerts
+use "./core.allium" as core
+use "./audit.allium" as audit
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum EscalationTarget { desk_head | risk_manager_cro }
+
+    @guidance
+        -- Maps to the string values stored in AlertEvent.escalated_to:
+        --   desk_head       -> "desk-head"
+        --   risk_manager_cro -> "risk-manager,cro"
+        -- Implemented as plain String in AlertEscalationService.escalationTargetFor().
+
+enum EscalationChannel { email | webhook | pager_duty }
+
+    @guidance
+        -- Extends core/DeliveryChannel with pager_duty.
+        -- core.allium defines DeliveryChannel as { in_app | email | webhook }.
+        -- The codebase adds PAGER_DUTY in the Kotlin DeliveryChannel enum
+        -- (notification-service AlertModels.kt) and PagerDutyDeliveryService.
+        -- pager_duty is only used for escalation delivery, not for initial
+        -- alert routing configured on AlertRule.channels.
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    -- How long an acknowledged alert can remain unresolved before escalation.
+    escalation_timeout: Duration = 30.minutes
+
+    -- How often the scheduler polls for overdue acknowledged alerts.
+    escalation_poll_interval: Duration = 1.minute
+}
+
+    @guidance
+        -- escalation_timeout is configurable via application.conf property
+        -- "escalation.timeoutMinutes" (Long, default 30).
+        -- escalation_poll_interval is hard-coded to 60,000ms in Application.kt
+        -- (the coroutine delay between ScheduledAlertEscalation.tick() calls).
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Severity promotion on escalation
+
+rule PromoteSeverity {
+    when: EscalationProcessing(alert)
+
+    ensures: promoted_severity = match alert.severity {
+        warning  -> critical
+        critical -> critical
+        info     -> info
+    }
+
+    @guidance
+        -- WARNING alerts are promoted to CRITICAL when they escalate.
+        -- This reflects the operational reality: if a warning was not
+        -- resolved within the timeout, it has become a critical issue.
+        -- INFO and CRITICAL alerts keep their current severity.
+        -- Implemented in AlertEscalationService.promoteSeverity().
+}
+
+-- Escalation target resolution
+
+rule ResolveEscalationTarget {
+    when: EscalationProcessing(alert, promoted_severity)
+
+    ensures: escalation_target = match promoted_severity {
+        warning  -> desk_head
+        info     -> desk_head
+        critical -> risk_manager_cro
+    }
+
+    @guidance
+        -- The target is derived from the PROMOTED severity, not the original.
+        -- A WARNING alert that gets promoted to CRITICAL will be escalated
+        -- to risk-manager,cro (not desk-head).
+        -- This means all escalated WARNING alerts reach senior risk management.
+        -- Implemented in AlertEscalationService.escalationTargetFor().
+}
+
+-- Escalation channel routing
+
+rule RouteEscalationDelivery {
+    when: AlertEscalated(alert, promoted_severity)
+
+    ensures: channels = match promoted_severity {
+        critical -> [email, webhook, pager_duty]
+        warning  -> [email]
+        info     -> [email]
+    }
+    ensures: DeliveryRouter.route(alert, channels)
+
+    @guidance
+        -- Escalation delivery uses a DIFFERENT channel set from the initial
+        -- alert delivery (which uses the channels configured on the AlertRule).
+        -- CRITICAL escalations use all three channels: email + webhook + PagerDuty.
+        -- WARNING and INFO escalations use email only.
+        -- The DeliveryRouter dispatches to the corresponding DeliveryService
+        -- implementations: EmailDeliveryService, WebhookDeliveryService,
+        -- PagerDutyDeliveryService.
+        -- PagerDutyDeliveryService is currently a stub (logs + collects for test
+        -- verification) pending PagerDuty Events API v2 integration (ALT-04).
+}
+
+-- Scheduled escalation polling
+
+rule ScheduledEscalationPoll {
+    when: Timer(every: config.escalation_poll_interval)
+
+    ensures: EscalationCheckTriggered()
+
+    @guidance
+        -- ScheduledAlertEscalation.tick() is called every 60 seconds from
+        -- a coroutine loop launched in Application.moduleWithRoutes().
+        -- Each tick delegates to AlertEscalationService.processEscalations(now).
+        -- The scheduler is fire-and-forget: if processEscalations throws,
+        -- the loop continues on the next tick (error is logged, not propagated).
+}
+
+-- Core escalation processing
+
+rule ProcessEscalation {
+    when: EscalationCheckTriggered()
+    let cutoff = now - config.escalation_timeout
+
+    for alert in alerts/AlertEvents
+        where status = acknowledged
+        and acknowledged_at <= cutoff:
+
+        let promoted_severity = PromoteSeverity(alert)
+        let target = ResolveEscalationTarget(alert, promoted_severity)
+
+        -- 1. Persist the escalation
+        ensures: alert.status = escalated
+        ensures: alert.escalated_at = now
+        ensures: alert.escalated_to = target
+        ensures: alert.severity = promoted_severity
+            when promoted_severity != alert.severity
+
+        -- 2. Route delivery with promoted channels
+        ensures: RouteEscalationDelivery(alert, promoted_severity)
+
+        -- 3. Publish audit event
+        ensures: GovernanceAuditEvent.published(
+            event_type: alert_escalated,
+            user_id: "system",
+            user_role: "SYSTEM",
+            book_id: alert.book_id,
+            details: "alertId={alert.id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
+        )
+
+    @guidance
+        -- The cutoff is computed as now - escalationTimeoutMinutes * 60 seconds.
+        -- Repository.findAcknowledgedBefore(cutoff) returns all ACKNOWLEDGED alerts
+        -- whose acknowledged_at is at or before the cutoff.
+        -- The severity field on the persisted AlertEvent is MUTATED only when
+        -- promoted_severity differs from the original (e.g. WARNING -> CRITICAL).
+        -- CRITICAL and INFO alerts keep their severity in the database.
+        -- The audit event is published to the "governance.audit" Kafka topic via
+        -- KafkaGovernanceAuditPublisher, keyed by event type.
+        -- If auditPublisher is null (e.g. in tests), audit publishing is skipped.
+}
+
+-- Debounce: already-escalated alerts are not re-escalated
+
+rule EscalationDebounce {
+    when: EscalationCheckTriggered()
+
+    for alert in alerts/AlertEvents where status = escalated:
+        -- Already escalated; no further action
+        ensures: alert.status = escalated  -- unchanged
+        ensures: alert.escalated_at = alert.escalated_at  -- unchanged
+
+    @guidance
+        -- findAcknowledgedBefore(cutoff) only returns ACKNOWLEDGED alerts.
+        -- ESCALATED alerts are excluded from the query by their status,
+        -- so they are never re-processed.
+        -- This is a query-level debounce, not an application-level check.
+        -- TRIGGERED alerts are also excluded: only ACKNOWLEDGED alerts can escalate.
+        -- RESOLVED alerts are excluded by the same mechanism.
+}
+
+-- Escalated alert can only be resolved, not re-acknowledged
+
+rule EscalatedAlertCannotBeReAcknowledged {
+    when: AcknowledgeAlertRequested(alert_id)
+    let alert = alerts/AlertEvent{id: alert_id}
+    requires: alert.status = escalated
+
+    rejects: HTTP 409 Conflict
+        "Escalated alerts cannot be re-acknowledged; resolve them instead"
+
+    @guidance
+        -- The acknowledge endpoint checks AlertStatus.canTransitionTo(ACKNOWLEDGED).
+        -- For ESCALATED status, canTransitionTo returns false for ACKNOWLEDGED
+        -- and true only for RESOLVED.
+        -- This enforces the state machine: escalated alerts must be resolved,
+        -- they cannot cycle back to acknowledged.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant EscalationRequiresAcknowledgement {
+    @guidance
+        -- An alert can only be escalated if it has been acknowledged first.
+        -- The state machine enforces: TRIGGERED -> ACKNOWLEDGED -> ESCALATED.
+        -- There is no direct TRIGGERED -> ESCALATED transition.
+        -- This is enforced both by the AlertStatus.canTransitionTo() method
+        -- and by the findAcknowledgedBefore() query that only finds ACKNOWLEDGED alerts.
+}
+
+invariant EscalationIsIdempotent {
+    @guidance
+        -- An alert is escalated at most once. Once status = ESCALATED,
+        -- no subsequent escalation poll will re-escalate it.
+        -- The debounce is at the query level: findAcknowledgedBefore returns
+        -- only ACKNOWLEDGED alerts, so ESCALATED alerts are never candidates.
+        -- The escalated_at and escalated_to fields are immutable after escalation.
+}
+
+invariant SeverityPromotionIsMonotonic {
+    @guidance
+        -- Severity can only increase on escalation, never decrease:
+        --   INFO     -> INFO      (no change)
+        --   WARNING  -> CRITICAL  (promoted)
+        --   CRITICAL -> CRITICAL  (no change)
+        -- There is no path from CRITICAL back to WARNING or INFO.
+        -- This ensures escalated alerts always carry at least their
+        -- original severity, and WARNING alerts are elevated to match
+        -- the operational urgency that triggered escalation.
+}
+
+invariant EscalationProducesAuditTrail {
+    @guidance
+        -- Every successful escalation publishes exactly one
+        -- GovernanceAuditEvent with eventType = ALERT_ESCALATED to the
+        -- "governance.audit" Kafka topic. This event includes:
+        --   - alertId: the escalated alert's ID
+        --   - severity transition: original -> promoted
+        --   - escalatedTo: the target (desk-head or risk-manager,cro)
+        --   - alert type: the AlertType of the original alert
+        --   - bookId: the portfolio book associated with the alert
+        --   - userId: "system" (escalation is automatic)
+        --   - userRole: "SYSTEM"
+        -- The audit event is consumed by audit-service and becomes part
+        -- of the hash-chained audit trail, ensuring escalation decisions
+        -- are tamper-evident and auditable.
+}
+
+invariant EscalatedDeliveryMatchesPromotedSeverity {
+    @guidance
+        -- The delivery channels used for escalation notifications are
+        -- determined by the PROMOTED severity, not the original severity.
+        -- A WARNING alert that is promoted to CRITICAL will be delivered
+        -- via email + webhook + PagerDuty (the CRITICAL channel set),
+        -- not just email (the WARNING channel set).
+        -- This ensures that promoted alerts receive the urgency-appropriate
+        -- notification channels.
+}

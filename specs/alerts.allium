@@ -76,6 +76,10 @@ entity AlertAcknowledgement {
 
 config {
     escalation_timeout: Duration = 30.minutes
+    escalation_check_interval: Duration = 1.minute
+    nonlinearity_gamma_threshold: Decimal = 0.01
+    nonlinearity_vega_threshold: Decimal = 1.0
+    max_contributors: Integer = 10
 }
 
 ------------------------------------------------------------
@@ -137,17 +141,41 @@ rule EvaluateAlertRules {
         ensures: AlertTriggered(alert_rule: rule, book_id: event.book_id)
 
     @guidance
-        -- Metric extraction by alert type:
-        --   VAR_BREACH -> event.varValue
-        --   PNL_THRESHOLD -> event.expectedShortfall
-        --   RISK_LIMIT -> event.limitBreachAmount
-        --   DELTA_BREACH -> event.greeks.delta
-        --   VEGA_BREACH -> event.greeks.vega
-        --
         -- Comparison: metric {operator} threshold.
         -- Deduplication: only one TRIGGERED alert per (rule, book).
         -- Contributors: top 10 positions sorted by |varContribution|.
 }
+
+------------------------------------------------------------
+-- Metric Extractors (pluggable, one per AlertType)
+------------------------------------------------------------
+
+deferred extract_metric
+    -- Each AlertType has a dedicated MetricExtractor that maps a
+    -- RiskResultEvent to a nullable Double. If null, the rule does
+    -- not fire. Extractors are registered by type and looked up at
+    -- evaluation time.
+    --
+    -- Extraction by alert type:
+    --
+    --   VAR_BREACH          -> event.varValue (parsed as Double)
+    --   PNL_THRESHOLD       -> event.expectedShortfall (parsed as Double)
+    --   RISK_LIMIT          -> event.varValue (parsed as Double)
+    --   DELTA_BREACH        -> event.aggregateDelta (parsed as Double)
+    --   VEGA_BREACH         -> event.aggregateVega (parsed as Double)
+    --   CONCENTRATION       -> max(event.concentrationByInstrument[].percentage)
+    --   MARGIN_BREACH       -> event.marginUtilisation
+    --   DATA_STALENESS      -> null (stub — not yet implemented; rule never fires)
+    --   LIQUIDITY_CONCENTRATION -> numeric encoding of event.liquidityConcentrationStatus:
+    --       "BREACHED" -> 2.0, "WARNING" -> 1.0, "OK" -> 0.0, absent -> null.
+    --       A rule with threshold=1.5, operator=GREATER_THAN fires only on BREACHED.
+    --       A rule with threshold=0.5, operator=GREATER_THAN fires on WARNING and BREACHED.
+    --   REGIME_CHANGE       -> not evaluated via MetricExtractor; uses dedicated
+    --       RegimeChangeRule consuming from Kafka topic risk.regime.changes.
+    --   FACTOR_CONCENTRATION -> sentinel detection: if event.concentrationByInstrument
+    --       contains an entry with instrumentId = "FACTOR_MODEL", returns 1.0; else null.
+    --       A rule with threshold=0.5, operator=GREATER_THAN fires whenever the
+    --       factor model reports concentration risk.
 
 -- Auto-resolution
 
@@ -176,12 +204,32 @@ rule GenerateSuggestedAction {
 
     @guidance
         -- Only generates for VAR_BREACH and RISK_LIMIT types.
+        -- All other alert types return null (no suggestion).
         -- If no contributors: no suggestion.
-        -- If top contributor has significant nonlinearity (|gamma| > 0.01 or |vega| > 1.0):
-        --   "Non-linear position — use What-If for accurate sizing."
-        -- Otherwise (linear approximation):
+        --
+        -- Inputs:
+        --   current_var = event.varValue (parsed as Double)
+        --   target_var = rule.threshold
+        --   var_excess = current_var - target_var
+        --   If var_excess <= 0: no suggestion (alert is marginal).
+        --
+        -- Top contributor = contributors sorted by |varContribution| descending, first.
+        --
+        -- Nonlinearity detection:
+        --   If top contributor has gamma != null or vega != null, AND
+        --   (|gamma| > 0.01 or |vega| > 1.0):
+        --     Message: "Book VaR exceeds limit by ${var_excess}. Top contributor:
+        --     {instrumentId} ({pctOfTotal}%). Non-linear position -- use What-If
+        --     for accurate sizing."
+        --
+        -- Linear approximation (when nonlinearity thresholds are not exceeded):
         --   reduction_needed = (var_excess / top_var_contribution * 100).round()
-        --   "Reducing {instrument_id} by ~{reduction_needed}% would bring estimated VaR within limit."
+        --   Clamped to [1, 100].
+        --   Message: "Book VaR exceeds limit by ${var_excess}. Top contributor:
+        --   {instrumentId} ({pctOfTotal}%). Reducing {instrumentId} by
+        --   ~{reduction_needed}% would bring estimated VaR within limit."
+        --
+        -- Amount formatting: >= 1M -> "X.XM", >= 1K -> "XK", else plain integer.
 }
 
 -- Alert acknowledgement
@@ -227,23 +275,63 @@ rule EscalateAlert {
         let acknowledgement = AlertAcknowledgement{alert_event: alert}
         requires: (now - acknowledgement.acknowledged_at) >= config.escalation_timeout
 
+        let promoted_severity = promote_severity(alert.severity)
+        let target = escalation_target(promoted_severity)
+        let channels = escalation_channels(promoted_severity)
+
         ensures: alert.status = escalated
         ensures: alert.escalated_at = now
-        ensures: alert.escalated_to = escalation_target(alert.severity)
+        ensures: alert.escalated_to = target
         ensures: AlertEscalated(alert: alert)
+        ensures: delivery_routed(alert, channels)
+        ensures: AuditEvent.created(
+            event_type: alert_escalated,
+            user_id: "system",
+            user_role: "SYSTEM",
+            book_id: alert.book_id,
+            details: "alertId={alert.id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
+        )
 
     @guidance
-        -- EscalationCheckTriggered fires periodically (e.g. every minute).
-        -- An acknowledged alert that has not been resolved within
-        -- escalation_timeout is escalated.
-        -- escalation_target derives the notification target from current severity:
-        --   info     -> desk-head (email)
-        --   warning  -> desk-head (email)
-        --   critical -> risk-manager,cro (email)
-        -- Acknowledged alerts that trigger escalation must produce an
-        -- audit event (event_type: limit_breached or risk_calculation_completed
-        -- as appropriate) so that the escalation is part of the hash-chained trail.
+        -- EscalationCheckTriggered fires periodically via ScheduledAlertEscalation
+        -- (typically every minute). The service queries for acknowledged alerts
+        -- whose acknowledgement time exceeds escalation_timeout.
+        --
+        -- Severity promotion on escalation:
+        --   warning  -> critical  (promoted: increases urgency)
+        --   info     -> info      (not promoted: informational stays informational)
+        --   critical -> critical  (already at ceiling)
+        --
+        -- Escalation target derives from the PROMOTED severity:
+        --   info     -> desk-head
+        --   warning  -> desk-head
+        --   critical -> risk-manager,cro
+        --
+        -- Escalation delivery channels by promoted severity:
+        --   critical -> email + webhook + pager_duty
+        --   warning  -> email only
+        --   info     -> email only
+        --
+        -- NOTE: PAGER_DUTY is a delivery channel present in production code
+        -- (DeliveryChannel enum) but not yet in core.allium. It is used
+        -- exclusively for escalation delivery of critical alerts.
+        --
+        -- Every escalation produces a GovernanceAuditEvent (event_type:
+        -- ALERT_ESCALATED) published to the audit trail, ensuring the
+        -- escalation is visible in the hash-chained audit log.
 }
+
+deferred promote_severity
+    -- Severity promotion logic on escalation.
+    --   warning  -> critical
+    --   info     -> info     (not promoted)
+    --   critical -> critical (already at ceiling)
+
+deferred escalation_channels
+    -- Delivery channel selection for escalated alerts.
+    --   critical -> [email, webhook, pager_duty]
+    --   warning  -> [email]
+    --   info     -> [email]
 
 -- Delivery routing
 
@@ -251,10 +339,48 @@ rule RouteAlertDelivery {
     when: AlertTriggered(alert_rule, book_id)
 
     @guidance
-        -- For each channel in alert_rule.channels:
-        --   IN_APP: persist alert to database for UI retrieval.
-        --   EMAIL: send notification email.
-        --   WEBHOOK: POST to configured webhook endpoint.
+        -- For each channel in alert_rule.channels, dispatch via DeliveryRouter
+        -- which maps DeliveryChannel -> DeliveryService:
+        --   IN_APP     : persist alert to database for UI retrieval via WebSocket.
+        --   EMAIL      : send notification email to configured recipients.
+        --   WEBHOOK    : POST JSON payload to configured webhook endpoint.
+        --   PAGER_DUTY : trigger PagerDuty incident (used by escalation path for
+        --                critical alerts; not typically configured on user-defined rules).
+        --
+        -- If no DeliveryService is registered for a channel, that channel is
+        -- silently skipped (fail-open for extensibility).
+}
+
+-- Data staleness detection
+
+rule EvaluateDataStaleness {
+    @guidance
+        -- The DATA_STALENESS alert type is defined and its MetricExtractor is
+        -- registered, but the extractor currently returns null for all events.
+        -- This means DATA_STALENESS rules never fire via the standard
+        -- EvaluateAlertRules path.
+        --
+        -- Data staleness is instead detected at the gateway layer via the
+        -- DataQualityRoutes endpoint (/api/v1/data-quality/status), which
+        -- checks four dimensions:
+        --   1. Price Freshness   (not yet implemented -- returns UNKNOWN)
+        --   2. Position Count    (not yet implemented -- returns UNKNOWN)
+        --   3. Risk Result Completeness (not yet implemented -- returns UNKNOWN)
+        --   4. FIX Connectivity  (implemented -- checks session statuses)
+        --
+        -- The overall traffic light is derived from individual checks:
+        --   any CRITICAL -> overall CRITICAL
+        --   any WARNING  -> overall WARNING
+        --   all UNKNOWN  -> overall UNKNOWN
+        --   else         -> OK
+        --
+        -- The UI renders this via DataQualityIndicator (traffic light icon
+        -- with expandable dropdown showing per-check details).
+        --
+        -- Future: connect the DATA_STALENESS extractor to a real metric
+        -- (e.g. max price age across instruments, or time since last
+        -- risk result) so that staleness rules fire through the standard
+        -- alert evaluation pipeline.
 }
 
 -- Regime change alerts (from MarketRegimeEvent Kafka topic)
@@ -280,13 +406,24 @@ rule EvaluateRegimeChange {
     @guidance
         -- Consumes from Kafka topic risk.regime.changes via MarketRegimeEventConsumer.
         -- RegimeChangeRule evaluates the regime and maps to severity:
-        --   CRISIS       -> critical
-        --   ELEVATED_VOL -> warning
-        --   RECOVERY     -> info
-        --   NORMAL       -> no alert (suppressed)
-        -- The alert message includes previous/new regime, effective VaR method,
-        -- confidence level, time horizon, correlation method, and whether
-        -- signal inputs are degraded.
+        --   any -> CRISIS                           = critical
+        --   NORMAL -> ELEVATED_VOL                  = warning
+        --   any -> RECOVERY                         = info
+        --   CRISIS -> NORMAL (recovery from crisis) = info
+        --   NORMAL -> NORMAL                        = no alert (suppressed)
+        --   ELEVATED_VOL -> NORMAL                  = no alert (suppressed)
+        --
+        -- The alert message includes:
+        --   - previous regime and new regime
+        --   - effective VaR method (calculation type)
+        --   - confidence level
+        --   - time horizon in days
+        --   - correlation method
+        --   - degraded signal inputs warning (if event.degradedInputs = true)
+        --
+        -- Regime change alerts use book_id = "GLOBAL" (system-wide, not book-specific).
+        -- They bypass the standard MetricExtractor pipeline entirely --
+        -- RegimeChangeRule is evaluated directly by the MarketRegimeEventConsumer.
         -- Persisted via AlertEventRepository and delivered via DeliveryService.
 }
 
@@ -315,15 +452,33 @@ invariant AlertDeduplication {
 
 invariant AlertStatusTransitions {
     @guidance
-        -- Valid transitions:
-        --   triggered -> acknowledged (manual)
-        --   triggered -> resolved (auto-clear or manual)
-        --   acknowledged -> escalated (automatic, after escalation_timeout)
-        --   acknowledged -> resolved (auto-clear or manual)
-        --   escalated -> resolved (auto-clear or manual)
+        -- Valid transitions (enforced by AlertStatus.canTransitionTo):
+        --   triggered    -> acknowledged  (manual acknowledgement)
+        --   triggered    -> resolved      (auto-clear when metric recovers, or manual)
+        --   acknowledged -> escalated     (automatic, after escalation_timeout elapses)
+        --   acknowledged -> resolved      (auto-clear when metric recovers, or manual)
+        --   escalated    -> resolved      (auto-clear when metric recovers, or manual)
+        --
+        -- Invalid transitions (rejected):
+        --   resolved -> any              (terminal; cannot reopen)
+        --   triggered -> escalated       (must be acknowledged first)
+        --   escalated -> acknowledged    (cannot demote)
+        --
         -- resolved is the only terminal state.
-        -- acknowledged is no longer terminal: it can escalate or resolve.
-        -- Every acknowledgement must produce an audit event so that
-        -- the point of acknowledgement and any subsequent escalation
-        -- are visible in the hash-chained audit trail.
+        -- acknowledged is NOT terminal: it can escalate or resolve.
+        --
+        -- On escalation, severity may be promoted:
+        --   warning  -> critical  (increases urgency)
+        --   info     -> info      (informational stays informational)
+        --   critical -> critical  (already at ceiling)
+        --
+        -- Every acknowledgement and escalation must produce an audit event
+        -- so that the full lifecycle is visible in the hash-chained audit trail.
+}
+
+invariant EscalationSeverityMonotonic {
+    @guidance
+        -- Severity can only increase or stay the same during escalation.
+        -- It never decreases. The promote_severity function enforces this:
+        -- warning -> critical, all others stay at their current level.
 }
