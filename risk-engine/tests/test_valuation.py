@@ -1,10 +1,13 @@
 import pytest
 
+from kinetix_risk.market_data_consumer import MarketDataBundle
+from kinetix_risk.market_data_models import YieldCurveData
 from kinetix_risk.models import (
     AssetClass,
     CalculationType,
     ConfidenceLevel,
     PositionRisk,
+    SwapPosition,
     ValuationResult,
 )
 from kinetix_risk.valuation import calculate_valuation
@@ -244,3 +247,64 @@ class TestValuationEdgeCases:
         )
         assert result.greeks_result is not None
         assert result.greeks_result.book_id == "test-port"
+
+
+def _flat_yield_curve(rate: float = 0.04) -> YieldCurveData:
+    return YieldCurveData(tenors=[
+        (90, rate), (365, rate), (730, rate), (1825, rate), (3650, rate),
+    ])
+
+
+class TestValuationSwapDV01Pipeline:
+    """Acceptance tests: swap positions produce meaningful VaR via DV01 exposure."""
+
+    def test_swap_position_produces_nonzero_var(self):
+        swap = SwapPosition(
+            instrument_id="USD-SOFR-5Y",
+            asset_class=AssetClass.DERIVATIVE,
+            market_value=0.0,
+            currency="USD",
+            instrument_type="INTEREST_RATE_SWAP",
+            notional=10_000_000.0,
+            fixed_rate=0.035,
+            maturity_date="2031-04-01",
+            pay_receive="PAY_FIXED",
+        )
+        bundle = MarketDataBundle(yield_curves={"USD": _flat_yield_curve(0.04)})
+        result = calculate_valuation(
+            positions=[swap],
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR"],
+            market_data_bundle=bundle,
+        )
+        assert result.var_result is not None
+        assert result.var_result.var_value > 0
+
+    def test_mixed_swap_and_equity_both_contribute_to_var(self):
+        swap = SwapPosition(
+            instrument_id="USD-SOFR-5Y",
+            asset_class=AssetClass.DERIVATIVE,
+            market_value=0.0,
+            currency="USD",
+            instrument_type="INTEREST_RATE_SWAP",
+            notional=10_000_000.0,
+            fixed_rate=0.035,
+            maturity_date="2031-04-01",
+        )
+        equity = PositionRisk("AAPL", AssetClass.EQUITY, 1_000_000.0, "USD")
+        bundle = MarketDataBundle(yield_curves={"USD": _flat_yield_curve(0.04)})
+        result = calculate_valuation(
+            positions=[swap, equity],
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+            requested_outputs=["VAR"],
+            market_data_bundle=bundle,
+        )
+        assert result.var_result is not None
+        # Both asset classes should contribute
+        breakdown_acs = {cb.asset_class for cb in result.var_result.component_breakdown}
+        assert AssetClass.DERIVATIVE in breakdown_acs
+        assert AssetClass.EQUITY in breakdown_acs
