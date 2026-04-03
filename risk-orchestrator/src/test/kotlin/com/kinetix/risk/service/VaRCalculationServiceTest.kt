@@ -1084,4 +1084,59 @@ class VaRCalculationServiceTest : FunSpec({
         result.shouldNotBeNull()
         result.varValue shouldBe 5000.0
     }
+
+    test("sets marketDataComplete to true when all market data fetches succeed") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        val dep = com.kinetix.risk.model.DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY")
+        val fetchResults = listOf(
+            com.kinetix.risk.model.FetchSuccess(dep, com.kinetix.risk.model.ScalarMarketData("SPOT_PRICE", "AAPL", "EQUITY", 170.0)),
+        )
+
+        val mockDiscoverer = mockk<com.kinetix.risk.service.DependenciesDiscoverer>()
+        val mockFetcher = mockk<com.kinetix.risk.service.MarketDataFetcher>()
+        val svc = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, dependenciesDiscoverer = mockDiscoverer, marketDataFetcher = mockFetcher, jobRecorder = jobRecorder)
+
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
+        coEvery { mockDiscoverer.discover(any(), any(), any()) } returns listOf(dep)
+        coEvery { mockFetcher.fetch(any()) } returns fetchResults
+        coEvery { riskEngineClient.valuate(any(), positions, any(), any()) } returns expectedResult
+        coEvery { resultPublisher.publish(any(), any()) } just Runs
+
+        val result = svc.calculateVaR(
+            VaRCalculationRequest(bookId = BookId("port-1"), calculationType = CalculationType.PARAMETRIC, confidenceLevel = ConfidenceLevel.CL_95),
+        )
+
+        result.shouldNotBeNull()
+        result.marketDataComplete shouldBe true
+    }
+
+    test("sets marketDataComplete to false when any market data fetch fails") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+        val dep = com.kinetix.risk.model.DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY")
+        val fetchResults = listOf(
+            com.kinetix.risk.model.FetchFailure(
+                dep, "NOT_FOUND", null, 404, null, "price-service",
+                java.time.Instant.now(), 5L,
+            ),
+        )
+
+        val mockDiscoverer = mockk<com.kinetix.risk.service.DependenciesDiscoverer>()
+        val mockFetcher = mockk<com.kinetix.risk.service.MarketDataFetcher>()
+        val svc = VaRCalculationService(positionProvider, riskEngineClient, resultPublisher, dependenciesDiscoverer = mockDiscoverer, marketDataFetcher = mockFetcher, jobRecorder = jobRecorder)
+
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
+        coEvery { mockDiscoverer.discover(any(), any(), any()) } returns listOf(dep)
+        coEvery { mockFetcher.fetch(any()) } returns fetchResults
+        coEvery { riskEngineClient.valuate(any(), positions, any(), any()) } returns expectedResult
+        coEvery { resultPublisher.publish(any(), any()) } just Runs
+
+        val result = svc.calculateVaR(
+            VaRCalculationRequest(bookId = BookId("port-1"), calculationType = CalculationType.PARAMETRIC, confidenceLevel = ConfidenceLevel.CL_95),
+        )
+
+        result.shouldNotBeNull()
+        result.marketDataComplete shouldBe false
+    }
 })

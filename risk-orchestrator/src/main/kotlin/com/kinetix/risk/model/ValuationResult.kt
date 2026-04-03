@@ -21,4 +21,5 @@ data class ValuationResult(
     val modelVersion: String? = null,
     val valuationDate: LocalDate? = null,
     val monteCarloSeed: Long = 0,
+    val marketDataComplete: Boolean = true,
 )

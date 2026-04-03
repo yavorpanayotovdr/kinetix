@@ -2,6 +2,7 @@ package com.kinetix.common.resilience
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -174,5 +175,71 @@ class CircuitBreakerTest : FunSpec({
         now = now.plusMillis(6000)
         runCatching { cb.execute { throw RuntimeException("still failing") } }
         cb.currentState shouldBe CircuitState.OPEN
+    }
+
+    test("notifies state change listener on CLOSED to OPEN transition") {
+        val transitions = mutableListOf<Pair<CircuitState, CircuitState>>()
+        val cb = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, name = "listener-test"),
+            onStateChange = { old, new -> transitions.add(old to new) },
+        )
+
+        repeat(2) {
+            runCatching { cb.execute { throw RuntimeException("fail") } }
+        }
+
+        cb.currentState shouldBe CircuitState.OPEN
+        transitions shouldContain (CircuitState.CLOSED to CircuitState.OPEN)
+    }
+
+    test("notifies state change listener on OPEN to HALF_OPEN and HALF_OPEN to CLOSED transitions") {
+        val transitions = mutableListOf<Pair<CircuitState, CircuitState>>()
+        var now = Instant.parse("2025-01-15T10:00:00Z")
+        val mutableClock = object : Clock() {
+            override fun getZone() = ZoneId.of("UTC")
+            override fun withZone(zone: ZoneId?) = this
+            override fun instant(): Instant = now
+        }
+        val cb = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, resetTimeoutMs = 5000, name = "listener-test"),
+            clock = mutableClock,
+            onStateChange = { old, new -> transitions.add(old to new) },
+        )
+
+        repeat(2) {
+            runCatching { cb.execute { throw RuntimeException("fail") } }
+        }
+        cb.currentState shouldBe CircuitState.OPEN
+
+        now = now.plusMillis(6000)
+        cb.execute { "recovered" }
+        cb.currentState shouldBe CircuitState.CLOSED
+
+        transitions shouldContain (CircuitState.CLOSED to CircuitState.OPEN)
+        transitions shouldContain (CircuitState.OPEN to CircuitState.HALF_OPEN)
+        transitions shouldContain (CircuitState.HALF_OPEN to CircuitState.CLOSED)
+    }
+
+    test("notifies state change listener on HALF_OPEN to OPEN re-trip") {
+        val transitions = mutableListOf<Pair<CircuitState, CircuitState>>()
+        var now = Instant.parse("2025-01-15T10:00:00Z")
+        val mutableClock = object : Clock() {
+            override fun getZone() = ZoneId.of("UTC")
+            override fun withZone(zone: ZoneId?) = this
+            override fun instant(): Instant = now
+        }
+        val cb = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, resetTimeoutMs = 5000, name = "listener-test"),
+            clock = mutableClock,
+            onStateChange = { old, new -> transitions.add(old to new) },
+        )
+
+        repeat(2) {
+            runCatching { cb.execute { throw RuntimeException("fail") } }
+        }
+        now = now.plusMillis(6000)
+        runCatching { cb.execute { throw RuntimeException("still failing") } }
+
+        transitions shouldContain (CircuitState.HALF_OPEN to CircuitState.OPEN)
     }
 })

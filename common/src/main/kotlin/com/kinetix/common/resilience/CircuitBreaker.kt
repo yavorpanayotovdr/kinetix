@@ -2,8 +2,10 @@ package com.kinetix.common.resilience
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
 
 enum class CircuitState { CLOSED, OPEN, HALF_OPEN }
 
@@ -20,7 +22,9 @@ class CircuitBreakerOpenException(val circuitName: String) :
 class CircuitBreaker(
     private val config: CircuitBreakerConfig = CircuitBreakerConfig(),
     private val clock: Clock = Clock.systemUTC(),
+    private val onStateChange: ((old: CircuitState, new: CircuitState) -> Unit)? = null,
 ) {
+    private val logger = LoggerFactory.getLogger(CircuitBreaker::class.java)
     private val mutex = Mutex()
     private var state: CircuitState = CircuitState.CLOSED
     private var failureCount: Int = 0
@@ -37,7 +41,7 @@ class CircuitBreaker(
                         clock.millis() - it.toEpochMilli()
                     } ?: Long.MAX_VALUE
                     if (elapsed >= config.resetTimeoutMs) {
-                        state = CircuitState.HALF_OPEN
+                        transitionTo(CircuitState.HALF_OPEN)
                         halfOpenCalls = 1
                     } else {
                         throw CircuitBreakerOpenException(config.name)
@@ -63,10 +67,20 @@ class CircuitBreaker(
         }
     }
 
+    private fun transitionTo(newState: CircuitState) {
+        val oldState = state
+        state = newState
+        logger.info(
+            "Circuit breaker '{}' transitioned: {} -> {} (failures={})",
+            config.name, oldState, newState, failureCount,
+        )
+        onStateChange?.invoke(oldState, newState)
+    }
+
     private fun onSuccess() {
         when (state) {
             CircuitState.HALF_OPEN -> {
-                state = CircuitState.CLOSED
+                transitionTo(CircuitState.CLOSED)
                 failureCount = 0
                 halfOpenCalls = 0
             }
@@ -82,13 +96,13 @@ class CircuitBreaker(
             CircuitState.CLOSED -> {
                 failureCount++
                 if (failureCount >= config.failureThreshold) {
-                    state = CircuitState.OPEN
                     lastFailureTime = clock.instant()
+                    transitionTo(CircuitState.OPEN)
                 }
             }
             CircuitState.HALF_OPEN -> {
-                state = CircuitState.OPEN
                 lastFailureTime = clock.instant()
+                transitionTo(CircuitState.OPEN)
             }
             else -> { /* already open */ }
         }

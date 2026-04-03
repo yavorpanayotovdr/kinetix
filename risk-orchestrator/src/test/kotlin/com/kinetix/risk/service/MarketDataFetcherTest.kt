@@ -1,6 +1,10 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.*
+import com.kinetix.common.resilience.CircuitBreaker
+import com.kinetix.common.resilience.CircuitBreakerConfig
+import com.kinetix.common.resilience.CircuitBreakerOpenException
+import com.kinetix.common.resilience.CircuitState
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
@@ -237,5 +241,71 @@ class MarketDataFetcherTest : FunSpec({
 
         val ratesFailure = result[1].shouldBeInstanceOf<FetchFailure>()
         ratesFailure.service shouldBe "rates-service"
+    }
+
+    test("skips price-service fetch immediately when circuit breaker is OPEN") {
+        val priceCircuitBreaker = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, name = "price-service"),
+        )
+        // Trip the circuit breaker
+        repeat(2) {
+            runCatching { priceCircuitBreaker.execute { throw RuntimeException("fail") } }
+        }
+        priceCircuitBreaker.currentState shouldBe CircuitState.OPEN
+
+        val fetcherWithCb = MarketDataFetcher(
+            priceServiceClient,
+            priceCircuitBreaker = priceCircuitBreaker,
+        )
+
+        val deps = listOf(DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY"))
+
+        val result = fetcherWithCb.fetch(deps)
+
+        result shouldHaveSize 1
+        val failure = result[0].shouldBeInstanceOf<FetchFailure>()
+        failure.reason shouldBe "CIRCUIT_OPEN"
+        failure.service shouldBe "price-service"
+        // The underlying client should not be called at all
+        coVerify(exactly = 0) { priceServiceClient.getLatestPrice(any()) }
+    }
+
+    test("counts failures against circuit breaker and opens circuit after threshold") {
+        val priceCircuitBreaker = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 3, name = "price-service"),
+        )
+
+        val fetcherWithCb = MarketDataFetcher(
+            priceServiceClient,
+            priceCircuitBreaker = priceCircuitBreaker,
+        )
+
+        coEvery { priceServiceClient.getLatestPrice(any()) } throws RuntimeException("upstream error")
+
+        val dep = DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY")
+
+        // Three failures should trip the circuit
+        repeat(3) { fetcherWithCb.fetch(listOf(dep)) }
+
+        priceCircuitBreaker.currentState shouldBe CircuitState.OPEN
+    }
+
+    test("records SERVICE_UNAVAILABLE response as failure against circuit breaker") {
+        val priceCircuitBreaker = CircuitBreaker(
+            CircuitBreakerConfig(failureThreshold = 2, name = "price-service"),
+        )
+
+        val fetcherWithCb = MarketDataFetcher(
+            priceServiceClient,
+            priceCircuitBreaker = priceCircuitBreaker,
+        )
+
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.ServiceUnavailable()
+
+        val dep = DiscoveredDependency("SPOT_PRICE", "AAPL", "EQUITY")
+
+        repeat(2) { fetcherWithCb.fetch(listOf(dep)) }
+
+        priceCircuitBreaker.currentState shouldBe CircuitState.OPEN
     }
 })

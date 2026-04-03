@@ -30,7 +30,7 @@ class CrossBookLimitCheckService(
     suspend fun checkLimits(result: CrossBookValuationResult): List<CrossBookLimitCheckResult> {
         val limits = when (val response = limitServiceClient.getLimits()) {
             is ClientResponse.Success -> response.value.filter { it.active && it.limitType == "VAR" }
-            is ClientResponse.NotFound -> return emptyList()
+            else -> return emptyList()
         }
 
         if (limits.isEmpty()) return emptyList()

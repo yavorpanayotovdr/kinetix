@@ -14,6 +14,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.time.Instant
 
 @Serializable
@@ -28,13 +29,14 @@ class HttpPositionServiceClient(
     private val baseUrl: String,
 ) : PositionServiceClient {
 
+    private val logger = LoggerFactory.getLogger(HttpPositionServiceClient::class.java)
+
     @Serializable
     private data class UpstreamErrorBody(val code: String = "", val message: String = "")
 
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
-    private suspend fun checkErrorResponse(response: HttpResponse) {
-        if (response.status == HttpStatusCode.NotFound || response.status.isSuccess()) return
+    private suspend fun errorResponseFor(response: HttpResponse): ClientResponse<Nothing> {
         val body = try {
             response.bodyAsText()
         } catch (_: Exception) {
@@ -45,67 +47,101 @@ class HttpPositionServiceClient(
         } catch (_: Exception) {
             body.ifBlank { response.status.description }
         }
-        throw UpstreamServiceException(response.status.value, message)
+        return if (response.status == HttpStatusCode.ServiceUnavailable) {
+            ClientResponse.ServiceUnavailable()
+        } else {
+            ClientResponse.UpstreamError(response.status.value, message)
+        }
     }
 
-    override suspend fun getPositions(bookId: BookId): ClientResponse<List<Position>> {
+    override suspend fun getPositions(bookId: BookId): ClientResponse<List<Position>> = try {
         val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/positions")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val dtos: List<PositionDto> = response.body()
-        return ClientResponse.Success(dtos.map { it.toDomain() })
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> ClientResponse.Success(response.body<List<PositionDto>>().map { it.toDomain() })
+            else -> errorResponseFor(response)
+        }
+    } catch (e: Exception) {
+        logger.warn("Network error fetching positions for book {}", bookId.value, e)
+        ClientResponse.NetworkError(e)
     }
 
-    override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> {
+    override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> = try {
         val response = httpClient.get("$baseUrl/api/v1/books")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val dtos: List<BookSummaryDto> = response.body()
-        return ClientResponse.Success(dtos.map { it.toDomain() })
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> ClientResponse.Success(response.body<List<BookSummaryDto>>().map { it.toDomain() })
+            else -> errorResponseFor(response)
+        }
+    } catch (e: Exception) {
+        logger.warn("Network error fetching distinct book IDs", e)
+        ClientResponse.NetworkError(e)
     }
 
     override suspend fun getTradesInRange(
         bookId: BookId,
         from: Instant,
         to: Instant,
-    ): ClientResponse<List<TradeDto>> {
+    ): ClientResponse<List<TradeDto>> = try {
         val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/trades")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val allTrades: List<TradeDto> = response.body()
-        val filtered = allTrades.filter { dto ->
-            val tradedAt = Instant.parse(dto.tradedAt)
-            !tradedAt.isBefore(from) && !tradedAt.isAfter(to)
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> {
+                val allTrades: List<TradeDto> = response.body()
+                val filtered = allTrades.filter { dto ->
+                    val tradedAt = Instant.parse(dto.tradedAt)
+                    !tradedAt.isBefore(from) && !tradedAt.isAfter(to)
+                }
+                ClientResponse.Success(filtered)
+            }
+            else -> errorResponseFor(response)
         }
-        return ClientResponse.Success(filtered)
+    } catch (e: Exception) {
+        logger.warn("Network error fetching trades for book {}", bookId.value, e)
+        ClientResponse.NetworkError(e)
     }
 
-    override suspend fun getNetCollateral(counterpartyId: String): ClientResponse<NetCollateralDto> {
+    override suspend fun getNetCollateral(counterpartyId: String): ClientResponse<NetCollateralDto> = try {
         val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/collateral/net")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val dto: NetCollateralResponse = response.body()
-        return ClientResponse.Success(
-            NetCollateralDto(
-                collateralReceived = dto.collateralReceived.toDouble(),
-                collateralPosted = dto.collateralPosted.toDouble(),
-            )
-        )
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> {
+                val dto: NetCollateralResponse = response.body()
+                ClientResponse.Success(
+                    NetCollateralDto(
+                        collateralReceived = dto.collateralReceived.toDouble(),
+                        collateralPosted = dto.collateralPosted.toDouble(),
+                    )
+                )
+            }
+            else -> errorResponseFor(response)
+        }
+    } catch (e: Exception) {
+        logger.warn("Network error fetching net collateral for counterparty {}", counterpartyId, e)
+        ClientResponse.NetworkError(e)
     }
 
-    override suspend fun getInstrumentNettingSets(counterpartyId: String): ClientResponse<Map<String, String>> {
+    override suspend fun getInstrumentNettingSets(counterpartyId: String): ClientResponse<Map<String, String>> = try {
         val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/instrument-netting-sets")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val mapping: Map<String, String> = response.body()
-        return ClientResponse.Success(mapping)
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> ClientResponse.Success(response.body())
+            else -> errorResponseFor(response)
+        }
+    } catch (e: Exception) {
+        logger.warn("Network error fetching netting sets for counterparty {}", counterpartyId, e)
+        ClientResponse.NetworkError(e)
     }
 
-    override suspend fun getTradesByCounterparty(counterpartyId: String): ClientResponse<List<CounterpartyTradeDto>> {
+    override suspend fun getTradesByCounterparty(counterpartyId: String): ClientResponse<List<CounterpartyTradeDto>> = try {
         val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/trades")
-        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        checkErrorResponse(response)
-        val trades: List<CounterpartyTradeDto> = response.body()
-        return ClientResponse.Success(trades)
+        when {
+            response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
+            response.status.isSuccess() -> ClientResponse.Success(response.body())
+            else -> errorResponseFor(response)
+        }
+    } catch (e: Exception) {
+        logger.warn("Network error fetching trades for counterparty {}", counterpartyId, e)
+        ClientResponse.NetworkError(e)
     }
 }

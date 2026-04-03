@@ -19,7 +19,7 @@ class RedisVaRCache(
     private val ttlSeconds: Long = 300L,
 ) : VaRCache {
 
-    private val log = LoggerFactory.getLogger(RedisVaRCache::class.java)
+    private val logger = LoggerFactory.getLogger(RedisVaRCache::class.java)
     private val sync = connection.sync()
     private val cacheJson = Json { ignoreUnknownKeys = true }
 
@@ -29,7 +29,7 @@ class RedisVaRCache(
             val value = Json.encodeToString(CachedValuationResult.from(result))
             sync.set(key, value, SetArgs().ex(ttlSeconds))
         } catch (e: Exception) {
-            log.warn("Cache write failed for bookId={}, continuing without caching", bookId, e)
+            logger.warn("Cache write failed for bookId={}, continuing without caching", bookId, e)
         }
     }
 
@@ -39,7 +39,7 @@ class RedisVaRCache(
             val value = sync.get(key) ?: return null
             cacheJson.decodeFromString<CachedValuationResult>(value).toValuationResult()
         } catch (e: Exception) {
-            log.warn("Cache read failed for bookId={}, treating as cache miss", bookId, e)
+            logger.warn("Cache read failed for bookId={}, treating as cache miss", bookId, e)
             null
         }
     }
@@ -100,6 +100,7 @@ internal data class CachedValuationResult(
     val pvValue: Double?,
     val positionRisk: List<CachedPositionRisk>,
     val jobId: String?,
+    val marketDataComplete: Boolean = true,
 ) {
     fun toValuationResult(): ValuationResult = ValuationResult(
         bookId = BookId(bookId),
@@ -136,6 +137,7 @@ internal data class CachedValuationResult(
             )
         },
         jobId = jobId?.let { UUID.fromString(it) },
+        marketDataComplete = marketDataComplete,
     )
 
     companion object {
@@ -174,6 +176,7 @@ internal data class CachedValuationResult(
                 )
             },
             jobId = result.jobId?.toString(),
+            marketDataComplete = result.marketDataComplete,
         )
     }
 }

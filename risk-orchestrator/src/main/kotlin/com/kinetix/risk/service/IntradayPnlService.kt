@@ -207,7 +207,7 @@ class IntradayPnlService(
                     val atm = response.value.points.firstOrNull()?.impliedVol?.toDouble()
                     if (atm != null) id to atm else null
                 }
-                is ClientResponse.NotFound -> {
+                else -> {
                     logger.debug("No current vol surface for {} — volChange will be zero", id.value)
                     null
                 }
@@ -220,7 +220,7 @@ class IntradayPnlService(
         return currencies.mapNotNull { currency ->
             when (val response = client.getLatestRiskFreeRate(currency, "1Y")) {
                 is ClientResponse.Success -> currency to response.value.rate
-                is ClientResponse.NotFound -> {
+                else -> {
                     logger.debug("No current risk-free rate for {} 1Y — rateChange will be zero", currency.currencyCode)
                     null
                 }
