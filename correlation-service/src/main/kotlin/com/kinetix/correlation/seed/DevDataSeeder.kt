@@ -37,11 +37,11 @@ class DevDataSeeder(
         const val WINDOW_DAYS = 252
 
         val LABELS: List<String> = listOf(
-            "AAPL", "AAPL-P-180-20260620", "AMZN", "BABA", "CL", "DE10Y",
-            "EURUSD", "GBPUSD", "GC", "GOOGL", "JPM",
-            "META", "MSFT", "NVDA", "NVDA-C-950-20260620", "NVDA-P-800-20260620",
-            "SI", "SPX-CALL-5000", "SPX-CALL-5200", "SPX-PUT-4500", "SPX-PUT-4800",
-            "TSLA", "US10Y", "US2Y", "US30Y", "USDJPY", "VIX-PUT-15",
+            "AAPL", "AAPL-C-200-20260620", "AAPL-P-180-20260620", "AMZN", "BABA", "CL", "DE10Y",
+            "EURUSD", "EURUSD-P-1.08-SEP26", "GBPUSD", "GBPUSD-3M", "GC", "GC-C-2200-DEC26", "GOOGL", "JPM",
+            "JPM-BOND-2031", "META", "MSFT", "NVDA", "NVDA-C-950-20260620", "NVDA-P-800-20260620",
+            "SI", "SPX-CALL-5000", "SPX-CALL-5200", "SPX-PUT-4500", "SPX-PUT-4800", "SPX-SEP26",
+            "TSLA", "US10Y", "US2Y", "US30Y", "USD-SOFR-5Y", "USDJPY", "VIX-PUT-15", "WTI-AUG26",
         )
 
         private enum class Sector { TECH, FX, FIXED_INCOME, COMMODITY, DERIVATIVE, FINANCE }
@@ -52,13 +52,17 @@ class DevDataSeeder(
             "NVDA" to Sector.TECH, "TSLA" to Sector.TECH,
             "JPM" to Sector.FINANCE,
             "EURUSD" to Sector.FX, "GBPUSD" to Sector.FX, "USDJPY" to Sector.FX,
+            "GBPUSD-3M" to Sector.FX,
             "US2Y" to Sector.FIXED_INCOME, "US10Y" to Sector.FIXED_INCOME,
             "US30Y" to Sector.FIXED_INCOME, "DE10Y" to Sector.FIXED_INCOME,
+            "JPM-BOND-2031" to Sector.FIXED_INCOME, "USD-SOFR-5Y" to Sector.FIXED_INCOME,
             "GC" to Sector.COMMODITY, "CL" to Sector.COMMODITY, "SI" to Sector.COMMODITY,
+            "WTI-AUG26" to Sector.COMMODITY, "GC-C-2200-DEC26" to Sector.COMMODITY,
             "SPX-PUT-4500" to Sector.DERIVATIVE, "SPX-CALL-5000" to Sector.DERIVATIVE,
             "SPX-PUT-4800" to Sector.DERIVATIVE, "SPX-CALL-5200" to Sector.DERIVATIVE,
             "NVDA-C-950-20260620" to Sector.DERIVATIVE, "NVDA-P-800-20260620" to Sector.DERIVATIVE,
-            "AAPL-P-180-20260620" to Sector.DERIVATIVE,
+            "AAPL-P-180-20260620" to Sector.DERIVATIVE, "AAPL-C-200-20260620" to Sector.DERIVATIVE,
+            "EURUSD-P-1.08-SEP26" to Sector.DERIVATIVE, "SPX-SEP26" to Sector.DERIVATIVE,
             "VIX-PUT-15" to Sector.DERIVATIVE,
         )
 

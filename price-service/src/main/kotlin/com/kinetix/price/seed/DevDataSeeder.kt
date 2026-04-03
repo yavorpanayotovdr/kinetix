@@ -160,6 +160,13 @@ class DevDataSeeder(
             "CL", "SI",
             "SPX-CALL-5000", "VIX-PUT-15",
             "DE10Y",
+            // Phase 3d/3e/3f: new instruments with trades
+            "SPX-PUT-4800", "SPX-CALL-5200",
+            "NVDA-C-950-20260620", "NVDA-P-800-20260620",
+            "AAPL-P-180-20260620", "AAPL-C-200-20260620",
+            "JPM-BOND-2031", "USD-SOFR-5Y",
+            "GBPUSD-3M", "WTI-AUG26", "GC-C-2200-DEC26",
+            "EURUSD-P-1.08-SEP26", "SPX-SEP26",
         )
 
         internal val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
@@ -191,6 +198,20 @@ class DevDataSeeder(
             InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75, AssetClass.DERIVATIVE, dailyVol = 0.03),
             InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
             InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            // Phase 3d/3e/3f: new option and futures instruments
+            InstrumentId("SPX-PUT-4800") to InstrumentConfig("USD", 52.40, 58.20, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("SPX-CALL-5200") to InstrumentConfig("USD", 25.60, 23.50, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("NVDA-C-950-20260620") to InstrumentConfig("USD", 30.20, 26.80, AssetClass.DERIVATIVE, dailyVol = 0.035),
+            InstrumentId("NVDA-P-800-20260620") to InstrumentConfig("USD", 32.50, 37.50, AssetClass.DERIVATIVE, dailyVol = 0.035),
+            InstrumentId("AAPL-P-180-20260620") to InstrumentConfig("USD", 5.80, 6.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("AAPL-C-200-20260620") to InstrumentConfig("USD", 9.20, 7.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("JPM-BOND-2031") to InstrumentConfig("USD", 101.20, 102.30, AssetClass.FIXED_INCOME, dailyVol = 0.004),
+            InstrumentId("USD-SOFR-5Y") to InstrumentConfig("USD", 99.70, 99.95, AssetClass.FIXED_INCOME, dailyVol = 0.002),
+            InstrumentId("GBPUSD-3M") to InstrumentConfig("USD", 1.2750, 1.2800, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("WTI-AUG26") to InstrumentConfig("USD", 74.50, 76.20, AssetClass.COMMODITY, dailyVol = 0.018),
+            InstrumentId("GC-C-2200-DEC26") to InstrumentConfig("USD", 42.30, 48.50, AssetClass.COMMODITY, dailyVol = 0.02),
+            InstrumentId("EURUSD-P-1.08-SEP26") to InstrumentConfig("USD", 2.40, 1.95, AssetClass.DERIVATIVE, dailyVol = 0.025),
+            InstrumentId("SPX-SEP26") to InstrumentConfig("USD", 4980.00, 5035.00, AssetClass.DERIVATIVE, dailyVol = 0.012),
         )
     }
 }

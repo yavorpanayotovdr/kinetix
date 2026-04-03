@@ -23,10 +23,10 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 22 instruments × 169 hourly points
-        // + 22 instruments × 253 daily closes (day 252 downTo 0, inclusive)
+        // 35 instruments × 169 hourly points
+        // + 35 instruments × 253 daily closes (day 252 downTo 0, inclusive)
         // + 301 daily prices for IDX-SPX benchmark (day 300 downTo 0, inclusive)
-        val expectedSaves = 22 * 169 + 22 * 253 + 301
+        val expectedSaves = 35 * 169 + 35 * 253 + 301
         coVerify(exactly = expectedSaves) { repository.save(any()) }
     }
 
@@ -43,7 +43,7 @@ class DevDataSeederTest : FunSpec({
         coVerify(exactly = 0) { repository.save(any()) }
     }
 
-    test("instruments list contains all 22 expected instruments") {
+    test("instruments list contains all 35 expected instruments") {
         DevDataSeeder.INSTRUMENT_IDS shouldBe setOf(
             "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA",
             "EURUSD", "US2Y", "US10Y", "US30Y", "GC", "SPX-PUT-4500",
@@ -52,6 +52,12 @@ class DevDataSeederTest : FunSpec({
             "CL", "SI",
             "SPX-CALL-5000", "VIX-PUT-15",
             "DE10Y",
+            "SPX-PUT-4800", "SPX-CALL-5200",
+            "NVDA-C-950-20260620", "NVDA-P-800-20260620",
+            "AAPL-P-180-20260620", "AAPL-C-200-20260620",
+            "JPM-BOND-2031", "USD-SOFR-5Y",
+            "GBPUSD-3M", "WTI-AUG26", "GC-C-2200-DEC26",
+            "EURUSD-P-1.08-SEP26", "SPX-SEP26",
         )
     }
 
