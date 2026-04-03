@@ -89,6 +89,7 @@ internal data class CachedValuationResult(
     val pvValue: Double?,
     val positionRisk: List<CachedPositionRisk>,
     val jobId: String?,
+    val marketDataComplete: Boolean = true,
 ) {
     fun toValuationResult(): ValuationResult = ValuationResult(
         bookId = BookId(bookId),
@@ -125,6 +126,7 @@ internal data class CachedValuationResult(
             )
         },
         jobId = jobId?.let { UUID.fromString(it) },
+        marketDataComplete = marketDataComplete,
     )
 
     companion object {
@@ -163,6 +165,7 @@ internal data class CachedValuationResult(
                 )
             },
             jobId = result.jobId?.toString(),
+            marketDataComplete = result.marketDataComplete,
         )
     }
 }

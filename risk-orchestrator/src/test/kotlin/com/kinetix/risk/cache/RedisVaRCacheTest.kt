@@ -69,4 +69,53 @@ class RedisVaRCacheTest : FunSpec({
     test("CACHE_SCHEMA_VERSION is a positive integer") {
         (RedisVaRCache.CACHE_SCHEMA_VERSION > 0) shouldBe true
     }
+
+    test("marketDataComplete defaults to true when absent in cached JSON") {
+        val jsonWithoutFlag = """
+            {
+                "bookId": "port-1",
+                "calculationType": "PARAMETRIC",
+                "confidenceLevel": "CL_95",
+                "varValue": 5000.0,
+                "expectedShortfall": 6250.0,
+                "componentBreakdown": [],
+                "greeks": null,
+                "calculatedAt": "2025-01-15T10:30:00Z",
+                "computedOutputs": ["VAR"],
+                "pvValue": null,
+                "positionRisk": [],
+                "jobId": null
+            }
+        """.trimIndent()
+
+        val cacheJson = Json { ignoreUnknownKeys = true }
+        val result = cacheJson.decodeFromString<CachedValuationResult>(jsonWithoutFlag)
+
+        result.marketDataComplete shouldBe true
+    }
+
+    test("marketDataComplete is preserved when false") {
+        val jsonWithFalse = """
+            {
+                "bookId": "port-1",
+                "calculationType": "PARAMETRIC",
+                "confidenceLevel": "CL_95",
+                "varValue": 4000.0,
+                "expectedShortfall": 5000.0,
+                "componentBreakdown": [],
+                "greeks": null,
+                "calculatedAt": "2025-01-15T10:30:00Z",
+                "computedOutputs": ["VAR"],
+                "pvValue": null,
+                "positionRisk": [],
+                "jobId": null,
+                "marketDataComplete": false
+            }
+        """.trimIndent()
+
+        val cacheJson = Json { ignoreUnknownKeys = true }
+        val result = cacheJson.decodeFromString<CachedValuationResult>(jsonWithFalse)
+
+        result.marketDataComplete shouldBe false
+    }
 })

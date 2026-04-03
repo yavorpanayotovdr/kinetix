@@ -70,6 +70,7 @@ internal fun ValuationResult.toResponse() = VaRResultResponse(
     pvValue = pvValue?.let { "%.2f".format(it) },
     positionRisk = positionRisk.takeIf { it.isNotEmpty() }?.map { it.toDto() },
     valuationDate = valuationDate?.toString(),
+    marketDataComplete = marketDataComplete,
 )
 
 internal fun PositionRisk.toDto() = PositionRiskDto(

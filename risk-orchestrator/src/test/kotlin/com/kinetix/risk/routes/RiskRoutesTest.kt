@@ -59,6 +59,7 @@ private fun ValuationResult.toResponse() = VaRResultResponse(
     },
     calculatedAt = calculatedAt.toString(),
     positionRisk = positionRisk.takeIf { it.isNotEmpty() }?.map { it.toDto() },
+    marketDataComplete = marketDataComplete,
 )
 
 private fun PositionRisk.toDto() = PositionRiskDto(

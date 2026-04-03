@@ -191,6 +191,7 @@ class VaRCalculationService(
                 emptyList<FetchResult>()
             }
             val marketData = fetchResults.filterIsInstance<FetchSuccess>().map { it.value }
+            val marketDataComplete = fetchResults.isEmpty() || fetchResults.all { it is FetchSuccess }
             val fetchMdDuration = java.time.Duration.between(fetchMdStart, Instant.now()).toMillis()
             phases.add(
                 JobPhase(
@@ -334,7 +335,7 @@ class VaRCalculationService(
                 )
             )
 
-            val enrichedResult = result.copy(positionRisk = positionRiskList, jobId = jobId, valuationDate = valuationDate)
+            val enrichedResult = result.copy(positionRisk = positionRiskList, jobId = jobId, valuationDate = valuationDate, marketDataComplete = marketDataComplete)
 
             logger.info(
                 "VaR calculation complete for portfolio {}: VaR={}, ES={}",
