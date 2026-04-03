@@ -98,6 +98,7 @@ export interface PnlUpdateMessage {
   unexplainedPnl: string
   highWaterMark: string
   correlationId?: string | null
+  missingFxRates?: string[]
 }
 
 export interface IntradayPnlSnapshotDto {
@@ -115,6 +116,7 @@ export interface IntradayPnlSnapshotDto {
   unexplainedPnl: string
   highWaterMark: string
   correlationId?: string | null
+  missingFxRates?: string[]
 }
 
 export interface IntradayPnlSeriesDto {

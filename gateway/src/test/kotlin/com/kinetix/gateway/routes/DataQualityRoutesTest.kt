@@ -200,4 +200,167 @@ class DataQualityRoutesTest : FunSpec({
             fixCheck["message"]!!.jsonPrimitive.content shouldContain "No FIX sessions configured"
         }
     }
+
+    // --- Wired data quality check tests ---
+
+    fun buildMultiUrlMockClient(responsesByPath: Map<String, Pair<String, HttpStatusCode>>): HttpClient {
+        val mockEngine = MockEngine { request ->
+            val path = request.url.encodedPath
+            val (body, status) = responsesByPath.entries
+                .firstOrNull { (pattern, _) -> path.contains(pattern) }
+                ?.value
+                ?: ("""{"status":"READY","checks":{}}""" to HttpStatusCode.OK)
+            respond(
+                content = body,
+                status = status,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        return HttpClient(mockEngine) { install(ContentNegotiation) { json() } }
+    }
+
+    fun Application.configureWithWiredChecks(
+        mockHttpClient: HttpClient,
+        priceUrl: String = "http://price-service",
+        riskUrl: String = "http://risk-orchestrator",
+    ) {
+        install(ServerContentNegotiation) { json() }
+        routing {
+            dataQualityRoutes(
+                httpClient = mockHttpClient,
+                positionUrl = "http://position-service",
+                priceUrl = priceUrl,
+                riskUrl = riskUrl,
+            )
+        }
+    }
+
+    test("Price Freshness check returns OK when price-service readiness endpoint reports READY") {
+        val mockClient = buildMultiUrlMockClient(
+            mapOf(
+                "health/ready" to ("""{"status":"READY","checks":{}}""" to HttpStatusCode.OK),
+                "fix/sessions" to ("""[]""" to HttpStatusCode.OK),
+            )
+        )
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Price Freshness" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "OK"
+        }
+    }
+
+    test("Price Freshness check returns CRITICAL when price-service is unreachable") {
+        val mockEngine = MockEngine { request ->
+            if (request.url.encodedPath.contains("health/ready") &&
+                request.url.host == "price-service"
+            ) {
+                throw java.io.IOException("Connection refused")
+            }
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val mockClient = HttpClient(mockEngine) { install(ContentNegotiation) { json() } }
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Price Freshness" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "CRITICAL"
+        }
+    }
+
+    test("Position Count check returns OK when position-service has portfolios") {
+        val mockClient = buildMultiUrlMockClient(
+            mapOf(
+                "api/v1/books" to ("""[{"id":"port-1"}]""" to HttpStatusCode.OK),
+                "health/ready" to ("""{"status":"READY","checks":{}}""" to HttpStatusCode.OK),
+                "fix/sessions" to ("""[]""" to HttpStatusCode.OK),
+            )
+        )
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Position Count" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "OK"
+        }
+    }
+
+    test("Position Count check returns WARNING when no portfolios exist") {
+        val mockClient = buildMultiUrlMockClient(
+            mapOf(
+                "api/v1/books" to ("""[]""" to HttpStatusCode.OK),
+                "health/ready" to ("""{"status":"READY","checks":{}}""" to HttpStatusCode.OK),
+                "fix/sessions" to ("""[]""" to HttpStatusCode.OK),
+            )
+        )
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Position Count" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "WARNING"
+        }
+    }
+
+    test("Risk Result Completeness check returns OK when risk-orchestrator is READY with no DLQ records") {
+        val readyBody = """{"status":"READY","checks":{},"consumers":{"trades.lifecycle":{"lastProcessedAt":null,"recordsProcessedTotal":100,"recordsSentToDlqTotal":0,"lastErrorAt":null,"consecutiveErrorCount":0}}}"""
+        val mockClient = buildMultiUrlMockClient(
+            mapOf(
+                "health/ready" to (readyBody to HttpStatusCode.OK),
+                "fix/sessions" to ("""[]""" to HttpStatusCode.OK),
+                "api/v1/books" to ("""[{"id":"port-1"}]""" to HttpStatusCode.OK),
+            )
+        )
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Risk Result Completeness" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "OK"
+        }
+    }
+
+    test("Risk Result Completeness check returns WARNING when risk-orchestrator has DLQ records") {
+        val readyBody = """{"status":"READY","checks":{},"consumers":{"trades.lifecycle":{"lastProcessedAt":null,"recordsProcessedTotal":100,"recordsSentToDlqTotal":5,"lastErrorAt":null,"consecutiveErrorCount":0}}}"""
+        val mockClient = buildMultiUrlMockClient(
+            mapOf(
+                "health/ready" to (readyBody to HttpStatusCode.OK),
+                "fix/sessions" to ("""[]""" to HttpStatusCode.OK),
+                "api/v1/books" to ("""[{"id":"port-1"}]""" to HttpStatusCode.OK),
+            )
+        )
+
+        testApplication {
+            application { configureWithWiredChecks(mockClient) }
+            val response = client.get("/api/v1/data-quality/status")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val check = body["checks"]!!.jsonArray
+                .map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == "Risk Result Completeness" }
+
+            check["status"]!!.jsonPrimitive.content shouldBe "WARNING"
+        }
+    }
 })

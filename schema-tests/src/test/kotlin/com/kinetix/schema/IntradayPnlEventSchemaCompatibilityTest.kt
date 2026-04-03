@@ -184,4 +184,53 @@ class IntradayPnlEventSchemaCompatibilityTest : FunSpec({
         val deserialized = json.decodeFromString<IntradayPnlEvent>(jsonWithoutInstrumentPnl)
         deserialized.instrumentPnl shouldBe null
     }
+
+    test("IntradayPnlEvent with missingFxRates serializes and deserializes correctly") {
+        val event = IntradayPnlEvent(
+            bookId = "book-6",
+            snapshotAt = "2026-03-24T10:21:00Z",
+            baseCurrency = "GBP",
+            trigger = "position_change",
+            totalPnl = "5000.00",
+            realisedPnl = "2000.00",
+            unrealisedPnl = "3000.00",
+            deltaPnl = "4000.00",
+            gammaPnl = "200.00",
+            vegaPnl = "100.00",
+            thetaPnl = "-50.00",
+            rhoPnl = "25.00",
+            unexplainedPnl = "725.00",
+            highWaterMark = "5500.00",
+            missingFxRates = listOf("USD/JPY", "EUR/GBP"),
+        )
+
+        val serialized = Json.encodeToString(IntradayPnlEvent.serializer(), event)
+        val deserialized = json.decodeFromString<IntradayPnlEvent>(serialized)
+
+        deserialized.missingFxRates shouldBe listOf("USD/JPY", "EUR/GBP")
+    }
+
+    test("IntradayPnlEvent without missingFxRates defaults to empty list for backward compatibility") {
+        val jsonWithoutMissingFxRates = """
+            {
+                "bookId": "book-7",
+                "snapshotAt": "2026-03-24T10:22:00Z",
+                "baseCurrency": "USD",
+                "trigger": "position_change",
+                "totalPnl": "100.00",
+                "realisedPnl": "50.00",
+                "unrealisedPnl": "50.00",
+                "deltaPnl": "80.00",
+                "gammaPnl": "10.00",
+                "vegaPnl": "5.00",
+                "thetaPnl": "-2.00",
+                "rhoPnl": "1.00",
+                "unexplainedPnl": "6.00",
+                "highWaterMark": "100.00"
+            }
+        """.trimIndent()
+
+        val deserialized = json.decodeFromString<IntradayPnlEvent>(jsonWithoutMissingFxRates)
+        deserialized.missingFxRates shouldBe emptyList()
+    }
 })

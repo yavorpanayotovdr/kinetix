@@ -12,6 +12,7 @@ data class CorrelationMatrixDto(
     val windowDays: Int,
     val asOfDate: String,
     val method: String,
+    val lastUpdatedAt: String? = null,
 ) {
     fun toDomain() = CorrelationMatrix(
         labels = labels,

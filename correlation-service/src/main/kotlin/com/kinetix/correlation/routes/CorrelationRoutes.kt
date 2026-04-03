@@ -69,4 +69,5 @@ private fun CorrelationMatrix.toResponse() = CorrelationMatrixResponse(
     windowDays = windowDays,
     asOfDate = asOfDate.toString(),
     method = method.name,
+    lastUpdatedAt = asOfDate.toString(),
 )

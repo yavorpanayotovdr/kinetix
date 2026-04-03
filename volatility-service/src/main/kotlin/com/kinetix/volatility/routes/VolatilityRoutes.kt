@@ -139,6 +139,7 @@ private fun VolSurface.toResponse() = VolSurfaceResponse(
     asOfDate = asOf.toString(),
     points = points.map { VolPointDto(it.strike.toDouble(), it.maturityDays, it.impliedVol.toDouble()) },
     source = source.name,
+    lastUpdatedAt = asOf.toString(),
 )
 
 /**

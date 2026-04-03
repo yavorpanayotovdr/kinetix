@@ -20,6 +20,7 @@ data class VolSurfaceDto(
     val asOfDate: String,
     val points: List<VolPointDto>,
     val source: String,
+    val lastUpdatedAt: String? = null,
 ) {
     fun toDomain() = VolSurface(
         instrumentId = InstrumentId(instrumentId),

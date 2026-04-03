@@ -8,4 +8,5 @@ data class VolSurfaceResponse(
     val asOfDate: String,
     val points: List<VolPointDto>,
     val source: String,
+    val lastUpdatedAt: String? = null,
 )

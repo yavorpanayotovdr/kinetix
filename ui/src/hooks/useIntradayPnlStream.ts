@@ -57,6 +57,7 @@ export function useIntradayPnlStream(
           unexplainedPnl: update.unexplainedPnl,
           highWaterMark: update.highWaterMark,
           correlationId: update.correlationId,
+          missingFxRates: update.missingFxRates,
         }
 
         setSnapshots((prev) => {

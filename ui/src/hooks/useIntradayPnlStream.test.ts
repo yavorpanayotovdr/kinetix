@@ -162,6 +162,40 @@ describe('useIntradayPnlStream', () => {
     expect(MockWebSocket.instances).toHaveLength(0)
   })
 
+  it('propagates missingFxRates from the WebSocket message to the snapshot', () => {
+    const { result } = renderHook(() =>
+      useIntradayPnlStream('book-1'),
+    )
+
+    act(() => {
+      MockWebSocket.instances[0].simulateOpen()
+    })
+
+    act(() => {
+      MockWebSocket.instances[0].simulateMessage(
+        makePnlUpdate({ missingFxRates: ['USD/JPY', 'EUR/GBP'] }),
+      )
+    })
+
+    expect(result.current.latest?.missingFxRates).toEqual(['USD/JPY', 'EUR/GBP'])
+  })
+
+  it('snapshot has undefined missingFxRates when not present in WebSocket message', () => {
+    const { result } = renderHook(() =>
+      useIntradayPnlStream('book-1'),
+    )
+
+    act(() => {
+      MockWebSocket.instances[0].simulateOpen()
+    })
+
+    act(() => {
+      MockWebSocket.instances[0].simulateMessage(makePnlUpdate())
+    })
+
+    expect(result.current.latest?.missingFxRates).toBeUndefined()
+  })
+
   it('sets connected to false when WebSocket closes', () => {
     const { result } = renderHook(() =>
       useIntradayPnlStream('book-1'),

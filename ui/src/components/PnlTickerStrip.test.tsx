@@ -118,4 +118,43 @@ describe('PnlTickerStrip', () => {
     // Should display formatted time (HH:MM:SS)
     expect(screen.getByTestId('ticker-snapshot-time')).toBeInTheDocument()
   })
+
+  it('shows missing FX rate warning when missingFxRates is non-empty', () => {
+    render(
+      <PnlTickerStrip
+        bookId="book-1"
+        latest={makeSnapshot({ missingFxRates: ['USD/JPY', 'EUR/GBP'] })}
+        connected={true}
+      />,
+    )
+
+    const warning = screen.getByTestId('ticker-missing-fx-rates')
+    expect(warning).toBeInTheDocument()
+    expect(warning).toHaveTextContent('USD/JPY')
+    expect(warning).toHaveTextContent('EUR/GBP')
+  })
+
+  it('does not show missing FX rate warning when missingFxRates is empty', () => {
+    render(
+      <PnlTickerStrip
+        bookId="book-1"
+        latest={makeSnapshot({ missingFxRates: [] })}
+        connected={true}
+      />,
+    )
+
+    expect(screen.queryByTestId('ticker-missing-fx-rates')).not.toBeInTheDocument()
+  })
+
+  it('does not show missing FX rate warning when missingFxRates is absent', () => {
+    render(
+      <PnlTickerStrip
+        bookId="book-1"
+        latest={makeSnapshot()}
+        connected={true}
+      />,
+    )
+
+    expect(screen.queryByTestId('ticker-missing-fx-rates')).not.toBeInTheDocument()
+  })
 })

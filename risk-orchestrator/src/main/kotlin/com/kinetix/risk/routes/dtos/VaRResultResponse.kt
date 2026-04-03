@@ -17,4 +17,5 @@ data class VaRResultResponse(
     val positionRisk: List<PositionRiskDto>? = null,
     val valuationDate: String? = null,
     val marketDataComplete: Boolean = true,
+    val stale: Boolean? = null,
 )

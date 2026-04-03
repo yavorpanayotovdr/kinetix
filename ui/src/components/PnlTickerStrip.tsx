@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import type { IntradayPnlSnapshotDto } from '../types'
 import { formatNum, formatTimeOnly, pnlColorClass } from '../utils/format'
 
@@ -68,6 +69,17 @@ export function PnlTickerStrip({ latest, connected }: PnlTickerStripProps) {
       <div className="flex items-center gap-1 text-xs text-slate-400">
         <span data-testid="ticker-trigger">{latest.trigger}</span>
       </div>
+
+      {latest.missingFxRates && latest.missingFxRates.length > 0 && (
+        <div
+          data-testid="ticker-missing-fx-rates"
+          className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+          title={`Missing FX rates: ${latest.missingFxRates.join(', ')}`}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>FX: {latest.missingFxRates.join(', ')}</span>
+        </div>
+      )}
 
       <div className="ml-auto text-xs text-slate-400">
         <span data-testid="ticker-snapshot-time">{formatTimeOnly(latest.snapshotAt)}</span>

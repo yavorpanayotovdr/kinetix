@@ -40,6 +40,7 @@ import com.kinetix.proto.risk.StressTestServiceGrpcKt
 import com.kinetix.risk.routes.dtos.HistoricalReplayRequestBody
 import com.kinetix.risk.routes.dtos.ReverseStressRequestBody
 import com.kinetix.risk.model.SnapshotType
+import com.kinetix.common.resilience.CircuitBreakerOpenException
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
@@ -93,7 +94,22 @@ fun Route.riskRoutes(
                 numSimulations = body.numSimulations?.toInt() ?: 10_000,
                 requestedOutputs = requestedOutputs,
             )
-            val result = varCalculationService.calculateVaR(request, triggeredBy = "API")
+            val result = try {
+                varCalculationService.calculateVaR(request, triggeredBy = "API")
+            } catch (e: CircuitBreakerOpenException) {
+                val staleResult = varCache.get(bookId)
+                if (staleResult != null) {
+                    call.response.header("Warning", """199 - "Stale data"""")
+                    call.respond(staleResult.toResponse().copy(stale = true))
+                } else {
+                    call.response.header("Retry-After", "30")
+                    call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        com.kinetix.risk.ErrorBody("service_unavailable", "Risk engine temporarily unavailable"),
+                    )
+                }
+                return@post
+            }
             if (result != null) {
                 varCache.put(bookId, result)
                 call.respond(result.toResponse())

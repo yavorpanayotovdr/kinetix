@@ -9,4 +9,5 @@ data class CorrelationMatrixResponse(
     val windowDays: Int,
     val asOfDate: String,
     val method: String,
+    val lastUpdatedAt: String? = null,
 )

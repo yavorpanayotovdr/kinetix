@@ -73,6 +73,7 @@ import com.kinetix.gateway.websocket.pnlWebSocket
 import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -354,6 +355,10 @@ fun Application.devModule() {
         install(ClientContentNegotiation) {
             json(jsonConfig)
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 5_000
+            connectTimeoutMillis = 2_000
+        }
     }
 
     val kafkaBootstrapServers = environment.config
@@ -491,7 +496,7 @@ fun Application.devModule() {
                     executionProxyRoutes(httpClient, positionUrl)
                 }
                 instrumentRoutes(httpClient, referenceDataUrl)
-                dataQualityRoutes(httpClient, positionUrl)
+                dataQualityRoutes(httpClient, positionUrl, priceUrl, riskUrl)
             }
             requirePermission(Permission.READ_AUDIT, authEnabled = authEnabled) {
                 auditProxyRoutes(httpClient, auditUrl)
