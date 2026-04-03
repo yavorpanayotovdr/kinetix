@@ -61,6 +61,7 @@ data class TradeResponse(
     val eventType: String = "NEW",
     val status: String = "LIVE",
     val originalTradeId: String? = null,
+    val instrumentType: String? = null,
     val strategyId: String? = null,
     val counterpartyId: String? = null,
 )
@@ -175,6 +176,7 @@ private fun Trade.toResponse() = TradeResponse(
     eventType = eventType.name,
     status = status.name,
     originalTradeId = originalTradeId?.value,
+    instrumentType = instrumentType,
     strategyId = strategyId,
     counterpartyId = counterpartyId,
 )
