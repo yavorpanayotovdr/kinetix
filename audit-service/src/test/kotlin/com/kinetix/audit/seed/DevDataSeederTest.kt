@@ -32,7 +32,7 @@ class DevDataSeederTest : FunSpec({
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
-            quantity = "150",
+            quantity = "25000",
             priceAmount = "185.50",
             priceCurrency = "USD",
             tradedAt = "2026-02-21T14:00:00Z",

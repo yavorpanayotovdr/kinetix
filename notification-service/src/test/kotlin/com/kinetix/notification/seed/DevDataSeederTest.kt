@@ -41,7 +41,7 @@ class DevDataSeederTest : FunSpec({
         DevDataSeeder(engine, eventRepo).seed()
 
         val varRule = engine.listRules().find { it.id == "seed-rule-var-breach" }!!
-        varRule.threshold shouldBe 1_000_000.0
+        varRule.threshold shouldBe 15_000_000.0
         varRule.severity shouldBe Severity.CRITICAL
     }
 
@@ -51,7 +51,7 @@ class DevDataSeederTest : FunSpec({
         DevDataSeeder(engine, eventRepo).seed()
 
         val pnlRule = engine.listRules().find { it.id == "seed-rule-pnl-threshold" }!!
-        pnlRule.threshold shouldBe 500_000.0
+        pnlRule.threshold shouldBe 5_000_000.0
         pnlRule.severity shouldBe Severity.WARNING
     }
 
@@ -61,7 +61,7 @@ class DevDataSeederTest : FunSpec({
         DevDataSeeder(engine, eventRepo).seed()
 
         val riskRule = engine.listRules().find { it.id == "seed-rule-risk-limit" }!!
-        riskRule.threshold shouldBe 2_000_000.0
+        riskRule.threshold shouldBe 25_000_000.0
         riskRule.severity shouldBe Severity.INFO
     }
 })
