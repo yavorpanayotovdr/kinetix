@@ -129,6 +129,7 @@ import io.grpc.ManagedChannelBuilder
 import io.grpc.TlsChannelCredentials
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.serialization.kotlinx.json.*
 import java.io.File
@@ -234,6 +235,10 @@ fun Application.moduleWithRoutes() {
         .propertyOrNull("priceService.baseUrl")?.getString() ?: "http://localhost:8082"
     val priceHttpClient = HttpClient(CIO) {
         install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 5_000
+            connectTimeoutMillis = 2_000
+        }
     }
     val priceServiceClient = HttpPriceServiceClient(priceHttpClient, priceServiceBaseUrl)
     val ratesServiceBaseUrl = environment.config
