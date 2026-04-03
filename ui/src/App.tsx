@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users, FileText, LogOut } from 'lucide-react'
+import { ErrorBoundary, SectionErrorCard } from './components/ErrorBoundary'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { ExecutionCostPanel } from './components/ExecutionCostPanel'
@@ -463,24 +464,28 @@ function App() {
                 )}
 
                 {activeTab === 'scenarios' && (
-                  <ScenariosTab
-                    bookId={bookId}
-                    results={scenariosAll.results}
-                    loading={scenariosAll.loading}
-                    error={scenariosAll.error}
-                    selectedScenario={scenariosAll.selectedScenario}
-                    onSelectScenario={scenariosAll.setSelectedScenario}
-                    confidenceLevel={scenariosAll.confidenceLevel}
-                    onConfidenceLevelChange={scenariosAll.setConfidenceLevel}
-                    timeHorizonDays={scenariosAll.timeHorizonDays}
-                    onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
-                    onRunAll={scenariosAll.runAll}
-                    onAppendResult={scenariosAll.appendResult}
-                  />
+                  <ErrorBoundary fallback={<SectionErrorCard name="Scenarios" />}>
+                    <ScenariosTab
+                      bookId={bookId}
+                      results={scenariosAll.results}
+                      loading={scenariosAll.loading}
+                      error={scenariosAll.error}
+                      selectedScenario={scenariosAll.selectedScenario}
+                      onSelectScenario={scenariosAll.setSelectedScenario}
+                      confidenceLevel={scenariosAll.confidenceLevel}
+                      onConfidenceLevelChange={scenariosAll.setConfidenceLevel}
+                      timeHorizonDays={scenariosAll.timeHorizonDays}
+                      onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
+                      onRunAll={scenariosAll.runAll}
+                      onAppendResult={scenariosAll.appendResult}
+                    />
+                  </ErrorBoundary>
                 )}
 
                 {activeTab === 'regulatory' && (
-                  <RegulatoryTab bookId={bookId} />
+                  <ErrorBoundary fallback={<SectionErrorCard name="Regulatory" />}>
+                    <RegulatoryTab bookId={bookId} />
+                  </ErrorBoundary>
                 )}
 
                 {activeTab === 'counterparty-risk' && (

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ErrorBoundary, SectionErrorCard } from './ErrorBoundary'
 import { useVaR } from '../hooks/useVaR'
 import { useCrossBookVaR } from '../hooks/useCrossBookVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
@@ -250,29 +251,31 @@ export function RiskTab({
               )}
             </div>
           </div>
-          <VaRDashboard
-            varResult={varResult}
-            filteredHistory={filteredHistory}
-            loading={varLoading}
-            historyLoading={varHistoryLoading}
-            refreshing={varRefreshing || crossBookRefreshing}
-            error={crossBookError || varError}
-            onRefresh={handleRefresh}
-            timeRange={varTimeRange}
-            setTimeRange={setVarTimeRange}
-            zoomIn={varZoomIn}
-            resetZoom={varResetZoom}
-            zoomDepth={varZoomDepth}
-            greeksResult={greeksResult}
-            varLimit={varLimit}
-            onWhatIf={onWhatIf}
-            selectedConfidenceLevel={selectedConfidenceLevel}
-            onConfidenceLevelChange={setSelectedConfidenceLevel}
-            isLive={isLive}
-            valuationDate={valuationDate}
-            totalStandaloneVar={crossBookResult ? Number(crossBookResult.totalStandaloneVar) : undefined}
-            diversificationBenefit={crossBookResult ? Number(crossBookResult.diversificationBenefit) : undefined}
-          />
+          <ErrorBoundary fallback={<SectionErrorCard name="VaR Dashboard" />}>
+            <VaRDashboard
+              varResult={varResult}
+              filteredHistory={filteredHistory}
+              loading={varLoading}
+              historyLoading={varHistoryLoading}
+              refreshing={varRefreshing || crossBookRefreshing}
+              error={crossBookError || varError}
+              onRefresh={handleRefresh}
+              timeRange={varTimeRange}
+              setTimeRange={setVarTimeRange}
+              zoomIn={varZoomIn}
+              resetZoom={varResetZoom}
+              zoomDepth={varZoomDepth}
+              greeksResult={greeksResult}
+              varLimit={varLimit}
+              onWhatIf={onWhatIf}
+              selectedConfidenceLevel={selectedConfidenceLevel}
+              onConfidenceLevelChange={setSelectedConfidenceLevel}
+              isLive={isLive}
+              valuationDate={valuationDate}
+              totalStandaloneVar={crossBookResult ? Number(crossBookResult.totalStandaloneVar) : undefined}
+              diversificationBenefit={crossBookResult ? Number(crossBookResult.diversificationBenefit) : undefined}
+            />
+          </ErrorBoundary>
           {aggregatedView && crossBookResult && (
             <>
               <div className="mt-4">
@@ -298,7 +301,9 @@ export function RiskTab({
             </div>
           )}
           <div className="mt-4">
-            <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
+            <ErrorBoundary fallback={<SectionErrorCard name="Position Risk" />}>
+              <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
+            </ErrorBoundary>
           </div>
           <div className="mt-4">
             <KrdPanel aggregated={krdAggregated} instruments={krdInstruments} loading={krdLoading} error={krdError} />
@@ -319,18 +324,22 @@ export function RiskTab({
             />
           </div>
           <div className="mt-4">
-            <LiquidityRiskPanel
-              result={liquidityResult}
-              loading={liquidityLoading}
-              onRefresh={handleLiquidityRefresh}
-            />
+            <ErrorBoundary fallback={<SectionErrorCard name="Liquidity Risk" />}>
+              <LiquidityRiskPanel
+                result={liquidityResult}
+                loading={liquidityLoading}
+                onRefresh={handleLiquidityRefresh}
+              />
+            </ErrorBoundary>
           </div>
           <div className="mt-4">
-            <FactorDecompositionPanel
-              result={factorRiskResult}
-              loading={factorRiskLoading}
-              error={factorRiskError}
-            />
+            <ErrorBoundary fallback={<SectionErrorCard name="Factor Decomposition" />}>
+              <FactorDecompositionPanel
+                result={factorRiskResult}
+                loading={factorRiskLoading}
+                error={factorRiskError}
+              />
+            </ErrorBoundary>
           </div>
           <div className="mt-4">
             <FactorAttributionHistoryChart
