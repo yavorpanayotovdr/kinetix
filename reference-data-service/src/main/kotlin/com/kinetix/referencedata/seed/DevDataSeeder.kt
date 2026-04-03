@@ -193,6 +193,9 @@ class DevDataSeeder(
     companion object {
         val AS_OF: Instant = Instant.parse("2026-02-22T10:00:00Z")
 
+        val INSTRUMENT_IDS: Set<String> get() = INSTRUMENTS.keys
+        val DESK_IDS: Set<String> get() = DESKS.keys
+
         val DIVIDEND_YIELDS: Map<String, Double> = mapOf(
             "AAPL" to 0.0055,
             "MSFT" to 0.0075,
