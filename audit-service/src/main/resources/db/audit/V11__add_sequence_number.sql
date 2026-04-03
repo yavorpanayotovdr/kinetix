@@ -10,7 +10,7 @@ DROP TRIGGER IF EXISTS prevent_audit_delete ON audit_events;
 ALTER TABLE audit_events
     ADD COLUMN IF NOT EXISTS sequence_number BIGINT;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_events_seq ON audit_events (sequence_number)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_events_seq ON audit_events (sequence_number, received_at)
     WHERE sequence_number IS NOT NULL;
 
 -- Re-create immutability triggers.
