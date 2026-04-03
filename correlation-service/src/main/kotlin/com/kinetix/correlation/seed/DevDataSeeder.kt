@@ -37,11 +37,11 @@ class DevDataSeeder(
         const val WINDOW_DAYS = 252
 
         val LABELS: List<String> = listOf(
-            "AAPL", "AMZN", "BABA", "CL", "DE10Y",
+            "AAPL", "AAPL-P-180-20260620", "AMZN", "BABA", "CL", "DE10Y",
             "EURUSD", "GBPUSD", "GC", "GOOGL", "JPM",
-            "META", "MSFT", "NVDA", "SI", "SPX-CALL-5000",
-            "SPX-PUT-4500", "TSLA", "US10Y", "US2Y", "US30Y",
-            "USDJPY", "VIX-PUT-15",
+            "META", "MSFT", "NVDA", "NVDA-C-950-20260620", "NVDA-P-800-20260620",
+            "SI", "SPX-CALL-5000", "SPX-CALL-5200", "SPX-PUT-4500", "SPX-PUT-4800",
+            "TSLA", "US10Y", "US2Y", "US30Y", "USDJPY", "VIX-PUT-15",
         )
 
         private enum class Sector { TECH, FX, FIXED_INCOME, COMMODITY, DERIVATIVE, FINANCE }
@@ -56,6 +56,9 @@ class DevDataSeeder(
             "US30Y" to Sector.FIXED_INCOME, "DE10Y" to Sector.FIXED_INCOME,
             "GC" to Sector.COMMODITY, "CL" to Sector.COMMODITY, "SI" to Sector.COMMODITY,
             "SPX-PUT-4500" to Sector.DERIVATIVE, "SPX-CALL-5000" to Sector.DERIVATIVE,
+            "SPX-PUT-4800" to Sector.DERIVATIVE, "SPX-CALL-5200" to Sector.DERIVATIVE,
+            "NVDA-C-950-20260620" to Sector.DERIVATIVE, "NVDA-P-800-20260620" to Sector.DERIVATIVE,
+            "AAPL-P-180-20260620" to Sector.DERIVATIVE,
             "VIX-PUT-15" to Sector.DERIVATIVE,
         )
 
@@ -82,6 +85,11 @@ class DevDataSeeder(
             "SPX-CALL-5000:SPX-PUT-4500" to 0.50,
             "SPX-CALL-5000:VIX-PUT-15" to -0.65,
             "SPX-PUT-4500:VIX-PUT-15" to 0.55,
+            "SPX-PUT-4500:SPX-PUT-4800" to 0.95,
+            "SPX-CALL-5000:SPX-CALL-5200" to 0.93,
+            "NVDA-C-950-20260620:NVDA" to 0.80,
+            "NVDA-P-800-20260620:NVDA" to -0.75,
+            "AAPL-P-180-20260620:AAPL" to -0.72,
         )
 
         private val CROSS_SECTOR_CORRS: Map<Pair<Sector, Sector>, Double> = mapOf(

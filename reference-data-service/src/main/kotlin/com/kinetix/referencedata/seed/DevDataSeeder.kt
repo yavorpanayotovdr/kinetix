@@ -268,6 +268,26 @@ class DevDataSeeder(
                 EquityOption(underlyingId = "VIX", optionType = "PUT", strike = 15.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
                 "VIX Put 15 Sep2026", "USD",
             ),
+            "SPX-PUT-4800" to InstrumentConfig(
+                EquityOption(underlyingId = "IDX-SPX", optionType = "PUT", strike = 4800.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "SPX Sep26 4800 Put", "USD",
+            ),
+            "SPX-CALL-5200" to InstrumentConfig(
+                EquityOption(underlyingId = "IDX-SPX", optionType = "CALL", strike = 5200.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "SPX Sep26 5200 Call", "USD",
+            ),
+            "NVDA-C-950-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "NVDA", optionType = "CALL", strike = 950.0, expiryDate = "2026-06-20", exerciseStyle = "AMERICAN", contractMultiplier = 100.0),
+                "NVDA Jun26 950 Call", "USD",
+            ),
+            "NVDA-P-800-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "NVDA", optionType = "PUT", strike = 800.0, expiryDate = "2026-06-20", exerciseStyle = "AMERICAN", contractMultiplier = 100.0),
+                "NVDA Jun26 800 Put", "USD",
+            ),
+            "AAPL-P-180-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "AAPL", optionType = "PUT", strike = 180.0, expiryDate = "2026-06-20", exerciseStyle = "AMERICAN", contractMultiplier = 100.0),
+                "AAPL Jun26 180 Put", "USD",
+            ),
             // ── Equity futures ──
             "SPX-SEP26" to InstrumentConfig(
                 EquityFuture(underlyingId = "SPX", expiryDate = "2026-09-18", contractSize = 50.0, currency = "USD"),
