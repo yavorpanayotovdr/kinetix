@@ -23,8 +23,10 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 22 instruments × 169 hourly data points + 301 daily prices for IDX-SPX benchmark
-        val expectedSaves = 22 * 169 + 301
+        // 22 instruments × 169 hourly points
+        // + 22 instruments × 253 daily closes (day 252 downTo 0, inclusive)
+        // + 301 daily prices for IDX-SPX benchmark (day 300 downTo 0, inclusive)
+        val expectedSaves = 22 * 169 + 22 * 253 + 301
         coVerify(exactly = expectedSaves) { repository.save(any()) }
     }
 
@@ -53,18 +55,30 @@ class DevDataSeederTest : FunSpec({
         )
     }
 
-    test("saved points have timestamps spanning 7 days") {
+    test("AAPL has 169 hourly and 253 daily saved points") {
         coEvery { repository.findLatest(InstrumentId("AAPL")) } returns null
         val savedPoints = mutableListOf<PricePoint>()
         coEvery { repository.save(capture(savedPoints)) } just runs
 
         seeder.seed()
 
-        // Check AAPL points span 168 hours (7 days)
         val aaplPoints = savedPoints.filter { it.instrumentId.value == "AAPL" }
-            .sortedBy { it.timestamp }
-        aaplPoints.size shouldBe 169
-        val duration = java.time.Duration.between(aaplPoints.first().timestamp, aaplPoints.last().timestamp)
-        duration.toHours() shouldBe 168
+        // 169 hourly + 253 daily (day 252 downTo 0, inclusive)
+        aaplPoints.size shouldBe 169 + 253
+    }
+
+    test("all daily close prices are strictly positive") {
+        coEvery { repository.findLatest(InstrumentId("AAPL")) } returns null
+        val savedPoints = mutableListOf<PricePoint>()
+        coEvery { repository.save(capture(savedPoints)) } just runs
+
+        seeder.seed()
+
+        // Daily closes are for timestamps older than 7 days (outside the hourly window)
+        val dailyCutoff = DevDataSeeder.LATEST_TIME.minus(7, java.time.temporal.ChronoUnit.DAYS)
+        val dailyPoints = savedPoints.filter { it.timestamp.isBefore(dailyCutoff) }
+        dailyPoints.forEach { point ->
+            (point.price.amount > java.math.BigDecimal.ZERO) shouldBe true
+        }
     }
 })

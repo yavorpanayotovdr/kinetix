@@ -30,8 +30,8 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 4 underlyings: SPX, VIX, NVDA, TSLA
-        coVerify(exactly = 4) { volSurfaceRepository.save(any()) }
+        // 10 underlyings: SPX, VIX, NVDA, TSLA, AAPL, GOOGL, MSFT, META, JPM, BABA
+        coVerify(exactly = 10) { volSurfaceRepository.save(any()) }
     }
 
     test("skips seeding when data already exists") {
@@ -68,7 +68,7 @@ class DevDataSeederTest : FunSpec({
         seeder.seed()
 
         val underlyings = savedSurfaces.map { it.instrumentId.value }
-        underlyings shouldContainAll listOf("SPX", "VIX", "NVDA", "TSLA")
+        underlyings shouldContainAll listOf("SPX", "VIX", "NVDA", "TSLA", "AAPL", "GOOGL", "MSFT", "META", "JPM", "BABA")
         savedSurfaces.forEach { it.source shouldBe VolatilitySource.EXCHANGE }
     }
 

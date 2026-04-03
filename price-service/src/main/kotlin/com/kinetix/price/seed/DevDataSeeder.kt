@@ -29,6 +29,7 @@ class DevDataSeeder(
 
         for ((instrumentId, config) in INSTRUMENTS) {
             seedInstrument(instrumentId, config)
+            seedDailyCloses(instrumentId, config)
         }
 
         // Seed IDX-SPX with 300 daily prices for factor loading estimation
@@ -59,6 +60,40 @@ class DevDataSeeder(
             val point = PricePoint(
                 instrumentId = instrumentId,
                 price = Money(price, currency),
+                timestamp = timestamp,
+                source = PriceSource.EXCHANGE,
+            )
+            repository.save(point)
+        }
+    }
+
+    /**
+     * Seeds 252 daily closing prices for an instrument using geometric Brownian motion
+     * with a deterministic pseudo-random number generator so the series is reproducible.
+     * All prices are clamped to a minimum of 0.01 to guarantee positivity.
+     */
+    private suspend fun seedDailyCloses(instrumentId: InstrumentId, config: InstrumentConfig) {
+        val currency = Currency.getInstance(config.currency)
+        val days = 252
+        var price = config.startPrice
+        val seed = instrumentId.value.hashCode().toLong()
+        var state = seed xor 0x1A2B3C4D5E6F7A8BL // distinct LCG state from benchmark
+
+        for (day in days downTo 0) {
+            state = state * 6364136223846793005L + 1442695040888963407L
+            val u = ((state ushr 17) and 0xFFFFL).toDouble() / 65535.0
+            val z = (u - 0.5) * 3.46
+            val dailyReturn = z * config.dailyVol + 0.0002
+            price *= (1.0 + dailyReturn)
+            price = price.coerceAtLeast(0.01)
+
+            val timestamp = LATEST_TIME.minus(day.toLong(), ChronoUnit.DAYS)
+            val point = PricePoint(
+                instrumentId = instrumentId,
+                price = Money(
+                    BigDecimal(price).setScale(config.scale, RoundingMode.HALF_UP),
+                    currency,
+                ),
                 timestamp = timestamp,
                 source = PriceSource.EXCHANGE,
             )
@@ -111,6 +146,7 @@ class DevDataSeeder(
         val latestPrice: Double,
         val assetClass: AssetClass,
         val scale: Int = 2,
+        val dailyVol: Double = 0.015,
     )
 
     companion object {
@@ -127,33 +163,34 @@ class DevDataSeeder(
         )
 
         internal val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
-            // Equities
-            InstrumentId("AAPL") to InstrumentConfig("USD", 187.10, 189.25, AssetClass.EQUITY),
-            InstrumentId("GOOGL") to InstrumentConfig("USD", 176.50, 178.90, AssetClass.EQUITY),
-            InstrumentId("MSFT") to InstrumentConfig("USD", 422.30, 425.60, AssetClass.EQUITY),
-            InstrumentId("AMZN") to InstrumentConfig("USD", 207.80, 210.30, AssetClass.EQUITY),
-            InstrumentId("TSLA") to InstrumentConfig("USD", 244.50, 242.15, AssetClass.EQUITY),
-            InstrumentId("NVDA") to InstrumentConfig("USD", 875.00, 892.50, AssetClass.EQUITY),
-            InstrumentId("META") to InstrumentConfig("USD", 498.20, 508.40, AssetClass.EQUITY),
-            InstrumentId("JPM") to InstrumentConfig("USD", 206.50, 211.80, AssetClass.EQUITY),
-            InstrumentId("BABA") to InstrumentConfig("USD", 82.40, 86.10, AssetClass.EQUITY),
-            // FX
-            InstrumentId("EURUSD") to InstrumentConfig("USD", 1.0830, 1.0856, AssetClass.FX, scale = 4),
-            InstrumentId("GBPUSD") to InstrumentConfig("USD", 1.2550, 1.2620, AssetClass.FX, scale = 4),
-            InstrumentId("USDJPY") to InstrumentConfig("USD", 149.20, 150.80, AssetClass.FX, scale = 4),
-            // Fixed Income
-            InstrumentId("US2Y") to InstrumentConfig("USD", 99.30, 99.40, AssetClass.FIXED_INCOME),
-            InstrumentId("US10Y") to InstrumentConfig("USD", 96.85, 97.10, AssetClass.FIXED_INCOME),
-            InstrumentId("US30Y") to InstrumentConfig("USD", 92.80, 93.25, AssetClass.FIXED_INCOME),
-            InstrumentId("DE10Y") to InstrumentConfig("EUR", 97.50, 98.20, AssetClass.FIXED_INCOME),
+            // Large-cap equities — dailyVol = 0.015
+            InstrumentId("AAPL") to InstrumentConfig("USD", 187.10, 189.25, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("GOOGL") to InstrumentConfig("USD", 176.50, 178.90, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("MSFT") to InstrumentConfig("USD", 422.30, 425.60, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("AMZN") to InstrumentConfig("USD", 207.80, 210.30, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("JPM") to InstrumentConfig("USD", 206.50, 211.80, AssetClass.EQUITY, dailyVol = 0.015),
+            // High-vol equities — dailyVol = 0.025
+            InstrumentId("TSLA") to InstrumentConfig("USD", 244.50, 242.15, AssetClass.EQUITY, dailyVol = 0.025),
+            InstrumentId("NVDA") to InstrumentConfig("USD", 875.00, 892.50, AssetClass.EQUITY, dailyVol = 0.025),
+            InstrumentId("META") to InstrumentConfig("USD", 498.20, 508.40, AssetClass.EQUITY, dailyVol = 0.025),
+            InstrumentId("BABA") to InstrumentConfig("USD", 82.40, 86.10, AssetClass.EQUITY, dailyVol = 0.025),
+            // FX majors — dailyVol = 0.005 (USDJPY = 0.006)
+            InstrumentId("EURUSD") to InstrumentConfig("USD", 1.0830, 1.0856, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("GBPUSD") to InstrumentConfig("USD", 1.2550, 1.2620, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("USDJPY") to InstrumentConfig("USD", 149.20, 150.80, AssetClass.FX, scale = 4, dailyVol = 0.006),
+            // Fixed Income — government bonds
+            InstrumentId("US2Y") to InstrumentConfig("USD", 99.30, 99.40, AssetClass.FIXED_INCOME, dailyVol = 0.002),
+            InstrumentId("US10Y") to InstrumentConfig("USD", 96.85, 97.10, AssetClass.FIXED_INCOME, dailyVol = 0.003),
+            InstrumentId("US30Y") to InstrumentConfig("USD", 92.80, 93.25, AssetClass.FIXED_INCOME, dailyVol = 0.004),
+            InstrumentId("DE10Y") to InstrumentConfig("EUR", 97.50, 98.20, AssetClass.FIXED_INCOME, dailyVol = 0.003),
             // Commodities
-            InstrumentId("GC") to InstrumentConfig("USD", 2038.20, 2058.40, AssetClass.COMMODITY),
-            InstrumentId("CL") to InstrumentConfig("USD", 75.80, 78.30, AssetClass.COMMODITY),
-            InstrumentId("SI") to InstrumentConfig("USD", 22.80, 23.65, AssetClass.COMMODITY),
-            // Derivatives
-            InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75, AssetClass.DERIVATIVE),
-            InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80, AssetClass.DERIVATIVE),
-            InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60, AssetClass.DERIVATIVE),
+            InstrumentId("GC") to InstrumentConfig("USD", 2038.20, 2058.40, AssetClass.COMMODITY, dailyVol = 0.012),
+            InstrumentId("CL") to InstrumentConfig("USD", 75.80, 78.30, AssetClass.COMMODITY, dailyVol = 0.018),
+            InstrumentId("SI") to InstrumentConfig("USD", 22.80, 23.65, AssetClass.COMMODITY, dailyVol = 0.015),
+            // Derivatives / options
+            InstrumentId("SPX-PUT-4500") to InstrumentConfig("USD", 30.10, 28.75, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("SPX-CALL-5000") to InstrumentConfig("USD", 39.50, 43.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("VIX-PUT-15") to InstrumentConfig("USD", 4.10, 3.60, AssetClass.DERIVATIVE, dailyVol = 0.03),
         )
     }
 }

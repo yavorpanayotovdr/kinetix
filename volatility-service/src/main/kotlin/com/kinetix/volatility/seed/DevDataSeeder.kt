@@ -73,13 +73,19 @@ class DevDataSeeder(
             "VIX" to SurfaceConfig(spotPrice = 15.0, atmVol = 0.80),
             "NVDA" to SurfaceConfig(spotPrice = 892.50, atmVol = 0.45),
             "TSLA" to SurfaceConfig(spotPrice = 242.15, atmVol = 0.55),
+            "AAPL" to SurfaceConfig(spotPrice = 189.25, atmVol = 0.28),
+            "GOOGL" to SurfaceConfig(spotPrice = 178.90, atmVol = 0.30),
+            "MSFT" to SurfaceConfig(spotPrice = 425.60, atmVol = 0.25),
+            "META" to SurfaceConfig(spotPrice = 508.40, atmVol = 0.35),
+            "JPM" to SurfaceConfig(spotPrice = 211.80, atmVol = 0.22),
+            "BABA" to SurfaceConfig(spotPrice = 86.10, atmVol = 0.40),
         )
 
         internal fun computeImpliedVol(atmVol: Double, strikePercent: Int, maturityDays: Int): BigDecimal {
             val moneyness = (strikePercent - 100).toDouble()
             val skew = when {
-                moneyness < 0 -> -moneyness * 0.004
-                moneyness > 0 -> moneyness * 0.001
+                moneyness < 0 -> -moneyness * 0.003 + moneyness * moneyness * 0.00008
+                moneyness > 0 -> moneyness * 0.001 + moneyness * moneyness * 0.00004
                 else -> 0.0
             }
             val termAdjust = (maturityDays - 90).toDouble() / 365.0 * 0.02
