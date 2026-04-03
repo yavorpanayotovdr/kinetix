@@ -264,7 +264,14 @@ function App() {
           >
             <Icon className="h-4 w-4" />
             <span className="hidden md:inline">{label}</span>
-            {key === 'alerts' && notifications.alerts.length > 0 && (
+            {key === 'alerts' && notifications.error && (
+              <span
+                data-testid="alerts-error-dot"
+                className="ml-1 inline-block h-2 w-2 rounded-full bg-amber-400"
+                title="Alert monitoring unavailable"
+              />
+            )}
+            {key === 'alerts' && !notifications.error && notifications.alerts.length > 0 && (
               <span
                 data-testid="alert-count-badge"
                 className="ml-1 px-1.5 py-0.5 bg-primary-500 text-white text-xs rounded-full"

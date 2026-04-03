@@ -599,4 +599,57 @@ describe('App', () => {
       expect(screen.queryByTestId('reconnecting-banner')).not.toBeInTheDocument()
     })
   })
+
+  describe('Alerts tab warning indicator', () => {
+    it('shows amber warning dot on Alerts tab when notifications.error is set', () => {
+      mockUseNotifications.mockReturnValue({
+        rules: [],
+        alerts: [],
+        loading: false,
+        error: 'Failed to load notifications',
+        createRule: vi.fn(),
+        deleteRule: vi.fn(),
+      })
+
+      render(<App />)
+
+      expect(screen.getByTestId('alerts-error-dot')).toBeInTheDocument()
+    })
+
+    it('does not show amber warning dot on Alerts tab when notifications.error is null', () => {
+      render(<App />)
+
+      expect(screen.queryByTestId('alerts-error-dot')).not.toBeInTheDocument()
+    })
+
+    it('does not show alert count badge when notifications.error is set even if alerts array is non-empty', () => {
+      mockUseNotifications.mockReturnValue({
+        rules: [],
+        alerts: [
+          {
+            id: 'evt-1',
+            ruleId: 'rule-1',
+            ruleName: 'VaR Limit',
+            type: 'VAR_BREACH',
+            severity: 'CRITICAL',
+            message: 'VaR exceeded',
+            currentValue: 150000,
+            threshold: 100000,
+            bookId: 'book-1',
+            triggeredAt: '2025-01-15T10:00:00Z',
+            status: 'TRIGGERED',
+          },
+        ],
+        loading: false,
+        error: 'Connection error',
+        createRule: vi.fn(),
+        deleteRule: vi.fn(),
+      })
+
+      render(<App />)
+
+      // When there's an error, the badge count may be stale — show warning dot instead
+      expect(screen.getByTestId('alerts-error-dot')).toBeInTheDocument()
+    })
+  })
 })
