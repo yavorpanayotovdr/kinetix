@@ -9,6 +9,7 @@ import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -18,19 +19,29 @@ class RedisVaRCache(
     private val ttlSeconds: Long = 300L,
 ) : VaRCache {
 
+    private val log = LoggerFactory.getLogger(RedisVaRCache::class.java)
     private val sync = connection.sync()
     private val cacheJson = Json { ignoreUnknownKeys = true }
 
     override fun put(bookId: String, result: ValuationResult) {
-        val key = keyFor(bookId)
-        val value = Json.encodeToString(CachedValuationResult.from(result))
-        sync.set(key, value, SetArgs().ex(ttlSeconds))
+        try {
+            val key = keyFor(bookId)
+            val value = Json.encodeToString(CachedValuationResult.from(result))
+            sync.set(key, value, SetArgs().ex(ttlSeconds))
+        } catch (e: Exception) {
+            log.warn("Cache write failed for bookId={}, continuing without caching", bookId, e)
+        }
     }
 
     override fun get(bookId: String): ValuationResult? {
-        val key = keyFor(bookId)
-        val value = sync.get(key) ?: return null
-        return cacheJson.decodeFromString<CachedValuationResult>(value).toValuationResult()
+        return try {
+            val key = keyFor(bookId)
+            val value = sync.get(key) ?: return null
+            cacheJson.decodeFromString<CachedValuationResult>(value).toValuationResult()
+        } catch (e: Exception) {
+            log.warn("Cache read failed for bookId={}, treating as cache miss", bookId, e)
+            null
+        }
     }
 
     private fun keyFor(bookId: String): String = "var:v$CACHE_SCHEMA_VERSION:$bookId"
