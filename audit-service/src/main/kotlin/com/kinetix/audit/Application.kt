@@ -1,5 +1,7 @@
 package com.kinetix.audit
 
+import com.kinetix.audit.dlq.DlqReplayService
+import com.kinetix.audit.dlq.KafkaDlqMessageSource
 import com.kinetix.audit.dto.ErrorResponse
 import com.kinetix.audit.kafka.AuditEventConsumer
 import com.kinetix.audit.persistence.AuditEventRepository
@@ -10,6 +12,7 @@ import com.kinetix.audit.persistence.ExposedVerificationCheckpointRepository
 import com.kinetix.audit.persistence.VerificationCheckpointRepository
 import com.kinetix.audit.routes.auditRoutes
 import com.kinetix.audit.routes.demoResetRoutes
+import com.kinetix.audit.routes.dlqReplayRoutes
 import com.kinetix.audit.routes.internalRoutes
 import com.kinetix.audit.seed.DevDataSeeder
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -97,11 +100,15 @@ fun Application.module() {
 fun Application.module(
     repository: AuditEventRepository,
     checkpointRepository: VerificationCheckpointRepository? = null,
+    dlqReplayService: DlqReplayService? = null,
 ) {
     module()
     routing {
         auditRoutes(repository, checkpointRepository)
         internalRoutes(repository)
+        if (dlqReplayService != null) {
+            dlqReplayRoutes(dlqReplayService)
+        }
     }
 }
 
@@ -145,6 +152,10 @@ fun Application.moduleWithRoutes() {
     )
     val auditEventConsumer = AuditEventConsumer(kafkaConsumer, repository, retryableConsumer = retryableConsumer)
 
+    val dlqTopic = "trades.lifecycle.dlq"
+    val dlqMessageSource = KafkaDlqMessageSource(bootstrapServers, dlqTopic)
+    val dlqReplayService = DlqReplayService(repository, messageSource = dlqMessageSource::invoke)
+
     val seedDone = AtomicBoolean(false)
     val readinessChecker = ReadinessChecker(
         dataSource = DatabaseFactory.dataSource,
@@ -170,6 +181,7 @@ fun Application.moduleWithRoutes() {
     routing {
         auditRoutes(repository, checkpointRepository)
         internalRoutes(repository)
+        dlqReplayRoutes(dlqReplayService)
 
         val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
         if (demoResetToken != null) {
