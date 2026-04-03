@@ -27,4 +27,5 @@ data class AuditEvent(
     val limitId: String? = null,
     val submissionId: String? = null,
     val details: String? = null,
+    val sequenceNumber: Long? = null,
 )

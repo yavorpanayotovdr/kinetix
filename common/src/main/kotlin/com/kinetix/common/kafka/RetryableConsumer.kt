@@ -41,8 +41,15 @@ class RetryableConsumer(
                 "Max retries exhausted for topic={}, key={}. Sending to DLQ topic={}",
                 topic, key, dlqTopic,
             )
-            dlqProducer.send(ProducerRecord(dlqTopic, key, value))
-            livenessTracker?.recordDlqSend()
+            try {
+                dlqProducer.send(ProducerRecord(dlqTopic, key, value))
+                livenessTracker?.recordDlqSend()
+            } catch (dlqException: Exception) {
+                logger.error(
+                    "DLQ send failed for topic={}, key={}, value={}. Message cannot be recovered via DLQ.",
+                    topic, key, value, dlqException,
+                )
+            }
         } else {
             logger.error(
                 "Max retries exhausted for topic={}, key={}. No DLQ producer configured.",

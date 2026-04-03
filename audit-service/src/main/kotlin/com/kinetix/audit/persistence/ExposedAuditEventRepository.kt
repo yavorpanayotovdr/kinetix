@@ -4,6 +4,7 @@ import com.kinetix.audit.model.AuditEvent
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.max
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -39,6 +40,13 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         )
         val recordHash = AuditHasher.computeHash(eventForHash, latestHash)
 
+        val maxSeqExpr = AuditEventsTable.sequenceNumber.max()
+        val maxSeq: Long = AuditEventsTable
+            .select(maxSeqExpr)
+            .map { it[maxSeqExpr] }
+            .firstOrNull() ?: 0L
+        val assignedSequenceNumber = maxSeq + 1L
+
         AuditEventsTable.insert {
             it[tradeId] = event.tradeId
             it[bookId] = event.bookId
@@ -60,6 +68,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             it[limitId] = event.limitId
             it[submissionId] = event.submissionId
             it[details] = event.details
+            it[sequenceNumber] = event.sequenceNumber ?: assignedSequenceNumber
         }
     }
 
@@ -107,6 +116,15 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .firstOrNull()
     }
 
+    override suspend fun nextSequenceNumber(): Long = newSuspendedTransaction(db = db) {
+        val maxSeqExpr = AuditEventsTable.sequenceNumber.max()
+        val current: Long = AuditEventsTable
+            .select(maxSeqExpr)
+            .map { it[maxSeqExpr] }
+            .firstOrNull() ?: 0L
+        current + 1L
+    }
+
     private fun ResultRow.toAuditEvent(): AuditEvent = AuditEvent(
         id = this[AuditEventsTable.id],
         tradeId = this[AuditEventsTable.tradeId],
@@ -129,5 +147,6 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         limitId = this[AuditEventsTable.limitId],
         submissionId = this[AuditEventsTable.submissionId],
         details = this[AuditEventsTable.details],
+        sequenceNumber = this[AuditEventsTable.sequenceNumber],
     )
 }

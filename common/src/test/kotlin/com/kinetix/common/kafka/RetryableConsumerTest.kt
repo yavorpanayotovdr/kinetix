@@ -1,5 +1,9 @@
 package com.kinetix.common.kafka
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
@@ -12,6 +16,7 @@ import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
 
 class RetryableConsumerTest : FunSpec({
@@ -214,5 +219,56 @@ class RetryableConsumerTest : FunSpec({
             }
         }
         // No DLQ producer, so no exception from trying to send -- just the original exception propagated
+    }
+
+    test("original processing exception is rethrown even when DLQ send fails") {
+        val dlqProducer = mockk<KafkaProducer<String, String>>()
+        every { dlqProducer.send(any()) } throws RuntimeException("DLQ broker unavailable")
+
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 1,
+            baseDelayMs = 1,
+            dlqProducer = dlqProducer,
+        )
+
+        val thrown = shouldThrow<RuntimeException> {
+            retryable.process("key-1", "value-1") {
+                throw RuntimeException("original processing error")
+            }
+        }
+
+        thrown.message shouldBe "original processing error"
+    }
+
+    test("DLQ send failure is logged at ERROR level with full message payload") {
+        val logbackLogger = LoggerFactory.getLogger(RetryableConsumer::class.java) as Logger
+        val listAppender = ListAppender<ILoggingEvent>().also { it.start() }
+        logbackLogger.addAppender(listAppender)
+
+        val dlqProducer = mockk<KafkaProducer<String, String>>()
+        every { dlqProducer.send(any()) } throws RuntimeException("DLQ broker unavailable")
+
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 1,
+            baseDelayMs = 1,
+            dlqProducer = dlqProducer,
+        )
+
+        runCatching {
+            retryable.process("my-key", "my-value") {
+                throw RuntimeException("processing error")
+            }
+        }
+
+        val errorEvents = listAppender.list.filter { it.level == Level.ERROR }
+        val payloadLogged = errorEvents.any { event ->
+            val msg = event.formattedMessage
+            msg.contains("my-key") && msg.contains("my-value") && msg.contains("test.topic")
+        }
+        payloadLogged shouldBe true
+
+        logbackLogger.detachAppender(listAppender)
     }
 })
