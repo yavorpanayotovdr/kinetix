@@ -343,40 +343,39 @@ function App() {
           />
         ) : (
           <>
-            {loading && <p className="text-gray-500">Loading positions...</p>}
-            {error && (
-              <div
-                data-testid="load-error-card"
-                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start justify-between gap-4"
-                role="alert"
-              >
-                <div>
-                  <p className="text-red-700 font-medium text-sm">
-                    {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
-                      ? 'Access denied'
-                      : 'Failed to load positions'}
-                  </p>
-                  <p className="text-red-600 text-sm mt-1">
-                    {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
-                      ? 'You do not have access to this book. Contact your administrator.'
-                      : error}
-                  </p>
-                </div>
-                {!(error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')) && (
-                  <button
-                    data-testid="retry-load-button"
-                    onClick={retryInitialLoad}
-                    className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
-                  >
-                    Retry
-                  </button>
-                )}
-              </div>
-            )}
-
-            {!loading && !error && (
+            {activeTab === 'positions' && (
               <>
-                {activeTab === 'positions' && (
+                {loading && <p className="text-gray-500">Loading positions...</p>}
+                {error && (
+                  <div
+                    data-testid="load-error-card"
+                    className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start justify-between gap-4"
+                    role="alert"
+                  >
+                    <div>
+                      <p className="text-red-700 font-medium text-sm">
+                        {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
+                          ? 'Access denied'
+                          : 'Failed to load positions'}
+                      </p>
+                      <p className="text-red-600 text-sm mt-1">
+                        {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
+                          ? 'You do not have access to this book. Contact your administrator.'
+                          : error}
+                      </p>
+                    </div>
+                    {!(error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')) && (
+                      <button
+                        data-testid="retry-load-button"
+                        onClick={retryInitialLoad}
+                        className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!loading && !error && (
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <div />
@@ -408,8 +407,10 @@ function App() {
                     />
                   </div>
                 )}
+              </>
+            )}
 
-                {activeTab === 'trades' && (
+            {activeTab === 'trades' && (
                   <div>
                     <div className="flex gap-1 mb-4 border-b border-slate-200" role="tablist" aria-label="Trades sections">
                       {(['blotter', 'cost', 'reconciliation'] as const).map((subTab) => (
@@ -501,8 +502,6 @@ function App() {
                     onDeleteRule={notifications.deleteRule}
                   />
                 )}
-              </>
-            )}
           </>
         )}
       </main>
