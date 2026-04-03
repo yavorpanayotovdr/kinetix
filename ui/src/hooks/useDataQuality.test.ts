@@ -74,4 +74,50 @@ describe('useDataQuality', () => {
     expect(result.current.status).toBeNull()
     expect(result.current.error).toBe('Network error')
   })
+
+  it('sets a synthetic CRITICAL status when fetch fails so the indicator remains visible', async () => {
+    mockFetch.mockRejectedValue(new Error('Service down'))
+
+    const { result } = renderHook(() => useDataQuality())
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+
+    expect(result.current.syntheticStatus).not.toBeNull()
+    expect(result.current.syntheticStatus!.overall).toBe('CRITICAL')
+    expect(result.current.syntheticStatus!.checks).toHaveLength(1)
+    expect(result.current.syntheticStatus!.checks[0].name).toBe('Data Quality Monitoring')
+    expect(result.current.syntheticStatus!.checks[0].status).toBe('CRITICAL')
+    expect(result.current.syntheticStatus!.checks[0].message).toBe('Monitoring unavailable')
+  })
+
+  it('clears syntheticStatus when a subsequent fetch succeeds', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Transient error'))
+
+    const successStatus = {
+      overall: 'OK' as const,
+      checks: [
+        { name: 'Price Freshness', status: 'OK' as const, message: 'All fresh', lastChecked: '2025-01-15T10:00:00Z' },
+      ],
+    }
+    mockFetch.mockResolvedValue(successStatus)
+
+    const { result } = renderHook(() => useDataQuality())
+
+    // First poll — fails
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+
+    expect(result.current.syntheticStatus).not.toBeNull()
+
+    // Second poll — succeeds
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000)
+    })
+
+    expect(result.current.syntheticStatus).toBeNull()
+    expect(result.current.status).toEqual(successStatus)
+  })
 })

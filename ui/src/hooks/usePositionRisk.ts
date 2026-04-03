@@ -18,7 +18,8 @@ export function usePositionRisk(bookId: string | null, valuationDate: string | n
   const load = useCallback(async () => {
     if (!bookId) return
 
-    if (!initialLoadDone.current) {
+    const isInitialLoad = !initialLoadDone.current
+    if (isInitialLoad) {
       setLoading(true)
     }
     setError(null)
@@ -28,7 +29,12 @@ export function usePositionRisk(bookId: string | null, valuationDate: string | n
       setPositionRisk(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
-      setPositionRisk([])
+      if (isInitialLoad) {
+        // First load for this book — clear any stale data from a previous book.
+        setPositionRisk([])
+      }
+      // On subsequent refresh failures, preserve the last known data so the
+      // user can still see the stale values while the error is displayed.
     } finally {
       setLoading(false)
       initialLoadDone.current = true

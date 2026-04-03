@@ -108,6 +108,39 @@ describe('VaRDashboard', () => {
     expect(screen.getByTestId('var-error')).toHaveTextContent('Failed to fetch VaR')
   })
 
+  it('shows a Retry button in the error state', () => {
+    render(
+      <VaRDashboard
+        varResult={null}
+        loading={false}
+        error="Failed to fetch VaR"
+        onRefresh={() => {}}
+        {...defaultZoomProps}
+        filteredHistory={[]}
+      />,
+    )
+
+    expect(screen.getByTestId('var-error-retry')).toBeInTheDocument()
+  })
+
+  it('calls onRefresh when the Retry button in the error state is clicked', () => {
+    const onRefresh = vi.fn()
+
+    render(
+      <VaRDashboard
+        varResult={null}
+        loading={false}
+        error="Failed to fetch VaR"
+        onRefresh={onRefresh}
+        {...defaultZoomProps}
+        filteredHistory={[]}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('var-error-retry'))
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+  })
+
   it('shows empty state when no result', () => {
     render(
       <VaRDashboard

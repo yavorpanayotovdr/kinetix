@@ -4,14 +4,28 @@ import type { DataQualityStatus } from '../types'
 
 const POLL_INTERVAL = 30_000
 
+const MONITORING_UNAVAILABLE_STATUS: DataQualityStatus = {
+  overall: 'CRITICAL',
+  checks: [
+    {
+      name: 'Data Quality Monitoring',
+      status: 'CRITICAL',
+      message: 'Monitoring unavailable',
+      lastChecked: new Date().toISOString(),
+    },
+  ],
+}
+
 export interface UseDataQualityResult {
   status: DataQualityStatus | null
+  syntheticStatus: DataQualityStatus | null
   loading: boolean
   error: string | null
 }
 
 export function useDataQuality(): UseDataQualityResult {
   const [status, setStatus] = useState<DataQualityStatus | null>(null)
+  const [syntheticStatus, setSyntheticStatus] = useState<DataQualityStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,10 +41,12 @@ export function useDataQuality(): UseDataQualityResult {
             return result
           })
           setError(null)
+          setSyntheticStatus(null)
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err))
+          setSyntheticStatus(MONITORING_UNAVAILABLE_STATUS)
         }
       } finally {
         if (!cancelled) {
@@ -49,5 +65,5 @@ export function useDataQuality(): UseDataQualityResult {
     }
   }, [])
 
-  return { status, loading, error }
+  return { status, syntheticStatus, loading, error }
 }

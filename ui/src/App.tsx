@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users, FileText, LogOut } from 'lucide-react'
+import { ErrorBoundary, SectionErrorCard } from './components/ErrorBoundary'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { ExecutionCostPanel } from './components/ExecutionCostPanel'
@@ -164,16 +165,20 @@ function App() {
           <HierarchySelector hierarchy={hierarchy} />
           <RegimeIndicator regime={marketRegime.regime} loading={marketRegime.loading} />
           <DataQualityIndicator
-            status={reconnecting && dataQuality.status
-              ? {
-                  ...dataQuality.status,
-                  overall: 'WARNING',
+            status={(() => {
+              const baseStatus = dataQuality.status ?? dataQuality.syntheticStatus
+              if (reconnecting && baseStatus) {
+                return {
+                  ...baseStatus,
+                  overall: 'WARNING' as const,
                   checks: [
-                    { name: 'Price Feed', status: 'WARNING', message: 'WebSocket reconnecting', lastChecked: new Date().toISOString() },
-                    ...dataQuality.status.checks,
+                    { name: 'Price Feed', status: 'WARNING' as const, message: 'WebSocket reconnecting', lastChecked: new Date().toISOString() },
+                    ...baseStatus.checks,
                   ],
                 }
-              : dataQuality.status}
+              }
+              return baseStatus
+            })()}
             loading={dataQuality.loading}
           />
           {!DEMO_MODE && (
@@ -259,7 +264,14 @@ function App() {
           >
             <Icon className="h-4 w-4" />
             <span className="hidden md:inline">{label}</span>
-            {key === 'alerts' && notifications.alerts.length > 0 && (
+            {key === 'alerts' && notifications.error && (
+              <span
+                data-testid="alerts-error-dot"
+                className="ml-1 inline-block h-2 w-2 rounded-full bg-amber-400"
+                title="Alert monitoring unavailable"
+              />
+            )}
+            {key === 'alerts' && !notifications.error && notifications.alerts.length > 0 && (
               <span
                 data-testid="alert-count-badge"
                 className="ml-1 px-1.5 py-0.5 bg-primary-500 text-white text-xs rounded-full"
@@ -464,24 +476,28 @@ function App() {
                 )}
 
                 {activeTab === 'scenarios' && (
-                  <ScenariosTab
-                    bookId={bookId}
-                    results={scenariosAll.results}
-                    loading={scenariosAll.loading}
-                    error={scenariosAll.error}
-                    selectedScenario={scenariosAll.selectedScenario}
-                    onSelectScenario={scenariosAll.setSelectedScenario}
-                    confidenceLevel={scenariosAll.confidenceLevel}
-                    onConfidenceLevelChange={scenariosAll.setConfidenceLevel}
-                    timeHorizonDays={scenariosAll.timeHorizonDays}
-                    onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
-                    onRunAll={scenariosAll.runAll}
-                    onAppendResult={scenariosAll.appendResult}
-                  />
+                  <ErrorBoundary fallback={<SectionErrorCard name="Scenarios" />}>
+                    <ScenariosTab
+                      bookId={bookId}
+                      results={scenariosAll.results}
+                      loading={scenariosAll.loading}
+                      error={scenariosAll.error}
+                      selectedScenario={scenariosAll.selectedScenario}
+                      onSelectScenario={scenariosAll.setSelectedScenario}
+                      confidenceLevel={scenariosAll.confidenceLevel}
+                      onConfidenceLevelChange={scenariosAll.setConfidenceLevel}
+                      timeHorizonDays={scenariosAll.timeHorizonDays}
+                      onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
+                      onRunAll={scenariosAll.runAll}
+                      onAppendResult={scenariosAll.appendResult}
+                    />
+                  </ErrorBoundary>
                 )}
 
                 {activeTab === 'regulatory' && (
-                  <RegulatoryTab bookId={bookId} />
+                  <ErrorBoundary fallback={<SectionErrorCard name="Regulatory" />}>
+                    <RegulatoryTab bookId={bookId} />
+                  </ErrorBoundary>
                 )}
 
                 {activeTab === 'counterparty-risk' && (

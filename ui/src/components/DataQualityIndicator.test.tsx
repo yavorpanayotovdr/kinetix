@@ -83,4 +83,32 @@ describe('DataQualityIndicator', () => {
 
     expect(screen.queryByText('Price Freshness')).toBeNull()
   })
+
+  it('renders nothing when status is null and loading is false', () => {
+    const { container } = render(<DataQualityIndicator status={null} loading={false} />)
+
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows CRITICAL indicator with monitoring unavailable message when a synthetic CRITICAL status is passed', () => {
+    const monitoringUnavailableStatus: DataQualityStatus = {
+      overall: 'CRITICAL',
+      checks: [
+        {
+          name: 'Data Quality Monitoring',
+          status: 'CRITICAL',
+          message: 'Monitoring unavailable',
+          lastChecked: new Date().toISOString(),
+        },
+      ],
+    }
+
+    render(<DataQualityIndicator status={monitoringUnavailableStatus} loading={false} />)
+
+    const indicator = screen.getByTestId('data-quality-indicator')
+    expect(indicator.querySelector('[data-testid="dq-status-critical"]')).toBeDefined()
+
+    fireEvent.click(indicator)
+    expect(screen.getByText('Monitoring unavailable')).toBeDefined()
+  })
 })

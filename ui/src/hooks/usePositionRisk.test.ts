@@ -70,7 +70,7 @@ describe('usePositionRisk', () => {
     expect(result.current.loading).toBe(false)
   })
 
-  it('sets error on fetch failure', async () => {
+  it('sets error on fetch failure when no prior data exists', async () => {
     mockFetchPositionRisk.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => usePositionRisk('book-1'))
@@ -80,6 +80,55 @@ describe('usePositionRisk', () => {
     })
 
     expect(result.current.error).toBe('Network error')
+    expect(result.current.positionRisk).toEqual([])
+  })
+
+  it('preserves previously loaded data when a refresh fails', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result } = renderHook(() => usePositionRisk('book-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.positionRisk).toEqual(positionRiskData)
+
+    // Now fail on refresh
+    mockFetchPositionRisk.mockRejectedValue(new Error('Refresh failed'))
+
+    await act(async () => {
+      await result.current.refresh()
+    })
+
+    expect(result.current.error).toBe('Refresh failed')
+    // Data should NOT be cleared — stale data is preserved for the user
+    expect(result.current.positionRisk).toEqual(positionRiskData)
+  })
+
+  it('clears data when bookId changes to a new book', async () => {
+    mockFetchPositionRisk.mockResolvedValue(positionRiskData)
+
+    const { result, rerender } = renderHook(
+      ({ bookId }) => usePositionRisk(bookId),
+      { initialProps: { bookId: 'book-1' as string | null } },
+    )
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.positionRisk).toEqual(positionRiskData)
+
+    // Change book — stale data from the previous book should be cleared
+    mockFetchPositionRisk.mockRejectedValue(new Error('Fetch failed'))
+    rerender({ bookId: 'book-2' })
+
+    await waitFor(() => {
+      expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-2', null)
+    })
+
+    // On initial load for a new book, data should be empty
     expect(result.current.positionRisk).toEqual([])
   })
 

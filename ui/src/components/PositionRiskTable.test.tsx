@@ -1,6 +1,6 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { PositionRiskDto } from '../types'
 import { PositionRiskTable } from './PositionRiskTable'
 
@@ -271,6 +271,33 @@ describe('PositionRiskTable', () => {
       expect(screen.getByTestId('position-risk-error')).toHaveTextContent('Failed to fetch position risk')
       expect(screen.queryByTestId('position-risk-empty')).not.toBeInTheDocument()
       expect(screen.queryByTestId('position-risk-table')).not.toBeInTheDocument()
+    })
+
+    it('has role="alert" on the error container', () => {
+      render(<PositionRiskTable data={[]} loading={false} error="Connection timeout" />)
+
+      expect(screen.getByTestId('position-risk-error')).toHaveAttribute('role', 'alert')
+    })
+
+    it('shows a Retry button when error is present and onRetry is provided', () => {
+      const onRetry = vi.fn()
+      render(<PositionRiskTable data={[]} loading={false} error="Network error" onRetry={onRetry} />)
+
+      expect(screen.getByTestId('position-risk-retry')).toBeInTheDocument()
+    })
+
+    it('calls onRetry when the Retry button is clicked', () => {
+      const onRetry = vi.fn()
+      render(<PositionRiskTable data={[]} loading={false} error="Network error" onRetry={onRetry} />)
+
+      fireEvent.click(screen.getByTestId('position-risk-retry'))
+      expect(onRetry).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not show a Retry button when error is present but onRetry is not provided', () => {
+      render(<PositionRiskTable data={[]} loading={false} error="Network error" />)
+
+      expect(screen.queryByTestId('position-risk-retry')).not.toBeInTheDocument()
     })
   })
 

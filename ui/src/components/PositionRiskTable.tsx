@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Download } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, RefreshCw } from 'lucide-react'
 import type { PositionRiskDto } from '../types'
 import { formatNum } from '../utils/format'
 import { formatAssetClassLabel } from '../utils/formatAssetClass'
@@ -22,6 +22,7 @@ interface PositionRiskTableProps {
   data: PositionRiskDto[]
   loading: boolean
   error?: string | null
+  onRetry?: () => void
 }
 
 function numericValue(row: PositionRiskDto, field: SortField, useAbsolute: boolean): number {
@@ -49,7 +50,7 @@ const COLUMNS: { label: string; tooltip?: string; field: SortField; sortable: tr
   { label: '% Total', field: 'percentageOfTotal', sortable: true },
 ]
 
-export function PositionRiskTable({ data, loading, error }: PositionRiskTableProps) {
+export function PositionRiskTable({ data, loading, error, onRetry }: PositionRiskTableProps) {
   const [expanded, setExpanded] = useState(true)
   const [sortField, setSortField] = useState<SortField>('varContribution')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -132,8 +133,22 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
         )}
 
         {!loading && error && (
-          <div data-testid="position-risk-error" className="text-sm text-red-600 py-6 text-center px-4">
-            Unable to load position risk — {error}
+          <div
+            data-testid="position-risk-error"
+            role="alert"
+            className="flex items-center justify-between gap-4 text-sm text-red-600 py-6 px-4"
+          >
+            <span>Unable to load position risk — {error}</span>
+            {onRetry && (
+              <button
+                data-testid="position-risk-retry"
+                onClick={onRetry}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry
+              </button>
+            )}
           </div>
         )}
 

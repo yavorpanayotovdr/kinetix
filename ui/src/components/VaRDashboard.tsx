@@ -72,7 +72,18 @@ export function VaRDashboard({ varResult, filteredHistory, loading, historyLoadi
   if (error) {
     return (
       <Card data-testid="var-error" className="mb-4">
-        <p className="text-red-600">{error}</p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-red-600">{error}</p>
+          <Button
+            data-testid="var-error-retry"
+            variant="primary"
+            size="sm"
+            icon={<RefreshCw className="h-3 w-3" />}
+            onClick={onRefresh}
+          >
+            Retry
+          </Button>
+        </div>
       </Card>
     )
   }
