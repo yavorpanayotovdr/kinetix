@@ -57,6 +57,7 @@ class KafkaIntradayPnlPublisher(
                 )
             }.ifEmpty { null },
             correlationId = snapshot.correlationId,
+            missingFxRates = snapshot.missingFxRates,
         )
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, snapshot.bookId.value, json)

@@ -31,6 +31,7 @@ data class PnlUpdate(
     val unexplainedPnl: String,
     val highWaterMark: String,
     val correlationId: String? = null,
+    val missingFxRates: List<String> = emptyList(),
 ) {
     companion object {
         fun from(event: IntradayPnlEvent): PnlUpdate = PnlUpdate(
@@ -53,6 +54,7 @@ data class PnlUpdate(
             unexplainedPnl = event.unexplainedPnl,
             highWaterMark = event.highWaterMark,
             correlationId = event.correlationId,
+            missingFxRates = event.missingFxRates,
         )
     }
 }

@@ -50,6 +50,9 @@ data class IntradayPnlEvent(
     val instrumentPnl: List<InstrumentPnlItem>? = null,
 
     val correlationId: String? = null,
+
+    // FX rates that could not be resolved during P&L computation; empty when all rates available
+    val missingFxRates: List<String> = emptyList(),
 )
 
 @Serializable
