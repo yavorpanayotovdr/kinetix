@@ -18,7 +18,7 @@ describe('VaRGauge', () => {
     )
 
     const valueEl = screen.getByTestId('var-value')
-    expect(valueEl).toHaveTextContent('$1,234,567.89')
+    expect(valueEl).toHaveTextContent('$1.2M')
   })
 
   it('displays 95% confidence label', () => {
@@ -45,7 +45,7 @@ describe('VaRGauge', () => {
     )
 
     const esEl = screen.getByTestId('es-value')
-    expect(esEl).toHaveTextContent('$1,567,890.12')
+    expect(esEl).toHaveTextContent('$1.6M')
   })
 
   describe('status dot', () => {

@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import type { StressLimitBreachDto } from '../types'
 import { formatCurrency } from '../utils/format'
+import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 
 interface LimitBreachCardProps {
   breaches: StressLimitBreachDto[]
@@ -63,8 +64,8 @@ export function LimitBreachCard({ breaches }: LimitBreachCardProps) {
               >
                 <td className="py-1.5 font-medium">{breach.limitType}</td>
                 <td className="py-1.5 text-slate-600 dark:text-slate-400">{breach.limitLevel}</td>
-                <td className="py-1.5 text-right">{formatCurrency(breach.limitValue)}</td>
-                <td className="py-1.5 text-right font-medium">{formatCurrency(breach.stressedValue)}</td>
+                <td className="py-1.5 text-right" title={formatCurrency(breach.limitValue)}>{formatCompactCurrency(Number(breach.limitValue))}</td>
+                <td className="py-1.5 text-right font-medium" title={formatCurrency(breach.stressedValue)}>{formatCompactCurrency(Number(breach.stressedValue))}</td>
                 <td className="py-1.5">
                   <div
                     className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded overflow-hidden"

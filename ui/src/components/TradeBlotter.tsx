@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Download, Inbox } from 'lucide-react'
 import { useTradeHistory } from '../hooks/useTradeHistory'
 import { formatMoney, formatQuantity, formatTimestamp } from '../utils/format'
+import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { Card, EmptyState } from './ui'
 import type { TradeHistoryDto } from '../types'
 import { InstrumentTypeBadge } from './InstrumentTypeBadge'
@@ -194,9 +195,10 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                     </td>
                     <td
                       data-testid={`trade-notional-${trade.tradeId}`}
-                      className="px-4 py-2 text-sm text-right"
+                      className="px-4 py-2 text-sm text-right whitespace-nowrap"
+                      title={formatMoney(String(notional(trade)), trade.price.currency)}
                     >
-                      {formatMoney(String(notional(trade)), trade.price.currency)}
+                      {formatCompactCurrency(notional(trade))}
                     </td>
                     <td className="px-4 py-2 text-sm">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

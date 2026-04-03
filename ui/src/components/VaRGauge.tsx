@@ -123,8 +123,8 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
       </div>
 
       <div className="flex items-center gap-2">
-        <div data-testid="var-value" className="text-2xl font-bold">
-          {formatMoney(varValue.toFixed(2), 'USD')}
+        <div data-testid="var-value" className="text-2xl font-bold" title={formatMoney(varValue.toFixed(2), 'USD')}>
+          {formatCompactCurrency(varValue)}
         </div>
         <span
           data-testid="var-status-dot"
@@ -158,7 +158,7 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
             className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
             onClick={() => togglePopover('es')}
           />
-          {formatMoney(expectedShortfall.toFixed(2), 'USD')}
+          <span title={formatMoney(expectedShortfall.toFixed(2), 'USD')}>{formatCompactCurrency(expectedShortfall)}</span>
           {varValue > 0 && (
             <span data-testid="es-var-ratio" className="text-xs text-slate-400">
               ({(expectedShortfall / varValue).toFixed(2)}x)
@@ -180,12 +180,12 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
         <div data-testid="diversification-summary" className="border-t border-slate-100 mt-1 pt-1 space-y-0.5">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Sum of books</span>
-            <span data-testid="sum-of-books-var">{formatMoney(totalStandaloneVar.toFixed(2), 'USD')}</span>
+            <span data-testid="sum-of-books-var" title={formatMoney(totalStandaloneVar.toFixed(2), 'USD')}>{formatCompactCurrency(totalStandaloneVar)}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-green-600">
             <span>Diversification benefit</span>
-            <span data-testid="diversification-benefit-value">
-              -{formatMoney(diversificationBenefit.toFixed(2), 'USD')}
+            <span data-testid="diversification-benefit-value" title={formatMoney(diversificationBenefit.toFixed(2), 'USD')}>
+              -{formatCompactCurrency(diversificationBenefit)}
               {totalStandaloneVar > 0 && ` (${((diversificationBenefit / totalStandaloneVar) * 100).toFixed(1)}%)`}
             </span>
           </div>

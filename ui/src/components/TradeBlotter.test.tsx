@@ -160,8 +160,8 @@ describe('TradeBlotter', () => {
 
     const row = screen.getByTestId('trade-row-t-1')
     const notional = within(row).getByTestId('trade-notional-t-1')
-    // 100 * 150.00 = 15000.00
-    expect(notional.textContent).toContain('15,000')
+    // 100 * 150.00 = 15000 -> compact: $15K
+    expect(notional.textContent).toContain('$15K')
   })
 
   describe('instrument type filter', () => {

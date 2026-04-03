@@ -51,12 +51,12 @@ test.describe('Trade Blotter - Core Display', () => {
   test('calculates correct notional values', async ({ page }) => {
     await goToTradesTab(page)
 
-    // trade-1: 100 × 150 = $15,000.00
-    await expect(page.getByTestId('trade-notional-trade-1')).toHaveText('$15,000.00')
-    // trade-2: 50 × 2800 = $140,000.00
-    await expect(page.getByTestId('trade-notional-trade-2')).toHaveText('$140,000.00')
-    // trade-3: 25 × 155 = $3,875.00
-    await expect(page.getByTestId('trade-notional-trade-3')).toHaveText('$3,875.00')
+    // trade-1: 100 × 150 = $15,000 -> compact: $15K
+    await expect(page.getByTestId('trade-notional-trade-1')).toHaveText('$15K')
+    // trade-2: 50 × 2800 = $140,000 -> compact: $140K
+    await expect(page.getByTestId('trade-notional-trade-2')).toHaveText('$140K')
+    // trade-3: 25 × 155 = $3,875 -> compact: $3.9K
+    await expect(page.getByTestId('trade-notional-trade-3')).toHaveText('$3.9K')
   })
 
   test('shows FILLED status badge for all trades', async ({ page }) => {
@@ -440,7 +440,7 @@ test.describe('Trade Blotter - Edge Cases', () => {
     await page.getByTestId('tab-trades').click()
     await page.waitForSelector('[data-testid="trade-notional-trade-zero"]')
 
-    await expect(page.getByTestId('trade-notional-trade-zero')).toHaveText('$0.00')
+    await expect(page.getByTestId('trade-notional-trade-zero')).toHaveText('$0')
   })
 
   test('very large quantity formats with commas', async ({ page }) => {
@@ -468,7 +468,7 @@ test.describe('Trade Blotter - Edge Cases', () => {
     await page.getByTestId('tab-trades').click()
     await page.waitForSelector('[data-testid="trade-notional-trade-big"]')
 
-    // 1,000,000 × 150 = $150,000,000.00
-    await expect(page.getByTestId('trade-notional-trade-big')).toHaveText('$150,000,000.00')
+    // 1,000,000 × 150 = $150,000,000 -> compact: $150M
+    await expect(page.getByTestId('trade-notional-trade-big')).toHaveText('$150M')
   })
 })

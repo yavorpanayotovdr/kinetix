@@ -8,7 +8,7 @@ export function useAlerts() {
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchAlerts(5)
+      const data = await fetchAlerts(20)
       const filtered = data.filter((a) => !dismissedIds.current.has(a.id))
       setAlerts((prev) => {
         if (prev.length === filtered.length && prev.every((a, i) => a.id === filtered[i].id)) {

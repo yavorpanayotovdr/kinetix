@@ -41,8 +41,8 @@ test.describe('VaR Dashboard - Data Display', () => {
     await goToRiskTab(page)
     await page.waitForSelector('[data-testid="var-dashboard"]')
 
-    await expect(page.getByTestId('var-value')).toContainText('$125,000.50')
-    await expect(page.getByTestId('es-value')).toContainText('$187,500.75')
+    await expect(page.getByTestId('var-value')).toContainText('$125K')
+    await expect(page.getByTestId('es-value')).toContainText('$187.5K')
     await expect(page.getByTestId('es-var-ratio')).toContainText('1.50x')
   })
 
@@ -354,7 +354,7 @@ test.describe('VaR Dashboard - Chart and Actions', () => {
     await page.getByTestId('var-recalculate').click()
 
     // After response, VaR value should update
-    await expect(page.getByTestId('var-value')).toContainText('$130,000.00')
+    await expect(page.getByTestId('var-value')).toContainText('$130K')
   })
 
   test('What-If button is visible and clickable', async ({ page }) => {

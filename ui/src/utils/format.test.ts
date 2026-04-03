@@ -118,6 +118,18 @@ describe('formatQuantity', () => {
   it('handles negative values', () => {
     expect(formatQuantity('-5.500000')).toBe('-5.5')
   })
+
+  it('adds thousands separators for large integers', () => {
+    expect(formatQuantity('25000')).toBe('25,000')
+  })
+
+  it('adds thousands separators for large decimals', () => {
+    expect(formatQuantity('100000.50')).toBe('100,000.5')
+  })
+
+  it('adds thousands separators for millions', () => {
+    expect(formatQuantity('10000000')).toBe('10,000,000')
+  })
 })
 
 describe('formatRelativeTime', () => {

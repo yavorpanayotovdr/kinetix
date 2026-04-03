@@ -59,7 +59,7 @@ describe('useAlerts', () => {
       expect(result.current.alerts).toEqual(alertFixtures)
     })
 
-    expect(mockFetchAlerts).toHaveBeenCalledWith(5)
+    expect(mockFetchAlerts).toHaveBeenCalledWith(20)
   })
 
   it('returns empty array initially before fetch completes', () => {

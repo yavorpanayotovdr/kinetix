@@ -173,7 +173,7 @@ describe('VaRDashboard', () => {
 
     expect(screen.getByTestId('var-dashboard')).toBeInTheDocument()
     expect(screen.getByTestId('var-gauge')).toBeInTheDocument()
-    expect(screen.getByTestId('var-value')).toHaveTextContent('$1,234,567.89')
+    expect(screen.getByTestId('var-value')).toHaveTextContent('$1.2M')
   })
 
   it('renders component breakdown segments', () => {

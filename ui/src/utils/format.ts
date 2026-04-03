@@ -25,9 +25,7 @@ export function formatMoney(amount: string, currency: string): string {
 export function formatQuantity(amount: string): string {
   const num = Number(amount)
   if (!Number.isFinite(num)) return amount
-  // Up to 2 decimal places, strip trailing zeros
-  const fixed = num.toFixed(2)
-  return fixed.replace(/\.?0+$/, '')
+  return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 export function formatRelativeTime(isoString: string): string {
