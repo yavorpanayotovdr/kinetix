@@ -42,12 +42,20 @@ class TradeAuditReconciliationJob(
                 logger.error("Trade count endpoint returned 404 — reconciliation aborted")
                 return null
             }
+            else -> {
+                logger.error("Unexpected response fetching trade count — reconciliation aborted: {}", response)
+                return null
+            }
         }
 
         val auditCount = when (val response = auditServiceClient.countAuditEventsSince(since)) {
             is ClientResponse.Success -> response.value
             is ClientResponse.NotFound -> {
                 logger.error("Audit count endpoint returned 404 — reconciliation aborted")
+                return null
+            }
+            else -> {
+                logger.error("Unexpected response fetching audit count — reconciliation aborted: {}", response)
                 return null
             }
         }

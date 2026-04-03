@@ -29,7 +29,7 @@ class HttpInstrumentServiceClient(
         for (id in instrumentIds) {
             when (val resp = getInstrument(id)) {
                 is ClientResponse.Success -> result[id.value] = resp.value
-                is ClientResponse.NotFound -> {}
+                else -> {}
             }
         }
         return result

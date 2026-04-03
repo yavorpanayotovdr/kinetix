@@ -170,7 +170,7 @@ class SodSnapshotService(
                 // Use the first point as an ATM proxy; the surface may be flat for non-option instruments.
                 surface.points.firstOrNull()?.impliedVol?.toDouble()
             }
-            is ClientResponse.NotFound -> {
+            else -> {
                 logger.debug("No vol surface for {} at SOD — sodVol will be null", instrumentId.value)
                 null
             }
@@ -185,7 +185,7 @@ class SodSnapshotService(
         val client = ratesServiceClient ?: return null
         return when (val response = client.getLatestRiskFreeRate(currency, "1Y")) {
             is ClientResponse.Success -> response.value.rate
-            is ClientResponse.NotFound -> {
+            else -> {
                 logger.debug("No risk-free rate for {} 1Y at SOD — sodRate will be null", currency.currencyCode)
                 null
             }

@@ -17,7 +17,7 @@ class PositionServiceTradeProvider(
     ): List<TradeAnnotation> {
         return when (val response = positionServiceClient.getTradesInRange(bookId, from, to)) {
             is ClientResponse.Success -> response.value.map { it.toTradeAnnotation() }
-            is ClientResponse.NotFound -> emptyList()
+            else -> emptyList()
         }
     }
 }

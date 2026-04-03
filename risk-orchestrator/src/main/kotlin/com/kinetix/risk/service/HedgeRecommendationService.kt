@@ -246,7 +246,7 @@ class HedgeRecommendationService(
             val instrumentResp = instrumentServiceClient.getInstrument(InstrumentId(liq.instrumentId))
             val instrument = when (instrumentResp) {
                 is ClientResponse.Success -> instrumentResp.value
-                is ClientResponse.NotFound -> return null
+                else -> return null
             }
 
             val tier = classifyTier(liq.adv, liq.bidAskSpreadBps)
@@ -255,7 +255,7 @@ class HedgeRecommendationService(
             val priceResp = priceServiceClient.getLatestPrice(InstrumentId(liq.instrumentId))
             val pricePerUnit = when (priceResp) {
                 is ClientResponse.Success -> priceResp.value.price.amount.toDouble()
-                is ClientResponse.NotFound -> {
+                else -> {
                     logger.debug("No price found for candidate {}, excluding", liq.instrumentId)
                     return null
                 }
@@ -337,7 +337,7 @@ class HedgeRecommendationService(
         return try {
             when (val response = limitServiceClient.getLimits()) {
                 is ClientResponse.Success -> response.value.filter { it.active && it.limitType == "NOTIONAL" }
-                is ClientResponse.NotFound -> emptyList()
+                else -> emptyList()
             }
         } catch (e: Exception) {
             logger.warn("Failed to fetch position limits for hedge filter: {}", e.message)

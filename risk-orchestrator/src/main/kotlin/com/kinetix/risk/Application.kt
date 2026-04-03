@@ -612,7 +612,7 @@ fun Application.moduleWithRoutes() {
         varCalculationService,
         affectedPortfolios = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
-                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+                else -> emptyList()
             } },
         varCache = varCache,
         intradayPnlService = intradayPnlService,
@@ -718,7 +718,7 @@ fun Application.moduleWithRoutes() {
             varCache = varCache,
             bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
-                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+                else -> emptyList()
             } },
             factorRiskService = factorRiskService,
             hierarchyRiskService = hierarchyRiskService,
@@ -730,7 +730,7 @@ fun Application.moduleWithRoutes() {
             sodSnapshotService = sodSnapshotService,
             bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
-                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+                else -> emptyList()
             } },
             lock = distributedLock,
         ).start()
@@ -743,7 +743,7 @@ fun Application.moduleWithRoutes() {
             jobRecorder = jobRecorder,
             bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
-                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+                else -> emptyList()
             } },
             closeTime = java.time.LocalTime.parse(autoCloseTimeStr),
             lock = distributedLock,

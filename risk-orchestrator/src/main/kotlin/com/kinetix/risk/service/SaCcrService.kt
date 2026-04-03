@@ -64,8 +64,8 @@ class SaCcrService(
         val client = positionServiceClient ?: return emptyList()
         return when (val resp = client.getTradesByCounterparty(counterpartyId)) {
             is ClientResponse.Success -> resp.value.map { it.toSaCcrInput() }
-            is ClientResponse.NotFound -> {
-                logger.warn("No trades found for counterparty {} in position-service", counterpartyId)
+            else -> {
+                logger.warn("Could not fetch trades for counterparty {} from position-service: {}", counterpartyId, resp)
                 emptyList()
             }
         }

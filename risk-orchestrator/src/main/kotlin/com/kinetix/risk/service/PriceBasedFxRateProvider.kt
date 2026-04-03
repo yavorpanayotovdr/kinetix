@@ -31,11 +31,16 @@ class PriceBasedFxRateProvider(
                             val inverseRate = inverse.value.price.amount
                             BigDecimal.ONE.divide(inverseRate, mc)
                         }
-                        is ClientResponse.NotFound -> {
+                        else -> {
                             logger.warn("FX rate unavailable for {}/{} in either direction", fromCurrency, toCurrency)
                             null
                         }
                     }
+                }
+
+                else -> {
+                    logger.warn("Error fetching FX rate for {}/{}: {}", fromCurrency, toCurrency, direct)
+                    null
                 }
             }
         } catch (e: Exception) {

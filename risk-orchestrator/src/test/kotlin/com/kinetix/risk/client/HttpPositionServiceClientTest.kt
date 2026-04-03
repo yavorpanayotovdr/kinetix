@@ -1,7 +1,6 @@
 package com.kinetix.risk.client
 
 import com.kinetix.common.model.*
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -93,40 +92,6 @@ class HttpPositionServiceClientTest : FunSpec({
         success.value[2] shouldBe BookId("port-3")
     }
 
-    test("should throw UpstreamServiceException on 503 from position-service") {
-        val httpClient = mockClient {
-            respond(
-                content = """{"code":"service_unavailable","message":"position-service restarting"}""",
-                status = HttpStatusCode.ServiceUnavailable,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-            )
-        }
-        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
-
-        val exception = shouldThrow<UpstreamServiceException> {
-            client.getPositions(BookId("port-1"))
-        }
-        exception.statusCode shouldBe 503
-        exception.message shouldBe "position-service restarting"
-    }
-
-    test("should throw UpstreamServiceException on 500 from position-service") {
-        val httpClient = mockClient {
-            respond(
-                content = """{"code":"internal_error","message":"DB connection failed"}""",
-                status = HttpStatusCode.InternalServerError,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-            )
-        }
-        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
-
-        val exception = shouldThrow<UpstreamServiceException> {
-            client.getDistinctBookIds()
-        }
-        exception.statusCode shouldBe 500
-        exception.message shouldBe "DB connection failed"
-    }
-
     test("should return NotFound when position-service returns 404") {
         val httpClient = mockClient {
             respond(
@@ -140,5 +105,66 @@ class HttpPositionServiceClientTest : FunSpec({
         val result = client.getPositions(BookId("unknown"))
 
         result.shouldBeInstanceOf<ClientResponse.NotFound>()
+    }
+
+    test("returns ServiceUnavailable when position-service returns 503") {
+        val httpClient = mockClient {
+            respond(
+                content = """{"code":"service_unavailable","message":"position-service restarting"}""",
+                status = HttpStatusCode.ServiceUnavailable,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val result = client.getPositions(BookId("port-1"))
+
+        result.shouldBeInstanceOf<ClientResponse.ServiceUnavailable>()
+    }
+
+    test("returns UpstreamError when position-service returns 500") {
+        val httpClient = mockClient {
+            respond(
+                content = """{"code":"internal_error","message":"DB connection failed"}""",
+                status = HttpStatusCode.InternalServerError,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val result = client.getPositions(BookId("port-1"))
+
+        val error = result.shouldBeInstanceOf<ClientResponse.UpstreamError>()
+        error.httpStatus shouldBe 500
+        error.message shouldBe "DB connection failed"
+    }
+
+    test("returns UpstreamError with status description when body is not parseable JSON") {
+        val httpClient = mockClient {
+            respond(
+                content = "Gateway Timeout",
+                status = HttpStatusCode.GatewayTimeout,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Text.Plain.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val result = client.getDistinctBookIds()
+
+        val error = result.shouldBeInstanceOf<ClientResponse.UpstreamError>()
+        error.httpStatus shouldBe 504
+    }
+
+    test("returns NetworkError when HTTP call throws an exception") {
+        val failingEngine = MockEngine { throw java.io.IOException("Connection refused") }
+        val httpClient = HttpClient(failingEngine) {
+            install(ContentNegotiation) { json() }
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val result = client.getPositions(BookId("port-1"))
+
+        val networkError = result.shouldBeInstanceOf<ClientResponse.NetworkError>()
+        networkError.cause.message shouldBe "Connection refused"
     }
 })

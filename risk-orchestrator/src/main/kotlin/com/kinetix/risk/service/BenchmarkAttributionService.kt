@@ -39,8 +39,8 @@ class BenchmarkAttributionService(
 
         val benchmarkDetail = when (val resp = benchmarkServiceClient.getBenchmarkDetail(benchmarkId, asOfDate)) {
             is ClientResponse.Success -> resp.value
-            is ClientResponse.NotFound -> throw IllegalArgumentException(
-                "Benchmark not found: $benchmarkId"
+            else -> throw IllegalArgumentException(
+                "Benchmark not found or unavailable: $benchmarkId"
             )
         }
 

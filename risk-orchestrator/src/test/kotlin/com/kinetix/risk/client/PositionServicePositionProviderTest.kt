@@ -56,4 +56,31 @@ class PositionServicePositionProviderTest : FunSpec({
 
         result shouldHaveSize 0
     }
+
+    test("returns empty list when client returns ServiceUnavailable") {
+        val bookId = BookId("port-503")
+        coEvery { client.getPositions(bookId) } returns ClientResponse.ServiceUnavailable()
+
+        val result = provider.getPositions(bookId)
+
+        result shouldHaveSize 0
+    }
+
+    test("returns empty list when client returns UpstreamError") {
+        val bookId = BookId("port-500")
+        coEvery { client.getPositions(bookId) } returns ClientResponse.UpstreamError(500, "DB failure")
+
+        val result = provider.getPositions(bookId)
+
+        result shouldHaveSize 0
+    }
+
+    test("returns empty list when client returns NetworkError") {
+        val bookId = BookId("port-net-fail")
+        coEvery { client.getPositions(bookId) } returns ClientResponse.NetworkError(java.io.IOException("timeout"))
+
+        val result = provider.getPositions(bookId)
+
+        result shouldHaveSize 0
+    }
 })

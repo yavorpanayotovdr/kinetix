@@ -60,6 +60,54 @@ class MarketDataFetcher(
                             durationMs = durationMs,
                         )
                     )
+                    is ClientResponse.ServiceUnavailable -> {
+                        logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "SERVICE_UNAVAILABLE",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = 503,
+                                errorMessage = null,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
+                    is ClientResponse.UpstreamError -> {
+                        logger.warn(
+                            "Upstream error {} fetching {} for {}: {}",
+                            result.httpStatus, dep.dataType, dep.instrumentId, result.message,
+                        )
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "UPSTREAM_ERROR",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = result.httpStatus,
+                                errorMessage = result.message,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
+                    is ClientResponse.NetworkError -> {
+                        logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, result.cause)
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "NETWORK_ERROR",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = null,
+                                errorMessage = result.cause.message,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
                     null -> {
                         val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
                         results.add(
@@ -163,7 +211,7 @@ class MarketDataFetcher(
                         value = response.value.price.amount.toDouble(),
                     )
                 )
-                is ClientResponse.NotFound -> response
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -190,7 +238,7 @@ class MarketDataFetcher(
                         )
                     } else null
                 }
-                is ClientResponse.NotFound -> response
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -208,8 +256,8 @@ class MarketDataFetcher(
                         },
                     )
                 )
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -226,8 +274,8 @@ class MarketDataFetcher(
                         value = response.value.rate,
                     )
                 )
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -244,8 +292,8 @@ class MarketDataFetcher(
                         },
                     )
                 )
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -260,8 +308,8 @@ class MarketDataFetcher(
                         value = response.value.yield,
                     )
                 )
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -276,8 +324,8 @@ class MarketDataFetcher(
                         value = response.value.spread,
                     )
                 )
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -304,8 +352,8 @@ class MarketDataFetcher(
                         )
                     )
                 }
-                is ClientResponse.NotFound -> response
                 null -> null
+                else -> response as ClientResponse<Nothing>
             }
         }
 
@@ -328,8 +376,8 @@ class MarketDataFetcher(
                             values = response.value.values,
                         )
                     )
-                    is ClientResponse.NotFound -> response
                     null -> null
+                    else -> response as ClientResponse<Nothing>
                 }
             }
         }
