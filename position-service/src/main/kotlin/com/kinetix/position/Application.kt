@@ -324,7 +324,7 @@ fun Application.moduleWithRoutes() {
 
         val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
         if (demoResetToken != null) {
-            demoResetRoutes(db, seederBookingService, positionRepository, limitDefinitionRepo, demoResetToken)
+            demoResetRoutes(db, seederBookingService, positionRepository, limitDefinitionRepo, executionCostRepository, demoResetToken)
         }
     }
 
@@ -343,7 +343,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(seederBookingService, positionRepository, limitDefinitionRepo).seed()
+            DevDataSeeder(seederBookingService, positionRepository, limitDefinitionRepo, executionCostRepository).seed()
             seedDone.set(true)
         }
     } else {

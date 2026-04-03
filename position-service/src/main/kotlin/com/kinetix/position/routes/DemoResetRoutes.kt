@@ -1,5 +1,6 @@
 package com.kinetix.position.routes
 
+import com.kinetix.position.fix.ExecutionCostRepository
 import com.kinetix.position.persistence.LimitDefinitionRepository
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.seed.DevDataSeeder
@@ -19,6 +20,7 @@ fun Route.demoResetRoutes(
     tradeBookingService: TradeBookingService,
     positionRepository: PositionRepository,
     limitDefinitionRepo: LimitDefinitionRepository,
+    executionCostRepo: ExecutionCostRepository? = null,
     resetToken: String,
 ) {
     route("/api/v1/internal/position") {
@@ -34,9 +36,10 @@ fun Route.demoResetRoutes(
                 exec("DELETE FROM trade_events WHERE trade_id NOT LIKE 'seed-%'")
                 exec("TRUNCATE TABLE limit_definitions RESTART IDENTITY CASCADE")
                 exec("TRUNCATE TABLE limit_temporary_increases RESTART IDENTITY CASCADE")
+                exec("TRUNCATE TABLE execution_cost_analysis RESTART IDENTITY CASCADE")
             }
 
-            DevDataSeeder(tradeBookingService, positionRepository, limitDefinitionRepo).seed()
+            DevDataSeeder(tradeBookingService, positionRepository, limitDefinitionRepo, executionCostRepo).seed()
 
             call.respond(DemoResetResponse("ok", "Position data reset and reseeded"))
         }
