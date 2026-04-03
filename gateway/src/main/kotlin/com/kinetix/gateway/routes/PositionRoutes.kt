@@ -11,6 +11,9 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
+
+private val log = LoggerFactory.getLogger("com.kinetix.gateway.routes.PositionRoutes")
 
 fun Route.positionRoutes(client: PositionServiceClient, instrumentClient: InstrumentServiceClient? = null) {
     route("/api/v1/books") {
@@ -35,7 +38,8 @@ fun Route.positionRoutes(client: PositionServiceClient, instrumentClient: Instru
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
                     val trades = client.getTradeHistory(bookId)
-                    call.respond(trades.map { it.toResponse() })
+                    val instrumentMap = fetchInstrumentMap(instrumentClient)
+                    call.respond(trades.map { it.toResponse(instrumentMap) })
                 }
 
                 post({
@@ -102,7 +106,8 @@ private suspend fun fetchInstrumentMap(
     if (client == null) return emptyMap()
     return try {
         client.fetchAll().associateBy { it.instrumentId }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        log.warn("Failed to fetch instrument map from reference-data-service", e)
         emptyMap()
     }
 }

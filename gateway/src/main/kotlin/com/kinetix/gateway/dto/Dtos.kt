@@ -85,6 +85,7 @@ data class TradeResponse(
     val price: MoneyDto,
     val tradedAt: String,
     val instrumentType: String? = null,
+    val displayName: String? = null,
 )
 
 @Serializable
@@ -145,17 +146,23 @@ fun Money.toDto(): MoneyDto = MoneyDto(
     currency = currency.currencyCode,
 )
 
-fun Trade.toResponse(): TradeResponse = TradeResponse(
-    tradeId = tradeId.value,
-    bookId = bookId.value,
-    instrumentId = instrumentId.value,
-    assetClass = assetClass.name,
-    side = side.name,
-    quantity = quantity.toPlainString(),
-    price = price.toDto(),
-    tradedAt = tradedAt.toString(),
-    instrumentType = instrumentType,
-)
+fun Trade.toResponse(): TradeResponse = toResponse(emptyMap())
+
+fun Trade.toResponse(instruments: Map<String, InstrumentSummary>): TradeResponse {
+    val instrument = instruments[instrumentId.value]
+    return TradeResponse(
+        tradeId = tradeId.value,
+        bookId = bookId.value,
+        instrumentId = instrumentId.value,
+        assetClass = assetClass.name,
+        side = side.name,
+        quantity = quantity.toPlainString(),
+        price = price.toDto(),
+        tradedAt = tradedAt.toString(),
+        instrumentType = instrument?.instrumentType ?: instrumentType,
+        displayName = instrument?.displayName,
+    )
+}
 
 fun Position.toResponse(): PositionResponse = toResponse(emptyMap())
 
