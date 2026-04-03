@@ -1,6 +1,9 @@
 package com.kinetix.position.seed
 
 import com.kinetix.common.model.*
+import com.kinetix.position.fix.ExecutionCostAnalysis
+import com.kinetix.position.fix.ExecutionCostMetrics
+import com.kinetix.position.fix.ExecutionCostRepository
 import com.kinetix.position.model.LimitDefinition
 import com.kinetix.position.model.LimitLevel
 import com.kinetix.position.model.LimitType
@@ -10,6 +13,7 @@ import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.TradeBookingService
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Currency
@@ -18,34 +22,46 @@ class DevDataSeeder(
     private val tradeBookingService: TradeBookingService,
     private val positionRepository: PositionRepository,
     private val limitDefinitionRepo: LimitDefinitionRepository? = null,
+    private val executionCostRepo: ExecutionCostRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
     suspend fun seed() {
         val existing = positionRepository.findDistinctBookIds()
-        if (existing.isNotEmpty()) {
-            log.info("Seed data already present ({} books), skipping", existing.size)
-            return
+        if (existing.isEmpty()) {
+            log.info("Seeding dev data: {} trades across {} books", TRADES.size, TRADES.map { it.bookId }.distinct().size)
+
+            for (trade in TRADES) {
+                tradeBookingService.handle(trade)
+            }
+
+            // Update positions with realistic market prices (trades only set averageCost)
+            for ((key, marketPrice) in MARKET_PRICES) {
+                val position = positionRepository.findByKey(key.first, key.second) ?: continue
+                positionRepository.save(position.markToMarket(marketPrice))
+            }
+
+            if (limitDefinitionRepo != null) {
+                val existingLimits = limitDefinitionRepo.findAll()
+                if (existingLimits.none { it.id.startsWith("seed-lim-") }) {
+                    log.info("Seeding {} limit definitions", LIMIT_DEFINITIONS.size)
+                    for (limit in LIMIT_DEFINITIONS) {
+                        limitDefinitionRepo.save(limit)
+                    }
+                }
+            }
+        } else {
+            log.info("Seed data already present ({} books), skipping trades/prices/limits", existing.size)
         }
 
-        log.info("Seeding dev data: {} trades across {} books", TRADES.size, TRADES.map { it.bookId }.distinct().size)
-
-        for (trade in TRADES) {
-            tradeBookingService.handle(trade)
-        }
-
-        // Update positions with realistic market prices (trades only set averageCost)
-        for ((key, marketPrice) in MARKET_PRICES) {
-            val position = positionRepository.findByKey(key.first, key.second) ?: continue
-            positionRepository.save(position.markToMarket(marketPrice))
-        }
-
-        if (limitDefinitionRepo != null) {
-            val existingLimits = limitDefinitionRepo.findAll()
-            if (existingLimits.none { it.id.startsWith("seed-lim-") }) {
-                log.info("Seeding {} limit definitions", LIMIT_DEFINITIONS.size)
-                for (limit in LIMIT_DEFINITIONS) {
-                    limitDefinitionRepo.save(limit)
+        // Execution cost seeding runs independently — supports warm restart
+        // where trades exist but execution costs were not yet seeded
+        if (executionCostRepo != null) {
+            val existingCosts = executionCostRepo.findByBookId("equity-growth")
+            if (existingCosts.none { it.orderId.startsWith("seed-exec-") }) {
+                log.info("Seeding {} execution cost analyses", EXECUTION_COSTS.size)
+                for (cost in EXECUTION_COSTS) {
+                    executionCostRepo.save(cost)
                 }
             }
         }
@@ -678,6 +694,159 @@ class DevDataSeeder(
             limit("seed-lim-book-db-notional", LimitLevel.BOOK, "derivatives-book", LimitType.NOTIONAL, "75000",
                 intraday = "85000", overnight = "60000"),
             limit("seed-lim-book-db-conc", LimitLevel.BOOK, "derivatives-book", LimitType.CONCENTRATION, "0.40"),
+        )
+
+        private fun fill(dayOffset: Long, minutesAfter: Long): Instant =
+            BASE_TIME.plus(dayOffset, ChronoUnit.DAYS).plus(minutesAfter, ChronoUnit.MINUTES)
+
+        private fun execCost(
+            orderId: String,
+            bookId: String,
+            instrumentId: String,
+            completedAt: Instant,
+            arrivalPrice: String,
+            avgFillPrice: String,
+            side: Side,
+            totalQty: String,
+            slippageBps: String,
+            marketImpactBps: String? = null,
+            timingCostBps: String? = null,
+            totalCostBps: String,
+        ) = ExecutionCostAnalysis(
+            orderId = orderId,
+            bookId = bookId,
+            instrumentId = instrumentId,
+            completedAt = completedAt,
+            arrivalPrice = BigDecimal(arrivalPrice),
+            averageFillPrice = BigDecimal(avgFillPrice),
+            side = side,
+            totalQty = BigDecimal(totalQty),
+            metrics = ExecutionCostMetrics(
+                slippageBps = BigDecimal(slippageBps),
+                marketImpactBps = marketImpactBps?.let { BigDecimal(it) },
+                timingCostBps = timingCostBps?.let { BigDecimal(it) },
+                totalCostBps = BigDecimal(totalCostBps),
+            ),
+        )
+
+        // Slippage formula: (avgFillPrice - arrivalPrice) / arrivalPrice * 10000 * sideSign
+        // sideSign = +1 for BUY, -1 for SELL
+        // totalCostBps = slippageBps + (marketImpactBps ?: 0) + (timingCostBps ?: 0)
+        val EXECUTION_COSTS: List<ExecutionCostAnalysis> = listOf(
+            // ── equity-growth: 4 of 5 trades (skip TSLA) ──
+            execCost("seed-exec-eq-aapl-001", "equity-growth", "AAPL", fill(0, 3),
+                arrivalPrice = "185.25", avgFillPrice = "185.50", side = Side.BUY, totalQty = "150",
+                slippageBps = "13.4953", marketImpactBps = "3.5000", timingCostBps = "1.2000", totalCostBps = "18.1953"),
+            execCost("seed-exec-eq-googl-001", "equity-growth", "GOOGL", fill(0, 7),
+                arrivalPrice = "175.35", avgFillPrice = "175.20", side = Side.BUY, totalQty = "80",
+                slippageBps = "-8.5530", totalCostBps = "-8.5530"),
+            execCost("seed-exec-eq-msft-001", "equity-growth", "MSFT", fill(0, 12),
+                arrivalPrice = "419.70", avgFillPrice = "420.00", side = Side.BUY, totalQty = "120",
+                slippageBps = "7.1480", marketImpactBps = "2.8000", totalCostBps = "9.9480"),
+            execCost("seed-exec-eq-amzn-001", "equity-growth", "AMZN", fill(0, 18),
+                arrivalPrice = "205.60", avgFillPrice = "205.75", side = Side.BUY, totalQty = "100",
+                slippageBps = "7.2957", totalCostBps = "7.2957"),
+
+            // ── multi-asset: 4 of 6 trades (skip SPX-PUT, MSFT) ──
+            execCost("seed-exec-ma-aapl-001", "multi-asset", "AAPL", fill(0, 5),
+                arrivalPrice = "186.10", avgFillPrice = "186.00", side = Side.BUY, totalQty = "50",
+                slippageBps = "-5.3735", totalCostBps = "-5.3735"),
+            execCost("seed-exec-ma-eurusd-001", "multi-asset", "EURUSD", fill(0, 1),
+                arrivalPrice = "1.0840", avgFillPrice = "1.0842", side = Side.BUY, totalQty = "100000",
+                slippageBps = "1.8450", totalCostBps = "1.8450"),
+            execCost("seed-exec-ma-us10y-001", "multi-asset", "US10Y", fill(0, 22),
+                arrivalPrice = "96.70", avgFillPrice = "96.75", side = Side.BUY, totalQty = "500",
+                slippageBps = "5.1706", totalCostBps = "5.1706"),
+            execCost("seed-exec-ma-gc-001", "multi-asset", "GC", fill(0, 35),
+                arrivalPrice = "2044.80", avgFillPrice = "2045.60", side = Side.BUY, totalQty = "10",
+                slippageBps = "3.9121", marketImpactBps = "1.5000", totalCostBps = "5.4121"),
+
+            // ── fixed-income: all 3 trades (OTC bonds, tighter slippage) ──
+            execCost("seed-exec-fi-us2y-001", "fixed-income", "US2Y", fill(0, 25),
+                arrivalPrice = "99.22", avgFillPrice = "99.25", side = Side.BUY, totalQty = "1000",
+                slippageBps = "3.0236", totalCostBps = "3.0236"),
+            execCost("seed-exec-fi-us10y-001", "fixed-income", "US10Y", fill(0, 30),
+                arrivalPrice = "96.46", avgFillPrice = "96.50", side = Side.BUY, totalQty = "800",
+                slippageBps = "4.1468", totalCostBps = "4.1468"),
+            execCost("seed-exec-fi-us30y-001", "fixed-income", "US30Y", fill(0, 40),
+                arrivalPrice = "92.06", avgFillPrice = "92.10", side = Side.BUY, totalQty = "500",
+                slippageBps = "4.3450", totalCostBps = "4.3450"),
+
+            // ── emerging-markets: 5 of 6 trades (skip USDJPY) ──
+            execCost("seed-exec-em-baba-001", "emerging-markets", "BABA", fill(1, 8),
+                arrivalPrice = "83.05", avgFillPrice = "83.20", side = Side.BUY, totalQty = "400",
+                slippageBps = "18.0614", marketImpactBps = "4.5000", timingCostBps = "2.1000", totalCostBps = "24.6614"),
+            execCost("seed-exec-em-tsla-001", "emerging-markets", "TSLA", fill(1, 14),
+                arrivalPrice = "249.80", avgFillPrice = "250.10", side = Side.BUY, totalQty = "60",
+                slippageBps = "12.0096", totalCostBps = "12.0096"),
+            execCost("seed-exec-em-eurusd-001", "emerging-markets", "EURUSD", fill(1, 2),
+                arrivalPrice = "1.0848", avgFillPrice = "1.0850", side = Side.BUY, totalQty = "75000",
+                slippageBps = "1.8433", totalCostBps = "1.8433"),
+            execCost("seed-exec-em-gbpusd-001", "emerging-markets", "GBPUSD", fill(2, 6),
+                arrivalPrice = "1.2578", avgFillPrice = "1.2580", side = Side.BUY, totalQty = "50000",
+                slippageBps = "1.5901", totalCostBps = "1.5901"),
+            execCost("seed-exec-em-baba-002", "emerging-markets", "BABA", fill(4, 11),
+                arrivalPrice = "86.70", avgFillPrice = "86.50", side = Side.SELL, totalQty = "100",
+                slippageBps = "23.0681", totalCostBps = "23.0681"),
+
+            // ── macro-hedge: 5 of 7 trades (skip DE10Y, SPX-PUT) ──
+            execCost("seed-exec-mh-usdjpy-001", "macro-hedge", "USDJPY", fill(0, 4),
+                arrivalPrice = "149.75", avgFillPrice = "149.80", side = Side.BUY, totalQty = "120000",
+                slippageBps = "3.3389", marketImpactBps = "2.0000", timingCostBps = "1.0000", totalCostBps = "6.3389"),
+            execCost("seed-exec-mh-gc-001", "macro-hedge", "GC", fill(0, 28),
+                arrivalPrice = "2039.20", avgFillPrice = "2040.00", side = Side.BUY, totalQty = "15",
+                slippageBps = "3.9231", totalCostBps = "3.9231"),
+            execCost("seed-exec-mh-cl-001", "macro-hedge", "CL", fill(1, 19),
+                arrivalPrice = "76.72", avgFillPrice = "76.80", side = Side.BUY, totalQty = "50",
+                slippageBps = "10.4275", marketImpactBps = "3.2000", timingCostBps = "1.5000", totalCostBps = "15.1275"),
+            execCost("seed-exec-mh-si-001", "macro-hedge", "SI", fill(1, 33),
+                arrivalPrice = "23.12", avgFillPrice = "23.10", side = Side.BUY, totalQty = "200",
+                slippageBps = "-8.6505", totalCostBps = "-8.6505"),
+            execCost("seed-exec-mh-gc-002", "macro-hedge", "GC", fill(4, 15),
+                arrivalPrice = "2061.00", avgFillPrice = "2060.50", side = Side.SELL, totalQty = "5",
+                slippageBps = "2.4260", totalCostBps = "2.4260"),
+
+            // ── tech-momentum: 4 of 5 trades (skip GOOGL) ──
+            execCost("seed-exec-tm-nvda-001", "tech-momentum", "NVDA", fill(2, 9),
+                arrivalPrice = "883.50", avgFillPrice = "885.00", side = Side.BUY, totalQty = "90",
+                slippageBps = "16.9836", marketImpactBps = "5.0000", timingCostBps = "2.5000", totalCostBps = "24.4836"),
+            execCost("seed-exec-tm-meta-001", "tech-momentum", "META", fill(2, 16),
+                arrivalPrice = "502.00", avgFillPrice = "502.30", side = Side.BUY, totalQty = "110",
+                slippageBps = "5.9761", totalCostBps = "5.9761"),
+            execCost("seed-exec-tm-msft-001", "tech-momentum", "MSFT", fill(2, 24),
+                arrivalPrice = "421.20", avgFillPrice = "421.50", side = Side.BUY, totalQty = "85",
+                slippageBps = "7.1225", marketImpactBps = "2.5000", totalCostBps = "9.6225"),
+            execCost("seed-exec-tm-meta-002", "tech-momentum", "META", fill(6, 7),
+                arrivalPrice = "510.40", avgFillPrice = "510.00", side = Side.SELL, totalQty = "30",
+                slippageBps = "7.8370", totalCostBps = "7.8370"),
+
+            // ── balanced-income: 4 of 6 trades (skip US30Y buy, DE10Y) ──
+            execCost("seed-exec-bi-us10y-001", "balanced-income", "US10Y", fill(1, 20),
+                arrivalPrice = "96.56", avgFillPrice = "96.60", side = Side.BUY, totalQty = "600",
+                slippageBps = "4.1424", totalCostBps = "4.1424"),
+            execCost("seed-exec-bi-jpm-001", "balanced-income", "JPM", fill(2, 13),
+                arrivalPrice = "208.20", avgFillPrice = "208.40", side = Side.BUY, totalQty = "150",
+                slippageBps = "9.6061", marketImpactBps = "3.0000", totalCostBps = "12.6061"),
+            execCost("seed-exec-bi-aapl-001", "balanced-income", "AAPL", fill(4, 10),
+                arrivalPrice = "187.30", avgFillPrice = "187.20", side = Side.BUY, totalQty = "70",
+                slippageBps = "-5.3390", totalCostBps = "-5.3390"),
+            execCost("seed-exec-bi-us30y-002", "balanced-income", "US30Y", fill(6, 31),
+                arrivalPrice = "93.15", avgFillPrice = "93.10", side = Side.SELL, totalQty = "100",
+                slippageBps = "5.3677", totalCostBps = "5.3677"),
+
+            // ── derivatives-book: 4 of 6 trades (skip VIX-PUT, TSLA) ──
+            execCost("seed-exec-db-spx-call-001", "derivatives-book", "SPX-CALL-5000", fill(1, 5),
+                arrivalPrice = "41.30", avgFillPrice = "41.50", side = Side.BUY, totalQty = "100",
+                slippageBps = "48.4262", marketImpactBps = "8.0000", timingCostBps = "3.5000", totalCostBps = "59.9262"),
+            execCost("seed-exec-db-spx-put-001", "derivatives-book", "SPX-PUT-4500", fill(2, 8),
+                arrivalPrice = "32.80", avgFillPrice = "33.00", side = Side.BUY, totalQty = "75",
+                slippageBps = "60.9756", totalCostBps = "60.9756"),
+            execCost("seed-exec-db-nvda-001", "derivatives-book", "NVDA", fill(2, 21),
+                arrivalPrice = "887.00", avgFillPrice = "888.00", side = Side.BUY, totalQty = "50",
+                slippageBps = "11.2740", totalCostBps = "11.2740"),
+            execCost("seed-exec-db-spx-call-002", "derivatives-book", "SPX-CALL-5000", fill(6, 12),
+                arrivalPrice = "44.40", avgFillPrice = "44.20", side = Side.SELL, totalQty = "40",
+                slippageBps = "45.0450", totalCostBps = "45.0450"),
         )
     }
 }
