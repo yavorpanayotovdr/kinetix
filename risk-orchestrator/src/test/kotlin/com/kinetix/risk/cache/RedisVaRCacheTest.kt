@@ -1,9 +1,34 @@
 package com.kinetix.risk.cache
 
+import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.BookId
+import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.lettuce.core.RedisConnectionException
+import io.lettuce.core.api.StatefulRedisConnection
+import io.lettuce.core.api.sync.RedisCommands
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import java.math.BigDecimal
+import java.time.Instant
+
+private fun minimalValuationResult(bookId: String = "port-1") = ValuationResult(
+    bookId = BookId(bookId),
+    calculationType = CalculationType.PARAMETRIC,
+    confidenceLevel = ConfidenceLevel.CL_95,
+    varValue = 5000.0,
+    expectedShortfall = 6250.0,
+    componentBreakdown = emptyList(),
+    greeks = null,
+    calculatedAt = Instant.parse("2025-01-15T10:30:00Z"),
+    computedOutputs = setOf(ValuationOutput.VAR),
+    pvValue = null,
+    positionRisk = emptyList(),
+    jobId = null,
+)
 
 class RedisVaRCacheTest : FunSpec({
 
@@ -117,5 +142,30 @@ class RedisVaRCacheTest : FunSpec({
         val result = cacheJson.decodeFromString<CachedValuationResult>(jsonWithFalse)
 
         result.marketDataComplete shouldBe false
+    }
+
+    test("put completes normally when Redis throws RedisConnectionException") {
+        val commands = mockk<RedisCommands<String, String>>()
+        val connection = mockk<StatefulRedisConnection<String, String>>()
+        every { connection.sync() } returns commands
+        every { commands.set(any(), any(), any()) } throws RedisConnectionException("connection refused")
+
+        val cache = RedisVaRCache(connection)
+
+        // Must not throw
+        cache.put("port-1", minimalValuationResult())
+    }
+
+    test("get returns null when Redis throws RedisConnectionException") {
+        val commands = mockk<RedisCommands<String, String>>()
+        val connection = mockk<StatefulRedisConnection<String, String>>()
+        every { connection.sync() } returns commands
+        every { commands.get(any()) } throws RedisConnectionException("connection refused")
+
+        val cache = RedisVaRCache(connection)
+
+        val result = cache.get("port-1")
+
+        result shouldBe null
     }
 })
