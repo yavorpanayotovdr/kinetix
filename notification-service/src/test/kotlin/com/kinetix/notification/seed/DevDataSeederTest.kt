@@ -11,7 +11,7 @@ import io.kotest.matchers.shouldBe
 
 class DevDataSeederTest : FunSpec({
 
-    test("seeds 6 rules and 20 alert events when empty") {
+    test("seeds 6 rules and 25 alert events when empty") {
         val engine = RulesEngine(InMemoryAlertRuleRepository())
         val eventRepo = InMemoryAlertEventRepository()
         val seeder = DevDataSeeder(engine, eventRepo)
@@ -19,7 +19,7 @@ class DevDataSeederTest : FunSpec({
         seeder.seed()
 
         engine.listRules() shouldHaveSize 6
-        eventRepo.findRecent(50) shouldHaveSize 20
+        eventRepo.findRecent(50) shouldHaveSize 25
     }
 
     test("skips seeding when rules already exist") {
