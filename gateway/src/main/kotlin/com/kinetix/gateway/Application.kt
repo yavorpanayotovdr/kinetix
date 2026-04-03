@@ -73,6 +73,7 @@ import com.kinetix.gateway.websocket.pnlWebSocket
 import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -353,6 +354,10 @@ fun Application.devModule() {
     val httpClient = HttpClient(CIO) {
         install(ClientContentNegotiation) {
             json(jsonConfig)
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 5_000
+            connectTimeoutMillis = 2_000
         }
     }
 
