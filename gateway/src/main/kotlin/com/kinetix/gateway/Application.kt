@@ -496,7 +496,7 @@ fun Application.devModule() {
                     executionProxyRoutes(httpClient, positionUrl)
                 }
                 instrumentRoutes(httpClient, referenceDataUrl)
-                dataQualityRoutes(httpClient, positionUrl)
+                dataQualityRoutes(httpClient, positionUrl, priceUrl, riskUrl)
             }
             requirePermission(Permission.READ_AUDIT, authEnabled = authEnabled) {
                 auditProxyRoutes(httpClient, auditUrl)

@@ -23,7 +23,37 @@ private data class FIXSessionDto(
     val outboundSeqNum: Int,
 )
 
-fun Route.dataQualityRoutes(httpClient: HttpClient? = null, positionUrl: String? = null) {
+@Serializable
+private data class ReadinessResponseDto(
+    val status: String,
+    val checks: Map<String, CheckResultDto> = emptyMap(),
+    val consumers: Map<String, ConsumerHealthDto> = emptyMap(),
+)
+
+@Serializable
+private data class CheckResultDto(
+    val status: String,
+    val details: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+private data class ConsumerHealthDto(
+    val lastProcessedAt: String?,
+    val recordsProcessedTotal: Long,
+    val recordsSentToDlqTotal: Long,
+    val lastErrorAt: String?,
+    val consecutiveErrorCount: Long,
+)
+
+@Serializable
+private data class PortfolioListItemDto(val id: String)
+
+fun Route.dataQualityRoutes(
+    httpClient: HttpClient? = null,
+    positionUrl: String? = null,
+    priceUrl: String? = null,
+    riskUrl: String? = null,
+) {
     route("/api/v1/data-quality") {
         get("/status", {
             summary = "Get data quality status"
@@ -31,27 +61,15 @@ fun Route.dataQualityRoutes(httpClient: HttpClient? = null, positionUrl: String?
         }) {
             val now = Instant.now().toString()
 
+            val priceFreshnessCheck = buildPriceFreshnessCheck(httpClient, priceUrl, now)
+            val positionCountCheck = buildPositionCountCheck(httpClient, positionUrl, now)
+            val riskCompletenessCheck = buildRiskCompletenessCheck(httpClient, riskUrl, now)
             val fixSessionCheck = buildFixSessionCheck(httpClient, positionUrl, now)
 
             val checks = listOf(
-                DataQualityCheckResponse(
-                    name = "Price Freshness",
-                    status = "UNKNOWN",
-                    message = "not implemented",
-                    lastChecked = now,
-                ),
-                DataQualityCheckResponse(
-                    name = "Position Count",
-                    status = "UNKNOWN",
-                    message = "not implemented",
-                    lastChecked = now,
-                ),
-                DataQualityCheckResponse(
-                    name = "Risk Result Completeness",
-                    status = "UNKNOWN",
-                    message = "not implemented",
-                    lastChecked = now,
-                ),
+                priceFreshnessCheck,
+                positionCountCheck,
+                riskCompletenessCheck,
                 fixSessionCheck,
             )
 
@@ -68,6 +86,148 @@ fun Route.dataQualityRoutes(httpClient: HttpClient? = null, positionUrl: String?
 }
 
 private val lenientJson = Json { ignoreUnknownKeys = true }
+
+private suspend fun buildPriceFreshnessCheck(
+    httpClient: HttpClient?,
+    priceUrl: String?,
+    now: String,
+): DataQualityCheckResponse {
+    if (httpClient == null || priceUrl == null) {
+        return DataQualityCheckResponse(
+            name = "Price Freshness",
+            status = "UNKNOWN",
+            message = "not configured",
+            lastChecked = now,
+        )
+    }
+
+    return try {
+        val response = httpClient.get("$priceUrl/health/ready")
+        if (response.status.isSuccess()) {
+            DataQualityCheckResponse(
+                name = "Price Freshness",
+                status = "OK",
+                message = "Price service is ready",
+                lastChecked = now,
+            )
+        } else {
+            DataQualityCheckResponse(
+                name = "Price Freshness",
+                status = "CRITICAL",
+                message = "Price service reported status ${response.status.value}",
+                lastChecked = now,
+            )
+        }
+    } catch (e: Exception) {
+        DataQualityCheckResponse(
+            name = "Price Freshness",
+            status = "CRITICAL",
+            message = "Cannot reach price-service: ${e.message}",
+            lastChecked = now,
+        )
+    }
+}
+
+private suspend fun buildPositionCountCheck(
+    httpClient: HttpClient?,
+    positionUrl: String?,
+    now: String,
+): DataQualityCheckResponse {
+    if (httpClient == null || positionUrl == null) {
+        return DataQualityCheckResponse(
+            name = "Position Count",
+            status = "UNKNOWN",
+            message = "not configured",
+            lastChecked = now,
+        )
+    }
+
+    return try {
+        val response = httpClient.get("$positionUrl/api/v1/books")
+        if (!response.status.isSuccess()) {
+            return DataQualityCheckResponse(
+                name = "Position Count",
+                status = "CRITICAL",
+                message = "Failed to fetch portfolios: ${response.status.value}",
+                lastChecked = now,
+            )
+        }
+        val portfolios = lenientJson.decodeFromString<List<PortfolioListItemDto>>(response.body())
+        if (portfolios.isNotEmpty()) {
+            DataQualityCheckResponse(
+                name = "Position Count",
+                status = "OK",
+                message = "${portfolios.size} portfolio(s) active",
+                lastChecked = now,
+            )
+        } else {
+            DataQualityCheckResponse(
+                name = "Position Count",
+                status = "WARNING",
+                message = "No portfolios found — position data may be absent",
+                lastChecked = now,
+            )
+        }
+    } catch (e: Exception) {
+        DataQualityCheckResponse(
+            name = "Position Count",
+            status = "CRITICAL",
+            message = "Cannot reach position-service: ${e.message}",
+            lastChecked = now,
+        )
+    }
+}
+
+private suspend fun buildRiskCompletenessCheck(
+    httpClient: HttpClient?,
+    riskUrl: String?,
+    now: String,
+): DataQualityCheckResponse {
+    if (httpClient == null || riskUrl == null) {
+        return DataQualityCheckResponse(
+            name = "Risk Result Completeness",
+            status = "UNKNOWN",
+            message = "not configured",
+            lastChecked = now,
+        )
+    }
+
+    return try {
+        val response = httpClient.get("$riskUrl/health/ready")
+        if (!response.status.isSuccess()) {
+            return DataQualityCheckResponse(
+                name = "Risk Result Completeness",
+                status = "CRITICAL",
+                message = "Risk orchestrator reported status ${response.status.value}",
+                lastChecked = now,
+            )
+        }
+        val readiness = lenientJson.decodeFromString<ReadinessResponseDto>(response.body())
+        val totalDlq = readiness.consumers.values.sumOf { it.recordsSentToDlqTotal }
+        if (totalDlq == 0L) {
+            DataQualityCheckResponse(
+                name = "Risk Result Completeness",
+                status = "OK",
+                message = "Risk orchestrator is ready, no DLQ records",
+                lastChecked = now,
+            )
+        } else {
+            DataQualityCheckResponse(
+                name = "Risk Result Completeness",
+                status = "WARNING",
+                message = "$totalDlq risk event(s) sent to DLQ",
+                lastChecked = now,
+            )
+        }
+    } catch (e: Exception) {
+        DataQualityCheckResponse(
+            name = "Risk Result Completeness",
+            status = "CRITICAL",
+            message = "Cannot reach risk-orchestrator: ${e.message}",
+            lastChecked = now,
+        )
+    }
+}
 
 private suspend fun buildFixSessionCheck(
     httpClient: HttpClient?,
