@@ -1,29 +1,36 @@
 package com.kinetix.position.seed
 
-import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Position
+import com.kinetix.common.model.Side
+import com.kinetix.position.fix.ExecutionCostAnalysis
+import com.kinetix.position.fix.ExecutionCostRepository
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.*
+import java.math.BigDecimal
 
 class DevDataSeederTest : FunSpec({
 
     val tradeBookingService = mockk<TradeBookingService>()
     val positionRepository = mockk<PositionRepository>()
-    val seeder = DevDataSeeder(tradeBookingService, positionRepository)
+    val executionCostRepo = mockk<ExecutionCostRepository>()
+    val seeder = DevDataSeeder(tradeBookingService, positionRepository, executionCostRepo = executionCostRepo)
 
     beforeEach {
-        clearMocks(tradeBookingService, positionRepository)
+        clearMocks(tradeBookingService, positionRepository, executionCostRepo)
     }
 
-    test("seeds all trades when database is empty") {
-        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
+    fun stubTradeBooking() {
         coEvery { tradeBookingService.handle(any()) } answers {
             val cmd = firstArg<BookTradeCommand>()
             BookTradeResult(
@@ -42,6 +49,23 @@ class DevDataSeederTest : FunSpec({
         }
         coEvery { positionRepository.findByKey(any(), any()) } returns null
         coEvery { positionRepository.save(any()) } just runs
+    }
+
+    fun stubExecutionCostEmpty() {
+        coEvery { executionCostRepo.findByBookId("equity-growth") } returns emptyList()
+        coEvery { executionCostRepo.save(any()) } just runs
+    }
+
+    fun stubExecutionCostExists() {
+        coEvery { executionCostRepo.findByBookId("equity-growth") } returns listOf(
+            DevDataSeeder.EXECUTION_COSTS.first(),
+        )
+    }
+
+    test("seeds all trades when database is empty") {
+        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
+        stubTradeBooking()
+        stubExecutionCostEmpty()
 
         seeder.seed()
 
@@ -52,6 +76,7 @@ class DevDataSeederTest : FunSpec({
         coEvery { positionRepository.findDistinctBookIds() } returns listOf(
             BookId("equity-growth"),
         )
+        stubExecutionCostEmpty()
 
         seeder.seed()
 
@@ -60,24 +85,8 @@ class DevDataSeederTest : FunSpec({
 
     test("updates market prices after booking trades") {
         coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
-        coEvery { tradeBookingService.handle(any()) } answers {
-            val cmd = firstArg<BookTradeCommand>()
-            BookTradeResult(
-                trade = com.kinetix.common.model.Trade(
-                    tradeId = cmd.tradeId,
-                    bookId = cmd.bookId,
-                    instrumentId = cmd.instrumentId,
-                    assetClass = cmd.assetClass,
-                    side = cmd.side,
-                    quantity = cmd.quantity,
-                    price = cmd.price,
-                    tradedAt = cmd.tradedAt,
-                ),
-                position = Position.empty(cmd.bookId, cmd.instrumentId, cmd.assetClass, cmd.price.currency),
-            )
-        }
-        coEvery { positionRepository.findByKey(any(), any()) } returns null
-        coEvery { positionRepository.save(any()) } just runs
+        stubTradeBooking()
+        stubExecutionCostEmpty()
 
         seeder.seed()
 
@@ -111,5 +120,111 @@ class DevDataSeederTest : FunSpec({
         DevDataSeeder.TRADES.forEach { trade ->
             trade.instrumentType shouldNotBe null
         }
+    }
+
+    // ── Execution cost seeding tests ──
+
+    test("seeds execution cost data when database is empty") {
+        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
+        stubTradeBooking()
+        stubExecutionCostEmpty()
+
+        seeder.seed()
+
+        coVerify(exactly = DevDataSeeder.EXECUTION_COSTS.size) { executionCostRepo.save(any()) }
+    }
+
+    test("skips execution cost seeding when seed data already exists") {
+        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
+        stubTradeBooking()
+        stubExecutionCostExists()
+
+        seeder.seed()
+
+        coVerify(exactly = 0) { executionCostRepo.save(any()) }
+    }
+
+    test("seeds execution costs even when trades already exist (warm restart)") {
+        coEvery { positionRepository.findDistinctBookIds() } returns listOf(BookId("equity-growth"))
+        stubExecutionCostEmpty()
+
+        seeder.seed()
+
+        coVerify(exactly = 0) { tradeBookingService.handle(any()) }
+        coVerify(exactly = DevDataSeeder.EXECUTION_COSTS.size) { executionCostRepo.save(any()) }
+    }
+
+    test("execution cost order IDs are all unique") {
+        val orderIds = DevDataSeeder.EXECUTION_COSTS.map { it.orderId }
+        orderIds.distinct().size shouldBe orderIds.size
+    }
+
+    test("execution costs cover all 8 books") {
+        val books = DevDataSeeder.EXECUTION_COSTS.map { it.bookId }.distinct().sorted()
+        books.size shouldBe 8
+        books shouldBe listOf(
+            "balanced-income", "derivatives-book", "emerging-markets",
+            "equity-growth", "fixed-income", "macro-hedge",
+            "multi-asset", "tech-momentum",
+        )
+    }
+
+    test("each book has at least 3 execution cost entries") {
+        val countsByBook = DevDataSeeder.EXECUTION_COSTS.groupBy { it.bookId }.mapValues { it.value.size }
+        countsByBook.forEach { (book, count) ->
+            count shouldBeGreaterThan 2
+        }
+    }
+
+    test("execution costs reference valid trade instrument/book combinations") {
+        val tradeKeys = DevDataSeeder.TRADES.map { Pair(it.bookId.value, it.instrumentId.value) }.toSet()
+        DevDataSeeder.EXECUTION_COSTS.forEach { cost ->
+            tradeKeys shouldContain Pair(cost.bookId, cost.instrumentId)
+        }
+    }
+
+    test("some execution costs have non-null marketImpactBps") {
+        DevDataSeeder.EXECUTION_COSTS.any { it.metrics.marketImpactBps != null } shouldBe true
+    }
+
+    test("some execution costs have non-null timingCostBps") {
+        DevDataSeeder.EXECUTION_COSTS.any { it.metrics.timingCostBps != null } shouldBe true
+    }
+
+    test("timingCostBps entries are a subset of marketImpactBps entries") {
+        DevDataSeeder.EXECUTION_COSTS.forEach { cost ->
+            if (cost.metrics.timingCostBps != null) {
+                cost.metrics.marketImpactBps shouldNotBe null
+            }
+        }
+    }
+
+    test("totalCostBps equals slippageBps + marketImpactBps + timingCostBps for every entry") {
+        DevDataSeeder.EXECUTION_COSTS.forEach { cost ->
+            val expected = cost.metrics.slippageBps
+                .add(cost.metrics.marketImpactBps ?: BigDecimal.ZERO)
+                .add(cost.metrics.timingCostBps ?: BigDecimal.ZERO)
+            cost.metrics.totalCostBps.compareTo(expected) shouldBe 0
+        }
+    }
+
+    test("slippage sign convention is correct for BUY and SELL sides") {
+        // BUY: positive slippage means paid more than arrival (cost)
+        // SELL: positive slippage means received less than arrival (cost)
+        DevDataSeeder.EXECUTION_COSTS.forEach { cost ->
+            val diff = cost.averageFillPrice.subtract(cost.arrivalPrice)
+            val sideSign = if (cost.side == Side.BUY) BigDecimal.ONE else BigDecimal("-1")
+            val expectedSign = diff.multiply(sideSign).signum()
+            cost.metrics.slippageBps.signum() shouldBe expectedSign
+        }
+    }
+
+    test("execution cost data has mix of positive and negative slippage") {
+        val positive = DevDataSeeder.EXECUTION_COSTS.count { it.metrics.slippageBps > BigDecimal.ZERO }
+        val negative = DevDataSeeder.EXECUTION_COSTS.count { it.metrics.slippageBps < BigDecimal.ZERO }
+        positive shouldBeGreaterThan 0
+        negative shouldBeGreaterThan 0
+        // Majority should be positive (realistic: most orders have some cost)
+        positive shouldBeGreaterThan negative
     }
 })
