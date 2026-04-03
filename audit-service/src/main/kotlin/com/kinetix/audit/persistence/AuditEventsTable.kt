@@ -27,6 +27,7 @@ object AuditEventsTable : Table("audit_events") {
     val limitId = varchar("limit_id", 255).nullable()
     val submissionId = varchar("submission_id", 255).nullable()
     val details = text("details").nullable()
+    val sequenceNumber = long("sequence_number").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

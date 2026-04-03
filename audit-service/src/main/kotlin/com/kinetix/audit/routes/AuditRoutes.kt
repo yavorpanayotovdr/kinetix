@@ -6,6 +6,8 @@ import com.kinetix.audit.persistence.AuditHasher
 import com.kinetix.audit.persistence.ChainVerificationResult
 import com.kinetix.audit.persistence.VerificationCheckpoint
 import com.kinetix.audit.persistence.VerificationCheckpointRepository
+import com.kinetix.audit.routes.dtos.GapDetectionResponse
+import com.kinetix.audit.routes.dtos.SequenceGap
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -98,6 +100,33 @@ fun Route.auditRoutes(
             val result = ChainVerificationResult(valid = valid, eventCount = totalVerified.toInt())
             logger.info("Audit chain verification complete: valid={}, eventCount={}", result.valid, result.eventCount)
             call.respond(result)
+        }
+
+        get("/gaps", {
+            summary = "Detect gaps in audit event sequence numbers"
+            tags = listOf("Audit")
+        }) {
+            logger.info("Starting audit sequence gap detection")
+
+            val events = repository.findAll()
+            val sequenced = events.mapNotNull { it.sequenceNumber }.sorted()
+
+            val gaps = mutableListOf<SequenceGap>()
+            for (i in 0 until sequenced.size - 1) {
+                val current = sequenced[i]
+                val next = sequenced[i + 1]
+                if (next > current + 1) {
+                    gaps.add(SequenceGap(
+                        afterSequence = current,
+                        beforeSequence = next,
+                        missingCount = next - current - 1,
+                    ))
+                }
+            }
+
+            val response = GapDetectionResponse(gapCount = gaps.size, gaps = gaps)
+            logger.info("Gap detection complete: {} gaps found", response.gapCount)
+            call.respond(response)
         }
     }
 }

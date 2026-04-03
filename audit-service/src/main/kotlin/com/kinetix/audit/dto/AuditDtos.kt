@@ -29,6 +29,7 @@ data class AuditEventResponse(
     val limitId: String? = null,
     val submissionId: String? = null,
     val details: String? = null,
+    val sequenceNumber: Long? = null,
 )
 
 @Serializable
@@ -59,4 +60,5 @@ fun AuditEvent.toResponse(): AuditEventResponse = AuditEventResponse(
     limitId = limitId,
     submissionId = submissionId,
     details = details,
+    sequenceNumber = sequenceNumber,
 )
