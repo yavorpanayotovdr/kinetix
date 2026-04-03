@@ -182,7 +182,7 @@ class VaRCalculationService(
             val fetchMdStart = Instant.now()
             val fetchResults = try {
                 if (dependencies.isNotEmpty() && marketDataFetcher != null) {
-                    marketDataFetcher.fetch(dependencies)
+                    marketDataFetcher.fetch(dependencies, correlationId)
                 } else {
                     emptyList()
                 }

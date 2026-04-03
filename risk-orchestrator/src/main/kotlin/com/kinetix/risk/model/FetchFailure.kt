@@ -11,4 +11,5 @@ data class FetchFailure(
     val service: String,
     val timestamp: Instant,
     val durationMs: Long,
+    val correlationId: String? = null,
 ) : FetchResult

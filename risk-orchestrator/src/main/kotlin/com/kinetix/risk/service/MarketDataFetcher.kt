@@ -54,7 +54,7 @@ class MarketDataFetcher(
         else -> null
     }
 
-    suspend fun fetch(dependencies: List<DiscoveredDependency>): List<FetchResult> {
+    suspend fun fetch(dependencies: List<DiscoveredDependency>, correlationId: String? = null): List<FetchResult> {
         val results = mutableListOf<FetchResult>()
 
         for (dep in dependencies) {
@@ -86,6 +86,7 @@ class MarketDataFetcher(
                             service = resolveServiceName(dep.dataType),
                             timestamp = startTime,
                             durationMs = durationMs,
+                            correlationId = correlationId,
                         )
                     )
                     is ClientResponse.ServiceUnavailable -> {
@@ -100,6 +101,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -118,6 +120,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -133,6 +136,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -148,6 +152,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -165,6 +170,7 @@ class MarketDataFetcher(
                         service = resolveServiceName(dep.dataType),
                         timestamp = startTime,
                         durationMs = durationMs,
+                        correlationId = correlationId,
                     )
                 )
             } catch (e: MarketDataFetchException) {
@@ -182,6 +188,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -197,6 +204,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -212,6 +220,7 @@ class MarketDataFetcher(
                                 service = resolveServiceName(dep.dataType),
                                 timestamp = startTime,
                                 durationMs = durationMs,
+                                correlationId = correlationId,
                             )
                         )
                     }
@@ -230,6 +239,7 @@ class MarketDataFetcher(
                         service = resolveServiceName(dep.dataType),
                         timestamp = startTime,
                         durationMs = durationMs,
+                        correlationId = correlationId,
                     )
                 )
             }
